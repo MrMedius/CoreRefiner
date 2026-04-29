@@ -1,0 +1,74 @@
+#pragma once
+#include "Window.h"
+#include "Timer.h"
+#include "ImguiManager.h"
+#include "CameraContainer.h"
+#include "PointLight.h"
+#include "ScriptCommander.h"
+
+#include "InGameRenderGraph.h"
+#include "InUserInterfaceRenderGraph.h"
+
+#include "Player.h"
+#include "EnvironmentManager.h"
+#include "EnemyManager.h"
+#include "EffectManager.h"
+
+#include "UI_Game.h"
+#include "UI_Title.h"
+#include "UI_Result.h"
+#include "UI_Loading.h"
+
+class Game
+{
+private:
+	enum SCENE : int
+	{
+		SCENE_TITLE,
+		SCENE_GAME,
+		SCENE_RESULT,
+		SCENE_LOADING,
+	}Scene{ SCENE_TITLE };
+public:
+	Game( const std::string& commandLine = "" );
+	int RunGame();
+	~Game();
+private:
+	void Update(float dt);
+	void Draw(void);
+	void SetScene(SCENE scene) { Scene = scene; }
+	/********************************/
+	/*         Game Related         */
+	/********************************/
+private:
+	// Core components
+	std::string commandLine;
+	ImguiManager imgui;
+	Window wnd;
+	ScriptCommander scriptCommander;
+	bool Pause{ false };
+	// FPS calculation
+	std::chrono::steady_clock::time_point LastFrameTime;
+	std::chrono::steady_clock::time_point StartFrameTime;
+	int FrameCounter{ 0 };
+	Timer timer_update;
+	Timer timer_FPS;
+	float speed_factor = 1.0f;
+	/********************************/
+	/*         Game Related         */
+	/********************************/
+	PointLight light;
+	CameraContainer cameras{ wnd.Gfx() };
+	Rgph::InGameRenderGraph gameRG{ wnd.Gfx() };
+	Rgph::InUserInterfaceRenderGraph UIRG{ wnd.Gfx() };
+	// Objects
+	Player* pPlayer;
+	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
+	std::unique_ptr<EnemyManager> pEnemyManager;
+	std::unique_ptr<EffectManager> pEffectManager;
+	// UI
+	std::unique_ptr<UI_Title> pUI_Title;
+	std::unique_ptr<UI_Game> pUI_Game;
+	std::unique_ptr<UI_Result> pUI_Result;
+	std::unique_ptr<UI_Loading> pUI_Loading;
+};

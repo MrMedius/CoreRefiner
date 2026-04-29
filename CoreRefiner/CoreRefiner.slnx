@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="CoreRefiner\CoreRefiner.vcxproj" Id="f3c66019-8803-435b-a1d7-d837f4c41b9c" />
+</Solution>

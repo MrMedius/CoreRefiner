@@ -1,0 +1,47 @@
+#pragma once
+#include "Environment.h"
+#include "RenderGraph.h"
+#include "CubeBlock.h"
+#include "Channels.h"
+
+class Block : public Environment
+{
+public:
+	Block(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 size, bool onCollision, Object_Type_Tag tag = environment_Block)
+		:
+		Environment(tag)
+	{
+		// parameters init
+		SetPosition(position);
+		SetSize(size);
+		SetCollisionSize(size);
+		SetCollisionOnOff(onCollision);
+
+		// graphics init
+		visualPre = std::make_unique<CubeLock>(gfx, size);
+		visualPre->SetPosition(transInfo.position);
+		visualPre->LinkTechniques(rg);
+
+		// collider init
+		DirectX::XMFLOAT3 localHalf{ 0.5f, 0.5f, 0.5f };
+		boxCollider = BoxCollider::BuildFromWorldMatrix(transInfo.GetWorldMatrix(), localHalf);
+#ifdef _DEBUG
+		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3(1.0f, 0.0f, 0.0f));
+		boxColliderWire->LinkTechniques(rg);
+#endif
+	}
+	void OnEnable(void) override {}
+	void Update(float dt) override {}
+	void Submit(void) override
+	{
+		visualPre->Submit(Chan::main);
+		visualPre->Submit(Chan::shadow);
+#ifdef _DEBUG
+		//boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
+#endif
+	}
+	void OnCollide(Character* other) override {}
+private:
+	std::unique_ptr<CubeLock> visualPre;
+};
+
