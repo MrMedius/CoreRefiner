@@ -14,31 +14,10 @@ enum Object_Type_Tag
 	Item_Type_None = 0x000,
 	// Character
 	character_Player			   = 0x999,
-	character_Enemy_Red_T		   = 0x010,
 	character_Enemy_Red_0		   = 0x011,
-	character_Enemy_Red_1		   = 0x012,
-	character_Enemy_Green_T		   = 0x020,
-	character_Enemy_Green_0		   = 0x021,
-	character_Enemy_Green_1		   = 0x022,
-	character_Enemy_Blue_T		   = 0x030,
-	character_Enemy_Blue_0		   = 0x031,
-	character_Enemy_Blue_1		   = 0x032,
-	character_Enemy_Boss		   = 0x041,
 	// Environment				  
-	environment_Skybox			   = 0x100,
-	environment_Block			   = 0x101,
-	environment_BlockTiled		   = 0x102,
-	environment_BlockInvisible	   = 0x103,
-	environment_BlockFog		   = 0x104,
-	environment_FireflyField	   = 0x105,
-	environment_SkyGridField	   = 0x106,
-	environment_BlockTiledTutorial = 0x107,
+	environment_Field			   = 0x100,
 	// Effect
-	effect_Player_Remote_Attack_1  = 0x200,
-	effect_Player_Remote_Attack_2  = 0x201,
-	effect_Player_Remote_Attack_3  = 0x202,
-	effect_Player_Hit			   = 0x212,
-	effect_Player_EnergyAbsorb	   = 0x213,
 };
 
 class ObjectBase

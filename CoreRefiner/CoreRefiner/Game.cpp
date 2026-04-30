@@ -17,14 +17,15 @@
 #include "ObjectCodex.h"
 #include "GameStatsCodex.h"
 
+
 namespace dx = DirectX;
 
 Game::Game(const std::string& commandLine)
 	:
 	commandLine(commandLine),
-	wnd(1280, 720, "PRIMARY"),
+	wnd(1280, 720, "CR"),
 	scriptCommander(TokenizeQuoted(commandLine)),
-	light(wnd.Gfx(), { 0.0f,70.0f,0.0f })
+	light(wnd.Gfx(), { 0.0f,20.0f,0.0f })
 {
 #ifdef _DEBUG
 	cameras.AddCamera(light.ShareCamera());
@@ -34,16 +35,8 @@ Game::Game(const std::string& commandLine)
 	cameras.LinkTechniques(gameRG);
 
 	// Objects
-	pPlayer = ObjectCodex::Acquire<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,45.0f,0.0f });
+	pPlayer = ObjectCodex::Acquire<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,15.0f,0.0f });
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
-	pEnemyManager = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG);
-	pEffectManager = std::make_unique<EffectManager>(wnd.Gfx(), gameRG);
-
-	// UI
-	pUI_Title = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
-	pUI_Game = std::make_unique<UI_Game>(wnd.Gfx(), gameRG);
-	pUI_Result = std::make_unique<UI_Result>(wnd.Gfx(), UIRG);
-	pUI_Loading = std::make_unique<UI_Loading>(wnd.Gfx(), UIRG);
 
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
@@ -110,48 +103,14 @@ void Game::Update(float dt)
 	switch (Scene)
 	{
 	case SCENE_TITLE:
-		pUI_Title->Update(dt);
-
-		if (pUI_Title->GetIsStart())
+		if (InputCodex::Get().KeyTriggered(VK_SPACE))
 		{
-			pUI_Title->Reset();
-			SetScene(SCENE_LOADING);
-			pUI_Loading->StartLoading(SCENE_GAME);
-
-			SoundCodex::Get().PlayBGM(SndPath::BGM_Game, -1);
-		}
-		if (pUI_Title->GetIsFullscreen())
-		{
-			wnd.ToggleFullscreen();
-			pUI_Title->ResetFullscreen();
-		}
-		if (pUI_Title->GetIsEnd())
-		{
-			PostQuitMessage(0);
+			SetScene(SCENE_GAME);
 		}
 		break;
 	case SCENE_GAME:
 		if (!Pause)
 		{
-			// Check If Game Finished
-			if (pPlayer->GetIsGameOver() || pUI_Game->GetIsVictory())
-			{
-				if (pUI_Game->GetIsVictory())
-				{
-					SoundCodex::Get().PlaySE(SndPath::SE_Game_Victory);
-					GameStatsCodex::SetGameClear();
-				}
-				if (pPlayer->GetIsGameOver())
-				{
-					SoundCodex::Get().PlaySE(SndPath::SE_Game_Over);
-				}
-				pUI_Result->Reset();
-				SetScene(SCENE_LOADING);
-				pUI_Loading->StartLoading(SCENE_RESULT);
-
-				SoundCodex::Get().PlayBGM(SndPath::BGM_Result, -1);
-			}
-
 			// Game Loop
 			auto playerPos = pPlayer->GetPosition();
 			cameras.Update(dt, playerPos, &wnd);
@@ -164,11 +123,8 @@ void Game::Update(float dt)
 				if (!pPlayer->GetIsChange())
 				{
 					GameStatsCodex::UpdateLifeTime(dt);
-					pUI_Game->Update(dt);
 
 					pEnvironmentManager->Update(dt);
-					pEnemyManager->Update(dt, pUI_Game->GetIsInCD());
-					pEffectManager->Update(dt);
 				}
 			}
 			gameRG.Update(dt);
@@ -176,32 +132,6 @@ void Game::Update(float dt)
 		}
 		break;
 	case SCENE_RESULT:
-		pUI_Result->Update(dt);
-
-		if (pUI_Result->GetToTitle())
-		{
-			SetScene(SCENE_LOADING);
-			pUI_Loading->StartLoading(SCENE_TITLE);
-
-			pPlayer->OnEnable();
-			cameras.Reset();
-			light.Reset();
-			pEnemyManager->Reset();
-			pEnvironmentManager->Reset();
-			pEffectManager->Reset();
-			pUI_Game->Reset();
-			GameStatsCodex::Reset();
-			SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
-		}
-		break;
-	case SCENE_LOADING:
-		pUI_Loading->Update(dt);
-
-		if (pUI_Loading->FinishLoading())
-		{
-			SetScene(static_cast<SCENE>(pUI_Loading->SceneLoading()));
-		}
-
 		break;
 	}	
 }
@@ -212,8 +142,6 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-		// UI
-		pUI_Title->Submit();
 
 		UIRG.Execute(wnd.Gfx());
 		break;
@@ -228,11 +156,7 @@ void Game::Draw()
 		cameras.Submit(Chan::main);
 		// Objects
 		pEnvironmentManager->Submit();
-		pEnemyManager->Submit();
-		pEffectManager->Submit();
 		pPlayer->Submit();
-		// UI
-		pUI_Game->Submit();
 
 		gameRG.Execute(wnd.Gfx());
 
@@ -240,9 +164,7 @@ void Game::Draw()
 		// imgui windows
 		cameras.SpawnWindow(wnd.Gfx());
 		light.SpawnControlWindow();
-		pEnvironmentManager->SpawnWindow();
 		SoundCodex::Get().SpawnWindow();
-		GameStatsCodex::SpawnWindow();
 
 		gameRG.RenderWindows(wnd.Gfx());
 #endif
@@ -250,15 +172,6 @@ void Game::Draw()
 	}
 	case SCENE_RESULT:
 	{
-		pUI_Result->Submit();
-
-		UIRG.Execute(wnd.Gfx());
-		break;
-	}
-	case SCENE_LOADING:
-	{
-		pUI_Loading->Submit();
-
 		UIRG.Execute(wnd.Gfx());
 		break;
 	}

@@ -230,13 +230,11 @@ void Enemy_Red_0_HurtState::OnEnter(Enemy_Red_0* owner)
 	// set anime
 	owner->GetVisualPre()->SetFrameAuto(pack.numU, pack.numV, pack.FrameStart, pack.FrameTotalCount, 0, pack.FPS, !owner->GetIsFlip(), false);
 	// make sure not be hit repeatly
-	BeAttackedTypeOld = owner->GetBeAttackedType();
 }
 
 void Enemy_Red_0_HurtState::OnExit(Enemy_Red_0* owner)
 {
 	owner->SetIsHurt(false);
-	owner->SetBeAttackedType(Attack_Type_None);
 }
 
 void Enemy_Red_0_HurtState::Update(Enemy_Red_0* owner, float dt)
@@ -244,7 +242,6 @@ void Enemy_Red_0_HurtState::Update(Enemy_Red_0* owner, float dt)
 	// set anime
 	owner->GetVisualPre()->Update(dt);
 
-	if (owner->GetBeAttackedType() != BeAttackedTypeOld) BeAttackedTypeOld = owner->GetBeAttackedType();
 
 	// 攻撃をカウントダウン
 	owner->DoAttackCountDown();

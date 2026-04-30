@@ -18,8 +18,6 @@ private:
 
 	std::vector<Enemy*> enemies;
 
-	//EnemyBoss* pEnemyBoss;
-
 	float Interval{ 1.5f };
 	float CountDown{ 0 };
 	bool NewEnemy{ false };

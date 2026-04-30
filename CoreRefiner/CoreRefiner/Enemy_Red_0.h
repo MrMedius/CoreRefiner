@@ -127,7 +127,6 @@ public:
 	std::string GetName() const override { return ENEMY_STATE[ENEMY_HURT]; }
 private:
 	SpriteAnimeInfo pack{ 12, 8, 25, 24 };
-	Attack_Type_Tag BeAttackedTypeOld{ Attack_Type_None };
 };
 
 /*------------------------------------------------------------------------------

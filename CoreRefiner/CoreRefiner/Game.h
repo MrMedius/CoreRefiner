@@ -11,13 +11,6 @@
 
 #include "Player.h"
 #include "EnvironmentManager.h"
-#include "EnemyManager.h"
-#include "EffectManager.h"
-
-#include "UI_Game.h"
-#include "UI_Title.h"
-#include "UI_Result.h"
-#include "UI_Loading.h"
 
 class Game
 {
@@ -27,7 +20,6 @@ private:
 		SCENE_TITLE,
 		SCENE_GAME,
 		SCENE_RESULT,
-		SCENE_LOADING,
 	}Scene{ SCENE_TITLE };
 public:
 	Game( const std::string& commandLine = "" );
@@ -64,11 +56,4 @@ private:
 	// Objects
 	Player* pPlayer;
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
-	std::unique_ptr<EnemyManager> pEnemyManager;
-	std::unique_ptr<EffectManager> pEffectManager;
-	// UI
-	std::unique_ptr<UI_Title> pUI_Title;
-	std::unique_ptr<UI_Game> pUI_Game;
-	std::unique_ptr<UI_Result> pUI_Result;
-	std::unique_ptr<UI_Loading> pUI_Loading;
 };

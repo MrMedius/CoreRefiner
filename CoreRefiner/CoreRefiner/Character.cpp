@@ -27,14 +27,11 @@ void Character::MapItemCollide(void)
 /*------------------------------------------------------------------------------
    MapEnvironment
 ------------------------------------------------------------------------------*/
-	OnFloor = false; //先ずは床にいないを想定する
+	//OnFloor = false; //先ずは床にいないを想定する
 
 	std::vector<Environment*> mapEnvironment;
 	for (auto tag : {
-		environment_Block,
-		environment_BlockTiled,
-		environment_BlockInvisible,
-		environment_BlockTiledTutorial
+		environment_Field
 		}) {
 		// 全てのマップオブジェクトを探す
 		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
@@ -120,15 +117,7 @@ void Character::MapItemCollide(void)
 	std::vector<Character*> mapCharacters;
 	for (auto tag : {
 		character_Player,
-		character_Enemy_Red_T,
 		character_Enemy_Red_0,
-		character_Enemy_Red_1,
-		character_Enemy_Green_T,
-		character_Enemy_Green_0,
-		character_Enemy_Green_1,
-		character_Enemy_Blue_T,
-		character_Enemy_Blue_0,
-		character_Enemy_Blue_1
 		}) {
 		// 全てのキャラクターを探す
 		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);
@@ -226,38 +215,6 @@ void Character::MapItemCollide(void)
 				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, -MoveAccel * push_rate);
 
 				continue;
-			}
-		}
-	}
-
-/*------------------------------------------------------------------------------
-   MapEffect_Player
-------------------------------------------------------------------------------*/
-	if(this->Tag != character_Player)
-	{
-		std::vector<Effect*> mapEffect_P;
-		for (auto tag : {
-			effect_Player_Remote_Attack_1,
-			effect_Player_Remote_Attack_2,
-			effect_Player_Remote_Attack_3
-			}) {
-			// 全てのキャラクターを探す
-			auto found = ObjectCodex::FindActiveObjectsByTag<Effect>(tag);
-			// 全てのキャラクターを整理する
-			mapEffect_P.reserve(mapEffect_P.size() + found.size());
-			mapEffect_P.insert(mapEffect_P.end(), found.begin(), found.end());
-		}
-
-		// ループでコリジョン判断
-		for (auto e : mapEffect_P)
-		{
-			if (!e->GetCollisionOnOff()) continue;
-
-			bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, e->GetBoxCollider());
-			
-			if (isCollide)
-			{
-				e->OnCollide(this);
 			}
 		}
 	}

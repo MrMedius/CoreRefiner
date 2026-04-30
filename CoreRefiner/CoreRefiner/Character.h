@@ -3,31 +3,6 @@
 #include "Collision.h"
 #include "FSM.h"
 
-enum Attack_Type_Tag
-{
-	Attack_Type_None = 0x000,
-
-	Player_Attack_1	  = 0x901,
-	Player_Attack_2	  = 0x902,
-	Player_Attack_3	  = 0x903,
-	Player_Skill_1	  = 0x911,
-	Player_Skill_2	  = 0x912,
-	Player_Skill_3	  = 0x913,
-	Player_Fever_1	  = 0x921,
-	Player_Fever_2	  = 0x922,
-	Player_Fever_3	  = 0x923,
-	Player_Fever_Mega = 0x999,
-
-	Enemy_Red_0_Attack	 =	0x010,
-	Enemy_Red_1_Attack	 =	0x011,
-	Enemy_Green_0_Attack =	0x020,
-	Enemy_Green_1_Attack =	0x021,
-	Enemy_Blue_0_Attack  =	0x030,
-	Enemy_Blue_1_Attack  =	0x031,
-
-	Enemy_Boss_Attack = 0x201,
-};
-
 class Character : public ObjectBase
 {
 public:
@@ -62,10 +37,6 @@ public:
 	bool GetAttackCollisionOnOff(void) const				{ return OnAttackCollision; }	// 攻撃間隔カウントダウンをゲット
 	void ResetAttackCountDown(void)							{ AttackCountDown = AttackInterval; }			// 攻撃のコリジョンをリセット
 	void DoAttackCountDown(void)							{ if (AttackCountDown > 0) AttackCountDown--; }	// 攻撃をカウントダウン
-	void SetDoAttackType(Attack_Type_Tag type)				{ DoAttackType = type; }	// 攻撃の種類をセット
-	Attack_Type_Tag GetDoAttackType(void) const				{ return DoAttackType; }	// 攻撃の種類をゲット
-	void SetBeAttackedType(Attack_Type_Tag type)			{ BeAttackedType = type; }	// 攻撃されたの種類をセット
-	Attack_Type_Tag GetBeAttackedType(void) const			{ return BeAttackedType; }	// 攻撃されたの種類をゲット
 	void SetIsFlip(bool isFlip)		{ IsFlip = isFlip; }		// 向いている方向をセット
 	bool GetIsFlip(void) const		{ return IsFlip; }			// 向いている方向をゲット
 	void SetIsAttack(bool state)	{ IsAttack = state; }		// 攻撃状態をセット
@@ -96,8 +67,6 @@ protected:
 	float AttackInterval{ 0 };							// 攻撃間隔
 	float AttackCountDown{ 0 };							// 攻撃間隔カウントダウン
 	bool OnAttackCollision{ false };					// 攻撃のコリジョンスイッチ
-	Attack_Type_Tag DoAttackType{ Attack_Type_None };	// 攻撃の種類
-	Attack_Type_Tag BeAttackedType{ Attack_Type_None };	// 攻撃されたの種類
 	bool IsFlip{ false };								// 向いている方向の反転の判断、右は正方向
 	bool OnFloor{ false };								// 地面に乗っているかどうかの判断
 	bool IsAttack{ false };								// 攻撃状態の判断

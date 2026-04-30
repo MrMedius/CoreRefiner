@@ -28,15 +28,12 @@ public:
 	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }											
 	void SetMoveAccel(float accel)							{ MoveAccel = accel; }
 	float GetMoveAccel(void) const							{ return MoveAccel; }
-	void SetDoAttackType(Attack_Type_Tag type)				{ DoAttackType = type; }
-	Attack_Type_Tag GetDoAttackType(void) const				{ return DoAttackType; }
 protected:
 	void SetEffectState(EffectState state) { effectState = state; }
 protected:
 	EffectState effectState{ Appear };
 	float MoveAccel{ 0.0f };
 	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };
-	Attack_Type_Tag DoAttackType{ Attack_Type_None };
 	float lastTime{ 0.0f };
 	float lifeTime{ 0.5f };
 };

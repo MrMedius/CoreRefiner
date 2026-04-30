@@ -109,15 +109,15 @@
     <Filter Include="Tool">
       <UniqueIdentifier>{05ac8d12-cd0c-4120-9a3e-4b52c67aedb0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Tool\Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
     <Filter Include="Tool\Imgui">
       <UniqueIdentifier>{95303eab-1a7b-40e9-a7be-ae3ec72f99af}</UniqueIdentifier>
     </Filter>
     <Filter Include="Tool\Imgui\Manager">
       <UniqueIdentifier>{579e3211-391d-4590-a518-fb1384c0d814}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Tool\Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -144,9 +144,6 @@
     </ClCompile>
     <ClCompile Include="ImguiManager.cpp">
       <Filter>Tool\Imgui\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="SkyboxObj.h">
-      <Filter>Object\Environment</Filter>
     </ClCompile>
     <ClCompile Include="DxgiInfoManager.cpp">
       <Filter>Framework\Exception</Filter>
@@ -259,34 +256,13 @@
     <ClCompile Include="ScaleOutlineRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
-    <ClCompile Include="CubeBlock.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="CubeTiled.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="CubeTiledTutorial.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
     <ClCompile Include="CubeWireframe.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClCompile>
     <ClCompile Include="Drawable.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClCompile>
-    <ClCompile Include="FireflyEffect.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="FogVolume.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
     <ClCompile Include="PointLight.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Skybox.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="SkyGridCylinder.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClCompile>
     <ClCompile Include="SolidSphere.cpp">
@@ -406,19 +382,10 @@
     <ClCompile Include="DynamicVertexBuffer.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
-    <ClCompile Include="FieldTransitionCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
     <ClCompile Include="RingParamsCbuf.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
     <ClCompile Include="ShadowCameraCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
-    <ClCompile Include="SkyboxTransformCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
-    <ClCompile Include="SkyboxTransitionCbuf.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
     <ClCompile Include="SpriteUVCbuf.cpp">
@@ -430,50 +397,11 @@
     <ClCompile Include="TransformCbuf.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
-    <ClCompile Include="TutorialTransitionCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Blue_0.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Blue_1.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Blue_T.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Green_0.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Green_1.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Green_T.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Red_0.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Red_1.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Enemy_Red_T.cpp">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="Player.cpp">
-      <Filter>Object\Character\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="Player_ResourceSystem.cpp">
       <Filter>Object\Character\Player</Filter>
     </ClCompile>
     <ClCompile Include="Character.cpp">
       <Filter>Object\Character</Filter>
-    </ClCompile>
-    <ClCompile Include="Effect_Player_EnergyAbsorb.cpp">
-      <Filter>Object\Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="EffectManager.cpp">
-      <Filter>Object\Managers</Filter>
     </ClCompile>
     <ClCompile Include="EnemyManager.cpp">
       <Filter>Object\Managers</Filter>
@@ -483,6 +411,15 @@
     </ClCompile>
     <ClCompile Include="Collision.cpp">
       <Filter>Tool</Filter>
+    </ClCompile>
+    <ClCompile Include="Enemy_Red_0.cpp">
+      <Filter>Object\Character\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Player_Shape.cpp">
+      <Filter>Object\Character\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Field_Shape.cpp">
+      <Filter>Object\Environment</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -512,9 +449,6 @@
     </ClInclude>
     <ClInclude Include="IndexedTriangleList.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="CubeBlock.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="Step.h">
       <Filter>Framework\Graphics\GraphPass</Filter>
@@ -618,9 +552,6 @@
     <ClInclude Include="ShadowSampler.h">
       <Filter>Framework\Graphics\Bindable\Shadow</Filter>
     </ClInclude>
-    <ClInclude Include="SkyboxTransformCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
     <ClInclude Include="ShadowCameraCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
@@ -705,17 +636,11 @@
     <ClInclude Include="ObjectCodex.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="FSM.h">
-      <Filter>Tool</Filter>
-    </ClInclude>
     <ClInclude Include="Character.h">
       <Filter>Object\Character</Filter>
     </ClInclude>
     <ClInclude Include="Sprite3D.h">
       <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
-    <ClInclude Include="Block.h">
-      <Filter>Object\Environment</Filter>
     </ClInclude>
     <ClInclude Include="Collision.h">
       <Filter>Tool</Filter>
@@ -726,19 +651,10 @@
     <ClInclude Include="Enemy.h">
       <Filter>Object\Character\Enemy</Filter>
     </ClInclude>
-    <ClInclude Include="Enemy_Red_0.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="Projection.h">
       <Filter>Framework\Graphics\Drawable\Camera</Filter>
     </ClInclude>
     <ClInclude Include="PointLight.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
-    <ClInclude Include="BlockTiled.h">
-      <Filter>Object\Environment</Filter>
-    </ClInclude>
-    <ClInclude Include="CubeTiled.h">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="UIPass.h">
@@ -750,9 +666,6 @@
     <ClInclude Include="Transform2DCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="UI_Game.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="Sprite2DPolygon.h">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
@@ -762,47 +675,11 @@
     <ClInclude Include="RingParamsCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="UI_ResourceSlot.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_WeaponSlot.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Score.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Title.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="InUserInterfaceRenderGraph.h">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
-    <ClInclude Include="Button.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Result.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="Sprite.h">
       <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Red_1.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Blue_0.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Green_0.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="FieldTransitionCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="BlockInvisible.h">
-      <Filter>Object\Environment</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Blue_1.h">
-      <Filter>Object\Character\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="Environment.h">
       <Filter>Object\Environment</Filter>
@@ -813,12 +690,6 @@
     <ClInclude Include="Player.h">
       <Filter>Object\Character\Player</Filter>
     </ClInclude>
-    <ClInclude Include="Player_ResourceSystem.h">
-      <Filter>Object\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Effect_Player_Remote_1.h">
-      <Filter>Object\Effects</Filter>
-    </ClInclude>
     <ClInclude Include="Effect.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
@@ -828,23 +699,8 @@
     <ClInclude Include="EnemyManager.h">
       <Filter>Object\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EffectManager.h">
-      <Filter>Object\Managers</Filter>
-    </ClInclude>
     <ClInclude Include="AnimationInfo.h">
       <Filter>Tool</Filter>
-    </ClInclude>
-    <ClInclude Include="Effect_Player_Remote_2.h">
-      <Filter>Object\Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Effect_Player_Remote_3.h">
-      <Filter>Object\Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Effect_Player_Hit.h">
-      <Filter>Object\Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Green_1.h">
-      <Filter>Object\Character\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="BindableCodex.h">
       <Filter>Framework\Graphics\Bindable</Filter>
@@ -915,74 +771,17 @@
     <ClInclude Include="GameStatsCodex.h">
       <Filter>Tool</Filter>
     </ClInclude>
-    <ClInclude Include="Effect_Player_EnergyAbsorb.h">
-      <Filter>Object\Effects</Filter>
-    </ClInclude>
     <ClInclude Include="SolidSphere.h">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="LambertianTransparentPass.h">
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
     </ClInclude>
-    <ClInclude Include="FogVolume.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
-    <ClInclude Include="BlockFog.h">
-      <Filter>Object\Environment</Filter>
-    </ClInclude>
-    <ClInclude Include="FireflyEffect.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
     <ClInclude Include="DynamicVertexBuffer.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="FireflyField.h">
-      <Filter>Object\Environment</Filter>
-    </ClInclude>
-    <ClInclude Include="Skybox.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
     <ClInclude Include="DynamicCubeTexture.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="SkyboxTransitionCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Loading.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Combo.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Boss.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="UI_Tutorial.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Red_T.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Green_T.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="Enemy_Blue_T.h">
-      <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="SkyGridCylinder.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
-    <ClInclude Include="SkyGridField.h">
-      <Filter>Object\Environment</Filter>
-    </ClInclude>
-    <ClInclude Include="TutorialTransitionCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="CubeTiledTutorial.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
-    <ClInclude Include="BlockTiledTutorial.h">
-      <Filter>Object\Environment</Filter>
     </ClInclude>
     <ClInclude Include="Bindable.h">
       <Filter>Framework\Graphics\Bindable\Core</Filter>
@@ -1043,6 +842,24 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Framework\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Enemy_Red_0.h">
+      <Filter>Object\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="Player_Shape.h">
+      <Filter>Object\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="FSM.h">
+      <Filter>Tool</Filter>
+    </ClInclude>
+    <ClInclude Include="Field_Shape.h">
+      <Filter>Object\Environment</Filter>
+    </ClInclude>
+    <ClInclude Include="Field.h">
+      <Filter>Object\Environment</Filter>
+    </ClInclude>
+    <ClInclude Include="Pyramid.h">
+      <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

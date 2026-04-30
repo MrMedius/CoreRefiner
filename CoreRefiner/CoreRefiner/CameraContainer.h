@@ -32,8 +32,8 @@ private:
 	int controlled = 0;
 
 	// Camera Follow
-	float FollowRadius = 25.0f;
-	float FollowPitch = DirectX::XM_PI / 9.0f;
+	float FollowRadius = 50.0f;
+	float FollowPitch = DirectX::XM_PI / 4.0f;
 	float FollowLerp = 0.1f;
 	DirectX::XMFLOAT3 FollowTarget{ 0.0f,40.0f,0.0f };
 

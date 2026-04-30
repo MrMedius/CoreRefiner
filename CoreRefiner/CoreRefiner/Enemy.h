@@ -40,7 +40,6 @@ public:
 		Character(tag)
 	{
 		AttackTarget = ObjectCodex::FindFirstObjectByTag<Player>(character_Player);
-		auto mapSize = ObjectCodex::FindFirstObjectByTag<ObjectBase>(environment_BlockTiled)->GetSize();
 	}
 	void SpawnAt(XMFLOAT3 pos)
 	{

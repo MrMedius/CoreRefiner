@@ -12,12 +12,10 @@ public:
 	void Update(float dt);
 	void Submit(void);
 	void Reset(void);
-	void SpawnWindow(void);
 private:
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;
 
-	std::vector<Environment*> eT;
 	std::vector<Environment*> eG;
 
 	bool isLearnt{ false };

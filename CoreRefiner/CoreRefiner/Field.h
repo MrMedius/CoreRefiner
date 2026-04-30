@@ -1,13 +1,13 @@
 #pragma once
 #include "Environment.h"
 #include "RenderGraph.h"
-#include "CubeBlock.h"
+#include "Field_Shape.h"
 #include "Channels.h"
 
-class Block : public Environment
+class Field : public Environment
 {
 public:
-	Block(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 size, bool onCollision, Object_Type_Tag tag = environment_Block)
+	Field(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 size, bool onCollision, Object_Type_Tag tag = environment_Field)
 		:
 		Environment(tag)
 	{
@@ -18,7 +18,7 @@ public:
 		SetCollisionOnOff(onCollision);
 
 		// graphics init
-		visualPre = std::make_unique<CubeLock>(gfx, size);
+		visualPre = std::make_unique<Field_Shape>(gfx, size);
 		visualPre->SetPosition(transInfo.position);
 		visualPre->LinkTechniques(rg);
 
@@ -42,6 +42,6 @@ public:
 	}
 	void OnCollide(Character* other) override {}
 private:
-	std::unique_ptr<CubeLock> visualPre;
+	std::unique_ptr<Field_Shape> visualPre;
 };
 
