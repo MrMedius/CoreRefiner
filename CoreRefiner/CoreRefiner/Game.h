@@ -10,6 +10,7 @@
 #include "InUserInterfaceRenderGraph.h"
 
 #include "Player.h"
+#include "AttackManager.h"
 #include "EnvironmentManager.h"
 
 class Game
@@ -55,5 +56,6 @@ private:
 	Rgph::InUserInterfaceRenderGraph UIRG{ wnd.Gfx() };
 	// Objects
 	Player* pPlayer;
+	std::unique_ptr<AttackManager> pAttackManager;
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
 };

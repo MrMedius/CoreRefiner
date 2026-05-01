@@ -9,7 +9,6 @@
 enum PLAYER_STATE_ID {
 	PLAYER_IDLE,
 	PLAYER_MOVE,
-	PLAYER_DASH,
 	PLAYER_ATTACK,
 	PLAYER_HURT,
 	PLAYER_DEATH,
@@ -18,19 +17,15 @@ enum PLAYER_STATE_ID {
 static const std::string PLAYER_STATE[] = {
 	"PLAYER_IDLE",
 	"PLAYER_MOVE",
-	"PLAYER_DASH",
 	"PLAYER_ATTACK",
 	"PLAYER_HURT",
 	"PLAYER_DEATH",
 };
 class Player_IdleState;
 class Player_MoveState;
-class Player_DashState;
 class Player_AttackState;
-class Player_SkillState;
 class Player_HurtState;
 class Player_DeathState;
-class Player_ChangeState;
 
 class Player : public Character
 {
@@ -57,11 +52,11 @@ public:
 		SetAttackInterval(1.5f);
 
 		// graphics init
-		visualPre_Head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 5.0f, 5.0f, 5.0f });
+		visualPre_Head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
 		visualPre_Head->SetPosition(transInfo.position);
 		visualPre_Head->LinkTechniques(rg);
 
-		visualPre_Body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 5.0f, 5.0f, 5.0f });
+		visualPre_Body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
 		visualPre_Body->SetPosition(transInfo.position);
 		visualPre_Body->LinkTechniques(rg);
 
@@ -69,7 +64,6 @@ public:
 		FSM = std::make_unique<StateMachine<Player>>(this);
 		FSM->AddState(PLAYER_STATE[PLAYER_IDLE],	std::make_unique<Player_IdleState>());
 		FSM->AddState(PLAYER_STATE[PLAYER_MOVE],	std::make_unique<Player_MoveState>());
-		FSM->AddState(PLAYER_STATE[PLAYER_DASH],	std::make_unique<Player_DashState>());
 		FSM->AddState(PLAYER_STATE[PLAYER_ATTACK],	std::make_unique<Player_AttackState>());
 		FSM->AddState(PLAYER_STATE[PLAYER_HURT],	std::make_unique<Player_HurtState>());
 		FSM->AddState(PLAYER_STATE[PLAYER_DEATH],	std::make_unique<Player_DeathState>());
@@ -83,8 +77,6 @@ public:
 #ifdef _DEBUG
 		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3{ 1.0f, 0.0f, 0.0f }, "wireBox");
 		boxColliderWire->LinkTechniques(rg);
-		attackColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3{ 0.0f, 0.0f, 1.0f }, "wireAttack");
-		attackColliderWire->LinkTechniques(rg);
 #endif
 	}
 	void OnEnable(void) override
@@ -95,13 +87,6 @@ public:
 		ResetHpCurrent();
 		SetIsDeath(false);
 		SetIsGameOver(false);
-		IsDash = false;
-		IsSkill = false;
-		WasSkill = false;
-		IsChange = false;
-		IsFever = false;
-		isSwitch = false;
-		IsFeverMega = false;
 		IsGameOver = false;
 		SetAttackCollisionSize({ 4.0f,6.0f,2.5f });
 		SetAttackCollisionOnOff(false);
@@ -114,28 +99,6 @@ public:
 			HpDraw += (HpCurrent - HpDraw) * 0.2f;
 		return HpDraw / HpMax;
 	}
-	void SetIsDash(bool state)	 { IsDash = state; }
-	bool GetIsDash(void) const	 { return IsDash; }
-	void SetIsSkill(bool state)	 { IsSkill = state; }
-	bool GetIsSkill(void) const	 { return IsSkill; }
-	void SetWasSkill(bool state) { WasSkill = state; }
-	bool GetWasSkill(void)
-	{
-		if (WasSkill)
-		{
-			WasSkill = false;
-			return true;
-		}
-		else
-			return false;
-	}
-	XMFLOAT2 GetEffectSize(void) const { float effectScale_rate = 1.5f; return {transInfo.scale.x * effectScale_rate, transInfo.scale.y * effectScale_rate}; }
-	void SetIsChange(bool state) { IsChange = state; }
-	bool GetIsChange(void) const { return IsChange; }
-	void SetIsFever(bool state)  { IsFever = state; }
-	bool GetIsFever(void) const  { return IsFever; }
-	void SetIsFeverMega(bool state) { IsFeverMega = state; }
-	bool GetIsFeverMega(void) const { return IsFeverMega; }
 	void SetIsGameOver(bool state) { IsGameOver = state; }
 	bool GetIsGameOver(void) const { return IsGameOver; }
 	void DoMove(float ratio);
@@ -150,14 +113,7 @@ private:
 	Rgph::RenderGraph& Rg;
 	CameraContainer* pCamera;
 	std::unique_ptr<StateMachine<Player>> FSM;
-	bool isSwitch{ false };
 	float HpDraw{ 0.0f };
-	bool IsDash{ false };
-	bool IsSkill{ false };
-	bool WasSkill{ false };
-	bool IsChange{ false };
-	bool IsFever{ false };
-	bool IsFeverMega{ false };
 	bool IsGameOver{ false };
 
 // input related
@@ -170,16 +126,11 @@ private:
 
 		bool moveHeld = false;
 
-		bool dash = false;
 		bool attack = false;
-		bool skill = false;
-		bool change = false;
-		bool slotL = false;
-		bool slotR = false;
 
 		void ClearOneShots() noexcept
 		{
-			dash = attack = skill = change = false;
+			attack = false;
 		}
 	};
 public:
@@ -200,14 +151,11 @@ private:
 class Player_IdleState : public State<Player>
 {
 public:
-	Player_IdleState();
 	void OnEnter(Player* owner) override;
 	void OnExit(Player* owner) override {};
 	void Update(Player* owner, float dt) override;
 	std::string GetName() const override { return PLAYER_STATE[PLAYER_IDLE]; }
 private:
-	std::vector<SpriteAnimeInfo> packs;
-	SpriteAnimeManualAssistant assist;
 };
 
 /*------------------------------------------------------------------------------
@@ -216,29 +164,11 @@ private:
 class Player_MoveState : public State<Player>
 {
 public:
-	Player_MoveState();
 	void OnEnter(Player* owner) override;
 	void OnExit(Player* owner) override {};
 	void Update(Player* owner, float dt) override;
 	std::string GetName() const override { return PLAYER_STATE[PLAYER_MOVE]; }
 private:
-	std::vector<SpriteAnimeInfo> packs;
-	SpriteAnimeManualAssistant assist;
-};
-
-/*------------------------------------------------------------------------------
-   Player_DashState
-------------------------------------------------------------------------------*/
-class Player_DashState : public State<Player>
-{
-public:
-	void OnEnter(Player* owner) override;
-	void OnExit(Player* owner) override {};
-	void Update(Player* owner, float dt) override;
-	std::string GetName() const override { return PLAYER_STATE[PLAYER_DASH]; }
-private:
-	SpriteAnimeInfo pack{ 12, 16, 121, 12 };
-	bool isInput{ false };
 };
 
 /*------------------------------------------------------------------------------
@@ -247,20 +177,11 @@ private:
 class Player_AttackState : public State<Player>
 {
 public:
-	Player_AttackState();
 	void OnEnter(Player* owner) override;
 	void OnExit(Player* owner) override;
 	void Update(Player* owner, float dt) override;
 	std::string GetName() const override { return PLAYER_STATE[PLAYER_ATTACK]; }
 private:
-	std::vector<SpriteAnimeInfo> packs;
-	std::vector<SpriteAnimeInfo> ePacks;
-	std::vector<SpriteAnimeInfo> fPacks;
-	SpriteAnimeManualAssistant assist;
-	XMFLOAT3 baseAttackCollisionSize{ 0.0f,0.0f, 0.0f };
-	unsigned int mode{ 0 };
-	bool isCombo{ false };
-	int oldFrame{ 0 };
 };
 
 /*------------------------------------------------------------------------------
@@ -274,7 +195,6 @@ public:
 	void Update(Player* owner, float dt) override;
 	std::string GetName() const override { return PLAYER_STATE[PLAYER_HURT]; }
 private:
-	SpriteAnimeInfo pack{ 12, 16, 97, 6 };
 };
 
 /*------------------------------------------------------------------------------
@@ -288,5 +208,4 @@ public:
 	void Update(Player* owner, float dt) override;
 	std::string GetName() const override { return PLAYER_STATE[PLAYER_DEATH]; }
 private:
-	SpriteAnimeInfo pack{ 12, 16, 1, 48 };
 };

@@ -10,7 +10,7 @@ class Enemy_Red_0_DeathState;
 class Enemy_Red_0 : public Enemy
 {
 public:
-	Enemy_Red_0(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, Object_Type_Tag tag = character_Enemy_Red_0)
+	Enemy_Red_0(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, Object_Type_Tag tag = character_Enemy_T)
 		:
 		Enemy(tag)
 	{
@@ -52,8 +52,6 @@ public:
 		boxColliderWire->LinkTechniques(rg);
 		searchColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3{ 0.0f, 1.0f, 0.0f }, "wireSearch");
 		searchColliderWire->LinkTechniques(rg);
-		attackColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3{ 0.0f, 0.0f, 1.0f }, "wireAttack");
-		attackColliderWire->LinkTechniques(rg);
 #endif
 	}
 	void OnEnable(void) override

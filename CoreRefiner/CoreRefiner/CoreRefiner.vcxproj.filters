@@ -119,6 +119,12 @@
     <Filter Include="Tool\Imgui\Manager">
       <UniqueIdentifier>{579e3211-391d-4590-a518-fb1384c0d814}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Object\Attack">
+      <UniqueIdentifier>{62d06cbd-546e-40a1-b304-732fab4f9d5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Shapes">
+      <UniqueIdentifier>{d83d1c11-0a59-461a-ace0-0ede645d9a46}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -412,14 +418,23 @@
     <ClCompile Include="Collision.cpp">
       <Filter>Tool</Filter>
     </ClCompile>
-    <ClCompile Include="Enemy_Red_0.cpp">
+    <ClCompile Include="Enemy_T.cpp">
       <Filter>Object\Character\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="Ball.cpp">
+      <Filter>Object\Attack</Filter>
+    </ClCompile>
     <ClCompile Include="Player_Shape.cpp">
-      <Filter>Object\Character\Player</Filter>
+      <Filter>Object\Shapes</Filter>
     </ClCompile>
     <ClCompile Include="Field_Shape.cpp">
-      <Filter>Object\Environment</Filter>
+      <Filter>Object\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Ball_Shape.cpp">
+      <Filter>Object\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="AttackManager.cpp">
+      <Filter>Object\Managers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -843,23 +858,35 @@
     <ClInclude Include="resource.h">
       <Filter>Framework\Window</Filter>
     </ClInclude>
-    <ClInclude Include="Enemy_Red_0.h">
+    <ClInclude Include="Enemy_T.h">
       <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="Player_Shape.h">
-      <Filter>Object\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="FSM.h">
       <Filter>Tool</Filter>
-    </ClInclude>
-    <ClInclude Include="Field_Shape.h">
-      <Filter>Object\Environment</Filter>
     </ClInclude>
     <ClInclude Include="Field.h">
       <Filter>Object\Environment</Filter>
     </ClInclude>
     <ClInclude Include="Pyramid.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Ball.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="Player_Shape.h">
+      <Filter>Object\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Field_Shape.h">
+      <Filter>Object\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Ball_Shape.h">
+      <Filter>Object\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Attack.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackManager.h">
+      <Filter>Object\Managers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

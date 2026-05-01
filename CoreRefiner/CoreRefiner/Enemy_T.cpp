@@ -1,4 +1,4 @@
-#include "Enemy_Red_0.h"
+#include "Enemy_T.h"
 #include "Math.h"
 #include "XMath.h"
 #include "Channels.h"
@@ -14,8 +14,6 @@ void Enemy_Red_0::Update(float dt)
 	// UŒ‚”ÍˆÍ‚ÌXV
 	if(IsInArea)
 	{
-		if (!IsFlip) attackCollider.center = { Position.x + boxCollider.half.x, Position.y, Position.z };
-		else attackCollider.center = { Position.x - boxCollider.half.x, Position.y, Position.z };
 		CheckIsInAttackArea();
 	}
 
@@ -49,7 +47,6 @@ void Enemy_Red_0::Submit(void)
 	{
 		boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
 		searchColliderWire->DoSubmit(transInfo.position, searchCollider.GetSize());
-		if (IsInArea) attackColliderWire->DoSubmit(attackCollider.center, attackCollider.GetSize());
 	}
 #endif
 }
@@ -125,7 +122,6 @@ void Enemy_Red_0::SetupTransitions(void)
 void Enemy_Red_0_IdleState::OnEnter(Enemy_Red_0* owner)
 {
 	// set anime
-	owner->GetVisualPre()->SetFrameAuto(pack.numU, pack.numV, pack.FrameStart, pack.FrameTotalCount, 0, pack.FPS, !owner->GetIsFlip(), true);
 }
 
 void Enemy_Red_0_IdleState::Update(Enemy_Red_0* owner, float dt)
@@ -133,10 +129,8 @@ void Enemy_Red_0_IdleState::Update(Enemy_Red_0* owner, float dt)
 	// set anime
 	owner->GetVisualPre()->Update(dt);
 	// general jobs
-	owner->CheckIsFlip();		// Œü‚¢‚Ä‚¢‚é•ûŒü‚Ì”»’f
 	owner->CheckIsAttack();		// UŒ‚‚·‚é‚©‚Ç‚¤‚©‚ð”»’f
 	owner->DoAttackCountDown();	// UŒ‚‚ðƒJƒEƒ“ƒgƒ_ƒEƒ“
-	owner->GetVisualPre()->SetFlip(!owner->GetIsFlip());
 }
 
 
@@ -146,7 +140,6 @@ void Enemy_Red_0_IdleState::Update(Enemy_Red_0* owner, float dt)
 void Enemy_Red_0_ChaseState::OnEnter(Enemy_Red_0* owner)
 {
 	// set anime
-	owner->GetVisualPre()->SetFrameAuto(pack.numU, pack.numV, pack.FrameStart, pack.FrameTotalCount, 0, pack.FPS, !owner->GetIsFlip(), true);
 }
 
 void Enemy_Red_0_ChaseState::Update(Enemy_Red_0* owner, float dt)
@@ -154,11 +147,9 @@ void Enemy_Red_0_ChaseState::Update(Enemy_Red_0* owner, float dt)
 	// set anime
 	owner->GetVisualPre()->Update(dt);
 	// general jobs
-	owner->CheckIsFlip();		// Œü‚¢‚Ä‚¢‚é•ûŒü‚Ì”»’f
 	owner->CheckIsAttack();		// UŒ‚‚·‚é‚©‚Ç‚¤‚©‚ð”»’f
 	owner->DoChase();			// ƒ^[ƒQƒbƒg‚ð’Ç‚¢‚©‚¯‚é
 	owner->DoAttackCountDown();	// UŒ‚‚ðƒJƒEƒ“ƒgƒ_ƒEƒ“
-	owner->GetVisualPre()->SetFlip(!owner->GetIsFlip());
 }
 
 
@@ -168,7 +159,6 @@ void Enemy_Red_0_ChaseState::Update(Enemy_Red_0* owner, float dt)
 void Enemy_Red_0_AttackState::OnEnter(Enemy_Red_0* owner)
 {
 	// set anime
-	owner->GetVisualPre()->SetFrameAuto(pack.numU, pack.numV, pack.FrameStart, pack.FrameTotalCount, 0, pack.FPS, !owner->GetIsFlip(), false);
 	FrameNoOld = 0;
 	// make sure no repeated hits
 	HaveHit = false;
@@ -228,7 +218,6 @@ void Enemy_Red_0_AttackState::Update(Enemy_Red_0* owner, float dt)
 void Enemy_Red_0_HurtState::OnEnter(Enemy_Red_0* owner)
 {
 	// set anime
-	owner->GetVisualPre()->SetFrameAuto(pack.numU, pack.numV, pack.FrameStart, pack.FrameTotalCount, 0, pack.FPS, !owner->GetIsFlip(), false);
 	// make sure not be hit repeatly
 }
 
@@ -263,8 +252,6 @@ void Enemy_Red_0_HurtState::Update(Enemy_Red_0* owner, float dt)
 void Enemy_Red_0_DeathState::OnEnter(Enemy_Red_0* owner)
 {
 	// set anime
-	owner->GetVisualPre()->SetFrameAuto(pack.numU, pack.numV, pack.FrameStart, pack.FrameTotalCount, 0, pack.FPS, !owner->GetIsFlip(), false);
-
 	SoundCodex::Get().PlaySE(SndPath::SE_Enemy_Dead_Red_0);
 }
 

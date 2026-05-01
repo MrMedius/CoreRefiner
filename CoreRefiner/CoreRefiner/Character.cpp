@@ -27,7 +27,7 @@ void Character::MapItemCollide(void)
 /*------------------------------------------------------------------------------
    MapEnvironment
 ------------------------------------------------------------------------------*/
-	//OnFloor = false; //先ずは床にいないを想定する
+	OnFloor = false; //先ずは床にいないを想定する
 
 	std::vector<Environment*> mapEnvironment;
 	for (auto tag : {
@@ -117,7 +117,7 @@ void Character::MapItemCollide(void)
 	std::vector<Character*> mapCharacters;
 	for (auto tag : {
 		character_Player,
-		character_Enemy_Red_0,
+		character_Enemy_T,
 		}) {
 		// 全てのキャラクターを探す
 		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);

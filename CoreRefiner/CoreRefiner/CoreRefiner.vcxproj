@@ -183,11 +183,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AttackManager.cpp" />
+    <ClCompile Include="Ball.cpp" />
+    <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="Character.cpp" />
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="DynamicCubeTexture.cpp" />
     <ClCompile Include="DynamicVertexBuffer.cpp" />
-    <ClCompile Include="Enemy_Red_0.cpp" />
+    <ClCompile Include="Enemy_T.cpp" />
     <ClCompile Include="CubeWireframe.cpp" />
     <ClCompile Include="DynamicTexture.cpp" />
     <ClCompile Include="DynamicTexture.h" />
@@ -286,12 +289,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationInfo.h" />
+    <ClInclude Include="Attack.h" />
+    <ClInclude Include="AttackManager.h" />
+    <ClInclude Include="Ball.h" />
+    <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="DynamicCubeTexture.h" />
     <ClInclude Include="DynamicVertexBuffer.h" />
-    <ClInclude Include="Enemy_Red_0.h" />
+    <ClInclude Include="Enemy_T.h" />
     <ClInclude Include="CubeWireframe.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Enemy.h" />

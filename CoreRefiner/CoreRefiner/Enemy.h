@@ -56,13 +56,9 @@ public:
 	{
 		if (!IsInAttackArea)
 		{
-			float dx = AttackTarget->GetPosition().x + AttackTarget->GetCollisionSize().x * AttackTarget->GetIsFlip() - transInfo.position.x;
 			float dz = AttackTarget->GetPosition().z - transInfo.position.z;
-			float angle = atan2f(dx, dz);
-			CalculateMoveVelocity(sinf(angle) * GetMoveAccel(), 0.0f, cosf(angle) * GetMoveAccel());
 		}
 	}
-	void CheckIsFlip(void) { SetIsFlip(transInfo.position.x > AttackTarget->GetPosition().x); }	// Œü‚¢‚Ä‚¢‚é•ûŒü‚Ì”»’f
 	bool CheckIsAttack(void)	// UŒ‚‚·‚é‚©‚Ç‚¤‚©‚ð”»’f
 	{
 		if (IsInAttackArea && AttackCountDown == 0) SetIsAttack(true);
@@ -70,7 +66,7 @@ public:
 	}
 	bool AttackCollide(float damage, XMFLOAT3 repel) override
 	{
-		if (!AttackTarget->GetIsFever() && !AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath() && AttackTarget->GetCollisionOnOff())
+		if (!AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath() && AttackTarget->GetCollisionOnOff())
 		{
 			bool isHit = CollisionSystem::IsOverlap(attackCollider, AttackTarget->GetBoxCollider());
 

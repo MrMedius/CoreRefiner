@@ -37,7 +37,7 @@ public:
 		visualPre->Submit(Chan::main);
 		visualPre->Submit(Chan::shadow);
 #ifdef _DEBUG
-		//boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
+		boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
 #endif
 	}
 	void OnCollide(Character* other) override {}

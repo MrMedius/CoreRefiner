@@ -37,8 +37,6 @@ public:
 	bool GetAttackCollisionOnOff(void) const				{ return OnAttackCollision; }	// 攻撃間隔カウントダウンをゲット
 	void ResetAttackCountDown(void)							{ AttackCountDown = AttackInterval; }			// 攻撃のコリジョンをリセット
 	void DoAttackCountDown(void)							{ if (AttackCountDown > 0) AttackCountDown--; }	// 攻撃をカウントダウン
-	void SetIsFlip(bool isFlip)		{ IsFlip = isFlip; }		// 向いている方向をセット
-	bool GetIsFlip(void) const		{ return IsFlip; }			// 向いている方向をゲット
 	void SetIsAttack(bool state)	{ IsAttack = state; }		// 攻撃状態をセット
 	bool GetIsAttack(void) const	{ return IsAttack; }		// 攻撃状態をゲット
 	void SetIsHurt(bool state)		{ IsHurt = state; }			// 攻撃された状態をセット
@@ -67,12 +65,8 @@ protected:
 	float AttackInterval{ 0 };							// 攻撃間隔
 	float AttackCountDown{ 0 };							// 攻撃間隔カウントダウン
 	bool OnAttackCollision{ false };					// 攻撃のコリジョンスイッチ
-	bool IsFlip{ false };								// 向いている方向の反転の判断、右は正方向
 	bool OnFloor{ false };								// 地面に乗っているかどうかの判断
 	bool IsAttack{ false };								// 攻撃状態の判断
 	bool IsHurt{ false };								// 攻撃された状態の判断
 	bool IsDeath{ false };								// 死亡状態の判断
-#ifdef _DEBUG
-	std::unique_ptr<CubeWireframe> attackColliderWire;
-#endif
 };

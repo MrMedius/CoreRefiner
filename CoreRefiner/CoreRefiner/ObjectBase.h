@@ -11,12 +11,14 @@ using namespace Collider3D;
 
 enum Object_Type_Tag
 {
-	Item_Type_None = 0x000,
+	Item_Type_None		= 0x000,
+	// Attack
+	attack_Ball			= 0x101,
 	// Character
-	character_Player			   = 0x999,
-	character_Enemy_Red_0		   = 0x011,
+	character_Player	= 0x999,
+	character_Enemy_T	= 0x011,
 	// Environment				  
-	environment_Field			   = 0x100,
+	environment_Field	= 0x100,
 	// Effect
 };
 

@@ -6,7 +6,7 @@
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
 
-#include "Enemy_Red_0.h"
+#include "Enemy_T.h"
 
 EnemyManager::EnemyManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
@@ -17,11 +17,11 @@ EnemyManager::EnemyManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	for (int i = 0;i < 10;i++)
 	{
-		ObjectCodex::Acquire<Enemy_Red_0>(character_Enemy_Red_0, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
+		ObjectCodex::Acquire<Enemy_Red_0>(character_Enemy_T, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
 	}
 	for (int i = 0;i < 10;i++)
 	{
-		ObjectCodex::FindFirstActiveObjectByTag<Enemy_Red_0>(character_Enemy_Red_0)->Deactivate();
+		ObjectCodex::FindFirstActiveObjectByTag<Enemy_Red_0>(character_Enemy_T)->Deactivate();
 	}
 }
 
@@ -49,7 +49,7 @@ void EnemyManager::Update(float dt, bool isInCD)
 
 
 	// êVÇµEnemyTestÇê∂ê¨Ç∑ÇÈ
-	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::Acquire<Enemy_Red_0>(character_Enemy_Red_0, gfx, rg, pos));	  Created = true; }
+	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::Acquire<Enemy_Red_0>(character_Enemy_T, gfx, rg, pos));	  Created = true; }
 	if (Created)
 	{
 		Created = false;

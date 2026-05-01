@@ -19,7 +19,7 @@ Field_Shape::Field_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 	{
 		Technique shade("Shade", Chan::main);
 		{
-			Step only("lambertian");
+			Step only("lambertianTrans");
 
 			auto pvs = VertexShader::Resolve(gfx, "Solid_VS.cso");
 			only.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
@@ -36,6 +36,7 @@ Field_Shape::Field_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 			only.AddBindable(std::make_shared<TransformCbuf>(gfx));
 			only.AddBindable(Rasterizer::Resolve(gfx, false));
+			only.AddBindable(Blender::Resolve(gfx, true));
 
 			shade.AddStep(std::move(only));
 		}

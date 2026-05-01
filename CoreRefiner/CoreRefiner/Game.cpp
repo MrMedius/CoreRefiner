@@ -36,6 +36,7 @@ Game::Game(const std::string& commandLine)
 
 	// Objects
 	pPlayer = ObjectCodex::Acquire<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,15.0f,0.0f });
+	pAttackManager = std::make_unique<AttackManager>(wnd.Gfx(), gameRG);
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
 
 	// Sound Base Setting
@@ -119,13 +120,7 @@ void Game::Update(float dt)
 				light.Update(dt, playerPos);
 
 				pPlayer->Update(dt);
-
-				if (!pPlayer->GetIsChange())
-				{
-					GameStatsCodex::UpdateLifeTime(dt);
-
-					pEnvironmentManager->Update(dt);
-				}
+				pAttackManager->Update(dt);
 			}
 			gameRG.Update(dt);
 			SoundCodex::Get().SetListenerPosition(playerPos);
@@ -155,6 +150,7 @@ void Game::Draw()
 #endif
 		cameras.Submit(Chan::main);
 		// Objects
+		pAttackManager->Submit();
 		pEnvironmentManager->Submit();
 		pPlayer->Submit();
 

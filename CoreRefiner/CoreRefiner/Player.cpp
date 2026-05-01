@@ -23,8 +23,6 @@ void Player::Update(float dt)
 	auto Position = transInfo.position;
 	PositionOld = Position;
 	// çUåÇîÕàÕÇÃçXêV
-	if (!IsFlip) attackCollider.center = { Position.x + boxCollider.half.x + attackCollider.half.x, Position.y, Position.z };
-	else attackCollider.center = { Position.x - boxCollider.half.x - attackCollider.half.x, Position.y, Position.z };
 
 	// èÛë‘ëJà⁄
 	// FSM update
@@ -61,7 +59,6 @@ void Player::Submit(void)
 	if (!IsDeath)
 	{
 		boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
-		attackColliderWire->DoSubmit(attackCollider.center, attackCollider.GetSize());
 	}
 #endif
 }
@@ -82,7 +79,7 @@ bool Player::AttackCollide(float damage, XMFLOAT3 repel)
 {
 	std::vector<Enemy*> enemies;
 	for (auto tag : {
-		character_Enemy_Red_0,
+		character_Enemy_T,
 		}) {
 		// ÉvÉåÉCÉÑÅ[ÇçUåÇÇ≈Ç´ÇÈëSÇƒÇÃìGÇíTÇ∑
 		auto found = ObjectCodex::FindActiveObjectsByTag<Enemy>(tag);
@@ -108,22 +105,10 @@ void Player::SetupTransitions(void)
 		return player->Input().moveHeld;
 		});
 
-	// PLAYER_IDLE Å® PLAYER_DASH
-	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_DASH], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsFever && player->IsDash && player->OnFloor;
-		});
-
 	// PLAYER_IDLE Å® PLAYER_ATTACK
 	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack;
-		});
-
-	// PLAYER_IDLE Å® PLAYER_HURT
-	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsFever && player->IsHurt;
 		});
 
 	// PLAYER_MOVE Å® PLAYER_IDLE
@@ -132,52 +117,16 @@ void Player::SetupTransitions(void)
 		return !player->Input().moveHeld;
 		});
 
-	// PLAYER_MOVE Å® PLAYER_DASH
-	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_DASH], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsFever && player->IsDash && player->OnFloor;
-		});
-
 	// PLAYER_MOVE Å® PLAYER_ATTACK
 	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack;
 		});
 
-	// PLAYER_MOVE Å® PLAYER_HURT
-	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsFever && player->IsHurt;
-		});
-
-	// PLAYER_DASH Å® PLAYER_IDLE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_DASH], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsDash;
-		});
-
-	// PLAYER_DASH Å® PLAYER_HURT
-	FSM->AddTransition(PLAYER_STATE[PLAYER_DASH], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return player->IsHurt;
-		});
-
 	// PLAYER_ATTACK Å® PLAYER_IDLE
 	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->IsAttack;
-		});
-
-	// PLAYER_ATTACK Å® PLAYER_DASH
-	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_DASH], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsFever && player->IsDash;
-		});
-
-	// PLAYER_ATTACK Å® PLAYER_HURT
-	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsFever && player->IsHurt;
 		});
 
 	// PLAYER_HURT Å® PLAYER_IDLE
@@ -230,58 +179,25 @@ void Player::BuildInputSnapshot()
 	inputSnap.moveHeld = (mx != 0.0f || mz != 0.0f);
 
 	// -----------------------
-	// Dash / Attack / Skill / SlotL / SlotR
-	// dash: Space || Shift || Pad Y & B
-	inputSnap.dash =
-		input.KeyTriggered(KK_SPACE) || input.KeyTriggered(KK_LEFTSHIFT) ||
-		(boundPadIndex >= 0 && input.PadConnected(boundPadIndex) && (input.GP_Triggered(boundPadIndex, Gamepad::GP_Y) || input.GP_Triggered(boundPadIndex, Gamepad::GP_B)));
 	// attack: MouseLeft || J || Pad X
 	inputSnap.attack =
 		input.MouseLeftTriggered() ||
 		input.KeyTriggered(KK_J) ||
 		(boundPadIndex >= 0 && input.PadConnected(boundPadIndex) && input.GP_Triggered(boundPadIndex, Gamepad::GP_X));
-	// skill: MouseRight || K || Pad A
-	inputSnap.skill =
-		input.MouseRightTriggered() ||
-		input.KeyTriggered(KK_K) ||
-		(boundPadIndex >= 0 && input.PadConnected(boundPadIndex) && input.GP_Triggered(boundPadIndex, Gamepad::GP_A));
-	// slotL: Q || Pad LB & LT
-	inputSnap.slotL =
-		input.KeyTriggered(KK_Q) ||
-		(boundPadIndex >= 0 && input.PadConnected(boundPadIndex) && (input.GP_Triggered(boundPadIndex, Gamepad::GP_LB) || input.GP_LT_Triggered(boundPadIndex)));
-	// slotR: E || Pad RB & RT
-	inputSnap.slotR =
-		input.KeyTriggered(KK_E) ||
-		(boundPadIndex >= 0 && input.PadConnected(boundPadIndex) && (input.GP_Triggered(boundPadIndex, Gamepad::GP_RB) || input.GP_RT_Triggered(boundPadIndex)));
 }
 
 
 /*------------------------------------------------------------------------------
    Player_IdleState
 ------------------------------------------------------------------------------*/
-Player_IdleState::Player_IdleState()
-{
-	packs.emplace_back(12, 16, 145, 24);
-	packs.emplace_back(12, 12,  49, 24);
-	packs.emplace_back(12, 10,  97, 24);
-
-	assist.Loop = true;
-	assist.FPS = packs[0].FPS;
-	assist.FrameTotal = packs[0].FrameTotalCount;
-}
-
 void Player_IdleState::OnEnter(Player* owner)
 {
-	assist.Reset();
 }
 
 void Player_IdleState::Update(Player* owner,  float dt)
 {
-	assist.Update(dt);
-
 	// ëJà⁄îªíf
 	const auto& in = owner->Input();
-	if (in.dash) owner->SetIsDash(true);
 	if (in.attack)	owner->SetIsAttack(true);
 
 	// çUåÇÇÉJÉEÉìÉgÉ_ÉEÉì
@@ -292,34 +208,15 @@ void Player_IdleState::Update(Player* owner,  float dt)
 /*------------------------------------------------------------------------------
    Player_MoveStateä÷êî
 ------------------------------------------------------------------------------*/
-Player_MoveState::Player_MoveState()
-{
-	packs.emplace_back(12, 16, 169, 24);
-	packs.emplace_back(12, 12,  73, 24);
-	packs.emplace_back(12, 10,  97, 24);
-
-	assist.Loop = true;
-	assist.FPS = packs[0].FPS;
-	assist.FrameTotal = packs[0].FrameTotalCount;
-}
-
 void Player_MoveState::OnEnter(Player* owner)
 {
-	assist.Reset();
 }
 
 void Player_MoveState::Update(Player* owner, float dt)
 {
-	assist.Update(dt);
-
 	// ëJà⁄îªíf
 	const auto& in = owner->Input();
-	if (in.dash) owner->SetIsDash(true);
 	if (in.attack)	owner->SetIsAttack(true);
-
-	// ï˚å¸îªíf
-	if (in.moveX < 0) owner->SetIsFlip(true);
-	else owner->SetIsFlip(false);
 
 	// à⁄ìÆ
 	owner->DoMove(1.0f);
@@ -330,24 +227,8 @@ void Player_MoveState::Update(Player* owner, float dt)
 
 
 /*------------------------------------------------------------------------------
-   Player_DashStateä÷êî
-------------------------------------------------------------------------------*/
-void Player_DashState::OnEnter(Player* owner)
-{
-}
-
-void Player_DashState::Update(Player* owner, float dt)
-{
-}
-
-
-/*------------------------------------------------------------------------------
    Player_AttackStateä÷êî
 ------------------------------------------------------------------------------*/
-Player_AttackState::Player_AttackState()
-{
-}
-
 void Player_AttackState::OnEnter(Player* owner)
 {
 }
@@ -358,6 +239,7 @@ void Player_AttackState::OnExit(Player* owner)
 
 void Player_AttackState::Update(Player* owner, float dt)
 {
+	owner->SetIsAttack(false);
 }
 
 
