@@ -29,12 +29,6 @@ public:
 	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }											// 移動値をゲット
 	void SetMoveAccel(float accel)							{ MoveAccel = accel; }	// 移動加速値をセット
 	float GetMoveAccel(void) const							{ return MoveAccel; }	// 移動加速値をゲット
-	void SetAttackPosition(XMFLOAT3 position)				{ attackCollider.center = position; }	// 攻撃の位置をセット
-	XMFLOAT3 GetAttackPosition(void) const					{ return  attackCollider.center; }		// 攻撃の位置をゲット
-	void SetAttackCollisionSize(XMFLOAT3 size)				{ attackCollider.half = { size.x / 2,size.y / 2 ,size.z / 2 }; }				// 攻撃のコリジョンをセット
-	XMFLOAT3 GetAttackCollisionSize(void) const				{ auto s = attackCollider.half; return { s.x * 2.0f,s.y * 2.0f, s.z * 2.0f }; }	// 攻撃のコリジョンをゲット
-	void SetAttackCollisionOnOff(bool OnOff)				{ OnAttackCollision = OnOff; }	// 攻撃間隔カウントダウンをセット
-	bool GetAttackCollisionOnOff(void) const				{ return OnAttackCollision; }	// 攻撃間隔カウントダウンをゲット
 	void ResetAttackCountDown(void)							{ AttackCountDown = AttackInterval; }			// 攻撃のコリジョンをリセット
 	void DoAttackCountDown(void)							{ if (AttackCountDown > 0) AttackCountDown--; }	// 攻撃をカウントダウン
 	void SetIsAttack(bool state)	{ IsAttack = state; }		// 攻撃状態をセット
@@ -61,10 +55,8 @@ protected:
 	XMFLOAT3 PositionOld{ transInfo.position };			// 1フレーム前の座標
 	float MoveAccel{ 0.0f };							// 移動加速値
 	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };			// 移動値
-	BoxCollider attackCollider;							// 攻撃のコリジョン
 	float AttackInterval{ 0 };							// 攻撃間隔
 	float AttackCountDown{ 0 };							// 攻撃間隔カウントダウン
-	bool OnAttackCollision{ false };					// 攻撃のコリジョンスイッチ
 	bool OnFloor{ false };								// 地面に乗っているかどうかの判断
 	bool IsAttack{ false };								// 攻撃状態の判断
 	bool IsHurt{ false };								// 攻撃された状態の判断

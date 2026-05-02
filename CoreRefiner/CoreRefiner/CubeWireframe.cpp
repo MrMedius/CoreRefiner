@@ -77,6 +77,14 @@ void CubeWireframe::DoSubmit(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 size)
 	Drawable::Submit(Chan::main);
 }
 
+void CubeWireframe::DoSubmit(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 rot, DirectX::XMFLOAT3 size)
+{
+	SetPosition(pos);
+	SetRotation(rot.x, rot.y, rot.z);
+	SetScale(size);
+	Drawable::Submit(Chan::main);
+}
+
 void CubeWireframe::SetPosition(DirectX::XMFLOAT3 pos) noexcept
 {
 	trans.SetPosition(pos.x, pos.y, pos.z);

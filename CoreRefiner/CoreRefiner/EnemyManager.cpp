@@ -17,15 +17,15 @@ EnemyManager::EnemyManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	for (int i = 0;i < 10;i++)
 	{
-		ObjectCodex::Acquire<Enemy_Red_0>(character_Enemy_T, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
+		ObjectCodex::Acquire<Enemy_T>(character_Enemy_T, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
 	}
 	for (int i = 0;i < 10;i++)
 	{
-		ObjectCodex::FindFirstActiveObjectByTag<Enemy_Red_0>(character_Enemy_T)->Deactivate();
+		ObjectCodex::FindFirstActiveObjectByTag<Enemy_T>(character_Enemy_T)->Deactivate();
 	}
 }
 
-void EnemyManager::Update(float dt, bool isInCD)
+void EnemyManager::Update(float dt)
 {
 	auto position = pPlayer->GetPosition();
 
@@ -42,14 +42,10 @@ void EnemyManager::Update(float dt, bool isInCD)
 	std::mt19937 rng(std::random_device{}());
 	std::uniform_real_distribution<float> d(-30.0f, 30.0f);
 	XMFLOAT3 pos = { position.x + d(rng),10.0f,position.z + d(rng) };
-	if (pos.x > MapEdgeLeftAndRight) pos.x = MapEdgeLeftAndRight - 20.0f;
-	if (pos.x < -MapEdgeLeftAndRight) pos.x = -MapEdgeLeftAndRight + 20.0f;
-	if (pos.z > MapEdgeFrontAndBack) pos.z = MapEdgeFrontAndBack - 20.0f;
-	if (pos.z < -MapEdgeFrontAndBack) pos.z = -MapEdgeFrontAndBack + 20.0f;
 
 
 	// V‚µEnemyTest‚ð¶¬‚·‚é
-	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::Acquire<Enemy_Red_0>(character_Enemy_T, gfx, rg, pos));	  Created = true; }
+	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::Acquire<Enemy_T>(character_Enemy_T, gfx, rg, pos));	  Created = true; }
 	if (Created)
 	{
 		Created = false;
@@ -64,15 +60,6 @@ void EnemyManager::Update(float dt, bool isInCD)
 			enemies[i]->Update(dt);
 		else
 		{
-			GameStatsCodex::AddTotalDefeat();
-			switch (enemies[i]->GetEnemyType())
-			{
-			case ENEMY_TYPE_RED:	GameStatsCodex::AddRedDefeat();		break;
-			case ENEMY_TYPE_GREEN:	GameStatsCodex::AddGreenDefeat();	break;
-			case ENEMY_TYPE_BLUE:	GameStatsCodex::AddBlueDefeat();	break;
-			}
-			GameStatsCodex::AddScore((isInCD ? 1.0f : 0.1f) * enemies[i]->GetKillScore());
-
 			enemies.erase(enemies.begin() + i);
 			--i;
 		}

@@ -1,6 +1,6 @@
 #pragma once
 #include "Character.h"
-#include "Sprite3D.h"
+#include "Enemy_T_Shape.h"
 #include "Player.h"
 
 #include "SoundCodex.h"
@@ -8,7 +8,6 @@
 
 // 敵状態のID
 enum ENEMY_STATE_ID {
-	ENEMY_IDLE,
 	ENEMY_CHASE,
 	ENEMY_ATTACK,
 	ENEMY_HURT,
@@ -16,7 +15,6 @@ enum ENEMY_STATE_ID {
 };
 // 敵状態の名前
 static const std::string ENEMY_STATE[] = {
-	"ENEMY_IDLE",
 	"ENEMY_CHASE",
 	"ENEMY_ATTACK",
 	"ENEMY_HURT",
@@ -26,9 +24,7 @@ static const std::string ENEMY_STATE[] = {
 enum ENEMY_TYPE_ID {
 	ENEMY_TYPE_NONE,
 
-	ENEMY_TYPE_RED,
-	ENEMY_TYPE_GREEN,
-	ENEMY_TYPE_BLUE,
+	ENEMY_TYPE_T,
 };
 
 
@@ -56,7 +52,15 @@ public:
 	{
 		if (!IsInAttackArea)
 		{
+			float dx = AttackTarget->GetPosition().x - transInfo.position.x;
 			float dz = AttackTarget->GetPosition().z - transInfo.position.z;
+
+			// ターゲットの方向を向く
+			float angle = atan2f(dx, dz);
+			SetRotation({ 0.0f, XMConvertToDegrees(angle), 0.0f });
+
+			// ターゲットに向かって移動
+			CalculateMoveVelocity(sinf(angle) * GetMoveAccel(), 0.0f, cosf(angle) * GetMoveAccel());
 		}
 	}
 	bool CheckIsAttack(void)	// 攻撃するかどうかを判断
@@ -68,7 +72,7 @@ public:
 	{
 		if (!AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath() && AttackTarget->GetCollisionOnOff())
 		{
-			bool isHit = CollisionSystem::IsOverlap(attackCollider, AttackTarget->GetBoxCollider());
+			bool isHit = CollisionSystem::IsOverlap(GetBoxCollider(), AttackTarget->GetBoxCollider());
 
 			if (isHit)
 			{
@@ -99,7 +103,7 @@ public:
 	virtual int GetKillScore() const noexcept = 0;
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
-	Sprite3D* GetVisualPre(void) { return visualPre.get(); }
+	Enemy_T_Shape* GetVisualPre(void) { return visualPre.get(); }
 protected:
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = { area.x / 2,area.y / 2 ,area.z / 2 }; }
@@ -108,14 +112,10 @@ protected:
 	{
 		return IsInArea = CollisionSystem::IsOverlap(searchCollider, AttackTarget->GetBoxCollider());
 	}
-	bool CheckIsInAttackArea(void)
-	{
-		return  IsInAttackArea = CollisionSystem::IsOverlap(attackCollider, AttackTarget->GetBoxCollider());
-	}
 private:
 	void SetupTransitions(void) override = 0;
 protected:
-	std::unique_ptr<Sprite3D> visualPre;
+	std::unique_ptr<Enemy_T_Shape> visualPre;
 	ENEMY_TYPE_ID Type{ ENEMY_TYPE_NONE };	// 敵の種類
 	Player* AttackTarget;					// ターゲット
 	BoxCollider searchCollider;				// 検査のコリジョン

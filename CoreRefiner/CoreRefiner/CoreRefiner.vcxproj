@@ -195,6 +195,7 @@
     <ClCompile Include="DynamicTexture.cpp" />
     <ClCompile Include="DynamicTexture.h" />
     <ClCompile Include="EnemyManager.cpp" />
+    <ClCompile Include="Enemy_T_Shape.cpp" />
     <ClCompile Include="EnvironmentManager.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="BindingPass.cpp" />
@@ -293,6 +294,7 @@
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
+    <ClInclude Include="Enemy_T_Shape.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="Collision.h" />

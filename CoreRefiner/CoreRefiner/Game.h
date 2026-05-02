@@ -12,6 +12,7 @@
 #include "Player.h"
 #include "AttackManager.h"
 #include "EnvironmentManager.h"
+#include "EnemyManager.h"
 
 class Game
 {
@@ -58,4 +59,5 @@ private:
 	Player* pPlayer;
 	std::unique_ptr<AttackManager> pAttackManager;
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
+	std::unique_ptr<EnemyManager> pEnemyManager;
 };

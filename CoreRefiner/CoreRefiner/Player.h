@@ -48,7 +48,6 @@ public:
 		SetHpMax(30.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.035f);
-		SetAttackCollisionSize({ 4.0f,6.0f,2.5f });
 		SetAttackInterval(1.5f);
 
 		// graphics init
@@ -88,8 +87,6 @@ public:
 		SetIsDeath(false);
 		SetIsGameOver(false);
 		IsGameOver = false;
-		SetAttackCollisionSize({ 4.0f,6.0f,2.5f });
-		SetAttackCollisionOnOff(false);
 	}
 	void Update(float dt) override;
 	void Submit(void) override;

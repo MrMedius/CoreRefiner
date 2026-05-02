@@ -29,7 +29,6 @@ public:
     dx::XMFLOAT3 GetBasePosition(void) noexcept { return transBase.position; }
     dx::XMFLOAT3 GetBaseRotation(void) noexcept { return transBase.rotation; }
     dx::XMFLOAT3 GetBaseScale(void) noexcept    { return transBase.scale; }
-    dx::XMMATRIX GetTransformXM() const noexcept override;
     // auto animation
     void SetFrameAuto(int numU_, int numV_, int startTex_, int totalTex_, int indexTex_, float fps, bool isFlip_ = false, bool isLoop_ = true);
     void SetAtlas(int numU_, int numV_, int startTex_, int totalTex_) noexcept;

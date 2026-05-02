@@ -77,14 +77,24 @@ void AttackManager::Update(float dt)
 	{
 		auto pos = pPlayer->GetPosition();
 		auto mouse = InputCodex::Get().MousePos();
-		XMFLOAT3 dir;
-		ScreenToWorldXZ(gfx, (float)mouse.first, (float)mouse.second, pos.y, dir);
-
-		XMFLOAT3 dirNorm = { dir.x - pos.x, 0.0f, dir.z - pos.z };
-		Normalize3(dirNorm);
-	
-		attacks.push_back(ObjectCodex::Acquire<Ball>(attack_Ball, gfx, rg, pos, dir)); playerRemote++;
-		if (attacks.size() > 0) attacks.back()->SpawnAt(pos, { dirNorm.x * 0.1f, 0.0f, dirNorm.z * 0.1f });
+		XMFLOAT3 worldXZ;
+		
+		// 获取鼠标指向的世界坐标（在玩家Y高度的平面上）
+		if (ScreenToWorldXZ(gfx, (float)mouse.first, (float)mouse.second, pos.y, worldXZ))
+		{
+			// 计算方向向量（从玩家到鼠标指向点）
+			XMFLOAT3 dirNorm = { worldXZ.x - pos.x, 0.0f, worldXZ.z - pos.z };
+			Normalize3(dirNorm);
+			
+			// 生成子弹，设置位置和速度方向
+			Ball* pBall = ObjectCodex::Acquire<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
+			if (pBall)
+			{
+				attacks.push_back(pBall);
+				pBall->SpawnAt(pos, { dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f });
+				playerRemote++;
+			}
+		}
 	}
 
 	// update all effects
@@ -93,8 +103,10 @@ void AttackManager::Update(float dt)
 		if (attacks[i]->IsActive())
 			attacks[i]->Update(dt);
 		else
+		{
 			attacks.erase(attacks.begin() + i);
-
+			i--; // 重要：删除后要回退索引，防止跳过下一个元素
+		}
 	}
 }
 

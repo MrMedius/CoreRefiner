@@ -49,21 +49,6 @@ void Field_Shape::Update(float dt)
 	trans.RotateDegreeToRad(1.0f, 1.0f, 1.0f);
 }
 
-void Field_Shape::SetPosition(DirectX::XMFLOAT3 pos) noexcept
-{
-	trans.SetPosition(pos.x, pos.y, pos.z);
-}
-
-void Field_Shape::SetRotation(float roll, float pitch, float yaw) noexcept
-{
-	trans.SetRotationDegreeToRad(roll, pitch, yaw);
-}
-
-void Field_Shape::SetScale(DirectX::XMFLOAT3 size) noexcept
-{
-	trans.SetScale(size.x, size.y, size.z);
-}
-
 DirectX::XMMATRIX Field_Shape::GetTransformXM() const noexcept
 {
 	return trans.GetTransformXM();

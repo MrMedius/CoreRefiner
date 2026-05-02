@@ -2,12 +2,11 @@
 #include "Drawable.h"
 #include "Bindable.h"
 #include "IndexBuffer.h"
-#include "Transformation.h"
 
-class Field_Shape : public Drawable
+class Enemy_T_Shape : public Drawable
 {
 public:
-	Field_Shape(Graphics& gfx, DirectX::XMFLOAT3 size);
+	Enemy_T_Shape(Graphics& gfx, DirectX::XMFLOAT3 size);
 	void Update(float dt);
 	DirectX::XMMATRIX GetTransformXM() const noexcept override;
 };

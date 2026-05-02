@@ -40,11 +40,6 @@ void Sprite::SetScale(float x, float y, float z) noexcept
 	transBase.scale = trans.GetScale();
 }
 
-DirectX::XMMATRIX Sprite::GetTransformXM() const noexcept
-{
-	return trans.GetTransformXM();
-}
-
 
 
 // auto animation

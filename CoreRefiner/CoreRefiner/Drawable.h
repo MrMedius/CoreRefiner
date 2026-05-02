@@ -4,6 +4,7 @@
 #include "ConditionalNoexcept.h"
 #include <memory>
 #include "Technique.h"
+#include "Transformation.h"
 
 class TechniqueProbe;
 class Material;
@@ -34,9 +35,13 @@ public:
 	UINT GetIndexCount() const noxnd;
 	void LinkTechniques(Rgph::RenderGraph&);
 	virtual ~Drawable();
+	void SetPosition(DirectX::XMFLOAT3 pos) noexcept;
+	void SetRotation(float roll, float pitch, float yaw) noexcept;
+	void SetScale(DirectX::XMFLOAT3 pos) noexcept;
 protected:
 	std::shared_ptr<Bind::IndexBuffer> pIndices;
 	std::shared_ptr<Bind::VertexBuffer> pVertices;
 	std::shared_ptr<Bind::Topology> pTopology;
 	std::vector<Technique> techniques;
+	Transformation trans;
 };

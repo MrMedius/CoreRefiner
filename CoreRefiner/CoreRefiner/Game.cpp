@@ -38,6 +38,7 @@ Game::Game(const std::string& commandLine)
 	pPlayer = ObjectCodex::Acquire<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,15.0f,0.0f });
 	pAttackManager = std::make_unique<AttackManager>(wnd.Gfx(), gameRG);
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
+	pEnemyManager = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG);
 
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
@@ -121,6 +122,8 @@ void Game::Update(float dt)
 
 				pPlayer->Update(dt);
 				pAttackManager->Update(dt);
+				pEnvironmentManager->Update(dt);
+				pEnemyManager->Update(dt);
 			}
 			gameRG.Update(dt);
 			SoundCodex::Get().SetListenerPosition(playerPos);
@@ -151,6 +154,7 @@ void Game::Draw()
 		cameras.Submit(Chan::main);
 		// Objects
 		pAttackManager->Submit();
+		pEnemyManager->Submit();
 		pEnvironmentManager->Submit();
 		pPlayer->Submit();
 

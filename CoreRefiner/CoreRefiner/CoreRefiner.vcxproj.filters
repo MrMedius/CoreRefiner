@@ -436,6 +436,9 @@
     <ClCompile Include="AttackManager.cpp">
       <Filter>Object\Managers</Filter>
     </ClCompile>
+    <ClCompile Include="Enemy_T_Shape.cpp">
+      <Filter>Object\Shapes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -887,6 +890,9 @@
     </ClInclude>
     <ClInclude Include="AttackManager.h">
       <Filter>Object\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Enemy_T_Shape.h">
+      <Filter>Object\Shapes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

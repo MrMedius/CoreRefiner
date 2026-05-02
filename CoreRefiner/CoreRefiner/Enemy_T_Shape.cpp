@@ -1,16 +1,16 @@
-#include "Ball_Shape.h"
-#include "Sphere.h"
+#include "Enemy_T_Shape.h"
+#include "Cube.h"
 #include "BindableCommon.h"
 #include "Channels.h"
 
-Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
+Enemy_T_Shape::Enemy_T_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 {
 	using namespace Bind;
 	namespace dx = DirectX;
 
-	auto model_Head = Sphere::Make();
+	auto model_Head = Cube::Make();
 	model_Head.Transform(dx::XMMatrixScaling(size.x, size.y, size.z));
-	const auto geometryTag = "$sphere." + std::to_string(size.x);
+	const auto geometryTag = "$cube." + std::to_string(size.x);
 
 	pVertices = VertexBuffer::Resolve(gfx, geometryTag, model_Head.vertices);
 	pIndices = IndexBuffer::Resolve(gfx, geometryTag, model_Head.indices);
@@ -28,7 +28,7 @@ Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 		struct PSColorConstant
 		{
-			dx::XMFLOAT3 color = { 1.0f,0.0f,0.0f }; // 纯白色
+			dx::XMFLOAT3 color = { 0.0f,0.5f,0.0f }; // 纯白色
 			float padding;
 		} colorConst;
 		only.AddBindable(PixelConstantBuffer<PSColorConstant>::Resolve(gfx, colorConst, 1u));
@@ -42,12 +42,12 @@ Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 }
 
-void Ball_Shape::Update(float dt)
+void Enemy_T_Shape::Update(float dt)
 {
 	trans.RotateDegreeToRad(1.0f, 1.0f, 1.0f);
 }
 
-DirectX::XMMATRIX Ball_Shape::GetTransformXM() const noexcept
+DirectX::XMMATRIX Enemy_T_Shape::GetTransformXM() const noexcept
 {
 	return trans.GetTransformXM();
 }

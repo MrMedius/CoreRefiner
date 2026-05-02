@@ -49,21 +49,6 @@ void Player_Head::Update(float dt)
 	trans.RotateDegreeToRad(1.0f, 1.0f, 1.0f);
 }
 
-void Player_Head::SetPosition(DirectX::XMFLOAT3 pos) noexcept
-{
-	trans.SetPosition(pos.x, pos.y, pos.z);
-}
-
-void Player_Head::SetRotation(float roll, float pitch, float yaw) noexcept
-{
-	trans.SetRotationDegreeToRad(roll, pitch, yaw);
-}
-
-void Player_Head::SetScale(DirectX::XMFLOAT3 size) noexcept
-{
-	trans.SetScale(size.x, size.y, size.z);
-}
-
 DirectX::XMMATRIX Player_Head::GetTransformXM() const noexcept
 {
 	return trans.GetTransformXM();
@@ -112,21 +97,6 @@ Player_Body::Player_Body(Graphics& gfx, DirectX::XMFLOAT3 size)
 void Player_Body::Update(float dt)
 {
 	trans.RotateDegreeToRad(1.0f, 1.0f, 1.0f);
-}
-
-void Player_Body::SetPosition(DirectX::XMFLOAT3 pos) noexcept
-{
-	trans.SetPosition(pos.x, pos.y, pos.z);
-}
-
-void Player_Body::SetRotation(float roll, float pitch, float yaw) noexcept
-{
-	trans.SetRotationDegreeToRad(roll, pitch, yaw);
-}
-
-void Player_Body::SetScale(DirectX::XMFLOAT3 size) noexcept
-{
-	trans.SetScale(size.x, size.y, size.z);
 }
 
 DirectX::XMMATRIX Player_Body::GetTransformXM() const noexcept
