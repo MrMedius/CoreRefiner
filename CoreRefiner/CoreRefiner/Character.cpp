@@ -1,7 +1,7 @@
 #include <math.h>
 #include "Character.h"
 #include "Environment.h"
-#include "Effect.h"
+#include "Attack.h"
 #include "ObjectCodex.h"
 #include "Collision.h"
 
@@ -215,6 +215,36 @@ void Character::MapItemCollide(void)
 				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, -MoveAccel * push_rate);
 
 				continue;
+			}
+		}
+	}
+
+/*------------------------------------------------------------------------------
+   MapAttack_Player
+------------------------------------------------------------------------------*/
+	if (this->Tag != character_Player)
+	{
+		std::vector<Attack*> mapAttack_P;
+		for (auto tag : {
+			attack_Ball,
+			}) {
+			// 全てのキャラクターを探す
+			auto found = ObjectCodex::FindActiveObjectsByTag<Attack>(tag);
+			// 全てのキャラクターを整理する
+			mapAttack_P.reserve(mapAttack_P.size() + found.size());
+			mapAttack_P.insert(mapAttack_P.end(), found.begin(), found.end());
+		}
+
+		// ループでコリジョン判断
+		for (auto a : mapAttack_P)
+		{
+			if (!a->GetCollisionOnOff()) continue;
+
+			bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, a->GetBoxCollider());
+
+			if (isCollide)
+			{
+				a->OnCollide(this);
 			}
 		}
 	}

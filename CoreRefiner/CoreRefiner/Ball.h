@@ -1,5 +1,6 @@
 #pragma once
 #include "Attack.h"
+#include "Enemy.h"
 #include "RenderGraph.h"
 #include "Channels.h"
 #include "Ball_Shape.h"
@@ -14,7 +15,7 @@ class Ball : public Attack
 		// parameters init
 		SetPosition(position);
 		SetSize({ 1.0f,1.0f,1.0f });
-		SetCollisionSize({ 1.0f,1.0f,1.0f });
+		SetCollisionSize({ 2.0f,2.0f,2.0f });
 		SetCollisionOnOff(true);
 		SetMoveAccel(direction);
 
@@ -60,6 +61,29 @@ class Ball : public Attack
 #ifdef _DEBUG
 		boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
 #endif
+	}
+	void OnCollide(Character* other) override
+	{
+		Deactivate();
+
+		SetMoveAccel({0.0f, 0.0f, 0.0f});
+		MoveVelocity = { 0.0f,0.0f,0.0f };
+		SetCollisionOnOff(false);
+		transInfo.position = other->GetPosition();
+		transInfo.position.z -= 0.1f;
+
+		if (auto* e = dynamic_cast<Enemy*>(other))
+		{
+			e->SetIsHurt(true);	// 攻撃された状態に遷移
+			e->SetWasHurt(true);
+			e->CalculateHpCurrent(-1.0f); // 体力計算
+
+			float dx = e->GetPosition().x - transInfo.position.x;
+			float dz = e->GetPosition().z - transInfo.position.z;
+			float angle = atan2f(dx, dz);
+			XMFLOAT3 repel{ 0.3f,0.1f,0.1f };
+			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z); // 撃退する
+		}
 	}
 private:
 	std::unique_ptr<Ball_Shape> visualPre;

@@ -1,5 +1,6 @@
 #pragma once
 #include "ObjectBase.h"
+#include "Character.h"
 
 class Attack : public ObjectBase
 {
@@ -12,6 +13,7 @@ public:
 	void OnEnable(void) override = 0;
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
+	virtual void OnCollide(Character* other) = 0;
 public:
 	void CalculateMoveVelocity(float X, float Y, float Z) { MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }
 	void CalculateMoveVelocity(XMFLOAT3 offset) { CalculateMoveVelocity(offset.x, offset.y, offset.z); }

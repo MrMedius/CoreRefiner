@@ -129,7 +129,6 @@ void Enemy_T_HurtState::OnEnter(Enemy_T* owner)
 
 void Enemy_T_HurtState::OnExit(Enemy_T* owner)
 {
-	owner->SetIsHurt(false);
 }
 
 void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
@@ -140,6 +139,9 @@ void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
 
 	// 攻撃をカウントダウン
 	owner->DoAttackCountDown();
+
+	if (owner->GetHpCurrent() == 0)	owner->SetIsDeath(true);
+	else owner->SetIsHurt(false);
 }
 
 
@@ -158,4 +160,5 @@ void Enemy_T_DeathState::Update(Enemy_T* owner, float dt)
 	owner->GetVisualPre()->Update(dt);
 
 	// 終わったら使用終わるをセットする
+	owner->Deactivate();
 }

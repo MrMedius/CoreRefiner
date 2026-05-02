@@ -16,8 +16,8 @@ public:
 	{
 		// parameters init
 		SetPosition(position);
-		SetSize({ 1.0f, 1.0f, 1.0f });
-		SetCollisionSize({ 1.0f, 1.0f, 1.0f });
+		SetSize({ 2.0f, 2.0f, 2.0f });
+		SetCollisionSize(transInfo.scale);
 		SetCollisionOnOff(true);
 		SetHpMax(4.0f);
 		ResetHpCurrent();
@@ -27,7 +27,6 @@ public:
 		// graphics init
 		visualPre = std::make_unique<Enemy_T_Shape>(gfx, transInfo.scale);
 		visualPre->SetPosition(transInfo.position);
-		visualPre->SetScale(transInfo.scale);
 		visualPre->LinkTechniques(rg);
 
 		// FSM state init
