@@ -206,6 +206,8 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraContainer.cpp" />
     <ClCompile Include="CameraIndicator.cpp" />
+    <ClCompile Include="CanvasStackCompositePass.cpp" />
+    <ClCompile Include="OffscreenCanvasPass.cpp" />
     <ClCompile Include="ExceptionBase.cpp" />
     <ClCompile Include="InputCodex.cpp" />
     <ClCompile Include="InUserInterfaceRenderGraph.cpp" />
@@ -319,6 +321,8 @@
     <ClInclude Include="GameStatsCodex.h" />
     <ClInclude Include="InGameRenderGraph.h" />
     <ClInclude Include="BufferClearPass.h" />
+    <ClInclude Include="CanvasStackCompositePass.h" />
+    <ClInclude Include="OffscreenCanvasPass.h" />
     <ClInclude Include="BufferResource.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CameraContainer.h" />
@@ -450,6 +454,20 @@
     <Image Include="asset\Icon\XYX.ico" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="CanvasStackComposite_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="BlurOutline_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

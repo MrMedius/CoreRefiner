@@ -226,8 +226,55 @@ namespace Bind
 	void ShaderInputRenderTarget::Bind( Graphics& gfx ) noxnd
 	{
 		INFOMAN_NOHR(gfx);
-		//GFX_THROW_INFO_ONLY(GetContext(gfx)->PSSetShaderResources(slot, 1, pShaderResourceView.GetAddressOf()));
 		GetContext(gfx)->PSSetShaderResources(slot, 1, pShaderResourceView.GetAddressOf());
+	}
+
+	void ShaderInputRenderTarget::Resize( Graphics& gfx,UINT newWidth,UINT newHeight ) noxnd
+	{
+		if (newWidth == 0u || newHeight == 0u || (newWidth == GetWidth() && newHeight == GetHeight()))
+			return;
+
+		INFOMAN(gfx);
+		width = newWidth;
+		height = newHeight;
+
+		D3D11_TEXTURE2D_DESC textureDesc{};
+		textureDesc.Width = newWidth;
+		textureDesc.Height = newHeight;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.MiscFlags = 0;
+
+		wrl::ComPtr<ID3D11Texture2D> pTexture;
+		GFX_THROW_INFO( GetDevice( gfx )->CreateTexture2D(
+			&textureDesc,nullptr,&pTexture
+		) );
+
+		pTargetView.Reset();
+		pShaderResourceView.Reset();
+
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc{};
+		rtvDesc.Format = textureDesc.Format;
+		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		rtvDesc.Texture2D = D3D11_TEX2D_RTV{ 0 };
+		GFX_THROW_INFO( GetDevice( gfx )->CreateRenderTargetView(
+			pTexture.Get(),&rtvDesc,&pTargetView
+		) );
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		srvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+		GFX_THROW_INFO( GetDevice( gfx )->CreateShaderResourceView(
+			pTexture.Get(),&srvDesc,&pShaderResourceView
+		) );
 	}
 
 	void OutputOnlyRenderTarget::Bind( Graphics& gfx ) noxnd

@@ -8,8 +8,8 @@ namespace Bind
 
     Transform2DCbuf::Transform2DCbuf(Graphics& gfx, UINT slot)
         : 
-        vpW(gfx.GetWidth()), 
-        vpH(gfx.GetHeight())
+        vpW(Graphics::LogicalCanvasWidth()),
+        vpH(Graphics::LogicalCanvasHeight())
     {
         if (!pVcbuf)
         {

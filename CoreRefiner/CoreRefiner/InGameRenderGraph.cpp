@@ -1,10 +1,14 @@
 #include "InGameRenderGraph.h"
+#include "Graphics.h"
 #include "Sink.h"
 #include "Source.h"
 #include "RenderTarget.h"
 #include "DynamicConstant.h"
+#include "PerfLog.h"
 #include "imgui/imgui.h"
 #include "Math.h"
+#include <algorithm>
+#include <array>
 #include <filesystem>
 
 #include "BufferClearPass.h"
@@ -18,6 +22,8 @@
 #include "VerticalBlurPass.h"
 #include "WireframePass.h"
 #include "UIPass.h"
+#include "OffscreenCanvasPass.h"
+#include "CanvasStackCompositePass.h"
 
 namespace Rgph
 {
@@ -122,11 +128,43 @@ namespace Rgph
 			AppendPass( std::move( pass ) );
 		}
 		{
+			const UINT lcw = Graphics::LogicalCanvasWidth();
+			const UINT lch = Graphics::LogicalCanvasHeight();
+			auto pass = std::make_unique<OffscreenCanvasPass>(
+				gfx,"mainCanvasTarget",lcw,lch,10u,
+				std::array<float,4>{ 0.0f,0.0f,0.0f,0.0f } );
+			AppendPass( std::move( pass ) );
+		}
+		{
+			const UINT lcw = Graphics::LogicalCanvasWidth();
+			const UINT lch = Graphics::LogicalCanvasHeight();
+			auto pass = std::make_unique<OffscreenCanvasPass>(
+				gfx,"minimapCanvasTarget",std::max( 1u,lcw / 2u ),std::max( 1u,lch / 2u ),11u,
+				std::array<float,4>{ 0.35f,0.0f,0.45f,0.5f } );
+			AppendPass( std::move( pass ) );
+		}
+		{
+			const UINT lcw = Graphics::LogicalCanvasWidth();
+			const UINT lch = Graphics::LogicalCanvasHeight();
+			auto pass = std::make_unique<OffscreenCanvasPass>(
+				gfx,"hudMaskCanvasTarget",lcw,lch,12u,
+				std::array<float,4>{ 0.0f,0.0f,0.0f,0.0f } );
+			AppendPass( std::move( pass ) );
+		}
+		{
 			auto pass = std::make_unique<UIPass>(gfx, "ui");
-			pass->SetSinkLinkage("renderTarget", "wireframe.renderTarget");
+			pass->SetSinkLinkage("renderTarget", "mainCanvasTarget.buffer");
 			AppendPass(std::move(pass));
 		}
-		SetSinkTarget( "backbuffer","ui.renderTarget" );
+		{
+			auto pass = std::make_unique<CanvasStackCompositePass>("canvasComposite",gfx );
+			pass->SetSinkLinkage( "renderTarget","$.backbuffer" );
+			pass->SetSinkLinkage( "mainCanvas","mainCanvasTarget.texture" );
+			pass->SetSinkLinkage( "minimapCanvas","minimapCanvasTarget.texture" );
+			pass->SetSinkLinkage( "hudMaskCanvas","hudMaskCanvasTarget.texture" );
+			AppendPass( std::move( pass ) );
+		}
+		SetSinkTarget( "backbuffer","canvasComposite.renderTarget" );
 
 		Finalize();
 	}
@@ -170,6 +208,19 @@ namespace Rgph
 	{
 		RenderShadowWindow(gfx);
 		RenderKernelWindow(gfx);
+		RenderCanvasWindow(gfx);
+	}
+
+	void InGameRenderGraph::RenderCanvasWindow( Graphics& gfx )
+	{
+		if( ImGui::Begin( "Canvas pipeline" ) )
+		{
+			ImGui::Text( "Logical: %ux%u",Graphics::LogicalCanvasWidth(),Graphics::LogicalCanvasHeight() );
+			ImGui::Checkbox( "Composition flag (reserved)",&canvasCompositionEnabled );
+			if( ImGui::Button( "Rebuild canvasses" ) )
+				RebuildLogicalCanvasses( gfx );
+		}
+		ImGui::End();
 	}
 
 	void InGameRenderGraph::RenderKernelWindow(Graphics& gfx)
@@ -276,4 +327,30 @@ namespace Rgph
 
 		}
 	}
+
+	void InGameRenderGraph::RebuildLogicalCanvasses( Graphics& gfx ) noxnd
+	{
+		auto& mainPass = dynamic_cast<OffscreenCanvasPass&>(FindPassByName( "mainCanvasTarget" ));
+		auto& miniPass = dynamic_cast<OffscreenCanvasPass&>(FindPassByName( "minimapCanvasTarget" ));
+		auto& hudPass = dynamic_cast<OffscreenCanvasPass&>(FindPassByName( "hudMaskCanvasTarget" ));
+		const UINT lcw = Graphics::LogicalCanvasWidth();
+		const UINT lch = Graphics::LogicalCanvasHeight();
+		mainPass.SharedCanvas()->Resize( gfx,lcw,lch );
+		miniPass.SharedCanvas()->Resize( gfx,std::max( 1u,lcw / 2u ),std::max( 1u,lch / 2u ) );
+		hudPass.SharedCanvas()->Resize( gfx,lcw,lch );
+		gfx.ClearPixelShaderResourceRange( 10u,3u );
+	}
+
+#ifndef NDEBUG
+	void InGameRenderGraph::RunCanvasValidationHeartbeat() noexcept
+	{
+		if ((++validationFrameCounter % 600u) != 0u)
+			return;
+		PerfLog::Info(
+			std::string( "[Canvas] heartbeat logical=" ) +
+			std::to_string( Graphics::LogicalCanvasWidth() ) + 'x' +
+			std::to_string( Graphics::LogicalCanvasHeight() ) +
+			" main+minimap+hud-composite" );
+	}
+#endif
 }

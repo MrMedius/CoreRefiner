@@ -161,6 +161,7 @@ void Game::Draw()
 		gameRG.Execute(wnd.Gfx());
 
 #ifdef _DEBUG
+		gameRG.RunCanvasValidationHeartbeat();
 		// imgui windows
 		cameras.SpawnWindow(wnd.Gfx());
 		light.SpawnControlWindow();

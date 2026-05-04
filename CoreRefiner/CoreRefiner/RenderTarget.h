@@ -35,6 +35,7 @@ namespace Bind
 	{
 	public:
 		ShaderInputRenderTarget( Graphics& gfx,UINT width,UINT height,UINT slot );
+		void Resize( Graphics& gfx,UINT newWidth,UINT newHeight ) noxnd;
 		void Bind( Graphics& gfx ) noxnd override;
 		Surface ToSurface(Graphics& gfx) const;
 	private:

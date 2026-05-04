@@ -14,6 +14,10 @@
 #define SCREEN_WIDTH	(1280)	
 #define SCREEN_HEIGHT	(720)	
 
+/** Game logical coords (mouse mapping); independent of swap chain pixel size. */
+#define LOGICAL_CANVAS_WIDTH	SCREEN_WIDTH
+#define LOGICAL_CANVAS_HEIGHT	SCREEN_HEIGHT
+
 namespace Bind
 {
 	class Bindable;
@@ -88,6 +92,9 @@ public:
 	void SetViewportFull(UINT w, UINT h) noexcept;
 	void SetViewportForRenderTarget(const Bind::RenderTarget& rt) noexcept;
 	D3D11_VIEWPORT GetMainViewport() const noexcept { return mainViewport; }
+	static constexpr UINT LogicalCanvasWidth() noexcept { return LOGICAL_CANVAS_WIDTH; }
+	static constexpr UINT LogicalCanvasHeight() noexcept { return LOGICAL_CANVAS_HEIGHT; }
+	void ClearPixelShaderResourceRange( UINT startSlot,UINT count ) noexcept;
 private:
 	void UpdateViewport() noexcept;
 public:

@@ -339,8 +339,8 @@ bool Window::MapClientToGame(int cx, int cy, int& outX, int& outY) noexcept
 	const float nx = vx / vp.Width;   // 0..1
 	const float ny = vy / vp.Height;  // 0..1
 
-	outX = (int)(nx * (float)SCREEN_WIDTH);
-	outY = (int)(ny * (float)SCREEN_HEIGHT);
+	outX = (int)(nx * (float)Graphics::LogicalCanvasWidth());
+	outY = (int)(ny * (float)Graphics::LogicalCanvasHeight());
 	return true;
 }
 

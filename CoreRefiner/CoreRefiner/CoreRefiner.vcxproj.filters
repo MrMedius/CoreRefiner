@@ -256,6 +256,12 @@
     <ClCompile Include="InGameRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
+    <ClCompile Include="CanvasStackCompositePass.cpp">
+      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
+    </ClCompile>
+    <ClCompile Include="OffscreenCanvasPass.cpp">
+      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
+    </ClCompile>
     <ClCompile Include="InUserInterfaceRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
@@ -514,6 +520,12 @@
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="BufferClearPass.h">
+      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CanvasStackCompositePass.h">
+      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
+    </ClInclude>
+    <ClInclude Include="OffscreenCanvasPass.h">
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
     </ClInclude>
     <ClInclude Include="LambertianPass.h">
@@ -958,6 +970,9 @@
       <Filter>Shader\PostProcessing</Filter>
     </FxCompile>
     <FxCompile Include="BlurOutline_PS.hlsl">
+      <Filter>Shader\PostProcessing</Filter>
+    </FxCompile>
+    <FxCompile Include="CanvasStackComposite_PS.hlsl">
       <Filter>Shader\PostProcessing</Filter>
     </FxCompile>
     <FxCompile Include="Fullscreen_VS.hlsl">

@@ -10,6 +10,7 @@
 #include "DepthStencil.h"
 #include "RenderTarget.h"
 #include "HrUtils.h"
+#include <algorithm>
 
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
@@ -298,6 +299,17 @@ void Graphics::SetViewportFull(UINT w, UINT h) noexcept
 	vp.TopLeftX = 0.0f;
 	vp.TopLeftY = 0.0f;
 	pContext->RSSetViewports(1u, &vp);
+}
+
+void Graphics::ClearPixelShaderResourceRange( UINT startSlot,UINT count ) noexcept
+{
+	if (count == 0u)
+	{
+		return;
+	}
+	ID3D11ShaderResourceView* nullSrv[16]{};
+	const UINT n = std::min( count,16u );
+	pContext->PSSetShaderResources( startSlot,n,nullSrv );
 }
 
 void Graphics::SetViewportForRenderTarget(const Bind::RenderTarget& rt) noexcept
