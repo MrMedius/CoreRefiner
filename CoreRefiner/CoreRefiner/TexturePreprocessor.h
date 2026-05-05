@@ -17,6 +17,6 @@ private:
 	static void TransformFile(const std::string& pathIn, const std::string& pathOut, F&& func);
 	template<typename F>
 	static void TransformSurface(Surface& surf, F&& func);
-	static DirectX::XMVECTOR ColorToVector(Surface::Color c) noexcept;
-	static Surface::Color VectorToColor(DirectX::FXMVECTOR n) noexcept;
+	static DirectX::XMVECTOR ColorToVector(Color c) noexcept;
+	static Color VectorToColor(DirectX::FXMVECTOR n) noexcept;
 };

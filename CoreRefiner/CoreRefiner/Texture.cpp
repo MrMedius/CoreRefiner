@@ -59,7 +59,7 @@ namespace Bind
 
 		// write image data into top mip level
 		GetContext(gfx)->UpdateSubresource(
-			pTexture.Get(), 0u, nullptr, s.GetBufferPtrConst(), s.GetWidth() * sizeof(Surface::Color), 0u
+			pTexture.Get(), 0u, nullptr, s.GetBufferPtrConst(), s.GetWidth() * sizeof(Color), 0u
 		);
 
 		// create the resource view on the texture

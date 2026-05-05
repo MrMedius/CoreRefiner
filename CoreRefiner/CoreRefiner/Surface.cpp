@@ -40,7 +40,7 @@ void Surface::PutPixel(unsigned int x, unsigned int y, Color c) noxnd
 	reinterpret_cast<Color*>(&imgData.pixels[y * imgData.rowPitch])[x] = c;
 }
 
-Surface::Color Surface::GetPixel(unsigned int x, unsigned int y) const noxnd
+Color Surface::GetPixel(unsigned int x, unsigned int y) const noxnd
 {
 	assert(x >= 0);
 	assert(y >= 0);
@@ -65,17 +65,17 @@ unsigned int Surface::GetBytePitch() const noexcept
 	return (unsigned int)scratch.GetImage(0, 0, 0)->rowPitch;
 }
 
-Surface::Color* Surface::GetBufferPtr() noexcept
+Color* Surface::GetBufferPtr() noexcept
 {
 	return reinterpret_cast<Color*>(scratch.GetPixels());
 }
 
-const Surface::Color* Surface::GetBufferPtr() const noexcept
+const Color* Surface::GetBufferPtr() const noexcept
 {
 	return const_cast<Surface*>(this)->GetBufferPtr();
 }
 
-const Surface::Color* Surface::GetBufferPtrConst() const noexcept
+const Color* Surface::GetBufferPtrConst() const noexcept
 {
 	return const_cast<Surface*>(this)->GetBufferPtr();
 }

@@ -124,7 +124,7 @@ void TexturePreprocessor::MakeStripes(const std::string& pathOut, int size, int 
 	{
 		for (int x = 0; x < size; x++)
 		{
-			Surface::Color c = { 0,0,0 };
+			Color c = { 0,0,0 };
 			if ((x / stripeWidth) % 2 == 0)
 			{
 				c = { 255,255,255 };
@@ -135,7 +135,7 @@ void TexturePreprocessor::MakeStripes(const std::string& pathOut, int size, int 
 	s.Save(pathOut);
 }
 
-DirectX::XMVECTOR TexturePreprocessor::ColorToVector(Surface::Color c) noexcept
+DirectX::XMVECTOR TexturePreprocessor::ColorToVector(Color c) noexcept
 {
 	using namespace DirectX;
 	auto n = XMVectorSet((float)c.GetR(), (float)c.GetG(), (float)c.GetB(), 0.0f);
@@ -146,7 +146,7 @@ DirectX::XMVECTOR TexturePreprocessor::ColorToVector(Surface::Color c) noexcept
 	return n;
 }
 
-Surface::Color TexturePreprocessor::VectorToColor(DirectX::FXMVECTOR n) noexcept
+Color TexturePreprocessor::VectorToColor(DirectX::FXMVECTOR n) noexcept
 {
 	using namespace DirectX;
 	const auto all1 = XMVectorReplicate(1.0f);

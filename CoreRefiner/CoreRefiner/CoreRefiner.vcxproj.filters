@@ -49,9 +49,6 @@
     <Filter Include="Framework\Graphics\Drawable\Geometry">
       <UniqueIdentifier>{94c54a46-3ae6-429f-83e8-48036e5da1ea}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Framework\Graphics\Drawable\Model">
-      <UniqueIdentifier>{94b0b4e2-efa5-4f53-a945-50fc5c7d4205}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Framework\Graphics\Drawable\Camera">
       <UniqueIdentifier>{9f209525-c928-479b-9266-2c22a5603d5e}</UniqueIdentifier>
     </Filter>
@@ -124,6 +121,9 @@
     </Filter>
     <Filter Include="Object\Shapes">
       <UniqueIdentifier>{d83d1c11-0a59-461a-ace0-0ede645d9a46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Graphics\Drawable\Sprites">
+      <UniqueIdentifier>{0415710c-c283-40a1-9eed-0bb4c4de2fdf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -256,16 +256,7 @@
     <ClCompile Include="InGameRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
-    <ClCompile Include="CanvasStackCompositePass.cpp">
-      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
-    </ClCompile>
-    <ClCompile Include="OffscreenCanvasPass.cpp">
-      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
-    </ClCompile>
     <ClCompile Include="InUserInterfaceRenderGraph.cpp">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
-    </ClCompile>
-    <ClCompile Include="ScaleOutlineRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
     <ClCompile Include="CubeWireframe.cpp">
@@ -279,36 +270,6 @@
     </ClCompile>
     <ClCompile Include="SolidSphere.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Sprite.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Sprite2D.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Sprite2DPolygon.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Sprite3D.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Sprite3DNoLit.cpp">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="Mesh.cpp">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="Model.cpp">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="Node.cpp">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="Surface.cpp">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>Framework\Graphics\Drawable\Camera</Filter>
@@ -445,6 +406,28 @@
     <ClCompile Include="Enemy_T_Shape.cpp">
       <Filter>Object\Shapes</Filter>
     </ClCompile>
+    <ClCompile Include="Surface.cpp">
+      <Filter>Framework\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="Canvas.cpp" />
+    <ClCompile Include="CanvasTexture.cpp" />
+    <ClCompile Include="Canvas2D.cpp" />
+    <ClCompile Include="Canvas3D.cpp" />
+    <ClCompile Include="Sprite2D.cpp">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="Sprite2DPolygon.cpp">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="Sprite3D.cpp">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="Sprite3DNoLit.cpp">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="Sprite.cpp">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -486,21 +469,6 @@
     <ClInclude Include="TechniqueProbe.h">
       <Filter>Framework\Graphics\GraphPass</Filter>
     </ClInclude>
-    <ClInclude Include="Material.h">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh.h">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="Node.h">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="Model.h">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="ModelProbe.h">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClInclude>
     <ClInclude Include="Sphere.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
@@ -520,12 +488,6 @@
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="BufferClearPass.h">
-      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
-    </ClInclude>
-    <ClInclude Include="CanvasStackCompositePass.h">
-      <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
-    </ClInclude>
-    <ClInclude Include="OffscreenCanvasPass.h">
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
     </ClInclude>
     <ClInclude Include="LambertianPass.h">
@@ -600,9 +562,6 @@
     <ClInclude Include="RenderTarget.h">
       <Filter>Framework\Graphics\Bindable\RenderRelated</Filter>
     </ClInclude>
-    <ClInclude Include="ScaleOutlineRenderGraph.h">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
-    </ClInclude>
     <ClInclude Include="Channels.h">
       <Filter>Framework\Graphics\GraphPass</Filter>
     </ClInclude>
@@ -654,9 +613,6 @@
     <ClInclude Include="Frustum.h">
       <Filter>Framework\Graphics\Drawable\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="ModelWindow.h">
-      <Filter>Framework\Graphics\Drawable\Model</Filter>
-    </ClInclude>
     <ClInclude Include="ObjectBase.h">
       <Filter>Object</Filter>
     </ClInclude>
@@ -668,9 +624,6 @@
     </ClInclude>
     <ClInclude Include="Character.h">
       <Filter>Object\Character</Filter>
-    </ClInclude>
-    <ClInclude Include="Sprite3D.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="Collision.h">
       <Filter>Tool</Filter>
@@ -690,14 +643,8 @@
     <ClInclude Include="UIPass.h">
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
     </ClInclude>
-    <ClInclude Include="Sprite2D.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
     <ClInclude Include="Transform2DCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="Sprite2DPolygon.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="Provides.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
@@ -708,14 +655,8 @@
     <ClInclude Include="InUserInterfaceRenderGraph.h">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
-    <ClInclude Include="Sprite.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
-    </ClInclude>
     <ClInclude Include="Environment.h">
       <Filter>Object\Environment</Filter>
-    </ClInclude>
-    <ClInclude Include="Sprite3DNoLit.h">
-      <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
     <ClInclude Include="Player.h">
       <Filter>Object\Character\Player</Filter>
@@ -852,9 +793,6 @@
     <ClInclude Include="Stencil.h">
       <Filter>Framework\Graphics\Bindable\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Surface.h">
-      <Filter>Framework\Graphics\Bindable\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Texture.h">
       <Filter>Framework\Graphics\Bindable\Core</Filter>
     </ClInclude>
@@ -905,6 +843,31 @@
     </ClInclude>
     <ClInclude Include="Enemy_T_Shape.h">
       <Filter>Object\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h">
+      <Filter>Framework\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="Colors.h">
+      <Filter>Framework\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="Canvas.h" />
+    <ClInclude Include="CanvasTexture.h" />
+    <ClInclude Include="Canvas2D.h" />
+    <ClInclude Include="Canvas3D.h" />
+    <ClInclude Include="Sprite3DNoLit.h">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite.h">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite2D.h">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite2DPolygon.h">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite3D.h">
+      <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -970,9 +933,6 @@
       <Filter>Shader\PostProcessing</Filter>
     </FxCompile>
     <FxCompile Include="BlurOutline_PS.hlsl">
-      <Filter>Shader\PostProcessing</Filter>
-    </FxCompile>
-    <FxCompile Include="CanvasStackComposite_PS.hlsl">
       <Filter>Shader\PostProcessing</Filter>
     </FxCompile>
     <FxCompile Include="Fullscreen_VS.hlsl">

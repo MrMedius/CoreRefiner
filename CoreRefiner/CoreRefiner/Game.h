@@ -14,6 +14,9 @@
 #include "EnvironmentManager.h"
 #include "EnemyManager.h"
 
+#include "Canvas2D.h"
+#include "Canvas3D.h"
+
 class Game
 {
 private:
@@ -60,4 +63,10 @@ private:
 	std::unique_ptr<AttackManager> pAttackManager;
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
 	std::unique_ptr<EnemyManager> pEnemyManager;
+
+	std::unique_ptr<Canvas2D> pTestCanvasUi;
+	std::unique_ptr<Canvas3D> pTestCanvasWorld;
+	void InitCanvasDemo();
+	void UpdateCanvasDemo(float dt);
+	float canvasAnimT = 0.0f;
 };

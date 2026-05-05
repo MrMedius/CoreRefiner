@@ -212,7 +212,7 @@ namespace Bind
 		auto pSrcBytes = static_cast<const char*>(msr.pData);
 		for (unsigned int y = 0; y < height; y++)
 		{
-			auto pSrcRow = reinterpret_cast<const Surface::Color*>(pSrcBytes + msr.RowPitch * size_t(y));
+			auto pSrcRow = reinterpret_cast<const Color*>(pSrcBytes + msr.RowPitch * size_t(y));
 			for (unsigned int x = 0; x < width; x++)
 			{
 				s.PutPixel(x, y, *(pSrcRow + x));

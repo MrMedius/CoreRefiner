@@ -6,10 +6,8 @@
 #include "imgui/imgui.h"
 #include "VertexBuffer.h"
 #include "Util.h"
-#include "PerfLog.h"
 #include "Camera.h"
 #include "Channels.h"
-#include "ModelWindow.h"
 #include "ObjectBase.h"
 
 #include "InputCodex.h"
@@ -45,6 +43,9 @@ Game::Game(const std::string& commandLine)
 	SoundCodex::Get().SetBgmVolume(0.1f);
 	SoundCodex::Get().SetSeVolume(1.0f);
 	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
+
+
+	InitCanvasDemo();
 }
 
 Game::~Game()
@@ -132,6 +133,8 @@ void Game::Update(float dt)
 	case SCENE_RESULT:
 		break;
 	}	
+
+	UpdateCanvasDemo(dt);
 }
 
 void Game::Draw()
@@ -140,7 +143,7 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-
+		pTestCanvasUi->Submit(Chan::ui);
 		UIRG.Execute(wnd.Gfx());
 		break;
 	}
@@ -158,10 +161,11 @@ void Game::Draw()
 		pEnvironmentManager->Submit();
 		pPlayer->Submit();
 
+		pTestCanvasWorld->Submit(Chan::main | Chan::shadow);
+
 		gameRG.Execute(wnd.Gfx());
 
 #ifdef _DEBUG
-		gameRG.RunCanvasValidationHeartbeat();
 		// imgui windows
 		cameras.SpawnWindow(wnd.Gfx());
 		light.SpawnControlWindow();
@@ -177,4 +181,69 @@ void Game::Draw()
 		break;
 	}
 	}
+}
+
+
+void Game::InitCanvasDemo()
+{
+	{
+		const unsigned cw = 64u, ch = 64u;
+		pTestCanvasUi = std::make_unique<Canvas2D>(wnd.Gfx(), cw, ch);
+
+		for (unsigned y = 0; y < ch; ++y)
+		{
+			for (unsigned x = 0; x < cw; ++x)
+			{
+				pTestCanvasUi->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Cyan : Colors::None);
+			}
+		}
+
+		pTestCanvasUi->SetPosition({ 100.0f, 100.0f, 0.0f });
+		pTestCanvasUi->SetScale({ 196.0f, 196.0f, 1.0f });
+		pTestCanvasUi->LinkTechniques(UIRG);
+	}
+
+	{
+		const unsigned cw = 64u, ch = 64u;
+		pTestCanvasWorld = std::make_unique<Canvas3D>(wnd.Gfx(), cw, ch);
+
+		for (unsigned y = 0; y < ch; ++y)
+		{
+			for (unsigned x = 0; x < cw; ++x)
+			{
+				pTestCanvasWorld->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Yellow : Colors::None);
+			}
+		}
+
+		pTestCanvasWorld->SetPosition({ 0.0f, 14.0f, 10.0f });
+		pTestCanvasWorld->SetScale({ 4.0f, 4.0f, 1.0f });
+		pTestCanvasWorld->LinkTechniques(gameRG);
+	}
+}
+
+
+void Game::UpdateCanvasDemo(float dt)
+{
+	InitCanvasDemo();
+
+	canvasAnimT += dt;
+	if (!pTestCanvasUi || !pTestCanvasWorld)
+		return;
+
+	const unsigned w = pTestCanvasUi->GetCanvasWidth();
+	const unsigned h = pTestCanvasUi->GetCanvasHeight();
+	if (w == 0u || h == 0u)
+		return;
+
+	const unsigned x = static_cast<unsigned>((sinf(canvasAnimT * 2.0f) * 0.5f + 0.5f) * float(w - 1u));
+	const unsigned y = static_cast<unsigned>((cosf(canvasAnimT * 2.0f) * 0.5f + 0.5f) * float(h - 1u));
+
+	for (int i = -10; i < 10; i++)
+	{
+		pTestCanvasUi->PutPixel(x + i, y + i, Colors::Red);
+		pTestCanvasWorld->PutPixel(x + i, y + i, Colors::Green);
+		pTestCanvasUi->PutPixel(x - i, y + i, Colors::Red);
+		pTestCanvasWorld->PutPixel(x - i, y + i, Colors::Green);
+	}
+	
 }

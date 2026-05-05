@@ -4,7 +4,6 @@
 #include <cassert>
 #include "BindableCommon.h"
 #include "BindableCodex.h"
-#include "Material.h"
 
 using namespace Bind;
 
@@ -13,18 +12,6 @@ void Drawable::Submit(size_t channelFilter) const noexcept
 	for( const auto& tech : techniques )
 	{
 		tech.Submit( *this, channelFilter);
-	}
-}
-
-Drawable::Drawable(Graphics& gfx, const Material& mat, const aiMesh& mesh, float scale) noexcept
-{
-	pVertices = mat.MakeVertexBindable(gfx, mesh, scale);
-	pIndices = mat.MakeIndexBindable(gfx, mesh);
-	pTopology = Bind::Topology::Resolve(gfx);
-
-	for (auto& t : mat.GetTechniques())
-	{
-		AddTechnique(std::move(t));
 	}
 }
 
