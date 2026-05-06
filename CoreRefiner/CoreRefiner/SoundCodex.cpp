@@ -14,20 +14,13 @@ bool SoundCodex::Init(HWND hWnd)
 {
     if (inited) return true;
 
-    // COM init
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    // XAudio2 init
+    HRESULT hr;
     {
-        if (FAILED(hr))
-        {
-            MessageBox(hWnd, "COM initialization failed!", "WARNINGI", MB_ICONWARNING);
-            return false;
-        }
-
         hr = XAudio2Create(XAudio2.GetAddressOf(), 0);
         if (FAILED(hr))
         {
             MessageBox(hWnd, "Failed to create XAudio2 object!", "WARNINGI", MB_ICONWARNING);
-            CoUninitialize();
             return false;
         }
 
@@ -36,7 +29,6 @@ bool SoundCodex::Init(HWND hWnd)
         {
             MessageBox(hWnd, "Master voice generation failed!", "WARNINGI", MB_ICONWARNING);
             XAudio2.Reset();
-            CoUninitialize();
             return false;
         }
     }
@@ -53,7 +45,6 @@ bool SoundCodex::Init(HWND hWnd)
             masterVoice->DestroyVoice();
             masterVoice = nullptr;
             XAudio2.Reset();
-            CoUninitialize();
             return false;
         }
         hr = XAudio2->CreateSubmixVoice(&seBus, mv.InputChannels, mv.InputSampleRate);
@@ -64,7 +55,6 @@ bool SoundCodex::Init(HWND hWnd)
             masterVoice->DestroyVoice();
             masterVoice = nullptr;
             XAudio2.Reset();
-            CoUninitialize();
             return false;
         }
 
@@ -129,7 +119,6 @@ void SoundCodex::UnInit()
     }
     XAudio2.Reset();
 
-    CoUninitialize();
     inited = false;
 }
 

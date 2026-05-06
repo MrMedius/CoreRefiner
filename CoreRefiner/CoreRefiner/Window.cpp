@@ -3,9 +3,11 @@
 #include "resource.h"
 #include "WindowsThrowMacros.h"
 #include "imgui/imgui_impl_win32.h"
+#include "RenderGraph.h"
+
 #include "InputCodex.h"
 #include "SoundCodex.h"
-#include "RenderGraph.h"
+#include "TextCodex.h"
 
 
 // Window Class Stuff
@@ -106,6 +108,8 @@ Window::Window( int width,int height,const char* name )
 
 	// Init SoundCodex
 	SoundCodex::Get().Init(hWnd);
+	// Init TextCodex
+	TextCodex::Get().Init();
 }
 
 Window::~Window()

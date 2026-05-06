@@ -192,6 +192,7 @@
     <ClCompile Include="CanvasTexture.cpp" />
     <ClCompile Include="Character.cpp" />
     <ClCompile Include="Collision.cpp" />
+    <ClCompile Include="ComRuntime.cpp" />
     <ClCompile Include="DynamicCubeTexture.cpp" />
     <ClCompile Include="DynamicVertexBuffer.cpp" />
     <ClCompile Include="Enemy_T.cpp" />
@@ -223,6 +224,7 @@
     <ClCompile Include="Sprite3D.cpp" />
     <ClCompile Include="Sprite3DNoLit.cpp" />
     <ClCompile Include="SpriteUVCbuf.cpp" />
+    <ClCompile Include="TextCodex.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
@@ -298,6 +300,7 @@
     <ClInclude Include="Canvas3D.h" />
     <ClInclude Include="CanvasTexture.h" />
     <ClInclude Include="Colors.h" />
+    <ClInclude Include="ComRuntime.h" />
     <ClInclude Include="Enemy_T_Shape.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="Character.h" />
@@ -349,6 +352,7 @@
     <ClInclude Include="Sprite3D.h" />
     <ClInclude Include="Sprite3DNoLit.h" />
     <ClInclude Include="SpriteUVCbuf.h" />
+    <ClInclude Include="TextCodex.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />

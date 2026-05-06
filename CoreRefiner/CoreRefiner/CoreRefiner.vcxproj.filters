@@ -19,12 +19,6 @@
     <Filter Include="Framework">
       <UniqueIdentifier>{cfb9cbab-184f-4318-82d4-055e081e1557}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Framework\Input">
-      <UniqueIdentifier>{46cc6032-8c53-462a-8465-4740c449477c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Framework\Sound">
-      <UniqueIdentifier>{d163a4e0-ebd2-4d25-a066-461f4baf3dd8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Framework\Window">
       <UniqueIdentifier>{9a5d2d35-5e9b-4a9f-9ce6-d85f9da30bf4}</UniqueIdentifier>
     </Filter>
@@ -73,12 +67,6 @@
     <Filter Include="Framework\Helper">
       <UniqueIdentifier>{39b1d28c-7bbc-4cde-93e2-97e3e5598a2e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Framework\Exception">
-      <UniqueIdentifier>{0129b208-d26d-420a-a102-306c56e724c8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Framework\Exception\Macros">
-      <UniqueIdentifier>{de165f29-0b33-4fd7-ab21-7578281eb3f0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Object">
       <UniqueIdentifier>{93461155-669d-4187-a356-dff2e833399c}</UniqueIdentifier>
     </Filter>
@@ -125,6 +113,27 @@
     <Filter Include="Framework\Graphics\Drawable\Sprites">
       <UniqueIdentifier>{0415710c-c283-40a1-9eed-0bb4c4de2fdf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Framework\Main">
+      <UniqueIdentifier>{320880e3-7f39-4917-8da7-3e43339f1ef2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Graphics\Drawable\Canvas">
+      <UniqueIdentifier>{00c30df9-95de-4814-aa29-3a06feed797d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helper\Input">
+      <UniqueIdentifier>{46cc6032-8c53-462a-8465-4740c449477c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helper\Sound">
+      <UniqueIdentifier>{d163a4e0-ebd2-4d25-a066-461f4baf3dd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helper\Exception">
+      <UniqueIdentifier>{0129b208-d26d-420a-a102-306c56e724c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helper\Exception\Macros">
+      <UniqueIdentifier>{de165f29-0b33-4fd7-ab21-7578281eb3f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helper\Text">
+      <UniqueIdentifier>{431e6930-f381-427c-9444-62728969492c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -152,25 +161,19 @@
       <Filter>Tool\Imgui\Manager</Filter>
     </ClCompile>
     <ClCompile Include="DxgiInfoManager.cpp">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClCompile>
     <ClCompile Include="ExceptionBase.cpp">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClCompile>
     <ClCompile Include="ModelException.cpp">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClCompile>
     <ClCompile Include="RenderGraphCompileException.cpp">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClCompile>
     <ClCompile Include="ScriptCommander.cpp">
-      <Filter>Framework\Exception</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.cpp">
-      <Filter>Framework</Filter>
-    </ClCompile>
-    <ClCompile Include="WinMain.cpp">
-      <Filter>Framework</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClCompile>
     <ClCompile Include="WindowsMessageMap.cpp">
       <Filter>Framework\Window</Filter>
@@ -179,19 +182,19 @@
       <Filter>Framework\Window</Filter>
     </ClCompile>
     <ClCompile Include="SoundCodex.cpp">
-      <Filter>Framework\Sound</Filter>
+      <Filter>Framework\Helper\Sound</Filter>
     </ClCompile>
     <ClCompile Include="Gamepad.cpp">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClCompile>
     <ClCompile Include="InputCodex.cpp">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClCompile>
     <ClCompile Include="Keyboard.cpp">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClCompile>
     <ClCompile Include="Mouse.cpp">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
       <Filter>Framework\Helper</Filter>
@@ -409,10 +412,6 @@
     <ClCompile Include="Surface.cpp">
       <Filter>Framework\Helper</Filter>
     </ClCompile>
-    <ClCompile Include="Canvas.cpp" />
-    <ClCompile Include="CanvasTexture.cpp" />
-    <ClCompile Include="Canvas2D.cpp" />
-    <ClCompile Include="Canvas3D.cpp" />
     <ClCompile Include="Sprite2D.cpp">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClCompile>
@@ -428,6 +427,32 @@
     <ClCompile Include="Sprite.cpp">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClCompile>
+    <ClCompile Include="Game.cpp">
+      <Filter>Framework\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="WinMain.cpp">
+      <Filter>Framework\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="ComRuntime.cpp">
+      <Filter>Framework\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Canvas.cpp">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="Canvas2D.cpp">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="Canvas3D.cpp">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="CanvasTexture.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="TextSystem.cpp">
+      <Filter>Framework\Helper\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="TextRasterizer.cpp" />
+    <ClCompile Include="TextCodex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -476,13 +501,13 @@
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="GraphicsThrowMacros.h">
-      <Filter>Framework\Exception\Macros</Filter>
+      <Filter>Framework\Helper\Exception\Macros</Filter>
     </ClInclude>
     <ClInclude Include="Plane.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="WindowsThrowMacros.h">
-      <Filter>Framework\Exception\Macros</Filter>
+      <Filter>Framework\Helper\Exception\Macros</Filter>
     </ClInclude>
     <ClInclude Include="Drawable.h">
       <Filter>Framework\Graphics\Drawable</Filter>
@@ -571,9 +596,6 @@
     <ClInclude Include="RenderGraph.h">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
     <ClInclude Include="DynamicVertex.h">
       <Filter>Framework\Graphics\Bindable\ShaderDynamics</Filter>
     </ClInclude>
@@ -584,22 +606,22 @@
       <Filter>Framework\Graphics\Bindable\ShaderDynamics</Filter>
     </ClInclude>
     <ClInclude Include="DxgiInfoManager.h">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClInclude>
     <ClInclude Include="ExceptionBase.h">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClInclude>
     <ClInclude Include="ScriptCommander.h">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClInclude>
     <ClInclude Include="HrUtils.h">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClInclude>
     <ClInclude Include="ModelException.h">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClInclude>
     <ClInclude Include="RenderGraphCompileException.h">
-      <Filter>Framework\Exception</Filter>
+      <Filter>Framework\Helper\Exception</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>Framework\Graphics\Drawable\Camera</Filter>
@@ -677,19 +699,19 @@
       <Filter>Framework\Graphics\Bindable</Filter>
     </ClInclude>
     <ClInclude Include="SoundCodex.h">
-      <Filter>Framework\Sound</Filter>
+      <Filter>Framework\Helper\Sound</Filter>
     </ClInclude>
     <ClInclude Include="SoundPaths.h">
-      <Filter>Framework\Sound</Filter>
+      <Filter>Framework\Helper\Sound</Filter>
     </ClInclude>
     <ClInclude Include="InputCodex.h">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClInclude>
     <ClInclude Include="Mouse.h">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClInclude>
     <ClInclude Include="Keyboard.h">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClInclude>
     <ClInclude Include="Graphics.h">
       <Filter>Framework\Graphics</Filter>
@@ -737,7 +759,7 @@
       <Filter>Framework\Helper</Filter>
     </ClInclude>
     <ClInclude Include="Gamepad.h">
-      <Filter>Framework\Input</Filter>
+      <Filter>Framework\Helper\Input</Filter>
     </ClInclude>
     <ClInclude Include="GameStatsCodex.h">
       <Filter>Tool</Filter>
@@ -850,10 +872,6 @@
     <ClInclude Include="Colors.h">
       <Filter>Framework\Helper</Filter>
     </ClInclude>
-    <ClInclude Include="Canvas.h" />
-    <ClInclude Include="CanvasTexture.h" />
-    <ClInclude Include="Canvas2D.h" />
-    <ClInclude Include="Canvas3D.h" />
     <ClInclude Include="Sprite3DNoLit.h">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClInclude>
@@ -869,6 +887,29 @@
     <ClInclude Include="Sprite3D.h">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClInclude>
+    <ClInclude Include="Game.h">
+      <Filter>Framework\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="ComRuntime.h">
+      <Filter>Framework\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Canvas3D.h">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="Canvas.h">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="Canvas2D.h">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="CanvasTexture.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="TextSystem.h">
+      <Filter>Framework\Helper\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="TextRasterizer.h" />
+    <ClInclude Include="TextCodex.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

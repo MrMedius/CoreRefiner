@@ -1,19 +1,13 @@
 #include "Game.h"
-#include <memory>
-#include <algorithm>
-#include "Math.h"
-#include "Surface.h"
 #include "imgui/imgui.h"
-#include "VertexBuffer.h"
 #include "Util.h"
-#include "Camera.h"
 #include "Channels.h"
-#include "ObjectBase.h"
 
+#include "GameStatsCodex.h"
 #include "InputCodex.h"
 #include "SoundCodex.h"
 #include "ObjectCodex.h"
-#include "GameStatsCodex.h"
+#include "TextCodex.h"
 
 
 namespace dx = DirectX;
@@ -187,36 +181,36 @@ void Game::Draw()
 void Game::InitCanvasDemo()
 {
 	{
-		const unsigned cw = 64u, ch = 64u;
+		const unsigned cw = 320u, ch = 320u;
 		pTestCanvasUi = std::make_unique<Canvas2D>(wnd.Gfx(), cw, ch);
 
-		for (unsigned y = 0; y < ch; ++y)
-		{
-			for (unsigned x = 0; x < cw; ++x)
-			{
-				pTestCanvasUi->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Cyan : Colors::None);
-			}
-		}
+		//for (unsigned y = 0; y < ch; ++y)
+		//{
+		//	for (unsigned x = 0; x < cw; ++x)
+		//	{
+		//		pTestCanvasUi->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Cyan : Colors::None);
+		//	}
+		//}
 
-		pTestCanvasUi->SetPosition({ 100.0f, 100.0f, 0.0f });
-		pTestCanvasUi->SetScale({ 196.0f, 196.0f, 1.0f });
+		pTestCanvasUi->SetPosition({ 300.0f, 300.0f, 0.0f });
+		pTestCanvasUi->SetScale({ 300.0f, 300.0f, 1.0f });
 		pTestCanvasUi->LinkTechniques(UIRG);
 	}
 
 	{
-		const unsigned cw = 64u, ch = 64u;
+		const unsigned cw = 320u, ch = 320u;
 		pTestCanvasWorld = std::make_unique<Canvas3D>(wnd.Gfx(), cw, ch);
 
-		for (unsigned y = 0; y < ch; ++y)
-		{
-			for (unsigned x = 0; x < cw; ++x)
-			{
-				pTestCanvasWorld->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Yellow : Colors::None);
-			}
-		}
+		//for (unsigned y = 0; y < ch; ++y)
+		//{
+		//	for (unsigned x = 0; x < cw; ++x)
+		//	{
+		//		pTestCanvasWorld->PutPixel(x, y, ((x ^ y) & 8u) ? Color(100u, 100u, 0u, 50u) : Colors::None);
+		//	}
+		//}
 
 		pTestCanvasWorld->SetPosition({ 0.0f, 14.0f, 10.0f });
-		pTestCanvasWorld->SetScale({ 4.0f, 4.0f, 1.0f });
+		pTestCanvasWorld->SetScale({ 40.0f, 40.0f, 1.0f });
 		pTestCanvasWorld->LinkTechniques(gameRG);
 	}
 }
@@ -245,5 +239,10 @@ void Game::UpdateCanvasDemo(float dt)
 		pTestCanvasUi->PutPixel(x - i, y + i, Colors::Red);
 		pTestCanvasWorld->PutPixel(x - i, y + i, Colors::Green);
 	}
-	
+
+
+	TextCodex::Get().DrawLine_SystemFont(*pTestCanvasUi, "あSystem123中文:Segoe UI ABC", "SimSun", 30.0f, DWRITE_FONT_WEIGHT_NORMAL, 0, 30, Colors::White);
+	TextCodex::Get().DrawLine_SystemFont(*pTestCanvasWorld, "你是故意找茬儿是不是？", "SimSun", 30.0f, DWRITE_FONT_WEIGHT_NORMAL, 0, 30, Colors::White);
+
+	pTestCanvasWorld->SetRotation(0.0f, canvasAnimT * 20.0f, 0.0f);
 }
