@@ -606,3 +606,62 @@ void TextCodex::DrawLine_SystemFont(
     DrawGlyphRunToSurface(factory_.Get(), face.Get(), fallbacks, fontSize, ToWideUtf8(text), s, originX, baselineY, textColor);
     canvas.NotifyPixelsChanged();
 }
+
+
+void TextCodex::DrawGlyphRunToCanvas(
+    Canvas& canvas,
+    float baselineOriginX,
+    float baselineOriginY,
+    const DWRITE_GLYPH_RUN& glyphRun,
+    Color color)
+{
+    Surface& surface = canvas.GetSurface();
+    Microsoft::WRL::ComPtr<IDWriteGlyphRunAnalysis> analysis;
+    const DWRITE_MATRIX transform = { 1,0,0,1,0,0 };
+    const HRESULT hrA = factory_->CreateGlyphRunAnalysis(
+        &glyphRun,
+        1.0f,
+        &transform,
+        DWRITE_RENDERING_MODE_ALIASED,
+        DWRITE_MEASURING_MODE_NATURAL,
+        0.0f,
+        0.0f,
+        &analysis
+    );
+    if (FAILED(hrA) || !analysis)
+        return;
+    RECT bounds{};
+    analysis->GetAlphaTextureBounds(DWRITE_TEXTURE_ALIASED_1x1, &bounds);
+    const int texW = bounds.right - bounds.left;
+    const int texH = bounds.bottom - bounds.top;
+    if (texW <= 0 || texH <= 0)
+        return;
+    std::vector<uint8_t> alpha(static_cast<size_t>(texW) * static_cast<size_t>(texH));
+    const HRESULT hrT = analysis->CreateAlphaTexture(
+        DWRITE_TEXTURE_ALIASED_1x1,
+        &bounds,
+        alpha.data(),
+        static_cast<UINT32>(alpha.size())
+    );
+    if (FAILED(hrT))
+        return;
+    // TextLayout::Draw 传入的是 float 基线；这里取 floor 贴近像素网格
+    const int baseX = static_cast<int>(std::floor(baselineOriginX));
+    const int baseY = static_cast<int>(std::floor(baselineOriginY));
+    for (int y = 0; y < texH; ++y)
+    {
+        const int dstY = baseY + bounds.top + y;
+        if (dstY < 0 || dstY >= static_cast<int>(surface.GetHeight()))
+            continue;
+        for (int x = 0; x < texW; ++x)
+        {
+            const int dstX = baseX + bounds.left + x;
+            if (dstX < 0 || dstX >= static_cast<int>(surface.GetWidth()))
+                continue;
+            const uint8_t cov = alpha[static_cast<size_t>(y) * texW + x];
+            if (!cov) continue;
+            const Color dst = surface.GetPixel(dstX, dstY);
+            surface.PutPixel(dstX, dstY, AlphaBlendCoverage(dst, color, cov));
+        }
+    }
+}

@@ -83,6 +83,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)\assimp\include;$(ProjectDir)\dxtex\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -109,6 +110,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalIncludeDirectories>$(ProjectDir)\assimp\include;$(ProjectDir)\dxtex\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalUsingDirectories>D:\_HOME_study\D3D_HW3D\dxtex\bin;%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,6 +148,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(ProjectDir)\assimp\include;$(ProjectDir)\dxtex\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -172,6 +175,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalIncludeDirectories>$(ProjectDir)\assimp\include;$(ProjectDir)\dxtex\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalUsingDirectories>D:\_HOME_study\D3D_HW3D\dxtex\bin;%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -224,7 +228,9 @@
     <ClCompile Include="Sprite3D.cpp" />
     <ClCompile Include="Sprite3DNoLit.cpp" />
     <ClCompile Include="SpriteUVCbuf.cpp" />
+    <ClCompile Include="TextBlock.cpp" />
     <ClCompile Include="TextCodex.cpp" />
+    <ClCompile Include="TextLayoutCanvasRenderer.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
@@ -352,7 +358,9 @@
     <ClInclude Include="Sprite3D.h" />
     <ClInclude Include="Sprite3DNoLit.h" />
     <ClInclude Include="SpriteUVCbuf.h" />
+    <ClInclude Include="TextBlock.h" />
     <ClInclude Include="TextCodex.h" />
+    <ClInclude Include="TextLayoutCanvasRenderer.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />

@@ -55,6 +55,16 @@ public:
         int baselineY,
         Color textColor);
 
+
+    IDWriteFactory* GetFactory() const noexcept { return factory_.Get(); }
+    /** 阶段5：直接把 TextLayout 给出的 glyphRun 写入 Canvas */
+    void DrawGlyphRunToCanvas(
+        Canvas& canvas,
+        float baselineOriginX,
+        float baselineOriginY,
+        const DWRITE_GLYPH_RUN& glyphRun,
+        Color color);
+
 private:
     TextCodex() = default;
 
