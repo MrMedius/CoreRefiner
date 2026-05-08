@@ -230,6 +230,7 @@
     <ClCompile Include="SpriteUVCbuf.cpp" />
     <ClCompile Include="TextBlock.cpp" />
     <ClCompile Include="TextCodex.cpp" />
+    <ClCompile Include="TextColorEffect.cpp" />
     <ClCompile Include="TextLayoutCanvasRenderer.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Transform2DCbuf.cpp" />
@@ -360,7 +361,9 @@
     <ClInclude Include="SpriteUVCbuf.h" />
     <ClInclude Include="TextBlock.h" />
     <ClInclude Include="TextCodex.h" />
+    <ClInclude Include="TextColorEffect.h" />
     <ClInclude Include="TextLayoutCanvasRenderer.h" />
+    <ClInclude Include="TextSpan.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />

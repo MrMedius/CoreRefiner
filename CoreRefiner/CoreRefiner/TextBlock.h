@@ -5,6 +5,10 @@
 #include <string>
 #include <string_view>
 
+#include <vector>
+#include <Unknwn.h>
+#include "TextSpan.h"
+
 class Canvas;
 class Color;
 
@@ -72,4 +76,13 @@ private:
 
     // 记录 layout 用过的宽度，避免每帧重建
     float lastLayoutWidth_ = -1.0f;
+
+
+public:
+    void SetSpans(std::vector<TextSpan> spans);
+private:
+    void ApplySpans_();
+private:
+    std::vector<TextSpan> spans_;
+    std::vector<Microsoft::WRL::ComPtr<IUnknown>> effects_; // 持有 effect，避免被提前释放
 };

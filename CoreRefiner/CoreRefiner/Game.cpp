@@ -312,6 +312,51 @@ static void Test_TextBlock_ModeB_AutoSized(Canvas& canvas)
 	canvas.SetScale({ displayW, displayH, 1.0f });
 }
 
+static void Test_RichText_Spans(Canvas& canvas)
+{
+	static TextBlock tb;
+	static bool inited = false;
+	if (!inited)
+	{
+		TextBlock::Style st{};
+		st.fontFamily = L"Segoe UI";
+		st.fontSize = 20.0f;
+		st.wrapping = DWRITE_WORD_WRAPPING_WRAP;
+		tb.SetStyle(st);
+		tb.SetPadding(6);
+		// 注意：start/length 是按 UTF-16 code unit 的索引（wstring长度），而不是 UTF-8 字节。
+		// 最简单的测试方法：先用纯 ASCII 文本来验证 span，然后再扩展到中文/日文。
+		tb.SetTextUtf8(
+			"MAN! What can I say?\n"
+			"MANBA OUT!\n"
+			"It's bing a long day without you, my friend\n"
+		);
+		std::vector<TextSpan> spans;
+		// "RED"
+		spans.push_back(TextSpan{
+			.start = 0, .length = 20,
+			.color = Colors::Yellow
+			});
+		// "Bold"
+		spans.push_back(TextSpan{
+			.start = 0, .length = 20,
+			.weight = DWRITE_FONT_WEIGHT_BOLD
+			});
+		// "BLUE"
+		spans.push_back(TextSpan{
+			.start = 21, .length = 10,
+			.color = Colors::Chart[10][5]
+			});
+		spans.push_back(TextSpan{
+			.start = 32, .length = 43,
+			.color = Colors::Red
+			});
+		tb.SetSpans(std::move(spans));
+		inited = true;
+	}
+	tb.RenderToCanvasFixed(canvas, Colors::White);
+}
+
 
 void Game::UpdateCanvasDemo(float dt)
 {
@@ -344,5 +389,8 @@ void Game::UpdateCanvasDemo(float dt)
 	pTestCanvasWorld->SetRotation(0.0f, canvasAnimT * 20.0f, 0.0f);
 
 	Test_TextBlock_ModeA_FixedCanvas(*pTestCanvasUi);
-	Test_TextBlock_ModeB_AutoSized(*pTestCanvasWorld);
+	Test_RichText_Spans(*pTestCanvasWorld);
+
+
+
 }

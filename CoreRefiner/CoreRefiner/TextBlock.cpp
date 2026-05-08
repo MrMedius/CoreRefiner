@@ -10,6 +10,9 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "TextColorEffect.h"
+
+
 void TextBlock::SetTextUtf8(std::string utf8)
 {
     textUtf8_ = std::move(utf8);
@@ -72,6 +75,8 @@ void TextBlock::EnsureLayout_(float layoutWidthPx, float layoutHeightPx)
     layout_ = std::move(layout);
     dirty_ = false;
     lastLayoutWidth_ = layoutWidthPx;
+
+	ApplySpans_();
 }
 
 void TextBlock::Measure(UINT& outW, UINT& outH)
@@ -142,4 +147,43 @@ void TextBlock::RenderToCanvasAuto(Canvas& canvas, Color textColor)
     layout_->Draw(nullptr, &renderer, originX, originY);
 
     canvas.NotifyPixelsChanged();
+}
+
+void TextBlock::SetSpans(std::vector<TextSpan> spans)
+{
+    spans_ = std::move(spans);
+    dirty_ = true;
+}
+
+void TextBlock::ApplySpans_()
+{
+    effects_.clear();
+    if (!layout_) return;
+    if (spans_.empty()) return;
+    for (const auto& sp : spans_)
+    {
+        if (sp.length == 0) continue;
+        DWRITE_TEXT_RANGE range{ sp.start, sp.length };
+        if (sp.weight.has_value())
+        {
+            layout_->SetFontWeight(*sp.weight, range);
+        }
+        if (sp.fontFamily.has_value())
+        {
+            layout_->SetFontFamilyName(sp.fontFamily->c_str(), range);
+        }
+        if (sp.color.has_value())
+        {
+            // 创建 effect，并持有到 effects_ 里，确保 layout draw 期间有效
+            Microsoft::WRL::ComPtr<IUnknown> eff;
+            eff.Attach(static_cast<IUnknown*>(new TextColorEffect(*sp.color)));
+            layout_->SetDrawingEffect(eff.Get(), range);
+            effects_.push_back(std::move(eff));
+        }
+        else
+        {
+            // 可选：清掉 effect（让它用默认色）
+            // layout_->SetDrawingEffect(nullptr, range);
+        }
+    }
 }

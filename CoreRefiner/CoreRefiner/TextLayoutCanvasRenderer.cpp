@@ -2,6 +2,8 @@
 
 #include "TextCodex.h"
 
+#include "TextColorEffect.h"
+
 TextLayoutCanvasRenderer::TextLayoutCanvasRenderer(TextCodex& codex, Canvas& canvas, Color color)
     : codex_(codex), canvas_(canvas), color_(color)
 {
@@ -63,15 +65,23 @@ HRESULT TextLayoutCanvasRenderer::DrawGlyphRun(
     DWRITE_MEASURING_MODE,
     const DWRITE_GLYPH_RUN* glyphRun,
     const DWRITE_GLYPH_RUN_DESCRIPTION*,
-    IUnknown*)
+    IUnknown* clientDrawingEffect)
 {
     if (!glyphRun) return E_INVALIDARG;
-
-    // 阶段5关键：layout 已经决定了 glyphIndices/advances/offsets/换行/双向等
-    // 我们只负责把这个 run 光栅化并混合写入 Canvas。
-    codex_.DrawGlyphRunToCanvas(canvas_, baselineOriginX, baselineOriginY, *glyphRun, color_);
+    Color drawColor = color_;
+    if (clientDrawingEffect)
+    {
+        ITextColorEffect* pColorEffect = nullptr;
+        if (SUCCEEDED(clientDrawingEffect->QueryInterface(__uuidof(ITextColorEffect), reinterpret_cast<void**>(&pColorEffect))) && pColorEffect)
+        {
+            drawColor = pColorEffect->GetColor();
+            pColorEffect->Release();
+        }
+    }
+    codex_.DrawGlyphRunToCanvas(canvas_, baselineOriginX, baselineOriginY, *glyphRun, drawColor);
     return S_OK;
 }
+
 
 HRESULT TextLayoutCanvasRenderer::DrawUnderline(void*, FLOAT, FLOAT, const DWRITE_UNDERLINE*, IUnknown*)
 {
