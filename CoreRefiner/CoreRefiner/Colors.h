@@ -14,23 +14,19 @@ public:
 	constexpr Color(unsigned int dw)
 		:
 		dword(dw)
-	{
-	}
+	{}
 	constexpr Color(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 		:
 		dword((a << 24u) | (r << 16u) | (g << 8u) | b)
-	{
-	}
+	{}
 	constexpr Color(unsigned char r, unsigned char g, unsigned char b)
 		:
 		dword((255u << 24u) | (r << 16u) | (g << 8u) | b)
-	{
-	}
+	{}
 	constexpr Color(Color col, unsigned char a)
 		:
 		Color((a << 24u) | (col.GetR() << 16u) | (col.GetG() << 8u) | col.GetB())
-	{
-	}
+	{}
 	constexpr Color(const Color& col)
 		:
 		dword(col.dword)

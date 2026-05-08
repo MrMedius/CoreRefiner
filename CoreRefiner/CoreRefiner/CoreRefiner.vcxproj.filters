@@ -448,11 +448,11 @@
     <ClCompile Include="CanvasTexture.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
-    <ClCompile Include="TextSystem.cpp">
-      <Filter>Framework\Helper\Text</Filter>
-    </ClCompile>
-    <ClCompile Include="TextRasterizer.cpp" />
     <ClCompile Include="TextCodex.cpp" />
+    <ClCompile Include="RichText.cpp" />
+    <ClCompile Include="DWriteLayoutRenderer.cpp" />
+    <ClCompile Include="TextRenderer.cpp" />
+    <ClCompile Include="DWriteCustomFontCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -905,11 +905,12 @@
     <ClInclude Include="CanvasTexture.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="TextSystem.h">
-      <Filter>Framework\Helper\Text</Filter>
-    </ClInclude>
-    <ClInclude Include="TextRasterizer.h" />
     <ClInclude Include="TextCodex.h" />
+    <ClInclude Include="RichText.h" />
+    <ClInclude Include="TextTypes.h" />
+    <ClInclude Include="DWriteLayoutRenderer.h" />
+    <ClInclude Include="TextRenderer.h" />
+    <ClInclude Include="DWriteCustomFontCollection.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
