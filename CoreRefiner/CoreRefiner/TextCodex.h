@@ -6,9 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
-class Canvas;
-class Color;
+#include "Canvas.h"
 
+/**
+ * TextCodex：DirectWrite 资源层单例。
+ * - 管理 IDWriteFactory、自定义 FontCollectionLoader 注册。
+ * - 缓存：系统 TextFormat、按路径/路径组的自定义 Collection、文件主族名、文件 TextFormat、FontFace。
+ */
 class TextCodex
 {
 public:
@@ -16,7 +20,9 @@ public:
 
     void Init();
 
-    /** 系统字体：返回可复用的 TextFormat（按 key 缓存） */
+    /**
+     * 系统字体集合上的 TextFormat（按 family + 字号 + 字重/样式/拉伸 缓存）。
+     */
     Microsoft::WRL::ComPtr<IDWriteTextFormat> GetSystemFormat(
         const std::wstring& fontFamily,
         float fontSize,
@@ -24,13 +30,16 @@ public:
         DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
-    /** 外部字体：从 .ttf/.otf 路径加载并缓存 FontFace（按路径缓存） */
-    Microsoft::WRL::ComPtr<IDWriteFontFace> GetFontFaceFromFile(
-        const std::wstring& fontFilePath);
-
+    /**
+     * 从磁盘 .ttf/.otf/.ttc 创建 FontFace（按路径缓存，供底层字形/度量等用法）。
+     */
+    Microsoft::WRL::ComPtr<IDWriteFontFace> GetFontFaceFromFile(const std::wstring& fontFilePath);
 
     IDWriteFactory* GetFactory() const noexcept { return factory_.Get(); }
-    /** 阶段5：直接把 TextLayout 给出的 glyphRun 写入 Canvas */
+
+    /**
+     * 将 TextLayout 回调中的 glyphRun 光栅化到 Canvas（DWriteLayoutRenderer 使用）。
+     */
     void DrawGlyphRunToCanvas(
         Canvas& canvas,
         float baselineOriginX,
@@ -38,12 +47,24 @@ public:
         const DWRITE_GLYPH_RUN& glyphRun,
         Color color);
 
-
-    // 自定义字体集合：单文件也用 collection 表达（后续可扩展多文件）
+    /**
+     * 由单字体文件构建自定义 IDWriteFontCollection（路径级缓存；与 TextLayout/CreateTextFormat 配套）。
+     */
     Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromFile(const std::wstring& fontFilePath);
-    // 从 collection 取第一个 family 名称（用于 CreateTextFormat）
+
+    /**
+     * 由多个字体文件构建同一 Collection（顺序影响族枚举顺序；整组路径字符串作缓存键）。
+     */
+    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromFiles(const std::vector<std::wstring>& fontFilePaths);
+
+    /**
+     * 取集合中第一个字族名称（用于 CreateTextFormat 的 family 参数）。
+     */
     std::wstring GetFirstFamilyName(IDWriteFontCollection* collection);
-    // 用“文件字体”创建可缓存的 TextFormat
+
+    /**
+     * 基于自定义 Collection 的 TextFormat（按路径 + 样式参数缓存；内部复用 Collection 与族名缓存）。
+     */
     Microsoft::WRL::ComPtr<IDWriteTextFormat> GetFileTextFormat(
         const std::wstring& fontFilePath,
         float fontSize,
@@ -53,11 +74,6 @@ public:
 
 private:
     TextCodex() = default;
-
-
-    Microsoft::WRL::ComPtr<IDWriteFontFace> GetSystemFontFace(const std::string& fontFamily, DWRITE_FONT_WEIGHT weight);
-
-
 
     struct SystemFormatKey
     {
@@ -75,14 +91,6 @@ private:
         size_t operator()(const SystemFormatKey& k) const noexcept;
     };
 
-
-    // custom collection loader（需保持活到进程退出）
-    Microsoft::WRL::ComPtr<IDWriteFontCollectionLoader> customCollectionLoader_;
-
-    // cache: fontFilePath -> custom collection
-    std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteFontCollection>> customCollectionsByPath_;
-
-    // cache: (path + size + weight + style + stretch) -> format
     struct FileFormatKey
     {
         std::wstring path;
@@ -98,15 +106,21 @@ private:
         size_t operator()(const FileFormatKey& k) const noexcept;
     };
 
-    std::unordered_map<FileFormatKey, Microsoft::WRL::ComPtr<IDWriteTextFormat>, FileFormatKeyHash> fileFormats_;
+    static std::wstring MakeCollectionCacheKey_(const std::vector<std::wstring>& paths);
 
-private:
+    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromPaths_(const std::vector<std::wstring>& paths);
+
+    std::wstring ResolvePrimaryFamilyName_(const std::wstring& singleFilePath, IDWriteFontCollection* collection);
+
     bool initialized_ = false;
     Microsoft::WRL::ComPtr<IDWriteFactory> factory_;
 
-    std::unordered_map<SystemFormatKey, Microsoft::WRL::ComPtr<IDWriteTextFormat>, SystemFormatKeyHash> systemFormats_;
-    std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteFontFace>> fontFacesByPath_;
+    Microsoft::WRL::ComPtr<IDWriteFontCollectionLoader> customCollectionLoader_;
 
-    // 用于创建 FontFile/stream 时暂存（保证 CreateFontFace 完成前数据有效）
-    std::vector<uint8_t> fileScratch_;
+    std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteFontCollection>> customCollectionsByKey_;
+    std::unordered_map<std::wstring, std::wstring> primaryFamilyNameByKey_;
+
+    std::unordered_map<SystemFormatKey, Microsoft::WRL::ComPtr<IDWriteTextFormat>, SystemFormatKeyHash> systemFormats_;
+    std::unordered_map<FileFormatKey, Microsoft::WRL::ComPtr<IDWriteTextFormat>, FileFormatKeyHash> fileFormats_;
+    std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteFontFace>> fontFacesByPath_;
 };

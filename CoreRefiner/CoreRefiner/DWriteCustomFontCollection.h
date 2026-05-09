@@ -6,11 +6,6 @@
 #include <string>
 #include <vector>
 
-/**
- * 自定义字体集合（按文件路径列表构建）。
- * - 用 IDWriteFontCollectionLoader/IDWriteFontFileEnumerator 实现。
- * - 你只要喂进 ["asset\\Fonts\\A.ttf", "asset\\Fonts\\B.ttf"] 就能得到一个 collection。
- */
 namespace Text
 {
     struct FontCollectionKey

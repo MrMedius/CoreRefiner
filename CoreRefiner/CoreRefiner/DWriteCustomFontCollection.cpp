@@ -81,8 +81,7 @@ namespace Text
 
     FontFileEnumerator::FontFileEnumerator(IDWriteFactory* factory, std::vector<std::wstring> files)
         : factory_(factory), files_(std::move(files))
-    {
-    }
+    {}
 
     HRESULT __stdcall FontFileEnumerator::QueryInterface(REFIID riid, void** ppvObject)
     {

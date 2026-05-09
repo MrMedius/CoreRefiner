@@ -8,8 +8,7 @@ namespace Text
 {
     DWriteLayoutRenderer::DWriteLayoutRenderer(TextCodex& codex, Canvas& canvas, Color defaultColor)
         : codex_(codex), canvas_(canvas), defaultColor_(defaultColor)
-    {
-    }
+    {}
 
     HRESULT __stdcall DWriteLayoutRenderer::QueryInterface(REFIID riid, void** ppvObject)
     {

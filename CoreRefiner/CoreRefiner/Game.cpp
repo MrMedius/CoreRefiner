@@ -183,7 +183,7 @@ void Game::Draw()
 void Game::InitCanvasDemo()
 {
 	{
-		const unsigned cw = 1000u, ch = 500u;
+		const unsigned cw = 100u, ch = 50u;
 		pTestCanvasUi = std::make_unique<Canvas2D>(wnd.Gfx(), cw, ch);
 
 		for (unsigned y = 0; y < ch; ++y)
@@ -200,7 +200,7 @@ void Game::InitCanvasDemo()
 	}
 
 	{
-		const unsigned cw = 320u, ch = 320u;
+		const unsigned cw = 32u, ch = 32u;
 		pTestCanvasWorld = std::make_unique<Canvas3D>(wnd.Gfx(), cw, ch);
 
 		for (unsigned y = 0; y < ch; ++y)
@@ -251,7 +251,7 @@ static void Test_NewPipeline(Canvas& canvas)
 
 		req.maxWidthPx = 600.0f;
 		req.paddingPx = 6;
-		req.style.fontSize = 2.0f;
+		req.style.fontSize = 20.0f;
 		req.defaultColor = Colors::White;
 		req.backgroundColor = Colors::None;
 		// spans（UTF-16 range：建议先用纯 ASCII 测）
@@ -266,11 +266,11 @@ static void Test_NewPipeline(Canvas& canvas)
 
 	tr.Render(req, canvas);
 
-	const float w = float(canvas.GetCanvasWidth());
-	const float h = float(canvas.GetCanvasHeight());
-	const float displayW = 50.0f;
-	const float displayH = (w > 0.0f) ? (displayW * (h / w)) : 50.0f;
-	canvas.SetScale({ displayW, displayH, 1.0f });
+	//const float w = float(canvas.GetCanvasWidth());
+	//const float h = float(canvas.GetCanvasHeight());
+	//const float displayW = 50.0f;
+	//const float displayH = (w > 0.0f) ? (displayW * (h / w)) : 50.0f;
+	//canvas.SetScale({ displayW, displayH, 1.0f });
 }
 
 
@@ -308,5 +308,4 @@ void Game::UpdateCanvasDemo(float dt)
 	Test_NewPipeline(*pTestCanvasWorld);
 
 	pTestCanvasUi->SetScale({ 800.0f, 800.0f, 1.0f });
-
 }
