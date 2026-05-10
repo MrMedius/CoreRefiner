@@ -232,6 +232,7 @@
     <ClCompile Include="Sprite3DNoLit.cpp" />
     <ClCompile Include="SpriteUVCbuf.cpp" />
     <ClCompile Include="TextCodex.cpp" />
+    <ClCompile Include="TextDrawContext.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Transform2DCbuf.cpp" />
@@ -364,6 +365,7 @@
     <ClInclude Include="Sprite3DNoLit.h" />
     <ClInclude Include="SpriteUVCbuf.h" />
     <ClInclude Include="TextCodex.h" />
+    <ClInclude Include="TextDrawContext.h" />
     <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="TextTypes.h" />
     <ClInclude Include="Timer.h" />

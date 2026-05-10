@@ -1,28 +1,56 @@
 #pragma once
+
 #include "WRL.h"
 #include <dwrite.h>
 
+#include <array>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "Canvas.h"
+#include "TextRenderer.h"
+#include "TextDrawContext.h"
+#include "DWriteLayoutRenderer.h"
 
-/**
- * TextCodex：DirectWrite 资源层单例。
- * - 管理 IDWriteFactory、自定义 FontCollectionLoader 注册。
- * - 缓存：系统 TextFormat、按路径/路径组的自定义 Collection、文件主族名、文件 TextFormat、FontFace。
- */
+
 class TextCodex
 {
+    friend class Text::TextDrawContext;
+    friend class Text::TextRenderer;
+    friend class Text::DWriteLayoutRenderer;
+
 public:
     static TextCodex& Get() noexcept;
 
+    // Create a shared DWrite factory and register a custom FontCollectionLoader.
     void Init();
 
-    /**
-     * 系统字体集合上的 TextFormat（按 family + 字号 + 字重/样式/拉伸 缓存）。
-     */
+    // Rent a TextRenderer from the pool; returned and reset when TextDrawContext is destructed.
+    Text::TextDrawContext BeginDraw();
+
+private:
+    TextCodex() = default;
+
+    // -------------------------------------------------------------------------
+    // Text::TextDrawContext — Rendering session and TextRenderer pool
+    // -------------------------------------------------------------------------
+
+    /** Acquire the first available slot in the pool; construct TextRenderer if necessary. */
+    std::size_t AcquireTextRendererSlot_();
+
+    /** Release the slot and clear the TextRenderer's layout cache to avoid state changes across sessions. */
+    void ReleaseTextRendererSlot_(std::size_t slot) noexcept;
+
+    // -------------------------------------------------------------------------
+    // Text::TextRenderer — Layout phase: factory, TextFormat, custom font collections
+    // -------------------------------------------------------------------------
+
+    IDWriteFactory* GetFactory() const noexcept { return factory_.Get(); }
+
+    
+    // TextFormat on the system font collection (cached by family + size + weight/style/stretch).
     Microsoft::WRL::ComPtr<IDWriteTextFormat> GetSystemFormat(
         const std::wstring& fontFamily,
         float fontSize,
@@ -30,41 +58,8 @@ public:
         DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
-    /**
-     * 从磁盘 .ttf/.otf/.ttc 创建 FontFace（按路径缓存，供底层字形/度量等用法）。
-     */
-    Microsoft::WRL::ComPtr<IDWriteFontFace> GetFontFaceFromFile(const std::wstring& fontFilePath);
-
-    IDWriteFactory* GetFactory() const noexcept { return factory_.Get(); }
-
-    /**
-     * 将 TextLayout 回调中的 glyphRun 光栅化到 Canvas（DWriteLayoutRenderer 使用）。
-     */
-    void DrawGlyphRunToCanvas(
-        Canvas& canvas,
-        float baselineOriginX,
-        float baselineOriginY,
-        const DWRITE_GLYPH_RUN& glyphRun,
-        Color color);
-
-    /**
-     * 由单字体文件构建自定义 IDWriteFontCollection（路径级缓存；与 TextLayout/CreateTextFormat 配套）。
-     */
-    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromFile(const std::wstring& fontFilePath);
-
-    /**
-     * 由多个字体文件构建同一 Collection（顺序影响族枚举顺序；整组路径字符串作缓存键）。
-     */
-    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromFiles(const std::vector<std::wstring>& fontFilePaths);
-
-    /**
-     * 取集合中第一个字族名称（用于 CreateTextFormat 的 family 参数）。
-     */
-    std::wstring GetFirstFamilyName(IDWriteFontCollection* collection);
-
-    /**
-     * 基于自定义 Collection 的 TextFormat（按路径 + 样式参数缓存；内部复用 Collection 与族名缓存）。
-     */
+    
+    // TextFormat based on a custom FontCollection (primary font is a single file on disk; with caching).
     Microsoft::WRL::ComPtr<IDWriteTextFormat> GetFileTextFormat(
         const std::wstring& fontFilePath,
         float fontSize,
@@ -72,8 +67,43 @@ public:
         DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
-private:
-    TextCodex() = default;
+    // Create a custom font collection from a single file (path-level caching).
+    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromFile(const std::wstring& fontFilePath);
+    // Create a custom font collection from multiple files (path order affects family enumeration order; whole set key caching).
+    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromFiles(const std::vector<std::wstring>& fontFilePaths);
+    // Get the display name of the first family in the collection (used for the family parameter in CreateTextFormat).
+    std::wstring GetFirstFamilyName(IDWriteFontCollection* collection);
+    // Create a FontFace from a font file (path-level caching; not the main path for TextLayout, used for glyph/metrics extensions).
+    Microsoft::WRL::ComPtr<IDWriteFontFace> GetFontFaceFromFile(const std::wstring& fontFilePath);
+
+    // -------------------------------------------------------------------------
+    // Text::TextRenderer — Internal: Custom collection keys and primary family name resolution
+    // -------------------------------------------------------------------------
+
+    // Encode a list of paths into a key for unordered_map (prefix separator for multiple files to avoid conflicts with single paths).
+    static std::wstring MakeCollectionCacheKey_(const std::vector<std::wstring>& paths);
+
+    // Actual entry point for CreateCustomFontCollection (with customCollectionsByKey_ cache).
+    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromPaths_(const std::vector<std::wstring>& paths);
+
+    // Cache for the primary family name of a single-file font, reducing repeated queries to LocalizedStrings.
+    std::wstring ResolvePrimaryFamilyName_(const std::wstring& singleFilePath, IDWriteFontCollection* collection);
+
+    // -------------------------------------------------------------------------
+    // Text::DWriteLayoutRenderer — IDWriteTextLayout::Draw callback: glyph rasterization
+    // -------------------------------------------------------------------------
+
+    /** Blend the glyphRun generated by DWrite into the Canvas using alpha texture. */
+    void DrawGlyphRunToCanvas(
+        Canvas& canvas,
+        float baselineOriginX,
+        float baselineOriginY,
+        const DWRITE_GLYPH_RUN& glyphRun,
+        Color color);
+
+    // -------------------------------------------------------------------------
+    // Cache key types (for systemFormats_ / fileFormats_ usage)
+    // -------------------------------------------------------------------------
 
     struct SystemFormatKey
     {
@@ -106,15 +136,16 @@ private:
         size_t operator()(const FileFormatKey& k) const noexcept;
     };
 
-    static std::wstring MakeCollectionCacheKey_(const std::vector<std::wstring>& paths);
+    // -------------------------------------------------------------------------
+    // Members: lifecycle, DWrite objects, caches, TextRenderer pool
+    // -------------------------------------------------------------------------
 
-    Microsoft::WRL::ComPtr<IDWriteFontCollection> GetCustomFontCollectionFromPaths_(const std::vector<std::wstring>& paths);
-
-    std::wstring ResolvePrimaryFamilyName_(const std::wstring& singleFilePath, IDWriteFontCollection* collection);
+    static constexpr std::size_t kTextRendererPoolCap = 8;
 
     bool initialized_ = false;
     Microsoft::WRL::ComPtr<IDWriteFactory> factory_;
 
+    // Must remain alive until process exit; used by CreateCustomFontCollection.
     Microsoft::WRL::ComPtr<IDWriteFontCollectionLoader> customCollectionLoader_;
 
     std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteFontCollection>> customCollectionsByKey_;
@@ -123,4 +154,7 @@ private:
     std::unordered_map<SystemFormatKey, Microsoft::WRL::ComPtr<IDWriteTextFormat>, SystemFormatKeyHash> systemFormats_;
     std::unordered_map<FileFormatKey, Microsoft::WRL::ComPtr<IDWriteTextFormat>, FileFormatKeyHash> fileFormats_;
     std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteFontFace>> fontFacesByPath_;
+
+    std::array<bool, kTextRendererPoolCap> textRendererSlotUsed_{};
+    std::array<std::unique_ptr<Text::TextRenderer>, kTextRendererPoolCap> textRendererPool_{};
 };

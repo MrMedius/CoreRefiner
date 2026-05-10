@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include <dwrite.h>
 #include <string>
 #include <vector>
@@ -46,20 +45,22 @@ namespace Text
         DWRITE_PARAGRAPH_ALIGNMENT paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
         DWRITE_WORD_WRAPPING wrapping = DWRITE_WORD_WRAPPING_WRAP;
 
-        float lineSpacing = 0.0f; // 0=默认；>0=统一行距
+        float lineSpacing = 0.0f; //0 = Default; >0 = Uniform line spacing
     };
 
     struct Span
     {
-        // UTF-16 code unit range（与 DirectWrite 完全一致）
+        // UTF-16 code unit range（Identical to DirectWrite）
         UINT32 start = 0;
         UINT32 length = 0;
 
-        std::optional<Color> color;
         std::optional<DWRITE_FONT_WEIGHT> weight;
         std::optional<DWRITE_FONT_STYLE> style;
         std::optional<DWRITE_FONT_STRETCH> stretch;
         std::optional<std::wstring> fontFamily;
+        std::optional<bool> underline;
+        std::optional<bool> strikethrough;
+        std::optional<Color> color;
     };
 
     struct MeasureResult
@@ -70,26 +71,27 @@ namespace Text
 
     struct RenderRequest
     {
-        // 输入文本：统一约定 UTF-8（跨机器不受系统区域影响）
+        // Input text: UTF-8 (standardized across machines and is not affected by system region)
         std::string utf8Text;
 
         CanvasMode canvasMode = CanvasMode::Fixed;
         ClearMode clearMode = ClearMode::Clear;
 
-        // 主字体来源（系统族名或文件字体）
+        // Main font source (system family name or file font)
         FontSource primaryFont = FontSource::System(L"Segoe UI");
 
-        // fallback：建议放系统族名（也可再扩展为文件）
+        // Fallback fonts: it's recommended to use system family names (can also be extended to files)
         std::vector<FontSource> fallbackFonts;
 
+        // Text style and spans
         Style style{};
         std::vector<Span> spans;
 
-        // 画布策略
-        float maxWidthPx = 320.0f; // Auto：固定宽度；Fixed：通常会被 canvas 宽覆盖
+        // Canvas strategy
+        float maxWidthPx = 320.0f; // Auto: fixed width; Fixed: usually overridden by canvas width
         int paddingPx = 6;
 
-        // 颜色
+		// Color settings
         Color defaultColor;
         Color backgroundColor;
     };

@@ -3,12 +3,100 @@
 #include "TextCodex.h"
 #include "RichText.h"
 #include "Canvas.h"
+#include "Surface.h"
+
+#include <algorithm>
+#include <cmath>
+
+namespace
+{
+    Color ResolveDrawColor(Color fallback, IUnknown* clientDrawingEffect)
+    {
+        if (!clientDrawingEffect)
+            return fallback;
+        Text::IColorEffect* eff = nullptr;
+        if (SUCCEEDED(clientDrawingEffect->QueryInterface(__uuidof(Text::IColorEffect), reinterpret_cast<void**>(&eff))) && eff)
+        {
+            const Color c = eff->GetColor();
+            eff->Release();
+            return c;
+        }
+        return fallback;
+    }
+
+    /** 轴对齐矩形填充（像素坐标，含简单裁剪）。 */
+    void FillSolidRect(Canvas& canvas, int x0, int y0, int x1, int y1, Color color)
+    {
+        Surface& surface = canvas.GetSurface();
+        const int w = static_cast<int>(surface.GetWidth());
+        const int h = static_cast<int>(surface.GetHeight());
+        x0 = std::max(0, x0);
+        y0 = std::max(0, y0);
+        x1 = std::min(w, x1);
+        y1 = std::min(h, y1);
+        if (x0 >= x1 || y0 >= y1)
+            return;
+
+        for (int y = y0; y < y1; ++y)
+        {
+            for (int x = x0; x < x1; ++x)
+                surface.PutPixel(x, y, color);
+        }
+    }
+
+    void FillUnderlineBand(
+        Canvas& canvas,
+        float baselineOriginX,
+        float baselineOriginY,
+        const DWRITE_UNDERLINE* u,
+        Color color)
+    {
+        if (!u || u->width <= 0.0f || u->thickness <= 0.0f)
+            return;
+
+        const float left = baselineOriginX;
+        const float top = baselineOriginY + u->offset;
+        const float width = u->width;
+        const float thick = std::max(u->thickness, 1.0f);
+
+        const int x0 = static_cast<int>(std::floor(left));
+        const int y0 = static_cast<int>(std::floor(top));
+        const int x1 = static_cast<int>(std::ceil(left + width));
+        const int y1 = static_cast<int>(std::ceil(top + thick));
+
+        FillSolidRect(canvas, x0, y0, x1, y1, color);
+    }
+
+    void FillStrikethroughBand(
+        Canvas& canvas,
+        float baselineOriginX,
+        float baselineOriginY,
+        const DWRITE_STRIKETHROUGH* s,
+        Color color)
+    {
+        if (!s || s->width <= 0.0f || s->thickness <= 0.0f)
+            return;
+
+        const float left = baselineOriginX;
+        const float top = baselineOriginY + s->offset;
+        const float width = s->width;
+        const float thick = std::max(s->thickness, 1.0f);
+
+        const int x0 = static_cast<int>(std::floor(left));
+        const int y0 = static_cast<int>(std::floor(top));
+        const int x1 = static_cast<int>(std::ceil(left + width));
+        const int y1 = static_cast<int>(std::ceil(top + thick));
+
+        FillSolidRect(canvas, x0, y0, x1, y1, color);
+    }
+}
 
 namespace Text
 {
     DWriteLayoutRenderer::DWriteLayoutRenderer(TextCodex& codex, Canvas& canvas, Color defaultColor)
         : codex_(codex), canvas_(canvas), defaultColor_(defaultColor)
-    {}
+    {
+    }
 
     HRESULT __stdcall DWriteLayoutRenderer::QueryInterface(REFIID riid, void** ppvObject)
     {
@@ -67,23 +155,39 @@ namespace Text
     {
         if (!glyphRun) return E_INVALIDARG;
 
-        Color c = defaultColor_;
-
-        if (clientDrawingEffect)
-        {
-            IColorEffect* eff = nullptr;
-            if (SUCCEEDED(clientDrawingEffect->QueryInterface(__uuidof(IColorEffect), reinterpret_cast<void**>(&eff))) && eff)
-            {
-                c = eff->GetColor();
-                eff->Release();
-            }
-        }
-
+        const Color c = ResolveDrawColor(defaultColor_, clientDrawingEffect);
         codex_.DrawGlyphRunToCanvas(canvas_, baselineOriginX, baselineOriginY, *glyphRun, c);
         return S_OK;
     }
 
-    HRESULT __stdcall DWriteLayoutRenderer::DrawUnderline(void*, FLOAT, FLOAT, const DWRITE_UNDERLINE*, IUnknown*) { return S_OK; }
-    HRESULT __stdcall DWriteLayoutRenderer::DrawStrikethrough(void*, FLOAT, FLOAT, const DWRITE_STRIKETHROUGH*, IUnknown*) { return S_OK; }
-    HRESULT __stdcall DWriteLayoutRenderer::DrawInlineObject(void*, FLOAT, FLOAT, IDWriteInlineObject*, BOOL, BOOL, IUnknown*) { return S_OK; }
+    HRESULT __stdcall DWriteLayoutRenderer::DrawUnderline(
+        void*,
+        FLOAT baselineOriginX,
+        FLOAT baselineOriginY,
+        const DWRITE_UNDERLINE* underline,
+        IUnknown* clientDrawingEffect)
+    {
+        if (!underline) return E_INVALIDARG;
+        const Color c = ResolveDrawColor(defaultColor_, clientDrawingEffect);
+        FillUnderlineBand(canvas_, baselineOriginX, baselineOriginY, underline, c);
+        return S_OK;
+    }
+
+    HRESULT __stdcall DWriteLayoutRenderer::DrawStrikethrough(
+        void*,
+        FLOAT baselineOriginX,
+        FLOAT baselineOriginY,
+        const DWRITE_STRIKETHROUGH* strikethrough,
+        IUnknown* clientDrawingEffect)
+    {
+        if (!strikethrough) return E_INVALIDARG;
+        const Color c = ResolveDrawColor(defaultColor_, clientDrawingEffect);
+        FillStrikethroughBand(canvas_, baselineOriginX, baselineOriginY, strikethrough, c);
+        return S_OK;
+    }
+
+    HRESULT __stdcall DWriteLayoutRenderer::DrawInlineObject(void*, FLOAT, FLOAT, IDWriteInlineObject*, BOOL, BOOL, IUnknown*)
+    {
+        return S_OK;
+    }
 }

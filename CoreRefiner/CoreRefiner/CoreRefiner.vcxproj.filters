@@ -453,6 +453,7 @@
     <ClCompile Include="DWriteLayoutRenderer.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="DWriteCustomFontCollection.cpp" />
+    <ClCompile Include="TextDrawContext.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -911,6 +912,7 @@
     <ClInclude Include="DWriteLayoutRenderer.h" />
     <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="DWriteCustomFontCollection.h" />
+    <ClInclude Include="TextDrawContext.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

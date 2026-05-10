@@ -9,9 +9,6 @@
 #include "ObjectCodex.h"
 #include "TextCodex.h"
 
-#include "Colors.h"
-#include "TextRenderer.h"
-
 namespace dx = DirectX;
 
 Game::Game(const std::string& commandLine)
@@ -200,7 +197,7 @@ void Game::InitCanvasDemo()
 	}
 
 	{
-		const unsigned cw = 32u, ch = 32u;
+		const unsigned cw = 320u, ch = 320u;
 		pTestCanvasWorld = std::make_unique<Canvas3D>(wnd.Gfx(), cw, ch);
 
 		for (unsigned y = 0; y < ch; ++y)
@@ -216,65 +213,6 @@ void Game::InitCanvasDemo()
 		pTestCanvasWorld->LinkTechniques(gameRG);
 	}
 }
-
-static void Test_NewPipeline(Canvas& canvas)
-{
-	static Text::TextRenderer tr(TextCodex::Get());
-	static Text::RenderRequest req;
-	static bool inited = false;
-	if (!inited)
-	{
-		req.utf8Text = "Normal RED Bold Italic BLUE\n中文：道具描述自动换行。\n日本語：あいうえお。\n"
-			"哥们儿，这瓜多少钱一斤呐？"
-			"两块钱一斤。"
-			"这瓜皮子是金子做的，还是瓜粒子是金子做的？"
-			"你瞧瞧这现在哪有瓜呀？这都是大棚的瓜，你嫌贵我还嫌贵呢。"
-			"给我挑一个。"
-			"行，这个怎么样？"
-			"这瓜保熟吗？"
-			"我开水果摊儿的，能卖给你生瓜蛋子啊？\n"
-			"我问你这瓜保熟吗？\n"
-			"你是故意找岔儿，是不是？你要不要吧！\n"
-			"你这瓜要熟我肯定要啊。那它要是不熟怎么办呀？\n"
-			"哎，要是不熟，我自己吃了它，满意了吧？\n"
-			"15斤，30块。\n"
-			"你这哪够15斤哪？你这称有问题呀。\n"
-			"你故意找茬儿是不是？\n"
-			"你要不要吧？你要不要？\n"
-			"吸铁石，另外你说的，这瓜要是生的，你自己吞进去啊。\n"
-			"你劈我瓜是吧！\n"
-			"欻！刺！\n"
-			"撒日朗！撒日朗！\n";
-		req.canvasMode = Text::CanvasMode::Auto;
-		req.clearMode = Text::ClearMode::NoClear;
-		req.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
-
-		req.maxWidthPx = 600.0f;
-		req.paddingPx = 6;
-		req.style.fontSize = 20.0f;
-		req.defaultColor = Colors::White;
-		req.backgroundColor = Colors::None;
-		// spans（UTF-16 range：建议先用纯 ASCII 测）
-		req.spans = {
-			Text::Span{.start = 7, .length = 3, .color = Colors::Red },
-			Text::Span{.start = 11, .length = 4, .weight = DWRITE_FONT_WEIGHT_BOLD },
-			Text::Span{.start = 16, .length = 6, .style = DWRITE_FONT_STYLE_ITALIC },
-			Text::Span{.start = 23, .length = 4, .color = Colors::Blue },
-		};
-		inited = true;
-	}
-
-	tr.Render(req, canvas);
-
-	//const float w = float(canvas.GetCanvasWidth());
-	//const float h = float(canvas.GetCanvasHeight());
-	//const float displayW = 50.0f;
-	//const float displayH = (w > 0.0f) ? (displayW * (h / w)) : 50.0f;
-	//canvas.SetScale({ displayW, displayH, 1.0f });
-}
-
-
-
 
 
 
@@ -304,8 +242,46 @@ void Game::UpdateCanvasDemo(float dt)
 
 	pTestCanvasWorld->SetRotation(0.0f, canvasAnimT * 20.0f, 0.0f);
 
-	Test_NewPipeline(*pTestCanvasUi);
-	Test_NewPipeline(*pTestCanvasWorld);
-
 	pTestCanvasUi->SetScale({ 800.0f, 800.0f, 1.0f });
+
+	auto ctx = TextCodex::Get().BeginDraw();
+	auto& rq = ctx.Request();
+	rq.utf8Text = "Normal RED Bold Italic BLUE\n中文：道具描述自动换行。\n日本語：あいうえお。\n"
+		"哥们儿，这瓜多少钱一斤呐？"
+		"两块钱一斤。"
+		"这瓜皮子是金子做的，还是瓜粒子是金子做的？"
+		"你瞧瞧这现在哪有瓜呀？这都是大棚的瓜，你嫌贵我还嫌贵呢。"
+		"给我挑一个。"
+		"行，这个怎么样？"
+		"这瓜保熟吗？"
+		"我开水果摊儿的，能卖给你生瓜蛋子啊？\n"
+		"我问你这瓜保熟吗？\n"
+		"你是故意找岔儿，是不是？你要不要吧！\n"
+		"你这瓜要熟我肯定要啊。那它要是不熟怎么办呀？\n"
+		"哎，要是不熟，我自己吃了它，满意了吧？\n"
+		"15斤，30块。\n"
+		"你这哪够15斤哪？你这称有问题呀。\n"
+		"你故意找茬儿是不是？\n"
+		"你要不要吧？你要不要？\n"
+		"吸铁石，另外你说的，这瓜要是生的，你自己吞进去啊。\n"
+		"你劈我瓜是吧！\n"
+		"欻！刺！\n"
+		"撒日朗！撒日朗！😊\n";
+	rq.canvasMode = Text::CanvasMode::Auto;
+	rq.clearMode = Text::ClearMode::NoClear;
+	rq.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
+	
+	rq.maxWidthPx = 600.0f;
+	rq.paddingPx = 6;
+	rq.style.fontSize = 20.0f;
+	rq.defaultColor = Colors::White;
+	rq.backgroundColor = Colors::Red;
+	// spans
+	rq.spans = {
+		Text::Span{.start = 7, .length = 3, .color = Colors::Red },
+		Text::Span{.start = 11, .length = 4, .weight = DWRITE_FONT_WEIGHT_BOLD },
+		Text::Span{.start = 16, .length = 6, .style = DWRITE_FONT_STYLE_ITALIC,.underline = true },
+		Text::Span{.start = 23, .length = 4,.underline = true,.strikethrough = true,.color = Colors::Blue },
+	};
+	ctx.Render(*pTestCanvasWorld);
 }
