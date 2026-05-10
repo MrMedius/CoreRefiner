@@ -10,7 +10,6 @@ namespace Text
     enum class CanvasMode { Fixed, Auto };
     enum class ClearMode  { Clear, NoClear };
     enum class FontSourceKind { SystemFamily, FontFile };
-
     struct FontSource
     {
         FontSourceKind kind = FontSourceKind::SystemFamily;
@@ -45,6 +44,8 @@ namespace Text
         DWRITE_PARAGRAPH_ALIGNMENT paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
         DWRITE_WORD_WRAPPING wrapping = DWRITE_WORD_WRAPPING_WRAP;
 
+        bool wordWrapEnabled = true;
+
         float lineSpacing = 0.0f; //0 = Default; >0 = Uniform line spacing
     };
 
@@ -74,7 +75,10 @@ namespace Text
         // Input text: UTF-8 (standardized across machines and is not affected by system region)
         std::string utf8Text;
 
+		// Canvas mode: Auto (usually for UI, auto-sizing based on text content; Fixed (usually for world, fixed size and text wraps/clips within it)
         CanvasMode canvasMode = CanvasMode::Fixed;
+
+		// Clear mode: whether to clear the canvas before drawing (usually clear for UI, no clear for world to allow overlaying multiple texts)
         ClearMode clearMode = ClearMode::Clear;
 
         // Main font source (system family name or file font)
@@ -83,13 +87,19 @@ namespace Text
         // Fallback fonts: it's recommended to use system family names (can also be extended to files)
         std::vector<FontSource> fallbackFonts;
 
-        // Text style and spans
+		// Text Style: common properties that affect the whole text (can be overridden by spans)
         Style style{};
+
+		// Text spans: each span can override specific style properties for a range of text (similar to HTML/CSS spans); the renderer will apply these spans on top of the base style when creating the TextLayout.
         std::vector<Span> spans;
 
         // Canvas strategy
         float maxWidthPx = 320.0f; // Auto: fixed width; Fixed: usually overridden by canvas width
         int paddingPx = 6;
+
+		// Optional draw offset (relative to the top-left corner of the layout)
+        float drawOffsetXPx = 0.0f;
+        float drawOffsetYPx = 0.0f;
 
 		// Color settings
         Color defaultColor;

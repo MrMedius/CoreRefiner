@@ -180,7 +180,7 @@ void Game::Draw()
 void Game::InitCanvasDemo()
 {
 	{
-		const unsigned cw = 100u, ch = 50u;
+		const unsigned cw = 320u, ch = 320u;
 		pTestCanvasUi = std::make_unique<Canvas2D>(wnd.Gfx(), cw, ch);
 
 		for (unsigned y = 0; y < ch; ++y)
@@ -275,13 +275,22 @@ void Game::UpdateCanvasDemo(float dt)
 	rq.paddingPx = 6;
 	rq.style.fontSize = 20.0f;
 	rq.defaultColor = Colors::White;
-	rq.backgroundColor = Colors::Red;
+	rq.backgroundColor = Colors::None;
+
+	rq.style.lineSpacing = 0.0f;
+	rq.style.wordWrapEnabled = true;
+	static float t = 0.0f;
+	t += dt * 50.0f;
+	rq.drawOffsetXPx += t;
+
 	// spans
 	rq.spans = {
 		Text::Span{.start = 7, .length = 3, .color = Colors::Red },
 		Text::Span{.start = 11, .length = 4, .weight = DWRITE_FONT_WEIGHT_BOLD },
 		Text::Span{.start = 16, .length = 6, .style = DWRITE_FONT_STYLE_ITALIC,.underline = true },
-		Text::Span{.start = 23, .length = 4,.underline = true,.strikethrough = true,.color = Colors::Blue },
+		Text::Span{.start = 23, .length = 4,.underline = false,.strikethrough = true,.color = Colors::Blue },
 	};
+	ctx.Render(*pTestCanvasUi);
+
 	ctx.Render(*pTestCanvasWorld);
 }
