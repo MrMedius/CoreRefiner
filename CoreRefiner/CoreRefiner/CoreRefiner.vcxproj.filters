@@ -466,6 +466,7 @@
     <ClCompile Include="TextRenderer.cpp">
       <Filter>Framework\Helpers\Text</Filter>
     </ClCompile>
+    <ClCompile Include="MouseUiInputAdapter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -939,6 +940,13 @@
     <ClInclude Include="TextTypes.h">
       <Filter>Framework\Helpers\Text</Filter>
     </ClInclude>
+    <ClInclude Include="UiTypes.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UiInputFrame.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="MouseUiInputAdapter.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

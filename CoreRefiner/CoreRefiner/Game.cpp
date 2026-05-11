@@ -9,6 +9,8 @@
 #include "ObjectCodex.h"
 #include "TextCodex.h"
 
+#include "MouseUiInputAdapter.h"
+
 namespace dx = DirectX;
 
 Game::Game(const std::string& commandLine)
@@ -293,4 +295,8 @@ void Game::UpdateCanvasDemo(float dt)
 	ctx.Render(*pTestCanvasUi);
 
 	ctx.Render(*pTestCanvasWorld);
+
+
+	Ui::MouseUiInputAdapter mouseUi;
+	Ui::UiInputFrame uiIn = mouseUi.BuildFrame(true);
 }

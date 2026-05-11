@@ -220,6 +220,7 @@
     <ClCompile Include="ExceptionBase.cpp" />
     <ClCompile Include="InputCodex.cpp" />
     <ClCompile Include="InUserInterfaceRenderGraph.cpp" />
+    <ClCompile Include="MouseUiInputAdapter.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Player_Shape.cpp" />
     <ClCompile Include="RichText.cpp" />
@@ -347,6 +348,7 @@
     <ClInclude Include="InputCodex.h" />
     <ClInclude Include="InUserInterfaceRenderGraph.h" />
     <ClInclude Include="LambertianTransparentPass.h" />
+    <ClInclude Include="MouseUiInputAdapter.h" />
     <ClInclude Include="Player_Shape.h" />
     <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
@@ -371,7 +373,9 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />
+    <ClInclude Include="UiInputFrame.h" />
     <ClInclude Include="UIPass.h" />
+    <ClInclude Include="UiTypes.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Win.h" />
     <ClInclude Include="WRL.h" />
