@@ -241,7 +241,7 @@
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="UiButton.cpp" />
-    <ClCompile Include="UiStep6VerifyHarness.cpp" />
+    <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="XMath.cpp" />
     <ClCompile Include="CubeTexture.cpp" />
@@ -383,9 +383,9 @@
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />
     <ClInclude Include="UiButton.h" />
-    <ClInclude Include="UiStep6VerifyHarness.h" />
     <ClInclude Include="UiInputFrame.h" />
     <ClInclude Include="UIPass.h" />
+    <ClInclude Include="UiRoot.h" />
     <ClInclude Include="UiTypes.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Win.h" />

@@ -14,10 +14,8 @@
 #include "EnvironmentManager.h"
 #include "EnemyManager.h"
 
-#include "Canvas2D.h"
-#include "Canvas3D.h"
-
-#include "UiStep6VerifyHarness.h"
+#include "ButtonCanvasView.h"
+#include "UiRoot.h"
 
 class Game
 {
@@ -66,10 +64,15 @@ private:
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
 	std::unique_ptr<EnemyManager> pEnemyManager;
 
-	std::unique_ptr<Canvas2D> pTestCanvasUi;
-	std::unique_ptr<Canvas3D> pTestCanvasWorld;
 
-	UiStep6VerifyHarness uiStep6Verify_{};
+	void UITestInit();
+	Ui::UiRoot uiRoot;
+	std::unique_ptr<Ui::UiButton> btnA_{};
+	std::unique_ptr<Ui::UiButton> btnB_{};
+	std::unique_ptr<Ui::ButtonCanvasView> viewA_{};
+	std::unique_ptr<Ui::ButtonCanvasView> viewB_{};
+	unsigned clicksA_ = 0u;
+	unsigned clicksB_ = 0u;
 	//void InitCanvasDemo();
 	//void UpdateCanvasDemo(float dt);
 	//float canvasAnimT = 0.0f;
