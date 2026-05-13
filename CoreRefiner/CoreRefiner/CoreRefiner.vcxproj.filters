@@ -468,6 +468,9 @@
     </ClCompile>
     <ClCompile Include="MouseUiInputAdapter.cpp" />
     <ClCompile Include="FocusManager.cpp" />
+    <ClCompile Include="UiStep6VerifyHarness.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -950,6 +953,9 @@
     <ClInclude Include="MouseUiInputAdapter.h" />
     <ClInclude Include="FocusTypes.h" />
     <ClInclude Include="FocusManager.h" />
+    <ClInclude Include="UiStep6VerifyHarness.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

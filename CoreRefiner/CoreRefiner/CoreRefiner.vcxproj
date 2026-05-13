@@ -190,6 +190,7 @@
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="Ball.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
+    <ClCompile Include="ButtonCanvasView.cpp" />
     <ClCompile Include="Canvas.cpp" />
     <ClCompile Include="Canvas2D.cpp" />
     <ClCompile Include="Canvas3D.cpp" />
@@ -239,6 +240,8 @@
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
+    <ClCompile Include="UiButton.cpp" />
+    <ClCompile Include="UiStep6VerifyHarness.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="XMath.cpp" />
     <ClCompile Include="CubeTexture.cpp" />
@@ -306,6 +309,8 @@
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
+    <ClInclude Include="ButtonCanvasView.h" />
+    <ClInclude Include="ButtonViewModel.h" />
     <ClInclude Include="Canvas.h" />
     <ClInclude Include="Canvas2D.h" />
     <ClInclude Include="Canvas3D.h" />
@@ -339,6 +344,7 @@
     <ClInclude Include="BlurOutlineDrawingPass.h" />
     <ClInclude Include="Gamepad.h" />
     <ClInclude Include="GameStatsCodex.h" />
+    <ClInclude Include="IButtonView.h" />
     <ClInclude Include="InGameRenderGraph.h" />
     <ClInclude Include="BufferClearPass.h" />
     <ClInclude Include="BufferResource.h" />
@@ -376,6 +382,8 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />
+    <ClInclude Include="UiButton.h" />
+    <ClInclude Include="UiStep6VerifyHarness.h" />
     <ClInclude Include="UiInputFrame.h" />
     <ClInclude Include="UIPass.h" />
     <ClInclude Include="UiTypes.h" />

@@ -32,7 +32,8 @@ namespace Ui
 
 	void FocusManager::UnregisterTabStop(FocusHandle h)
 	{
-		tabOrder_.erase(std::remove(tabOrder_.begin(), tabOrder_.end(), h), tabOrder_.end());
+		//tabOrder_.erase(std::remove(tabOrder_.begin(), tabOrder_.end(), h), tabOrder_.end());
+		std::erase(tabOrder_, h);
 		if (focused_ == h)
 			focused_ = kInvalidFocusHandle;
 	}

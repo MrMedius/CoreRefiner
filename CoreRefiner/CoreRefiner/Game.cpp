@@ -9,7 +9,6 @@
 #include "ObjectCodex.h"
 #include "TextCodex.h"
 
-#include "MouseUiInputAdapter.h"
 
 namespace dx = DirectX;
 
@@ -39,12 +38,15 @@ Game::Game(const std::string& commandLine)
 	SoundCodex::Get().SetSeVolume(1.0f);
 	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
 
+	uiStep6Verify_.Init(wnd.Gfx(), UIRG);
 
-	InitCanvasDemo();
+	//InitCanvasDemo();
 }
 
 Game::~Game()
-{}
+{
+	uiStep6Verify_.Shutdown();
+}
 
 int Game::RunGame()
 {
@@ -75,6 +77,7 @@ int Game::RunGame()
 			wnd.Gfx().BeginFrame();
 			Update(timer_update.Mark() * speed_factor);
 			InputCodex::Get().Update();
+			uiStep6Verify_.TickAfterInput(Scene == SCENE_TITLE);
 			SoundCodex::Get().Update();
 			/********************************/
 
@@ -129,7 +132,7 @@ void Game::Update(float dt)
 		break;
 	}	
 
-	UpdateCanvasDemo(dt);
+	//UpdateCanvasDemo(dt);
 }
 
 void Game::Draw()
@@ -138,7 +141,7 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-		pTestCanvasUi->Submit(Chan::ui);
+		uiStep6Verify_.SubmitTitleUi(true);
 		UIRG.Execute(wnd.Gfx());
 		break;
 	}
@@ -156,7 +159,7 @@ void Game::Draw()
 		pEnvironmentManager->Submit();
 		pPlayer->Submit();
 
-		pTestCanvasWorld->Submit(Chan::main | Chan::shadow);
+		//pTestCanvasWorld->Submit(Chan::main | Chan::shadow);
 
 		gameRG.Execute(wnd.Gfx());
 
@@ -179,124 +182,122 @@ void Game::Draw()
 }
 
 
-void Game::InitCanvasDemo()
-{
-	{
-		const unsigned cw = 320u, ch = 320u;
-		pTestCanvasUi = std::make_unique<Canvas2D>(wnd.Gfx(), cw, ch);
-
-		for (unsigned y = 0; y < ch; ++y)
-		{
-			for (unsigned x = 0; x < cw; ++x)
-			{
-				pTestCanvasUi->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Cyan : Colors::None);
-			}
-		}
-
-		pTestCanvasUi->SetPosition({ 500.0f, 300.0f, 0.0f });
-		pTestCanvasUi->SetScale({ 1000.0f, 500.0f, 1.0f });
-		pTestCanvasUi->LinkTechniques(UIRG);
-	}
-
-	{
-		const unsigned cw = 320u, ch = 320u;
-		pTestCanvasWorld = std::make_unique<Canvas3D>(wnd.Gfx(), cw, ch);
-
-		for (unsigned y = 0; y < ch; ++y)
-		{
-			for (unsigned x = 0; x < cw; ++x)
-			{
-				pTestCanvasWorld->PutPixel(x, y, ((x ^ y) & 8u) ? Color(100u, 100u, 0u, 50u) : Colors::None);
-			}
-		}
-
-		pTestCanvasWorld->SetPosition({ 0.0f, 0.0f, 10.0f });
-		pTestCanvasWorld->SetScale({ 40.0f, 40.0f, 1.0f });
-		pTestCanvasWorld->LinkTechniques(gameRG);
-	}
-}
-
-
-
-void Game::UpdateCanvasDemo(float dt)
-{
-	InitCanvasDemo();
-
-	canvasAnimT += dt;
-	if (!pTestCanvasUi || !pTestCanvasWorld)
-		return;
-
-	const unsigned w = pTestCanvasUi->GetCanvasWidth();
-	const unsigned h = pTestCanvasUi->GetCanvasHeight();
-	if (w == 0u || h == 0u)
-		return;
-
-	const unsigned x = static_cast<unsigned>((sinf(canvasAnimT * 2.0f) * 0.5f + 0.5f) * float(w - 1u));
-	const unsigned y = static_cast<unsigned>((cosf(canvasAnimT * 2.0f) * 0.5f + 0.5f) * float(h - 1u));
-
-	for (int i = -10; i < 10; i++)
-	{
-		pTestCanvasUi->PutPixel(x + i, y + i, Colors::Red);
-		pTestCanvasWorld->PutPixel(x + i, y + i, Colors::Green);
-		pTestCanvasUi->PutPixel(x - i, y + i, Colors::Red);
-		pTestCanvasWorld->PutPixel(x - i, y + i, Colors::Green);
-	}
-
-	pTestCanvasWorld->SetRotation(0.0f, canvasAnimT * 20.0f, 0.0f);
-
-	pTestCanvasUi->SetScale({ 800.0f, 800.0f, 1.0f });
-
-	auto ctx = TextCodex::Get().BeginDraw();
-	auto& rq = ctx.Request();
-	rq.utf8Text = "Normal RED Bold Italic BLUE\n中文：道具描述自动换行。\n日本語：あいうえお。\n"
-		"哥们儿，这瓜多少钱一斤呐？"
-		"两块钱一斤。"
-		"这瓜皮子是金子做的，还是瓜粒子是金子做的？"
-		"你瞧瞧这现在哪有瓜呀？这都是大棚的瓜，你嫌贵我还嫌贵呢。"
-		"给我挑一个。"
-		"行，这个怎么样？"
-		"这瓜保熟吗？"
-		"我开水果摊儿的，能卖给你生瓜蛋子啊？\n"
-		"我问你这瓜保熟吗？\n"
-		"你是故意找岔儿，是不是？你要不要吧！\n"
-		"你这瓜要熟我肯定要啊。那它要是不熟怎么办呀？\n"
-		"哎，要是不熟，我自己吃了它，满意了吧？\n"
-		"15斤，30块。\n"
-		"你这哪够15斤哪？你这称有问题呀。\n"
-		"你故意找茬儿是不是？\n"
-		"你要不要吧？你要不要？\n"
-		"吸铁石，另外你说的，这瓜要是生的，你自己吞进去啊。\n"
-		"你劈我瓜是吧！\n"
-		"欻！刺！\n"
-		"撒日朗！撒日朗！😊\n";
-	rq.canvasMode = Text::CanvasMode::Auto;
-	rq.clearMode = Text::ClearMode::NoClear;
-	rq.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
-	
-	rq.maxWidthPx = 600.0f;
-	rq.paddingPx = 6;
-	rq.style.fontSize = 20.0f;
-	rq.defaultColor = Colors::White;
-	rq.backgroundColor = Colors::None;
-
-	rq.style.lineSpacing = 0.0f;
-	rq.style.wordWrapEnabled = true;
-	static float t = 0.0f;
-	t += dt * 50.0f;
-	rq.drawOffsetXPx += t;
-
-	// spans
-	rq.spans = {
-		Text::Span{.start = 7, .length = 3, .color = Colors::Red },
-		Text::Span{.start = 11, .length = 4, .weight = DWRITE_FONT_WEIGHT_BOLD },
-		Text::Span{.start = 16, .length = 6, .style = DWRITE_FONT_STYLE_ITALIC,.underline = true },
-		Text::Span{.start = 23, .length = 4,.underline = false,.strikethrough = true,.color = Colors::Blue },
-	};
-	ctx.Render(*pTestCanvasUi);
-
-	ctx.Render(*pTestCanvasWorld);
-
-
-	Ui::MouseUiInputAdapter mouseUi;
-	Ui::UiInputFrame uiIn = mouseUi.BuildFrame(true);
-}
+//void Game::InitCanvasDemo()
+//{
+//	{
+//		const unsigned cw = 320u, ch = 320u;
+//		pTestCanvasUi = std::make_unique<Canvas2D>(wnd.Gfx(), cw, ch);
+//
+//		for (unsigned y = 0; y < ch; ++y)
+//		{
+//			for (unsigned x = 0; x < cw; ++x)
+//			{
+//				pTestCanvasUi->PutPixel(x, y, ((x ^ y) & 8u) ? Colors::Cyan : Colors::None);
+//			}
+//		}
+//
+//		pTestCanvasUi->SetPosition({ 500.0f, 300.0f, 0.0f });
+//		pTestCanvasUi->SetScale({ 1000.0f, 500.0f, 1.0f });
+//		pTestCanvasUi->LinkTechniques(UIRG);
+//	}
+//
+//	{
+//		const unsigned cw = 320u, ch = 320u;
+//		pTestCanvasWorld = std::make_unique<Canvas3D>(wnd.Gfx(), cw, ch);
+//
+//		for (unsigned y = 0; y < ch; ++y)
+//		{
+//			for (unsigned x = 0; x < cw; ++x)
+//			{
+//				pTestCanvasWorld->PutPixel(x, y, ((x ^ y) & 8u) ? Color(100u, 100u, 0u, 50u) : Colors::None);
+//			}
+//		}
+//
+//		pTestCanvasWorld->SetPosition({ 0.0f, 0.0f, 10.0f });
+//		pTestCanvasWorld->SetScale({ 40.0f, 40.0f, 1.0f });
+//		pTestCanvasWorld->LinkTechniques(gameRG);
+//	}
+//}
+//
+//
+//
+//void Game::UpdateCanvasDemo(float dt)
+//{
+//	canvasAnimT += dt;
+//	if (!pTestCanvasUi || !pTestCanvasWorld)
+//		return;
+//
+//	const unsigned w = pTestCanvasUi->GetCanvasWidth();
+//	const unsigned h = pTestCanvasUi->GetCanvasHeight();
+//	if (w == 0u || h == 0u)
+//		return;
+//
+//	const unsigned x = static_cast<unsigned>((sinf(canvasAnimT * 2.0f) * 0.5f + 0.5f) * float(w - 1u));
+//	const unsigned y = static_cast<unsigned>((cosf(canvasAnimT * 2.0f) * 0.5f + 0.5f) * float(h - 1u));
+//
+//	for (int i = -10; i < 10; i++)
+//	{
+//		pTestCanvasUi->PutPixel(x + i, y + i, Colors::Red);
+//		pTestCanvasWorld->PutPixel(x + i, y + i, Colors::Green);
+//		pTestCanvasUi->PutPixel(x - i, y + i, Colors::Red);
+//		pTestCanvasWorld->PutPixel(x - i, y + i, Colors::Green);
+//	}
+//
+//	pTestCanvasWorld->SetRotation(0.0f, canvasAnimT * 20.0f, 0.0f);
+//
+//	pTestCanvasUi->SetScale({ 800.0f, 800.0f, 1.0f });
+//
+//	auto ctx = TextCodex::Get().BeginDraw();
+//	auto& rq = ctx.Request();
+//	rq.utf8Text = "Normal RED Bold Italic BLUE\n中文：道具描述自动换行。\n日本語：あいうえお。\n"
+//		"哥们儿，这瓜多少钱一斤呐？"
+//		"两块钱一斤。"
+//		"这瓜皮子是金子做的，还是瓜粒子是金子做的？"
+//		"你瞧瞧这现在哪有瓜呀？这都是大棚的瓜，你嫌贵我还嫌贵呢。"
+//		"给我挑一个。"
+//		"行，这个怎么样？"
+//		"这瓜保熟吗？"
+//		"我开水果摊儿的，能卖给你生瓜蛋子啊？\n"
+//		"我问你这瓜保熟吗？\n"
+//		"你是故意找岔儿，是不是？你要不要吧！\n"
+//		"你这瓜要熟我肯定要啊。那它要是不熟怎么办呀？\n"
+//		"哎，要是不熟，我自己吃了它，满意了吧？\n"
+//		"15斤，30块。\n"
+//		"你这哪够15斤哪？你这称有问题呀。\n"
+//		"你故意找茬儿是不是？\n"
+//		"你要不要吧？你要不要？\n"
+//		"吸铁石，另外你说的，这瓜要是生的，你自己吞进去啊。\n"
+//		"你劈我瓜是吧！\n"
+//		"欻！刺！\n"
+//		"撒日朗！撒日朗！😊\n";
+//	rq.canvasMode = Text::CanvasMode::Auto;
+//	rq.clearMode = Text::ClearMode::NoClear;
+//	rq.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
+//	
+//	rq.maxWidthPx = 600.0f;
+//	rq.paddingPx = 6;
+//	rq.style.fontSize = 20.0f;
+//	rq.defaultColor = Colors::White;
+//	rq.backgroundColor = Colors::None;
+//
+//	rq.style.lineSpacing = 0.0f;
+//	rq.style.wordWrapEnabled = true;
+//	static float t = 0.0f;
+//	t += dt * 50.0f;
+//	rq.drawOffsetXPx += t;
+//
+//	// spans
+//	rq.spans = {
+//		Text::Span{.start = 7, .length = 3, .color = Colors::Red },
+//		Text::Span{.start = 11, .length = 4, .weight = DWRITE_FONT_WEIGHT_BOLD },
+//		Text::Span{.start = 16, .length = 6, .style = DWRITE_FONT_STYLE_ITALIC,.underline = true },
+//		Text::Span{.start = 23, .length = 4,.underline = false,.strikethrough = true,.color = Colors::Blue },
+//	};
+//	ctx.Render(*pTestCanvasUi);
+//
+//	ctx.Render(*pTestCanvasWorld);
+//
+//
+//	Ui::MouseUiInputAdapter mouseUi;
+//	Ui::UiInputFrame uiIn = mouseUi.BuildFrame(true);
+//}

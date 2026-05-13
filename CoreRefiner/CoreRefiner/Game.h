@@ -17,6 +17,8 @@
 #include "Canvas2D.h"
 #include "Canvas3D.h"
 
+#include "UiStep6VerifyHarness.h"
+
 class Game
 {
 private:
@@ -66,7 +68,9 @@ private:
 
 	std::unique_ptr<Canvas2D> pTestCanvasUi;
 	std::unique_ptr<Canvas3D> pTestCanvasWorld;
-	void InitCanvasDemo();
-	void UpdateCanvasDemo(float dt);
-	float canvasAnimT = 0.0f;
+
+	UiStep6VerifyHarness uiStep6Verify_{};
+	//void InitCanvasDemo();
+	//void UpdateCanvasDemo(float dt);
+	//float canvasAnimT = 0.0f;
 };
