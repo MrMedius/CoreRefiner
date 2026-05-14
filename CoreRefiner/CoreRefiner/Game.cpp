@@ -9,9 +9,6 @@
 #include "ObjectCodex.h"
 #include "TextCodex.h"
 
-#include "ButtonViewModel.h"
-#include "FocusManager.h"
-
 namespace dx = DirectX;
 
 Game::Game(const std::string& commandLine)

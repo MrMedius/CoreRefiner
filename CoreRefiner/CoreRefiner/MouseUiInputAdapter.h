@@ -9,6 +9,6 @@ namespace Ui
 	public:
 		MouseUiInputAdapter() = default;
 
-		UiInputFrame BuildFrame(bool respectImGuiCapture = true) const;
+		[[nodiscard]] UiInputFrame BuildFrame(bool respectImGuiCapture = true) const;
 	};
 }

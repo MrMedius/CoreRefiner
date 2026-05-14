@@ -65,15 +65,13 @@ private:
 	std::unique_ptr<EnemyManager> pEnemyManager;
 
 
-	void UITestInit();
-	Ui::UiRoot uiRoot;
 	std::unique_ptr<Ui::UiButton> btnA_{};
 	std::unique_ptr<Ui::UiButton> btnB_{};
 	std::unique_ptr<Ui::ButtonCanvasView> viewA_{};
 	std::unique_ptr<Ui::ButtonCanvasView> viewB_{};
 	unsigned clicksA_ = 0u;
 	unsigned clicksB_ = 0u;
-	//void InitCanvasDemo();
-	//void UpdateCanvasDemo(float dt);
-	//float canvasAnimT = 0.0f;
+
+	void UITestInit();
+	Ui::UiRoot uiRoot;
 };

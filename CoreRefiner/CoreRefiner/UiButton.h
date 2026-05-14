@@ -60,6 +60,9 @@ namespace Ui
 		 */
 		[[nodiscard]] ButtonVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
 
+		/** @brief 鼠标夺回主导时：清按下跟踪，避免残留 Pressed。 */
+		void ResetPointerInteraction() noexcept;
+
 	private:
 		[[nodiscard]] bool IsPointerOver(const UiInputFrame& frame) const noexcept;
 		void RecomputeVisualPhase(const UiInputFrame& frame, const FocusManager& focus) noexcept;

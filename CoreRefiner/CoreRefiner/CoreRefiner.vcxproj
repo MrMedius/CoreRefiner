@@ -214,6 +214,7 @@
     <ClCompile Include="BindingPass.cpp" />
     <ClCompile Include="Blender.cpp" />
     <ClCompile Include="Gamepad.cpp" />
+    <ClCompile Include="GamepadUiInputAdapter.cpp" />
     <ClCompile Include="InGameRenderGraph.cpp" />
     <ClCompile Include="BufferClearPass.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -222,6 +223,7 @@
     <ClCompile Include="ExceptionBase.cpp" />
     <ClCompile Include="InputCodex.cpp" />
     <ClCompile Include="InUserInterfaceRenderGraph.cpp" />
+    <ClCompile Include="KeyboardUiInputAdapter.cpp" />
     <ClCompile Include="MouseUiInputAdapter.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Player_Shape.cpp" />
@@ -343,6 +345,7 @@
     <ClInclude Include="Blender.h" />
     <ClInclude Include="BlurOutlineDrawingPass.h" />
     <ClInclude Include="Gamepad.h" />
+    <ClInclude Include="GamepadUiInputAdapter.h" />
     <ClInclude Include="GameStatsCodex.h" />
     <ClInclude Include="IButtonView.h" />
     <ClInclude Include="InGameRenderGraph.h" />
@@ -356,6 +359,7 @@
     <ClInclude Include="HrUtils.h" />
     <ClInclude Include="InputCodex.h" />
     <ClInclude Include="InUserInterfaceRenderGraph.h" />
+    <ClInclude Include="KeyboardUiInputAdapter.h" />
     <ClInclude Include="LambertianTransparentPass.h" />
     <ClInclude Include="MouseUiInputAdapter.h" />
     <ClInclude Include="Player_Shape.h" />

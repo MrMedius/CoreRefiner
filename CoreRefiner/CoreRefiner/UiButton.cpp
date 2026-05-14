@@ -85,4 +85,10 @@ namespace Ui
 		pointerWasDownLastFrame_ = frame.pointer.primaryDown;
 		RecomputeVisualPhase(frame, focus);
 	}
+
+	void UiButton::ResetPointerInteraction() noexcept
+	{
+		trackingPointerPress_ = false;
+		pointerWasDownLastFrame_ = false;
+	}
 }

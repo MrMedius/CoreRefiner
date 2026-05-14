@@ -468,9 +468,11 @@
     </ClCompile>
     <ClCompile Include="MouseUiInputAdapter.cpp" />
     <ClCompile Include="FocusManager.cpp" />
-    <ClCompile Include="UiStep6VerifyHarness.cpp">
-      <Filter>UI</Filter>
-    </ClCompile>
+    <ClCompile Include="ButtonCanvasView.cpp" />
+    <ClCompile Include="UiButton.cpp" />
+    <ClCompile Include="UiRoot.cpp" />
+    <ClCompile Include="KeyboardUiInputAdapter.cpp" />
+    <ClCompile Include="GamepadUiInputAdapter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -953,9 +955,13 @@
     <ClInclude Include="MouseUiInputAdapter.h" />
     <ClInclude Include="FocusTypes.h" />
     <ClInclude Include="FocusManager.h" />
-    <ClInclude Include="UiStep6VerifyHarness.h">
-      <Filter>UI</Filter>
-    </ClInclude>
+    <ClInclude Include="ButtonCanvasView.h" />
+    <ClInclude Include="ButtonViewModel.h" />
+    <ClInclude Include="IButtonView.h" />
+    <ClInclude Include="UiButton.h" />
+    <ClInclude Include="UiRoot.h" />
+    <ClInclude Include="KeyboardUiInputAdapter.h" />
+    <ClInclude Include="GamepadUiInputAdapter.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
