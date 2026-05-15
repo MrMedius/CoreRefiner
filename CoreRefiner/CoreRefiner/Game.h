@@ -14,8 +14,7 @@
 #include "EnvironmentManager.h"
 #include "EnemyManager.h"
 
-#include "ButtonCanvasView.h"
-#include "UiRoot.h"
+#include "UI_Title.h"
 
 class Game
 {
@@ -27,7 +26,7 @@ private:
 		SCENE_RESULT,
 	}Scene{ SCENE_TITLE };
 public:
-	Game( const std::string& commandLine = "" );
+	Game(const std::string& commandLine = "");
 	int RunGame();
 	~Game();
 private:
@@ -64,14 +63,5 @@ private:
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
 	std::unique_ptr<EnemyManager> pEnemyManager;
 
-
-	std::unique_ptr<Ui::UiButton> btnA_{};
-	std::unique_ptr<Ui::UiButton> btnB_{};
-	std::unique_ptr<Ui::ButtonCanvasView> viewA_{};
-	std::unique_ptr<Ui::ButtonCanvasView> viewB_{};
-	unsigned clicksA_ = 0u;
-	unsigned clicksB_ = 0u;
-
-	void UITestInit();
-	Ui::UiRoot uiRoot;
+	std::unique_ptr<UI_Title> uiTitle;
 };

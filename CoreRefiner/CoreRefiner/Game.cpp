@@ -31,15 +31,16 @@ Game::Game(const std::string& commandLine)
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
 	pEnemyManager = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG);
 
+
+	// UI
+	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
+
+
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
 	SoundCodex::Get().SetBgmVolume(0.1f);
 	SoundCodex::Get().SetSeVolume(1.0f);
 	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
-
-
-
-	UITestInit();
 }
 
 Game::~Game()
@@ -91,6 +92,8 @@ int Game::RunGame()
 void Game::Update(float dt)
 {
 #ifdef _DEBUG
+	uiTitle->Update(dt);
+
 	if( InputCodex::Get().KeyTriggered( VK_F11 ) )
 	{
 		wnd.ToggleFullscreen();
@@ -100,8 +103,6 @@ void Game::Update(float dt)
 	switch (Scene)
 	{
 	case SCENE_TITLE:
-		uiRoot.TickAfterInput();
-
 		if (InputCodex::Get().KeyTriggered(VK_SPACE))
 		{
 			SetScene(SCENE_GAME);
@@ -139,7 +140,7 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-		uiRoot.Submit(Chan::ui);
+		uiTitle->Submit();
 
 		UIRG.Execute(wnd.Gfx());
 		break;
@@ -178,55 +179,4 @@ void Game::Draw()
 		break;
 	}
 	}
-}
-
-
-
-
-void Game::UITestInit()
-{
-	constexpr Ui::FocusHandle kFocusBtnA = 501u;
-	constexpr Ui::FocusHandle kFocusBtnB = 502u;
-
-	constexpr unsigned kCanvasLogicalW = 380u;
-	constexpr unsigned kCanvasLogicalH = 100u;
-
-	btnA_ = std::make_unique<Ui::UiButton>(
-		kFocusBtnA,
-		Ui::UiRect{ 200.0f, 300.0f, 580.0f, 400.0f });
-	btnB_ = std::make_unique<Ui::UiButton>(
-		kFocusBtnB,
-		Ui::UiRect{ 700.0f, 300.0f, 1080.0f, 400.0f });
-
-	btnA_->SetLabel("Btn A | clicks 0");
-	btnB_->SetLabel("Btn B | clicks 0");
-
-	btnA_->SetOnClick([this] {
-		++clicksA_;
-		btnA_->SetLabel("Btn A | clicks " + std::to_string(clicksA_));
-		});
-	btnB_->SetOnClick([this] {
-		++clicksB_;
-		btnB_->SetLabel("Btn B | clicks " + std::to_string(clicksB_));
-		});
-
-	viewA_ = std::make_unique<Ui::ButtonCanvasView>(wnd.Gfx(), kCanvasLogicalW, kCanvasLogicalH);
-	viewB_ = std::make_unique<Ui::ButtonCanvasView>(wnd.Gfx(), kCanvasLogicalW, kCanvasLogicalH);
-
-	// Quad center / scale align with logical hit boxes (logical canvas coords).
-	viewA_->GetCanvas().SetPosition({ 390.0f, 350.0f, 0.0f });
-	viewA_->GetCanvas().SetScale({ 380.0f, 100.0f, 1.0f });
-	viewB_->GetCanvas().SetPosition({ 890.0f, 350.0f, 0.0f });
-	viewB_->GetCanvas().SetScale({ 380.0f, 100.0f, 1.0f });
-
-	auto va = Ui::MakeButtonViewModel(*btnA_);
-	auto vb = Ui::MakeButtonViewModel(*btnB_);
-	viewA_->SyncFrom(va);
-	viewB_->SyncFrom(vb);
-
-	uiRoot.Clear();
-	uiRoot.AddButtonSlot(btnA_.get(), viewA_.get());
-	uiRoot.AddButtonSlot(btnB_.get(), viewB_.get());
-	uiRoot.RebuildTabOrderFromSlots();
-	uiRoot.InitLinkTechniques(UIRG);
 }

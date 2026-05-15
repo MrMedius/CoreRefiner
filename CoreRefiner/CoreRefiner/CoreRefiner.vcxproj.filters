@@ -134,6 +134,21 @@
     <Filter Include="Framework\Helpers\Text">
       <UniqueIdentifier>{431e6930-f381-427c-9444-62728969492c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UI\Base">
+      <UniqueIdentifier>{16413ebd-b4fd-4e50-ab2a-35d71e3b4390}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Input">
+      <UniqueIdentifier>{418c8eeb-80a8-4ba2-b328-9a1a5c27d178}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Widget">
+      <UniqueIdentifier>{8a3400fd-517f-4837-8924-8f29183abc18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Widget\Button">
+      <UniqueIdentifier>{69ae2158-0215-493e-bc36-e6c3236b2d83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Component">
+      <UniqueIdentifier>{7f904051-7a75-4c5f-84d4-517b00e328fe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -466,13 +481,30 @@
     <ClCompile Include="TextRenderer.cpp">
       <Filter>Framework\Helpers\Text</Filter>
     </ClCompile>
-    <ClCompile Include="MouseUiInputAdapter.cpp" />
-    <ClCompile Include="FocusManager.cpp" />
-    <ClCompile Include="ButtonCanvasView.cpp" />
-    <ClCompile Include="UiButton.cpp" />
-    <ClCompile Include="UiRoot.cpp" />
-    <ClCompile Include="KeyboardUiInputAdapter.cpp" />
-    <ClCompile Include="GamepadUiInputAdapter.cpp" />
+    <ClCompile Include="FocusManager.cpp">
+      <Filter>UI\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="GamepadUiInputAdapter.cpp">
+      <Filter>UI\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="KeyboardUiInputAdapter.cpp">
+      <Filter>UI\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="MouseUiInputAdapter.cpp">
+      <Filter>UI\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="ButtonCanvasView.cpp">
+      <Filter>UI\Widget\Button</Filter>
+    </ClCompile>
+    <ClCompile Include="UiButton.cpp">
+      <Filter>UI\Widget\Button</Filter>
+    </ClCompile>
+    <ClCompile Include="UiRoot.cpp">
+      <Filter>UI\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="ButtonCanvasComponent.cpp">
+      <Filter>UI\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -946,22 +978,48 @@
     <ClInclude Include="TextTypes.h">
       <Filter>Framework\Helpers\Text</Filter>
     </ClInclude>
-    <ClInclude Include="UiTypes.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="UiInputFrame.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="UiTypes.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="FocusTypes.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="FocusManager.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="GamepadUiInputAdapter.h">
+      <Filter>UI\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="KeyboardUiInputAdapter.h">
+      <Filter>UI\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="MouseUiInputAdapter.h">
+      <Filter>UI\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="ButtonCanvasView.h">
+      <Filter>UI\Widget\Button</Filter>
+    </ClInclude>
+    <ClInclude Include="ButtonViewModel.h">
+      <Filter>UI\Widget\Button</Filter>
+    </ClInclude>
+    <ClInclude Include="IButtonView.h">
+      <Filter>UI\Widget\Button</Filter>
+    </ClInclude>
+    <ClInclude Include="UiButton.h">
+      <Filter>UI\Widget\Button</Filter>
+    </ClInclude>
+    <ClInclude Include="UiRoot.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="ButtonCanvasComponent.h">
+      <Filter>UI\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_Title.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="MouseUiInputAdapter.h" />
-    <ClInclude Include="FocusTypes.h" />
-    <ClInclude Include="FocusManager.h" />
-    <ClInclude Include="ButtonCanvasView.h" />
-    <ClInclude Include="ButtonViewModel.h" />
-    <ClInclude Include="IButtonView.h" />
-    <ClInclude Include="UiButton.h" />
-    <ClInclude Include="UiRoot.h" />
-    <ClInclude Include="KeyboardUiInputAdapter.h" />
-    <ClInclude Include="GamepadUiInputAdapter.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

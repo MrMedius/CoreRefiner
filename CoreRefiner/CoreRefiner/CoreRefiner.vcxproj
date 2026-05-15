@@ -190,6 +190,7 @@
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="Ball.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
+    <ClCompile Include="ButtonCanvasComponent.cpp" />
     <ClCompile Include="ButtonCanvasView.cpp" />
     <ClCompile Include="Canvas.cpp" />
     <ClCompile Include="Canvas2D.cpp" />
@@ -311,6 +312,7 @@
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
+    <ClInclude Include="ButtonCanvasComponent.h" />
     <ClInclude Include="ButtonCanvasView.h" />
     <ClInclude Include="ButtonViewModel.h" />
     <ClInclude Include="Canvas.h" />
@@ -391,6 +393,7 @@
     <ClInclude Include="UIPass.h" />
     <ClInclude Include="UiRoot.h" />
     <ClInclude Include="UiTypes.h" />
+    <ClInclude Include="UI_Title.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Win.h" />
     <ClInclude Include="WRL.h" />

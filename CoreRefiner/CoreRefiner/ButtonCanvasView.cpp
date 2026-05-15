@@ -97,7 +97,7 @@ namespace Ui
 
 		ctx.Render(c);
 	
-		if (vm.phase == ButtonVisualPhase::Focused)
+		if (vm.phase == ButtonVisualPhase::Focused || vm.phase == ButtonVisualPhase::Hovered)
 			DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
 	}
 
