@@ -34,7 +34,7 @@ Game::Game(const std::string& commandLine)
 
 	// UI
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
-
+	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
 
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
@@ -92,8 +92,6 @@ int Game::RunGame()
 void Game::Update(float dt)
 {
 #ifdef _DEBUG
-	uiTitle->Update(dt);
-
 	if( InputCodex::Get().KeyTriggered( VK_F11 ) )
 	{
 		wnd.ToggleFullscreen();
@@ -103,6 +101,8 @@ void Game::Update(float dt)
 	switch (Scene)
 	{
 	case SCENE_TITLE:
+		uiTitle->Update(dt);
+
 		if (InputCodex::Get().KeyTriggered(VK_SPACE))
 		{
 			SetScene(SCENE_GAME);

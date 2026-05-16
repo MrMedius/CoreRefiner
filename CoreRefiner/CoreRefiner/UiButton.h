@@ -12,29 +12,17 @@ namespace Ui
 {
 	class FocusManager;
 
-	/**
-	 * @brief 按钮在表现层使用的视觉阶段（与设备无关）。
-	 */
 	enum class ButtonVisualPhase
 	{
-		Normal,
-		Hovered,
-		Focused,
-		Pressed,
-		Disabled
+		Normal,		// not hovered, not focused, not pressed, enabled.
+		Focused,	// focused by pointer (mouse) or keyboard or gamepad, but not pressed
+		Pressed,	// pressed by pointer (mouse) or keyboard or gamepad
+		Disabled	// not interactive
 	};
 
-	/**
-	 * @class UiButton
-	 * @brief 仅交互逻辑：命中、按压、点击、焦点+确认；不包含任何 Drawable / 纹理。
-	 */
 	class UiButton
 	{
 	public:
-		/**
-		 * @param focusHandle 非 0；由上层分配并注册到 `FocusManager`。
-		 * @param bounds 逻辑空间 AABB，与 `UiInputFrame` 指针坐标同空间。
-		 */
 		UiButton(FocusHandle focusHandle, UiRect bounds);
 
 		void SetBounds(UiRect r) noexcept { bounds_ = r; }
@@ -50,17 +38,10 @@ namespace Ui
 
 		void SetOnClick(std::function<void()> cb) { onClick_ = std::move(cb); }
 
-		/**
-		 * @brief 每帧调用：处理指针与焦点，可能触发 `onClick`。
-		 */
 		void Update(const UiInputFrame& frame, const FocusManager& focus);
 
-		/**
-		 * @brief 供 View 拉取当前视觉阶段与标签（第六步 `ButtonViewModel`）。
-		 */
 		[[nodiscard]] ButtonVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
 
-		/** @brief 鼠标夺回主导时：清按下跟踪，避免残留 Pressed。 */
 		void ResetPointerInteraction() noexcept;
 
 	private:
@@ -72,7 +53,6 @@ namespace Ui
 		bool enabled_ = true;
 		std::string labelUtf8_;
 
-		/** 本按钮发起的左键按下跟踪（内按下后直到左键释放）。 */
 		bool trackingPointerPress_ = false;
 
 		ButtonVisualPhase visualPhase_ = ButtonVisualPhase::Normal;

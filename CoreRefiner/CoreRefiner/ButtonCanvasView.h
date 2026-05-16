@@ -11,26 +11,21 @@
 
 namespace Ui
 {
-	/**
-	 * @brief Canvas2D + DWrite 文本；仅在本文件依赖 Graphics / Text。
-	 */
 	struct ButtonCanvasStyle
 	{
 		Color bgNormal   = Color(45u,  45u,  48u,  255u);
-		Color bgHovered  = Color(70u,  75u,  85u,  255u);
-		Color bgFocused  = Color(35u,  55u,  95u,  255u);   // 明显偏蓝
-		Color bgPressed  = Color(25u,  110u, 200u, 255u);   // 高饱和蓝
-		Color bgDisabled = Color(55u,  55u,  55u,  255u);   // 明显发灰
+		Color bgFocused  = Color(35u,  55u,  95u,  255u);
+		Color bgPressed  = Color(25u,  110u, 200u, 255u);
+		Color bgDisabled = Color(55u,  55u,  55u,  255u);
 
 		Color textNormal   = Colors::White;
 		Color textDisabled = Color(130u, 130u, 130u, 255u);
 
-		/** 仅 Focused 时绘制在边缘，便于与 Hovered 区分 */
 		Color focusRingColor = Color(120u, 200u, 255u, 255u);
 		unsigned focusRingThicknessPx = 3u;
 
 		Text::FontSource primaryFont = Text::FontSource::System(L"Segoe UI");
-		float fontSize = 22.0f;
+		float fontSize = 20.0f;
 		int paddingPx = 8;
 	};
 

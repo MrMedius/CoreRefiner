@@ -15,7 +15,6 @@ namespace Ui
 			{
 			case ButtonVisualPhase::Disabled: return s.bgDisabled;
 			case ButtonVisualPhase::Pressed:  return s.bgPressed;
-			case ButtonVisualPhase::Hovered:  return s.bgHovered;
 			case ButtonVisualPhase::Focused:  return s.bgFocused;
 			default:                         return s.bgNormal;
 			}
@@ -97,7 +96,7 @@ namespace Ui
 
 		ctx.Render(c);
 	
-		if (vm.phase == ButtonVisualPhase::Focused || vm.phase == ButtonVisualPhase::Hovered)
+		if (vm.phase == ButtonVisualPhase::Focused)
 			DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
 	}
 

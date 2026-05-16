@@ -41,13 +41,10 @@ namespace Ui
 			visualPhase_ = ButtonVisualPhase::Disabled;
 			return;
 		}
-		const bool over = IsPointerOver(frame);
-		const bool focused = focus.IsFocused(focusHandle_);
+		const bool focused = IsPointerOver(frame) || focus.IsFocused(focusHandle_);
 		const bool pressVisual = trackingPointerPress_ && frame.pointer.primaryDown;
 		if (pressVisual)
 			visualPhase_ = ButtonVisualPhase::Pressed;
-		else if (over)
-			visualPhase_ = ButtonVisualPhase::Hovered;
 		else if (focused)
 			visualPhase_ = ButtonVisualPhase::Focused;
 		else

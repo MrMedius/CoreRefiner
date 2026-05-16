@@ -39,10 +39,6 @@ namespace Ui
 			s.view->LinkTechniques(rg);
 	}
 
-	/**
-	 * @brief 将 `UiInputFrame` 的指针段清零，供 NonPointer 主导时下发给控件。
-	 * @param out 读写的合并帧；仅修改 `pointer`，`navigation` / `action` 不变。
-	 */
 	void UiRoot::StripPointerForWidgets_(UiInputFrame& out) noexcept
 	{
 		out.pointer.logicalX = 0.0f;
@@ -53,7 +49,7 @@ namespace Ui
 		out.pointer.primaryReleased = false;
 	}
 
-	void UiRoot::TickAfterInput()
+	void UiRoot::UpdateAfterInput()
 	{
 		const UiInputFrame m = mouse_.BuildFrame(true);
 		const UiInputFrame kbd = keyboard_.BuildFrame();

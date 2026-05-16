@@ -11,9 +11,6 @@ namespace Rgph
 
 namespace Ui
 {
-	/**
-	 * @brief 按钮表现策略（Sprite / Canvas 等），与交互逻辑分离。
-	 */
 	class IButtonView
 	{
 	public:

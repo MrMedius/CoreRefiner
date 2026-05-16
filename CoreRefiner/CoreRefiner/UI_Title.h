@@ -6,33 +6,31 @@
 
 #include "Channels.h"
 
+#include <functional>
+
 class UI_Title
 {
 public:
 	UI_Title(Graphics& gfx, Rgph::RenderGraph& rg)
 	{
-		constexpr Ui::FocusHandle kFocusBtnA = 501u;
-		constexpr Ui::FocusHandle kFocusBtnB = 502u;
-		constexpr Ui::FocusHandle kFocusBtnC = 503u;
+		unsigned centerX = SCREEN_WIDTH / 2u;
+		unsigned centerY = SCREEN_HEIGHT / 2u;
+		unsigned spacingY = SCREEN_HEIGHT / 20u;
 
-		constexpr unsigned kCanvasLogicalW = 380u;
-		constexpr unsigned kCanvasLogicalH = 100u;
+		unsigned btnWidth = SCREEN_WIDTH / 10u;
+		unsigned btnHeight = SCREEN_HEIGHT / 15u;
 
-		btnA_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 501u, 380u, 100u);
-		btnB_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 502u, 380u, 100u);
-		btnC_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 503u, 380u, 100u);
+		btnA_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 501u, centerX, centerY + spacingY * 2u, btnWidth, btnHeight);
+		btnB_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 502u, centerX, centerY + spacingY * 4u, btnWidth, btnHeight);
+		btnC_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 503u, centerX, centerY + spacingY * 6u, btnWidth, btnHeight);
 
-		btnA_->SetLayoutLogicalCenterSize(390.0f, 350.0f, 380.0f, 100.0f);
-		btnB_->SetLayoutLogicalCenterSize(890.0f, 350.0f, 380.0f, 100.0f);
-		btnC_->SetLayoutLogicalCenterSize(1390.0f, 350.0f, 380.0f, 100.0f);
+		btnA_->Button().SetLabel("New Game");
+		btnB_->Button().SetLabel("Settings");
+		btnC_->Button().SetLabel("Quit");
 
-		btnA_->Button().SetLabel("Btn A | clicks 0");
-		btnB_->Button().SetLabel("Btn B | clicks 0");
-		btnC_->Button().SetLabel("Btn C | clicks 0");
-
-		btnA_->Button().SetOnClick([this] { ++clicksA_;	btnA_->Button().SetLabel("Btn A | clicks " + std::to_string(clicksA_)); });
-		btnB_->Button().SetOnClick([this] { ++clicksB_;	btnB_->Button().SetLabel("Btn B | clicks " + std::to_string(clicksB_));	});
-		btnC_->Button().SetOnClick([this] { ++clicksC_;	btnC_->Button().SetLabel("Btn C | clicks " + std::to_string(clicksC_));	});
+		btnA_->Button().SetOnClick([this] {	if (onNewGame_)	onNewGame_();});
+		btnB_->Button().SetOnClick([this] { btnB_->Button().SetLabel("Btn B | clicks 1"); });
+		btnC_->Button().SetOnClick([this] { PostQuitMessage(0); });
 
 		uiRoot.Clear();
 		btnA_->RegisterTo(uiRoot);
@@ -45,7 +43,7 @@ public:
 
 	void Update(float dt)
 	{
-		uiRoot.TickAfterInput();
+		uiRoot.UpdateAfterInput();
 	}
 
 	void Submit(void)
@@ -53,14 +51,13 @@ public:
 		uiRoot.Submit(Chan::ui);
 	}
 
+	void SetOnNewGame(std::function<void()> cb) { onNewGame_ = std::move(cb); }
+
 private:
+	Ui::UiRoot uiRoot;
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnA_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnB_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnC_{};
 
-	unsigned clicksA_ = 0u;
-	unsigned clicksB_ = 0u;
-	unsigned clicksC_ = 0u;
-
-	Ui::UiRoot uiRoot;
+	std::function<void()> onNewGame_{};
 };

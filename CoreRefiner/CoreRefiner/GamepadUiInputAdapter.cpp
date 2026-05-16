@@ -26,9 +26,9 @@ namespace Ui
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_RB))
 			frame.navigation.tabNext = true;
 
-		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_LEFT))
+		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_UP))
 			frame.navigation.tabPrev = true;
-		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_RIGHT))
+		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_DOWN))
 			frame.navigation.tabNext = true;
 
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_A))

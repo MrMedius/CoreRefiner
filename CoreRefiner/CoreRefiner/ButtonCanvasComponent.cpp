@@ -10,9 +10,6 @@ namespace Ui
 {
 	namespace
 	{
-		/**
-		 * @brief 由中心与尺寸构造轴对齐 `UiRect`。
-		 */
 		[[nodiscard]] UiRect RectFromCenterExtents(float cx, float cy, float w, float h) noexcept
 		{
 			const float halfW = w * 0.5f;
@@ -37,10 +34,25 @@ namespace Ui
 	{
 		assert(focusHandle != kInvalidFocusHandle && "ButtonCanvasComponent: invalid FocusHandle");
 
-		// 占位命中框，避免未布局前 Contains 未定义行为；首帧前应被 SetLayout* 覆盖。
 		constexpr UiRect kPlaceholder{ 0.0f, 0.0f, 1.0f, 1.0f };
 		button_ = std::make_unique<UiButton>(focusHandle, kPlaceholder);
 		view_ = std::make_unique<ButtonCanvasView>(gfx, canvasPixelWidth, canvasPixelHeight, std::move(style));
+	}
+
+	ButtonCanvasComponent::ButtonCanvasComponent(
+		Graphics& gfx, 
+		FocusHandle focusHandle, 
+		float centerX, float centerY, 
+		float width, float height, 
+		ButtonCanvasStyle style)
+	{
+		assert(focusHandle != kInvalidFocusHandle && "ButtonCanvasComponent: invalid FocusHandle");
+
+		constexpr UiRect kPlaceholder{ 0.0f, 0.0f, 1.0f, 1.0f };
+		button_ = std::make_unique<UiButton>(focusHandle, kPlaceholder);
+		view_ = std::make_unique<ButtonCanvasView>(gfx, width, height, std::move(style));
+
+		SetLayoutLogicalCenterSize(centerX, centerY, width, height);
 	}
 
 	void ButtonCanvasComponent::SetLayoutLogicalCenterSize(
