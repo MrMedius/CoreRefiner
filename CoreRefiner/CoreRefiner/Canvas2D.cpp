@@ -1,7 +1,6 @@
 #include "Canvas2D.h"
 #include "Plane.h"
 #include "BindableCommon.h"
-#include "SpriteUVCbuf.h"
 #include "CanvasTexture.h"
 #include "Channels.h"
 
@@ -19,7 +18,6 @@ Canvas2D::Canvas2D(Graphics& gfx, unsigned width, unsigned height)
 	pTopology = Topology::Resolve(gfx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	auto tcb = std::make_shared<Transform2DCbuf>(gfx);
-	auto uvcb = std::make_shared<SpriteUVCbuf>(gfx);
 	auto canvasTex = std::make_shared<CanvasTexture>(gfx);
 
 	Technique ui("UI", Chan::ui);
@@ -29,14 +27,13 @@ Canvas2D::Canvas2D(Graphics& gfx, unsigned width, unsigned height)
 		draw.AddBindable(canvasTex);
 		draw.AddBindable(Sampler::Resolve(gfx, Sampler::Type::Point, Sampler::Address::Clamp));
 
-		auto pvs = VertexShader::Resolve(gfx, "Sprite2D_VS.cso");
+		auto pvs = VertexShader::Resolve(gfx, "Canvas2D_VS.cso");
 		draw.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
 		draw.AddBindable(std::move(pvs));
 
-		draw.AddBindable(PixelShader::Resolve(gfx, "Sprite2D_PS.cso"));
+		draw.AddBindable(PixelShader::Resolve(gfx, "Canvas2D_PS.cso"));
 
 		draw.AddBindable(tcb);
-		draw.AddBindable(uvcb);
 
 		ui.AddStep(std::move(draw));
 	}

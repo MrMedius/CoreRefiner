@@ -81,7 +81,7 @@ namespace Ui
 
 		auto ctx = TextCodex::Get().BeginDraw();
 		Text::RenderRequest& rq = ctx.Request();
-		rq.utf8Text = vm.labelUtf8;
+		rq.text = vm.labelUtf8;
 		rq.canvasMode = Text::CanvasMode::Fixed;
 		rq.clearMode = Text::ClearMode::NoClear;
 		rq.primaryFont = style_.primaryFont;

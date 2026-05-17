@@ -1,8 +1,6 @@
 #pragma once
 #include "Graphics.h"
 #include "ButtonCanvasComponent.h"
-#include "UI_Background.h"
-
 #include "UiRoot.h"
 #include "Canvas2D.h"
 #include "TextCodex.h"
@@ -12,41 +10,23 @@
 #include <memory>
 #include <functional>
 
-class UI_Title
+class UI_Setting
 {
 public:
-	UI_Title(Graphics& gfx, Rgph::RenderGraph& rg)
+	UI_Setting(Graphics& gfx, Rgph::RenderGraph& rg)
 	{
 		// Center of the screen
 		unsigned centerX = SCREEN_WIDTH / 2u;
 		unsigned centerY = SCREEN_HEIGHT / 2u;
 
-		unsigned titleWidth = SCREEN_WIDTH / 2u;
-		unsigned titleHeight = SCREEN_HEIGHT / 5u;
-
-		// Title Background
-		{
-			titleBg = std::make_unique<UI_Background>(gfx, titleWidth, titleHeight);
-			titleBg->SetPosition(DirectX::XMFLOAT3{ static_cast<float>(centerX), static_cast<float>(centerY / 2u), 0.0f });
-			titleBg->SetScale(DirectX::XMFLOAT3{ static_cast<float>(titleWidth), static_cast<float>(titleHeight), 1.0f });
-			titleBg->LinkTechniques(rg);
-		}
 		// Title
 		{
+			unsigned titleWidth = SCREEN_WIDTH / 2u;
+			unsigned titleHeight = SCREEN_HEIGHT / 3u;
 			titleCanvas = std::make_unique<Canvas2D>(gfx, titleWidth, titleHeight);
-			titleCanvas->SetPosition(DirectX::XMFLOAT3{ static_cast<float>(centerX), static_cast<float>(centerY / 2u), 0.0f });
-			titleCanvas->SetScale(DirectX::XMFLOAT3{ static_cast<float>(titleWidth), static_cast<float>(titleHeight), 1.0f });
-			titleCanvas->LinkTechniques(rg);
-			for (unsigned y = 0; y < titleCanvas->GetCanvasHeight(); ++y)
-			{
-				for (unsigned x = 0; x < titleCanvas->GetCanvasWidth(); ++x)
-				{
-					if(y == 0 || y == titleCanvas->GetCanvasHeight() - 1 || x == 0 || x == titleCanvas->GetCanvasWidth() - 1)
-					{
-						titleCanvas->PutPixel(x, y, Colors::White);
-					}
-				}
-			}
+			titleCanvas->SetPosition(DirectX::XMFLOAT3{ centerX, centerY / 2u, 0.0f });
+			titleCanvas->SetScale(DirectX::XMFLOAT3{ titleWidth, titleHeight, 1.0f });
+
 			std::string Title = "CORE REFINER";
 			auto ctx = TextCodex::Get().BeginDraw();
 			auto& rq = ctx.Request();
@@ -54,11 +34,12 @@ public:
 			rq.canvasMode = Text::CanvasMode::Fixed;
 			rq.clearMode = Text::ClearMode::NoClear;
 			rq.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
-			rq.style.fontSize = 100.0f;
-			rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+			rq.style.fontSize = 40.0f;
 			rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
-			rq.style.wordWrapEnabled = true;
-			rq.maxWidthPx = static_cast<float>(titleCanvas->GetCanvasWidth());
+			rq.style.wordWrapEnabled = false;
+			rq.spans = { Text::Span{.start = 0, .length = static_cast<UINT32>(Title.length()), .weight = DWRITE_FONT_WEIGHT_BOLD } };
+			rq.maxWidthPx = titleWidth;
+			rq.paddingPx = titleHeight;
 			rq.defaultColor = Colors::White;
 			rq.backgroundColor = Colors::None;
 			ctx.Render(*titleCanvas);
@@ -91,31 +72,26 @@ public:
 			uiRoot->InitLinkTechniques(rg);
 		}
 	}
-	~UI_Title() = default;
+	~UI_Setting() = default;
 
 	void Update(float dt)
 	{
-		// Buttons
 		uiRoot->UpdateAfterInput();
 	}
 
 	void Submit(void)
 	{
-		// Title Background
-		titleBg->Submit(Chan::ui);
-		// Title
-		titleCanvas->Submit(Chan::ui);
-		// Buttons
 		uiRoot->Submit(Chan::ui);
+
+		titleCanvas->Submit(Chan::ui);
 	}
 
 	void SetOnNewGame(std::function<void()> cb) { onNewGame_ = std::move(cb); }
 
 private:
-	// Title_Bg
-	std::unique_ptr<UI_Background> titleBg;
 	// Title
 	std::unique_ptr<Canvas2D> titleCanvas;
+
 	// Buttons
 	std::unique_ptr<Ui::UiRoot> uiRoot;
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnA_{};

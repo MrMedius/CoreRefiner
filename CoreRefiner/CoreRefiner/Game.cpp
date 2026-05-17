@@ -7,7 +7,7 @@
 #include "InputCodex.h"
 #include "SoundCodex.h"
 #include "ObjectCodex.h"
-#include "TextCodex.h"
+#include "TimeCodex.h"
 
 namespace dx = DirectX;
 
@@ -73,7 +73,9 @@ int Game::RunGame()
 			/*            Update            */
 			wnd.TickCursorAutoHide();
 			wnd.Gfx().BeginFrame();
-			Update(timer_update.Mark() * speed_factor);
+			const float dt = timer_update.Mark() * speed_factor;
+			TimeCodex::Get().Update(dt);
+			Update(dt);	
 			InputCodex::Get().Update();
 			SoundCodex::Get().Update();
 			/********************************/

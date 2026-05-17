@@ -15,11 +15,6 @@ dx::XMMATRIX Canvas::GetTransformXM() const noexcept
 	return trans.GetTransformXM();
 }
 
-SpriteUVTag::value_type Canvas::Provide(SpriteUVTag) const noexcept
-{
-	return { { 0.0f, 0.0f }, { 1.0f, 1.0f } };
-}
-
 void Canvas::MarkDirtyPixel(unsigned x, unsigned y) noexcept
 {
 	if (!hasDirtyRect)

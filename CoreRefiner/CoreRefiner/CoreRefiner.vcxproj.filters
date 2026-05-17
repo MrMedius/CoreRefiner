@@ -85,9 +85,6 @@
     <Filter Include="Object\Managers">
       <UniqueIdentifier>{23a5047b-d01b-4eb1-b7ca-3ff05f5b0ea3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI">
-      <UniqueIdentifier>{9ca01b60-cd95-440a-9cac-39118079381e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Tool">
       <UniqueIdentifier>{05ac8d12-cd0c-4120-9a3e-4b52c67aedb0}</UniqueIdentifier>
     </Filter>
@@ -134,20 +131,38 @@
     <Filter Include="Framework\Helpers\Text">
       <UniqueIdentifier>{431e6930-f381-427c-9444-62728969492c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\Base">
+    <Filter Include="Framework\UI">
+      <UniqueIdentifier>{9ca01b60-cd95-440a-9cac-39118079381e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\UI\Base">
       <UniqueIdentifier>{16413ebd-b4fd-4e50-ab2a-35d71e3b4390}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\Input">
+    <Filter Include="Framework\UI\Input">
       <UniqueIdentifier>{418c8eeb-80a8-4ba2-b328-9a1a5c27d178}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\Widget">
+    <Filter Include="Framework\UI\Widget">
       <UniqueIdentifier>{8a3400fd-517f-4837-8924-8f29183abc18}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\Widget\Button">
+    <Filter Include="Framework\UI\Widget\Button">
       <UniqueIdentifier>{69ae2158-0215-493e-bc36-e6c3236b2d83}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\Component">
+    <Filter Include="Framework\UI\Component">
       <UniqueIdentifier>{7f904051-7a75-4c5f-84d4-517b00e328fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{8308996a-329a-4be0-b591-b911c2d837e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Graphics\Bindable\ConstantBuffers\Provides">
+      <UniqueIdentifier>{e25ee930-2deb-4743-91b2-e243cfb6df91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helpers\Time">
+      <UniqueIdentifier>{82f81be1-f7ae-455f-b534-ff872edff379}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helpers\Texture">
+      <UniqueIdentifier>{1371d328-c086-4126-bbb0-baef926da6b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Helpers\Mathematics">
+      <UniqueIdentifier>{e98ad54f-ebfb-4292-9b57-430b94b83493}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -168,9 +183,6 @@
     </ClCompile>
     <ClCompile Include="imgui\imgui_impl_win32.cpp">
       <Filter>Tool\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="DynamicTexture.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
     <ClCompile Include="ImguiManager.cpp">
       <Filter>Tool\Imgui\Manager</Filter>
@@ -210,18 +222,6 @@
     </ClCompile>
     <ClCompile Include="Mouse.cpp">
       <Filter>Framework\Helpers\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Timer.cpp">
-      <Filter>Framework\Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="Transformation.cpp">
-      <Filter>Framework\Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="Util.cpp">
-      <Filter>Framework\Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="XMath.cpp">
-      <Filter>Framework\Helpers</Filter>
     </ClCompile>
     <ClCompile Include="GraphicsResource.cpp">
       <Filter>Framework\Graphics</Filter>
@@ -364,22 +364,10 @@
     <ClCompile Include="VertexShader.cpp">
       <Filter>Framework\Graphics\Bindable\Core</Filter>
     </ClCompile>
-    <ClCompile Include="DynamicCubeTexture.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
-    <ClCompile Include="DynamicTexture.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
     <ClCompile Include="DynamicVertexBuffer.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
-    <ClCompile Include="RingParamsCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
     <ClCompile Include="ShadowCameraCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClCompile>
-    <ClCompile Include="SpriteUVCbuf.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
     <ClCompile Include="Transform2DCbuf.cpp">
@@ -399,9 +387,6 @@
     </ClCompile>
     <ClCompile Include="EnvironmentManager.cpp">
       <Filter>Object\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="Collision.cpp">
-      <Filter>Tool</Filter>
     </ClCompile>
     <ClCompile Include="Enemy_T.cpp">
       <Filter>Object\Character\Enemy</Filter>
@@ -423,9 +408,6 @@
     </ClCompile>
     <ClCompile Include="Enemy_T_Shape.cpp">
       <Filter>Object\Shapes</Filter>
-    </ClCompile>
-    <ClCompile Include="Surface.cpp">
-      <Filter>Framework\Helpers</Filter>
     </ClCompile>
     <ClCompile Include="Sprite2D.cpp">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
@@ -482,28 +464,73 @@
       <Filter>Framework\Helpers\Text</Filter>
     </ClCompile>
     <ClCompile Include="FocusManager.cpp">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClCompile>
     <ClCompile Include="GamepadUiInputAdapter.cpp">
-      <Filter>UI\Input</Filter>
+      <Filter>Framework\UI\Input</Filter>
     </ClCompile>
     <ClCompile Include="KeyboardUiInputAdapter.cpp">
-      <Filter>UI\Input</Filter>
+      <Filter>Framework\UI\Input</Filter>
     </ClCompile>
     <ClCompile Include="MouseUiInputAdapter.cpp">
-      <Filter>UI\Input</Filter>
+      <Filter>Framework\UI\Input</Filter>
     </ClCompile>
     <ClCompile Include="ButtonCanvasView.cpp">
-      <Filter>UI\Widget\Button</Filter>
+      <Filter>Framework\UI\Widget\Button</Filter>
     </ClCompile>
     <ClCompile Include="UiButton.cpp">
-      <Filter>UI\Widget\Button</Filter>
+      <Filter>Framework\UI\Widget\Button</Filter>
     </ClCompile>
     <ClCompile Include="UiRoot.cpp">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClCompile>
     <ClCompile Include="ButtonCanvasComponent.cpp">
-      <Filter>UI\Component</Filter>
+      <Filter>Framework\UI\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicCubeTexture.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClCompile>
+    <ClCompile Include="SpriteUVCbuf.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicTexture.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicTexture.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClCompile>
+    <ClCompile Include="RingParamsCbuf.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Framework\Helpers\Time</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeCodex.cpp">
+      <Filter>Framework\Helpers\Time</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeCbuf_PS.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeCbuf_VS.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Util.cpp">
+      <Filter>Framework\Helpers\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="Surface.cpp">
+      <Filter>Framework\Helpers\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="XMath.cpp">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClCompile>
+    <ClCompile Include="Transformation.cpp">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClCompile>
+    <ClCompile Include="Collision.cpp">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClCompile>
+    <ClCompile Include="UI_Background.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -690,17 +717,11 @@
     <ClInclude Include="ObjectBase.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="SpriteUVCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
     <ClInclude Include="ObjectCodex.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="Character.h">
       <Filter>Object\Character</Filter>
-    </ClInclude>
-    <ClInclude Include="Collision.h">
-      <Filter>Tool</Filter>
     </ClInclude>
     <ClInclude Include="CubeWireframe.h">
       <Filter>Framework\Graphics\Drawable</Filter>
@@ -718,12 +739,6 @@
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
     </ClInclude>
     <ClInclude Include="Transform2DCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="Provides.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="RingParamsCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
     <ClInclude Include="InUserInterfaceRenderGraph.h">
@@ -792,24 +807,6 @@
     <ClInclude Include="ImguiManager.h">
       <Filter>Tool\Imgui\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Math.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="Timer.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="PerfLog.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="Util.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="XMath.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="Transformation.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="Gamepad.h">
       <Filter>Framework\Helpers\Input</Filter>
     </ClInclude>
@@ -823,9 +820,6 @@
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
     </ClInclude>
     <ClInclude Include="DynamicVertexBuffer.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="DynamicCubeTexture.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
     <ClInclude Include="Bindable.h">
@@ -918,12 +912,6 @@
     <ClInclude Include="Enemy_T_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
-    <ClInclude Include="Surface.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="Colors.h">
-      <Filter>Framework\Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="Sprite3DNoLit.h">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClInclude>
@@ -954,9 +942,6 @@
     <ClInclude Include="Canvas2D.h">
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClInclude>
-    <ClInclude Include="CanvasTexture.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
     <ClInclude Include="DWriteCustomFontCollection.h">
       <Filter>Framework\Helpers\Text</Filter>
     </ClInclude>
@@ -979,45 +964,102 @@
       <Filter>Framework\Helpers\Text</Filter>
     </ClInclude>
     <ClInclude Include="UiInputFrame.h">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClInclude>
     <ClInclude Include="UiTypes.h">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClInclude>
     <ClInclude Include="FocusTypes.h">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClInclude>
     <ClInclude Include="FocusManager.h">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClInclude>
     <ClInclude Include="GamepadUiInputAdapter.h">
-      <Filter>UI\Input</Filter>
+      <Filter>Framework\UI\Input</Filter>
     </ClInclude>
     <ClInclude Include="KeyboardUiInputAdapter.h">
-      <Filter>UI\Input</Filter>
+      <Filter>Framework\UI\Input</Filter>
     </ClInclude>
     <ClInclude Include="MouseUiInputAdapter.h">
-      <Filter>UI\Input</Filter>
+      <Filter>Framework\UI\Input</Filter>
     </ClInclude>
     <ClInclude Include="ButtonCanvasView.h">
-      <Filter>UI\Widget\Button</Filter>
+      <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
     <ClInclude Include="ButtonViewModel.h">
-      <Filter>UI\Widget\Button</Filter>
+      <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
     <ClInclude Include="IButtonView.h">
-      <Filter>UI\Widget\Button</Filter>
+      <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
     <ClInclude Include="UiButton.h">
-      <Filter>UI\Widget\Button</Filter>
+      <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
     <ClInclude Include="UiRoot.h">
-      <Filter>UI\Base</Filter>
+      <Filter>Framework\UI\Base</Filter>
     </ClInclude>
     <ClInclude Include="ButtonCanvasComponent.h">
-      <Filter>UI\Component</Filter>
+      <Filter>Framework\UI\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_Setting.h">
+      <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="UI_Title.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="CanvasTexture.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicCubeTexture.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClInclude>
+    <ClInclude Include="SpriteUVCbuf.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClInclude>
+    <ClInclude Include="Provides.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClInclude>
+    <ClInclude Include="RingParamsCbuf.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Framework\Helpers\Time</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeCodex.h">
+      <Filter>Framework\Helpers\Time</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeCbuf_PS.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeCbuf_VS.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Util.h">
+      <Filter>Framework\Helpers\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="PerfLog.h">
+      <Filter>Framework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h">
+      <Filter>Framework\Helpers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Colors.h">
+      <Filter>Framework\Helpers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="XMath.h">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClInclude>
+    <ClInclude Include="Transformation.h">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision.h">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_Background.h">
       <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1182,6 +1224,24 @@
     <FxCompile Include="CubeTiledTutorial_Grid_PS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
+    <FxCompile Include="Canvas2D_VS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="Canvas2D_PS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="Canvas3D_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Canvas3D_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="UI_Background_PS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="UI_Background_VS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="LightVectorData.hlsli">
@@ -1213,6 +1273,9 @@
     </None>
     <None Include="asset\Icon\WhiteArrow.cur">
       <Filter>Tool\Resource Files</Filter>
+    </None>
+    <None Include="Time.hlsli">
+      <Filter>Shader\Common</Filter>
     </None>
   </ItemGroup>
 </Project>

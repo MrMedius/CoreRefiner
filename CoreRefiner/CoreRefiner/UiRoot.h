@@ -69,7 +69,6 @@ namespace Ui
 
 		std::vector<UiButtonSlot> slots_{};
 
-
 		UiInputDominance dominance_{ UiInputDominance::Mouse };
 
 		bool pointerPrimaryWasDown_{ false };

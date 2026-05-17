@@ -109,7 +109,7 @@ public:
 			for (int y = 0, i = 0; y < nVertices_y; y++)
 			{
 				const float y_pos = float(y) * divisionSize_y - side_y;
-				const float y_pos_tc = 1.0f - float(y) * divisionSize_y_tc;
+				const float y_pos_tc = float(y) * divisionSize_y_tc;
 				for (int x = 0; x < nVertices_x; x++, i++)
 				{
 					const float x_pos = float(x) * divisionSize_x - side_x;

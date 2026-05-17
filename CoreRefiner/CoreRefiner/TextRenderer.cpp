@@ -183,7 +183,7 @@ namespace Text
         const bool wChanged = (std::abs(lastLayoutW_ - layoutW) > 0.01f);
         const bool hChanged = (std::abs(lastLayoutH_ - layoutH) > 0.01f);
 
-        const std::wstring w = ToWideUtf8(req.utf8Text);
+        const std::wstring w = ToWideUtf8(req.text);
         const bool textChanged = (w != textW_);
         if (textChanged) textW_ = w;
         

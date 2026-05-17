@@ -155,18 +155,18 @@ namespace Colors
 	static constexpr Color Ryo			=	MakeRGB(2u,		209u,	224u,	255u);
 	static constexpr Color Kita			=	MakeRGB(255u,	70u,	55u,	255u);
 	static constexpr Color Chart[12][9] = { 
-		{Color(0xFFFFCCCCu),Color(0xFFFF9999u),Color(0xFFFF6666u),Color(0xFFFF3333u),Color(0xFFFF0000u),Color(0xFFCC0000u),Color(0xFF990000u),Color(0xFF660000u),Color(0xFF330000u)},	//Red
-		{Color(0xFFFFE5CCu),Color(0xFFFFCC99u),Color(0xFFFFB266u),Color(0xFFFF9933u),Color(0xFFFF8000u),Color(0xFFCC6600u),Color(0xFF994C00u),Color(0xFF663300u),Color(0xFF331900u)},	//Orange
-		{Color(0xFFFFFFCCu),Color(0xFFFFFF99u),Color(0xFFFFFF66u),Color(0xFFFFFF33u),Color(0xFFFFFF00u),Color(0xFFCCCC00u),Color(0xFF999900u),Color(0xFF666600u),Color(0xFF333300u)},	//Yellow
-		{Color(0xFFE5FFCCu),Color(0xFFCCFF99u),Color(0xFFB2FF66u),Color(0xFF99FF33u),Color(0xFF80FF00u),Color(0xFF66CC00u),Color(0xFF4C9900u),Color(0xFF336600u),Color(0xFF193300u)},	//LightGreen
-		{Color(0xFFCCFFCCu),Color(0xFF99FF99u),Color(0xFF66FF66u),Color(0xFF66FF66u),Color(0xFF00FF00u),Color(0xFF00CC00u),Color(0xFF009900u),Color(0xFF006600u),Color(0xFF003300u)},	//Green
-		{Color(0xFFCCFFE5u),Color(0xFF99FFCCu),Color(0xFF66FFB2u),Color(0xFF33FF99u),Color(0xFF00FF80u),Color(0xFF00CC66u),Color(0xFF00994Cu),Color(0xFF006633u),Color(0xFF003319u)},	//LightCyan
-		{Color(0xFFCCFFFFu),Color(0xFF99FFFFu),Color(0xFF66FFFFu),Color(0xFF33FFFFu),Color(0xFF00FFFFu),Color(0xFF00CCCCu),Color(0xFF009999u),Color(0xFF006666u),Color(0xFF003333u)},	//Cyan
-		{Color(0xFFCCE5FFu),Color(0xFF99CCFFu),Color(0xFF66B2FFu),Color(0xFF3399FFu),Color(0xFF0080FFu),Color(0xFF0066CCu),Color(0xFF004C99u),Color(0xFF003366u),Color(0xFF001933u)},	//LightBlue
-		{Color(0xFFCCCCFFu),Color(0xFF9999FFu),Color(0xFF6666FFu),Color(0xFF3333FFu),Color(0xFF0000FFu),Color(0xFF0000CCu),Color(0xFF000099u),Color(0xFF000066u),Color(0xFF000033u)},	//Blue
-		{Color(0xFFE5CCFFu),Color(0xFFCC99FFu),Color(0xFFB266FFu),Color(0xFF9933FFu),Color(0xFF7F00FFu),Color(0xFF6600CCu),Color(0xFF4C0099u),Color(0xFF330066u),Color(0xFF190033u)},	//Purple
-		{Color(0xFFFFCCFFu),Color(0xFFFF99FFu),Color(0xFFFF66FFu),Color(0xFFFF33FFu),Color(0xFFFF00FFu),Color(0xFFCC00CCu),Color(0xFF990099u),Color(0xFF660066u),Color(0xFF330033u)},	//Magenta
-		{Color(0xFFFFCCE5u),Color(0xFFFF99CCu),Color(0xFFFF66B2u),Color(0xFFFF3399u),Color(0xFFFF007Fu),Color(0xFFCC0066u),Color(0xFF99004Cu),Color(0xFF660033u),Color(0xFF330019u)}	//DeepPink
+		{Color(0xFFFFCCCCu),Color(0xFFFF9999u),Color(0xFFFF6666u),Color(0xFFFF3333u),Color(0xFFFF0000u),Color(0xFFCC0000u),Color(0xFF990000u),Color(0xFF660000u),Color(0xFF330000u)},	//00.Red
+		{Color(0xFFFFE5CCu),Color(0xFFFFCC99u),Color(0xFFFFB266u),Color(0xFFFF9933u),Color(0xFFFF8000u),Color(0xFFCC6600u),Color(0xFF994C00u),Color(0xFF663300u),Color(0xFF331900u)},	//01.Orange
+		{Color(0xFFFFFFCCu),Color(0xFFFFFF99u),Color(0xFFFFFF66u),Color(0xFFFFFF33u),Color(0xFFFFFF00u),Color(0xFFCCCC00u),Color(0xFF999900u),Color(0xFF666600u),Color(0xFF333300u)},	//02.Yellow
+		{Color(0xFFE5FFCCu),Color(0xFFCCFF99u),Color(0xFFB2FF66u),Color(0xFF99FF33u),Color(0xFF80FF00u),Color(0xFF66CC00u),Color(0xFF4C9900u),Color(0xFF336600u),Color(0xFF193300u)},	//03.LightGreen
+		{Color(0xFFCCFFCCu),Color(0xFF99FF99u),Color(0xFF66FF66u),Color(0xFF66FF66u),Color(0xFF00FF00u),Color(0xFF00CC00u),Color(0xFF009900u),Color(0xFF006600u),Color(0xFF003300u)},	//04.Green
+		{Color(0xFFCCFFE5u),Color(0xFF99FFCCu),Color(0xFF66FFB2u),Color(0xFF33FF99u),Color(0xFF00FF80u),Color(0xFF00CC66u),Color(0xFF00994Cu),Color(0xFF006633u),Color(0xFF003319u)},	//05.LightCyan
+		{Color(0xFFCCFFFFu),Color(0xFF99FFFFu),Color(0xFF66FFFFu),Color(0xFF33FFFFu),Color(0xFF00FFFFu),Color(0xFF00CCCCu),Color(0xFF009999u),Color(0xFF006666u),Color(0xFF003333u)},	//06.Cyan
+		{Color(0xFFCCE5FFu),Color(0xFF99CCFFu),Color(0xFF66B2FFu),Color(0xFF3399FFu),Color(0xFF0080FFu),Color(0xFF0066CCu),Color(0xFF004C99u),Color(0xFF003366u),Color(0xFF001933u)},	//07.LightBlue
+		{Color(0xFFCCCCFFu),Color(0xFF9999FFu),Color(0xFF6666FFu),Color(0xFF3333FFu),Color(0xFF0000FFu),Color(0xFF0000CCu),Color(0xFF000099u),Color(0xFF000066u),Color(0xFF000033u)},	//08.Blue
+		{Color(0xFFE5CCFFu),Color(0xFFCC99FFu),Color(0xFFB266FFu),Color(0xFF9933FFu),Color(0xFF7F00FFu),Color(0xFF6600CCu),Color(0xFF4C0099u),Color(0xFF330066u),Color(0xFF190033u)},	//09.Purple
+		{Color(0xFFFFCCFFu),Color(0xFFFF99FFu),Color(0xFFFF66FFu),Color(0xFFFF33FFu),Color(0xFFFF00FFu),Color(0xFFCC00CCu),Color(0xFF990099u),Color(0xFF660066u),Color(0xFF330033u)},	//10.Magenta
+		{Color(0xFFFFCCE5u),Color(0xFFFF99CCu),Color(0xFFFF66B2u),Color(0xFFFF3399u),Color(0xFFFF007Fu),Color(0xFFCC0066u),Color(0xFF99004Cu),Color(0xFF660033u),Color(0xFF330019u)}	//11.DeepPink
 	};
 										  
 }

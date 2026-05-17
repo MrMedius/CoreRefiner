@@ -73,7 +73,7 @@ namespace Text
     struct RenderRequest
     {
         // Input text: UTF-8 (standardized across machines and is not affected by system region)
-        std::string utf8Text;
+        std::string text;
 
 		// Canvas mode: Auto (usually for UI, auto-sizing based on text content; Fixed (usually for world, fixed size and text wraps/clips within it)
         CanvasMode canvasMode = CanvasMode::Fixed;
@@ -102,7 +102,7 @@ namespace Text
         float drawOffsetYPx = 0.0f;
 
 		// Color settings
-        Color defaultColor;
-        Color backgroundColor;
+        Color defaultColor = Colors::White;
+        Color backgroundColor = Colors::None;
     };
 }

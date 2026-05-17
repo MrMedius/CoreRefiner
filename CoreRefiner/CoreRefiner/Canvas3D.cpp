@@ -3,7 +3,6 @@
 #include "BindableCommon.h"
 #include "DynamicConstant.h"
 #include "ConstantBuffersEx.h"
-#include "SpriteUVCbuf.h"
 #include "CanvasTexture.h"
 #include "Channels.h"
 
@@ -22,7 +21,6 @@ Canvas3D::Canvas3D(Graphics& gfx, unsigned width, unsigned height)
 	pTopology = Topology::Resolve(gfx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	auto tcb = std::make_shared<TransformCbuf>(gfx);
-	auto uvcb = std::make_shared<SpriteUVCbuf>(gfx);
 	auto canvasTex = std::make_shared<CanvasTexture>(gfx);
 
 	{
@@ -33,11 +31,11 @@ Canvas3D::Canvas3D(Graphics& gfx, unsigned width, unsigned height)
 			only.AddBindable(canvasTex);
 			only.AddBindable(Sampler::Resolve(gfx, Sampler::Type::Point, Sampler::Address::Clamp));
 
-			auto pvs = VertexShader::Resolve(gfx, "Sprite3D_VS.cso");
+			auto pvs = VertexShader::Resolve(gfx, "Canvas3D_VS.cso");
 			only.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
 			only.AddBindable(std::move(pvs));
 			
-			only.AddBindable(PixelShader::Resolve(gfx, "Sprite3D_PS.cso"));
+			only.AddBindable(PixelShader::Resolve(gfx, "Canvas3D_PS.cso"));
 
 			Dcb::RawLayout lay;
 			lay.Add<Dcb::Float3>("specularColor");
@@ -52,33 +50,31 @@ Canvas3D::Canvas3D(Graphics& gfx, unsigned width, unsigned height)
 			only.AddBindable(Rasterizer::Resolve(gfx, true));
 			
 			only.AddBindable(tcb);
-			only.AddBindable(uvcb);
 			
 			shade.AddStep(std::move(only));
 		}
 		AddTechnique(std::move(shade));
 	}
-	{
-		Technique outline("Outline", Chan::main);
-		{
-			Step mask("outlineMask");
-			
-			auto pvs = VertexShader::Resolve(gfx, "Sprite3D_Mask_VS.cso");
-			mask.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
-			mask.AddBindable(std::move(pvs));
-			
-			mask.AddBindable(canvasTex);
-			mask.AddBindable(Sampler::Resolve(gfx, Sampler::Type::Point, Sampler::Address::Clamp));
-			
-			mask.AddBindable(PixelShader::Resolve(gfx, "Sprite3D_Mask_PS.cso"));
-			
-			mask.AddBindable(tcb);
-			mask.AddBindable(uvcb);
-			
-			outline.AddStep(std::move(mask));
-		}
-		AddTechnique(std::move(outline));
-	}
+	//{
+	//	Technique outline("Outline", Chan::main);
+	//	{
+	//		Step mask("outlineMask");
+	//		
+	//		auto pvs = VertexShader::Resolve(gfx, "Sprite3D_Mask_VS.cso");
+	//		mask.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
+	//		mask.AddBindable(std::move(pvs));
+	//		
+	//		mask.AddBindable(canvasTex);
+	//		mask.AddBindable(Sampler::Resolve(gfx, Sampler::Type::Point, Sampler::Address::Clamp));
+	//		
+	//		mask.AddBindable(PixelShader::Resolve(gfx, "Sprite3D_Mask_PS.cso"));
+	//		
+	//		mask.AddBindable(tcb);
+	//		
+	//		outline.AddStep(std::move(mask));
+	//	}
+	//	AddTechnique(std::move(outline));
+	//}
 	// shadow map technique
 	{
 		Technique map{ "ShadowMap", Chan::shadow, true };
@@ -93,7 +89,6 @@ Canvas3D::Canvas3D(Graphics& gfx, unsigned width, unsigned height)
 			draw.AddBindable(Sampler::Resolve(gfx, Sampler::Type::Point, Sampler::Address::Clamp));
 			
 			draw.AddBindable(tcb);
-			draw.AddBindable(uvcb);
 			
 			draw.AddBindable(Rasterizer::Resolve(gfx, true));
 			

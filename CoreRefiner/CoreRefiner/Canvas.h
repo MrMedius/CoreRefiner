@@ -11,7 +11,7 @@ namespace Bind
 	class CanvasTexture;
 }
 
-class Canvas : public Drawable, public IProvides<SpriteUVTag>
+class Canvas : public Drawable
 {
 	friend class Bind::CanvasTexture;
 
@@ -24,7 +24,6 @@ public:
 	~Canvas() override = default;
 
 	dx::XMMATRIX GetTransformXM() const noexcept override;
-	SpriteUVTag::value_type Provide(SpriteUVTag) const noexcept override;
 
 	void PutPixel(unsigned x, unsigned y, Color c) noxnd;
 	Color GetPixel(unsigned x, unsigned y) const noxnd;

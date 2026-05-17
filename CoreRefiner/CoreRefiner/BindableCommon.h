@@ -19,3 +19,6 @@
 
 #include "TransformCbuf.h"
 #include "Transform2DCbuf.h"
+
+#include "TimeCbuf_VS.h"
+#include "TimeCbuf_PS.h"
