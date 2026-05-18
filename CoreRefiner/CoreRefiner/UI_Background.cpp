@@ -4,6 +4,9 @@
 #include "CanvasTexture.h"
 #include "Channels.h"
 
+#include "TextCodex.h"
+
+
 // ------------------------------------------------------------------ 
 // ParamsCbuf
 // ------------------------------------------------------------------ 
@@ -81,8 +84,6 @@ UI_Background::UI_Background(Graphics& gfx, unsigned width, unsigned height)
 		ui.AddStep(std::move(draw));
 	}
 	AddTechnique(std::move(ui));
-
-	Clear(Colors::White);
 }
 
 UI_Background::Params UI_Background::MakeDefaultParams(const unsigned width, const unsigned height) noexcept

@@ -16,7 +16,18 @@ class Canvas : public Drawable
 	friend class Bind::CanvasTexture;
 
 public:
-	Canvas(unsigned width, unsigned height);
+	enum Form
+	{
+		Empty,              /**< 全 None（Canvas2D 等默认） */
+		Rectangle,          /**< 整幅矩形 White */
+		Ellipse,            /**< 与四边相切的内接椭圆 */
+		Triangle,           /**< 尖角朝上：底边在下，顶点在上边中点 */
+		Circle,             /**< 内接圆：半径 min(w,h)/2 */
+		Diamond,            /**< 内接菱形（L1 范数） */
+		RoundedRectangle,   /**< 圆角矩形，圆角半径 = 25% * min(w,h) */
+	};
+
+	Canvas(unsigned width, unsigned height, Form form = Rectangle);
 	Canvas(const Canvas&) = delete;
 	Canvas& operator=(const Canvas&) = delete;
 	Canvas(Canvas&&) = delete;
@@ -29,6 +40,8 @@ public:
 	Color GetPixel(unsigned x, unsigned y) const noxnd;
 	void Clear(Color fill = Colors::None) noexcept;
 	void Resize(unsigned width, unsigned height);
+
+	void ReapplyForm() noexcept;
 
 	unsigned GetCanvasWidth() const noexcept;
 	unsigned GetCanvasHeight() const noexcept;
@@ -55,8 +68,10 @@ private:
 	void MarkDirtyPixel(unsigned x, unsigned y) noexcept;
 	void MarkDirtyAll() noexcept;
 	void ClearGpuDirty() noexcept;
+	void ApplyForm(Form form) noexcept;
 
 	Surface surface;
+	Form form_ = Empty;
 	bool gpuDirty = true;
 
 	// dirty rect: [dirtyMinX, dirtyMaxX], [dirtyMinY, dirtyMaxY]

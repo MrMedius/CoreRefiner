@@ -37,22 +37,13 @@ public:
 			titleCanvas->SetPosition(DirectX::XMFLOAT3{ static_cast<float>(centerX), static_cast<float>(centerY / 2u), 0.0f });
 			titleCanvas->SetScale(DirectX::XMFLOAT3{ static_cast<float>(titleWidth), static_cast<float>(titleHeight), 1.0f });
 			titleCanvas->LinkTechniques(rg);
-			for (unsigned y = 0; y < titleCanvas->GetCanvasHeight(); ++y)
-			{
-				for (unsigned x = 0; x < titleCanvas->GetCanvasWidth(); ++x)
-				{
-					if(y == 0 || y == titleCanvas->GetCanvasHeight() - 1 || x == 0 || x == titleCanvas->GetCanvasWidth() - 1)
-					{
-						titleCanvas->PutPixel(x, y, Colors::White);
-					}
-				}
-			}
+
 			std::string Title = "CORE REFINER";
 			auto ctx = TextCodex::Get().BeginDraw();
 			auto& rq = ctx.Request();
 			rq.text = Title;
 			rq.canvasMode = Text::CanvasMode::Fixed;
-			rq.clearMode = Text::ClearMode::NoClear;
+			rq.clearMode = Text::ClearMode::Clear;
 			rq.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
 			rq.style.fontSize = 100.0f;
 			rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
@@ -104,7 +95,7 @@ public:
 		// Title Background
 		titleBg->Submit(Chan::ui);
 		// Title
-		titleCanvas->Submit(Chan::ui);
+		//titleCanvas->Submit(Chan::ui);
 		// Buttons
 		uiRoot->Submit(Chan::ui);
 	}
