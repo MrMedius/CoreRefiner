@@ -1,4 +1,4 @@
-#include "UI_Background.h"
+#include "Canvas2DRipples.h"
 #include "Plane.h"
 #include "BindableCommon.h"
 #include "CanvasTexture.h"
@@ -10,13 +10,13 @@
 // ------------------------------------------------------------------ 
 // ParamsCbuf
 // ------------------------------------------------------------------ 
-class UI_Background::ParamsCbuf : public Bind::CloningBindable
+class Canvas2DRipples::ParamsCbuf : public Bind::CloningBindable
 {
 public:
 	explicit ParamsCbuf(Graphics& gfx, UINT slot = 0u)
 	{
 		if (!pPcbuf_)
-			pPcbuf_ = std::make_unique<Bind::PixelConstantBuffer<UI_Background::Params>>(gfx, UI_Background::Params{}, slot);
+			pPcbuf_ = std::make_unique<Bind::PixelConstantBuffer<Canvas2DRipples::Params>>(gfx, Canvas2DRipples::Params{}, slot);
 	}
 	void Bind(Graphics& gfx) noxnd override
 	{
@@ -26,25 +26,25 @@ public:
 	}
 	void InitializeParentReference(const Drawable& parent) noexcept override
 	{
-		pOwner_ = static_cast<const UI_Background*>(&parent);
+		pOwner_ = static_cast<const Canvas2DRipples*>(&parent);
 	}
 	std::unique_ptr<CloningBindable> Clone() const noexcept override
 	{
 		return std::make_unique<ParamsCbuf>(*this);
 	}
 private:
-	static std::unique_ptr<Bind::PixelConstantBuffer<UI_Background::Params>> pPcbuf_;
-	const UI_Background* pOwner_ = nullptr;
+	static std::unique_ptr<Bind::PixelConstantBuffer<Canvas2DRipples::Params>> pPcbuf_;
+	const Canvas2DRipples* pOwner_ = nullptr;
 };
 
-std::unique_ptr<Bind::PixelConstantBuffer<UI_Background::Params>> UI_Background::ParamsCbuf::pPcbuf_;
+std::unique_ptr<Bind::PixelConstantBuffer<Canvas2DRipples::Params>> Canvas2DRipples::ParamsCbuf::pPcbuf_;
 
 
 
 // ------------------------------------------------------------------ 
-// UI_Background
+// Canvas2DRipples
 // ------------------------------------------------------------------
-UI_Background::UI_Background(Graphics& gfx, unsigned width, unsigned height)
+Canvas2DRipples::Canvas2DRipples(Graphics& gfx, unsigned width, unsigned height)
 	:
 	Canvas(width, height)
 {
@@ -71,11 +71,11 @@ UI_Background::UI_Background(Graphics& gfx, unsigned width, unsigned height)
 		draw.AddBindable(canvasTex);
 		draw.AddBindable(Sampler::Resolve(gfx, Sampler::Type::Point, Sampler::Address::Clamp));
 
-		auto pvs = VertexShader::Resolve(gfx, "UI_Background_VS.cso");
+		auto pvs = VertexShader::Resolve(gfx, "Canvas2DRipples_VS.cso");
 		draw.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
 		draw.AddBindable(std::move(pvs));
 
-		draw.AddBindable(PixelShader::Resolve(gfx, "UI_Background_PS.cso"));
+		draw.AddBindable(PixelShader::Resolve(gfx, "Canvas2DRipples_PS.cso"));
 
 		draw.AddBindable(tcb);
 		draw.AddBindable(timeCb);
@@ -86,7 +86,7 @@ UI_Background::UI_Background(Graphics& gfx, unsigned width, unsigned height)
 	AddTechnique(std::move(ui));
 }
 
-UI_Background::Params UI_Background::MakeDefaultParams(const unsigned width, const unsigned height) noexcept
+Canvas2DRipples::Params Canvas2DRipples::MakeDefaultParams(const unsigned width, const unsigned height) noexcept
 {
 	Params p{};
 	if (width == 0u || height == 0u)

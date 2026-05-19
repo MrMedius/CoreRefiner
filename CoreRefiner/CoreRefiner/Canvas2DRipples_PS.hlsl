@@ -19,10 +19,10 @@ float RingWeight(float dist, float radius, float thick)
     return saturate(1.0 - d / max(thick, 1e-5));
 }
 
-float4 main(float2 tc : Texcoord) : SV_Target
+float4 main(float2 tc : Texcoord, float2 tc_Org : OriginalTexcoord) : SV_Target
 {
     // Sample the texture to determine if this pixel should be discarded (transparent areas)
-    float4 col = tex.Sample(splr, tc).r;
+    float4 col = tex.Sample(splr, tc_Org);
     if (col.a < 0.1)
         discard;
     

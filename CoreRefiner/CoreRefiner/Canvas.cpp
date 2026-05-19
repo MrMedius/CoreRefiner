@@ -1,49 +1,33 @@
 #include "Canvas.h"
 #include <algorithm>
+#include <array>
+#include <cmath>
 
 namespace
 {
-	/**
-	 * @brief 尖角朝上三角形（底边贴下边）。
-	 */
-	bool IsInsideTriangleApexUp(float px, float py, unsigned w, unsigned h) noexcept
+	constexpr unsigned kMaxPolygonSides = 64u;
+	constexpr float kPi = 3.14159265358979323846f;
+	constexpr float kDefaultCornerFrac = 0.25f;
+
+	unsigned ResolvePolygonSides(float formParam) noexcept
 	{
-		if (w == 0u || h == 0u)
-			return false;
-		if (h == 1u)
-			return true;
-		const float x0 = (static_cast<float>(w) - 1.0f) * 0.5f;
-		const float y0 = 0.0f;
-		const float x1 = 0.0f;
-		const float y1 = static_cast<float>(h - 1u);
-		const float x2 = static_cast<float>(w - 1u);
-		const float y2 = static_cast<float>(h - 1u);
-		const float denom = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2);
-		if (std::fabs(denom) < 1e-6f)
-			return false;
-		const float u = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / denom;
-		const float v = ((y2 - y0) * (px - x2) + (x0 - x2) * (py - y2)) / denom;
-		const float wBary = 1.0f - u - v;
-		return u >= 0.0f && v >= 0.0f && wBary >= 0.0f;
+		const int sides = static_cast<int>(formParam + 0.5f);
+		return static_cast<unsigned>(std::clamp(sides, 3, static_cast<int>(kMaxPolygonSides)));
+	}
+	float ResolveCornerRadiusFraction(float formParam) noexcept
+	{
+		if (formParam <= 0.0f)
+			return kDefaultCornerFrac;
+		float frac = formParam;
+		if (frac > 1.0f)
+			frac *= 0.01f;
+		return std::clamp(frac, 0.0f, 0.5f);
 	}
 	bool IsInsideEllipse(float px, float py, float cx, float cy, float rx, float ry) noexcept
 	{
 		const float dx = (px - cx) / rx;
 		const float dy = (py - cy) / ry;
 		return dx * dx + dy * dy <= 1.0f;
-	}
-	bool IsInsideCircle(float px, float py, float cx, float cy, float r) noexcept
-	{
-		const float dx = px - cx;
-		const float dy = py - cy;
-		return dx * dx + dy * dy <= r * r;
-	}
-	/**
-	 * @brief 内接菱形：|x-cx|/rx + |y-cy|/ry <= 1。
-	 */
-	bool IsInsideDiamond(float px, float py, float cx, float cy, float rx, float ry) noexcept
-	{
-		return std::fabs(px - cx) / rx + std::fabs(py - cy) / ry <= 1.0f;
 	}
 	bool IsInsideRoundedRect(float px, float py, float cx, float cy, float halfW, float halfH, float cornerR) noexcept
 	{
@@ -57,20 +41,59 @@ namespace
 		const float cornerDy = dy - innerY;
 		return cornerDx * cornerDx + cornerDy * cornerDy <= cornerR * cornerR;
 	}
+
+	bool IsInsideConvexPolygon(float px, float py, const std::array<float, kMaxPolygonSides>& vx,
+		const std::array<float, kMaxPolygonSides>& vy, unsigned sides) noexcept
+	{
+		if (sides < 3u)
+			return false;
+		bool hasPos = false;
+		bool hasNeg = false;
+		for (unsigned i = 0u; i < sides; ++i)
+		{
+			const unsigned j = (i + 1u) % sides;
+			const float cross = (vx[j] - vx[i]) * (py - vy[i]) - (vy[j] - vy[i]) * (px - vx[i]);
+			if (cross > 0.0f)
+				hasPos = true;
+			if (cross < 0.0f)
+				hasNeg = true;
+			if (hasPos && hasNeg)
+				return false;
+		}
+		return true;
+	}
+
+	bool IsInsideRegularPolygon(float px, float py, float cx, float cy, float halfW, float halfH, unsigned sides) noexcept
+	{
+		std::array<float, kMaxPolygonSides> vx{};
+		std::array<float, kMaxPolygonSides> vy{};
+		const float step = 2.0f * kPi / static_cast<float>(sides);
+		const float start = -0.5f * kPi;
+		for (unsigned i = 0u; i < sides; ++i)
+		{
+			const float a = start + step * static_cast<float>(i);
+			vx[i] = cx + halfW * std::cos(a);
+			vy[i] = cy + halfH * std::sin(a);
+		}
+		return IsInsideConvexPolygon(px, py, vx, vy, sides);
+	}
 }
 
-Canvas::Canvas(unsigned width, unsigned height, Form form)
+Canvas::Canvas(unsigned width, unsigned height, Form form, float formParam)
 	:
 	surface(width, height),
 	form_(form),
+	formParam_(formParam),
 	gpuDirty(true)
 {
-	ApplyForm(form_);	
+	ApplyForm(form_, formParam_);
 }
 
-void Canvas::ApplyForm(Form form) noexcept
+void Canvas::ApplyForm(Form form, float formParam) noexcept
 {
 	form_ = form;
+	if (formParam >= 0.0f)
+		formParam_ = formParam;
 	const unsigned w = surface.GetWidth();
 	const unsigned h = surface.GetHeight();
 	surface.Clear(Colors::None);
@@ -99,8 +122,9 @@ void Canvas::ApplyForm(Form form) noexcept
 	const float halfH = static_cast<float>(h) * 0.5f;
 	const float rxEllipse = halfW;
 	const float ryEllipse = halfH;
-	const float rCircle = 0.5f * static_cast<float>(std::min(w, h));
-	const float cornerR = 0.25f * static_cast<float>(std::min(w, h));
+	const unsigned polygonSides = ResolvePolygonSides(formParam_);
+	const float cornerFrac = ResolveCornerRadiusFraction(formParam_);
+	const float cornerR = cornerFrac * static_cast<float>(std::min(w, h));
 	for (unsigned y = 0u; y < h; ++y)
 	{
 		for (unsigned x = 0u; x < w; ++x)
@@ -113,14 +137,8 @@ void Canvas::ApplyForm(Form form) noexcept
 			case Form::Ellipse:
 				inside = IsInsideEllipse(px, py, cx, cy, rxEllipse, ryEllipse);
 				break;
-			case Form::Triangle:
-				inside = IsInsideTriangleApexUp(px, py, w, h);
-				break;
-			case Form::Circle:
-				inside = IsInsideCircle(px, py, cx, cy, rCircle);
-				break;
-			case Form::Diamond:
-				inside = IsInsideDiamond(px, py, cx, cy, halfW, halfH);
+			case Form::Polygon:
+				inside = IsInsideRegularPolygon(px, py, cx, cy, halfW, halfH, polygonSides);
 				break;
 			case Form::RoundedRectangle:
 				inside = IsInsideRoundedRect(px, py, cx, cy, halfW, halfH, cornerR);

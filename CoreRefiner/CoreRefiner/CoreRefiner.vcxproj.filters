@@ -529,7 +529,7 @@
     <ClCompile Include="Collision.cpp">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClCompile>
-    <ClCompile Include="UI_Background.cpp">
+    <ClCompile Include="Canvas2DRipples.cpp">
       <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1059,7 +1059,7 @@
     <ClInclude Include="Collision.h">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClInclude>
-    <ClInclude Include="UI_Background.h">
+    <ClInclude Include="Canvas2DRipples.h">
       <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1236,10 +1236,10 @@
     <FxCompile Include="Canvas3D_VS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
-    <FxCompile Include="UI_Background_PS.hlsl">
+    <FxCompile Include="Canvas2DRipples_PS.hlsl">
       <Filter>Shader\2D</Filter>
     </FxCompile>
-    <FxCompile Include="UI_Background_VS.hlsl">
+    <FxCompile Include="Canvas2DRipples_VS.hlsl">
       <Filter>Shader\2D</Filter>
     </FxCompile>
   </ItemGroup>

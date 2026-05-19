@@ -248,7 +248,7 @@
     <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="UiButton.cpp" />
     <ClCompile Include="UiRoot.cpp" />
-    <ClCompile Include="UI_Background.cpp" />
+    <ClCompile Include="Canvas2DRipples.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="XMath.cpp" />
     <ClCompile Include="CubeTexture.cpp" />
@@ -400,7 +400,7 @@
     <ClInclude Include="UIPass.h" />
     <ClInclude Include="UiRoot.h" />
     <ClInclude Include="UiTypes.h" />
-    <ClInclude Include="UI_Background.h" />
+    <ClInclude Include="Canvas2DRipples.h" />
     <ClInclude Include="UI_Setting.h" />
     <ClInclude Include="UI_Title.h" />
     <ClInclude Include="Util.h" />
@@ -1225,7 +1225,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="UI_Background_PS.hlsl">
+    <FxCompile Include="Canvas2DRipples_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
@@ -1239,7 +1239,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="UI_Background_VS.hlsl">
+    <FxCompile Include="Canvas2DRipples_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>

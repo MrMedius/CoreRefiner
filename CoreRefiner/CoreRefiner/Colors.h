@@ -6,6 +6,7 @@
 #undef min
 #endif
 #include <algorithm>
+#include <DirectXMath.h>
 
 class Color
 {
@@ -68,6 +69,15 @@ public:
 	void SetB(unsigned char b)
 	{
 		dword = (dword & 0xFFFFFF00u) | b;
+	}
+	DirectX::XMFLOAT4 ToFloat4() const
+	{
+		return DirectX::	XMFLOAT4(
+			static_cast<float>(GetR()) / 255.0f,
+			static_cast<float>(GetG()) / 255.0f,
+			static_cast<float>(GetB()) / 255.0f,
+			static_cast<float>(GetA()) / 255.0f
+		);
 	}
 public://演算子のオーバーロード
 	friend inline const Color operator +(const Color& c1, const Color& c2)
