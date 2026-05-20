@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FocusTypes.h"
+#include "IUiLogic.h"
 #include "UiInputFrame.h"
 #include "UiTypes.h"
 
@@ -20,7 +21,7 @@ namespace Ui
 		Disabled	// not interactive
 	};
 
-	class UiButton
+	class UiButton : public IUiLogic
 	{
 	public:
 		UiButton(FocusHandle focusHandle, UiRect bounds);
@@ -28,7 +29,7 @@ namespace Ui
 		void SetBounds(UiRect r) noexcept { bounds_ = r; }
 		[[nodiscard]] const UiRect& GetBounds() const noexcept { return bounds_; }
 
-		[[nodiscard]] FocusHandle GetFocusHandle() const noexcept { return focusHandle_; }
+		[[nodiscard]] FocusHandle GetFocusHandle() const noexcept override { return focusHandle_; }
 
 		void SetEnabled(bool enabled) noexcept;
 		[[nodiscard]] bool IsEnabled() const noexcept { return enabled_; }
@@ -38,11 +39,12 @@ namespace Ui
 
 		void SetOnClick(std::function<void()> cb) { onClick_ = std::move(cb); }
 
-		void Update(const UiInputFrame& frame, const FocusManager& focus);
+		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
 
 		[[nodiscard]] ButtonVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
 
-		void ResetPointerInteraction() noexcept;
+		void ResetPointerInteraction() noexcept override;
+		[[nodiscard]] bool IsFocusable() const noexcept override { return enabled_; }
 
 	private:
 		[[nodiscard]] bool IsPointerOver(const UiInputFrame& frame) const noexcept;

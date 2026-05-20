@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ButtonViewModel.h"
-
 #include <cstddef>
 
 namespace Rgph
@@ -11,12 +9,11 @@ namespace Rgph
 
 namespace Ui
 {
-	class IButtonView
+	class IUiView
 	{
 	public:
-		virtual ~IButtonView() = default;
+		virtual ~IUiView() = default;
 
-		virtual void SyncFrom(const ButtonViewModel& vm) = 0;
 		virtual void LinkTechniques(Rgph::RenderGraph& rg) = 0;
 		virtual void Submit(std::size_t channelMask) const = 0;
 	};

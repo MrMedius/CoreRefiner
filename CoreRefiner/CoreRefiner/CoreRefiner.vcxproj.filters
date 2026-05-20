@@ -487,6 +487,15 @@
     <ClCompile Include="ButtonCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
+    <ClCompile Include="ProgressBarCanvasComponent.cpp">
+      <Filter>Framework\UI\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ProgressBarCanvasView.cpp">
+      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    </ClCompile>
+    <ClCompile Include="UiProgressBar.cpp">
+      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    </ClCompile>
     <ClCompile Include="DynamicCubeTexture.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
     </ClCompile>
@@ -990,6 +999,15 @@
     <ClInclude Include="ButtonViewModel.h">
       <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
+    <ClInclude Include="IUiComponent.h">
+      <Filter>Framework\UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="IUiLogic.h">
+      <Filter>Framework\UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="IUiView.h">
+      <Filter>Framework\UI\Base</Filter>
+    </ClInclude>
     <ClInclude Include="IButtonView.h">
       <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
@@ -1001,6 +1019,18 @@
     </ClInclude>
     <ClInclude Include="ButtonCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ProgressBarCanvasComponent.h">
+      <Filter>Framework\UI\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ProgressBarCanvasView.h">
+      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    </ClInclude>
+    <ClInclude Include="ProgressBarViewModel.h">
+      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    </ClInclude>
+    <ClInclude Include="UiProgressBar.h">
+      <Filter>Framework\UI\Widget\ProgressBar</Filter>
     </ClInclude>
     <ClInclude Include="UI_Setting.h">
       <Filter>UI</Filter>

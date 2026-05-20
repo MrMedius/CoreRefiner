@@ -1,6 +1,6 @@
 #pragma once
-
 #include "FocusManager.h"
+#include "IUiComponent.h"
 #include "MouseUiInputAdapter.h"
 #include "KeyboardUiInputAdapter.h"
 #include "GamepadUiInputAdapter.h"
@@ -15,21 +15,11 @@ namespace Rgph
 
 namespace Ui
 {
-	class UiButton;
-	class IButtonView;
-
 	enum class UiInputDominance
 	{
 		Mouse,
 		NonPointer
 	};
-
-	struct UiButtonSlot
-	{
-		UiButton* button = nullptr;
-		IButtonView* view = nullptr;
-	};
-
 
 	class UiRoot
 	{
@@ -38,8 +28,8 @@ namespace Ui
 
 		void Clear() noexcept;
 
-		void AddButtonSlot(UiButton* btn, IButtonView* view);
-		void RebuildTabOrderFromSlots();
+		void AddUiComponent(IUiComponent* component);
+		void RebuildTabOrder();
 
 		void InitLinkTechniques(Rgph::RenderGraph& rg);
 
@@ -49,25 +39,24 @@ namespace Ui
 		[[nodiscard]] FocusManager& Focus() noexcept { return focus_; }
 		[[nodiscard]] const FocusManager& Focus() const noexcept { return focus_; }
 
-		[[nodiscard]] UiInputDominance GetDominance() const noexcept { return dominance_; }
+		[[nodiscard]] FocusHandle GetFocus() const noexcept { return focus_.Focused(); }
 
+		[[nodiscard]] UiInputDominance GetDominance() const noexcept { return dominance_; }
 
 		void SetGamepadPlayerIndex(int idx) noexcept { gamepad_.SetPlayerIndex(idx); }
 
 	private:
-
 		static void StripPointerForWidgets_(UiInputFrame& out) noexcept;
 
 		void ResetToMouseDominantState_();
 		void ResetToNonPointerDominantState_();
 
-		// Input dominance tracking
 		FocusManager focus_{};
 		MouseUiInputAdapter mouse_{};
 		KeyboardUiInputAdapter keyboard_{};
 		GamepadUiInputAdapter gamepad_{ 0 };
 
-		std::vector<UiButtonSlot> slots_{};
+		std::vector<IUiComponent*> components_{};
 
 		UiInputDominance dominance_{ UiInputDominance::Mouse };
 

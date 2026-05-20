@@ -1,15 +1,12 @@
 #include "UiRoot.h"
 
-#include "ButtonViewModel.h"
-#include "IButtonView.h"
-#include "UiButton.h"
-
+#include "IUiComponent.h"
 
 namespace Ui
 {
 	void UiRoot::Clear() noexcept
 	{
-		slots_.clear();
+		components_.clear();
 		focus_.ClearTabOrder();
 
 		dominance_ = UiInputDominance::Mouse;
@@ -17,26 +14,29 @@ namespace Ui
 		hasLastPointer_ = false;
 	}
 
-	void UiRoot::AddButtonSlot(UiButton* btn, IButtonView* view)
+	void UiRoot::AddUiComponent(IUiComponent* component)
 	{
-		if (btn == nullptr || view == nullptr)
+		if (component == nullptr)
 			return;
-		slots_.push_back(UiButtonSlot{ btn, view });
+		components_.push_back(component);
 	}
 
-	void UiRoot::RebuildTabOrderFromSlots()
+	void UiRoot::RebuildTabOrder()
 	{
 		std::vector<FocusHandle> order;
-		order.reserve(slots_.size());
-		for (const UiButtonSlot& s : slots_)
-			order.push_back(s.button->GetFocusHandle());
+		order.reserve(components_.size());
+		for (IUiComponent* c : components_)
+		{
+			if (c->IsFocusable() && c->GetFocusHandle() != kInvalidFocusHandle)
+				order.push_back(c->GetFocusHandle());
+		}
 		focus_.SetTabOrder(std::move(order));
 	}
 
 	void UiRoot::InitLinkTechniques(Rgph::RenderGraph& rg)
 	{
-		for (const UiButtonSlot& s : slots_)
-			s.view->LinkTechniques(rg);
+		for (IUiComponent* c : components_)
+			c->LinkTechniques(rg);
 	}
 
 	void UiRoot::StripPointerForWidgets_(UiInputFrame& out) noexcept
@@ -106,29 +106,29 @@ namespace Ui
 			StripPointerForWidgets_(widgetFrame);
 
 		focus_.ApplyNavigation(frame);
-		for (UiButtonSlot& s : slots_)
+		for (IUiComponent* c : components_)
 		{
-			s.button->Update(widgetFrame, focus_);
-			s.view->SyncFrom(MakeButtonViewModel(*s.button));
+			c->Update(widgetFrame, focus_);
+			c->SyncView();
 		}
 	}
 
 	void UiRoot::ResetToMouseDominantState_()
 	{
 		focus_.ClearFocus();
-		for (UiButtonSlot& s : slots_)
-			s.button->ResetPointerInteraction();
+		for (IUiComponent* c : components_)
+			c->ResetPointerInteraction();
 	}
 
 	void UiRoot::ResetToNonPointerDominantState_()
 	{
-		for (UiButtonSlot& s : slots_)
-			s.button->ResetPointerInteraction();
+		for (IUiComponent* c : components_)
+			c->ResetPointerInteraction();
 	}
 
-	void UiRoot::Submit(std::size_t channelMask) const
+	void UiRoot::Submit(const std::size_t channelMask) const
 	{
-		for (const UiButtonSlot& s : slots_)
-			s.view->Submit(channelMask);
+		for (const IUiComponent* c : components_)
+			c->Submit(channelMask);
 	}
 }

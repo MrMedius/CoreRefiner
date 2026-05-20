@@ -1,6 +1,7 @@
 #include "ButtonCanvasComponent.h"
 
 #include "ButtonViewModel.h"
+#include "FocusManager.h"
 #include "Graphics.h"
 
 #include <cassert>
@@ -40,17 +41,19 @@ namespace Ui
 	}
 
 	ButtonCanvasComponent::ButtonCanvasComponent(
-		Graphics& gfx, 
-		FocusHandle focusHandle, 
-		float centerX, float centerY, 
-		float width, float height, 
+		Graphics& gfx,
+		FocusHandle focusHandle,
+		float centerX, float centerY,
+		float width, float height,
 		ButtonCanvasStyle style)
+		:
+		focusHandle_(focusHandle)
 	{
 		assert(focusHandle != kInvalidFocusHandle && "ButtonCanvasComponent: invalid FocusHandle");
 
 		constexpr UiRect kPlaceholder{ 0.0f, 0.0f, 1.0f, 1.0f };
 		button_ = std::make_unique<UiButton>(focusHandle, kPlaceholder);
-		view_ = std::make_unique<ButtonCanvasView>(gfx, width, height, std::move(style));
+		view_ = std::make_unique<ButtonCanvasView>(gfx, static_cast<unsigned>(width), static_cast<unsigned>(height), std::move(style));
 
 		SetLayoutLogicalCenterSize(centerX, centerY, width, height);
 	}
@@ -80,18 +83,38 @@ namespace Ui
 		SetLayoutLogicalCenterSize(cx, cy, w, h);
 	}
 
-	void ButtonCanvasComponent::SyncViewFromButton() const
+	void ButtonCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)
+	{
+		button_->Update(frame, focus);
+	}
+
+	void ButtonCanvasComponent::SyncView()
 	{
 		view_->SyncFrom(MakeButtonViewModel(*button_));
 	}
 
-	void ButtonCanvasComponent::RegisterTo(UiRoot& root) const
-	{
-		root.AddButtonSlot(button_.get(), view_.get());
-	}
-
-	void ButtonCanvasComponent::LinkTechniques(Rgph::RenderGraph& rg) const
+	void ButtonCanvasComponent::LinkTechniques(Rgph::RenderGraph& rg)
 	{
 		view_->LinkTechniques(rg);
+	}
+
+	void ButtonCanvasComponent::Submit(const std::size_t channelMask) const
+	{
+		view_->Submit(channelMask);
+	}
+
+	void ButtonCanvasComponent::ResetPointerInteraction() noexcept
+	{
+		button_->ResetPointerInteraction();
+	}
+
+	bool ButtonCanvasComponent::IsFocusable() const noexcept
+	{
+		return button_->IsFocusable();
+	}
+
+	void ButtonCanvasComponent::RegisterTo(UiRoot& root)
+	{
+		root.AddUiComponent(this);
 	}
 }

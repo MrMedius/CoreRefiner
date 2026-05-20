@@ -2,6 +2,7 @@
 
 #include "ButtonCanvasView.h"
 #include "FocusTypes.h"
+#include "IUiComponent.h"
 #include "UiButton.h"
 #include "UiRoot.h"
 #include "UiTypes.h"
@@ -20,7 +21,7 @@ namespace Ui
 {
 	class UiRoot;
 
-	class ButtonCanvasComponent
+	class ButtonCanvasComponent final : public IUiComponent
 	{
 	public:
 		ButtonCanvasComponent(
@@ -33,9 +34,9 @@ namespace Ui
 		ButtonCanvasComponent(
 			Graphics& gfx,
 			FocusHandle focusHandle,
-			float centerX, 
-			float centerY, 
-			float width, 
+			float centerX,
+			float centerY,
+			float width,
 			float height,
 			ButtonCanvasStyle style = {});
 
@@ -43,9 +44,9 @@ namespace Ui
 		ButtonCanvasComponent& operator=(const ButtonCanvasComponent&) = delete;
 		ButtonCanvasComponent(ButtonCanvasComponent&&) noexcept = default;
 		ButtonCanvasComponent& operator=(ButtonCanvasComponent&&) noexcept = default;
-		~ButtonCanvasComponent() = default;
+		~ButtonCanvasComponent() override = default;
 
-		[[nodiscard]] FocusHandle GetFocusHandle() const noexcept { return focusHandle_; }
+		[[nodiscard]] FocusHandle GetFocusHandle() const noexcept override { return focusHandle_; }
 
 		[[nodiscard]] UiButton& Button() noexcept { return *button_; }
 		[[nodiscard]] const UiButton& Button() const noexcept { return *button_; }
@@ -57,11 +58,14 @@ namespace Ui
 
 		void SetLayoutLogicalRect(const UiRect& r) noexcept;
 
-		void SyncViewFromButton() const;
+		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
+		void SyncView() override;
+		void LinkTechniques(Rgph::RenderGraph& rg) override;
+		void Submit(std::size_t channelMask) const override;
+		void ResetPointerInteraction() noexcept override;
+		[[nodiscard]] bool IsFocusable() const noexcept override;
 
-		void RegisterTo(UiRoot& root) const;
-
-		void LinkTechniques(Rgph::RenderGraph& rg) const;
+		void RegisterTo(UiRoot& root);
 
 	private:
 		FocusHandle focusHandle_;

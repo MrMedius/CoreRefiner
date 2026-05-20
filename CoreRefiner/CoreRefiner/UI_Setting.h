@@ -68,7 +68,7 @@ public:
 			btnA_->RegisterTo(*uiRoot);
 			btnB_->RegisterTo(*uiRoot);
 			btnC_->RegisterTo(*uiRoot);
-			uiRoot->RebuildTabOrderFromSlots();
+			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
 		}
 	}

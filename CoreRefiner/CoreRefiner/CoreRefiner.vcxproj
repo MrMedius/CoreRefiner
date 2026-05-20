@@ -226,6 +226,8 @@
     <ClCompile Include="InUserInterfaceRenderGraph.cpp" />
     <ClCompile Include="KeyboardUiInputAdapter.cpp" />
     <ClCompile Include="MouseUiInputAdapter.cpp" />
+    <ClCompile Include="ProgressBarCanvasComponent.cpp" />
+    <ClCompile Include="ProgressBarCanvasView.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Player_Shape.cpp" />
     <ClCompile Include="RichText.cpp" />
@@ -247,8 +249,9 @@
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="UiButton.cpp" />
-    <ClCompile Include="UiRoot.cpp" />
+    <ClCompile Include="UiProgressBar.cpp" />
     <ClCompile Include="Canvas2DRipples.cpp" />
+    <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="XMath.cpp" />
     <ClCompile Include="CubeTexture.cpp" />
@@ -353,7 +356,9 @@
     <ClInclude Include="Gamepad.h" />
     <ClInclude Include="GamepadUiInputAdapter.h" />
     <ClInclude Include="GameStatsCodex.h" />
-    <ClInclude Include="IButtonView.h" />
+    <ClInclude Include="IUiComponent.h" />
+    <ClInclude Include="IUiLogic.h" />
+    <ClInclude Include="IUiView.h" />
     <ClInclude Include="InGameRenderGraph.h" />
     <ClInclude Include="BufferClearPass.h" />
     <ClInclude Include="BufferResource.h" />
@@ -368,6 +373,9 @@
     <ClInclude Include="KeyboardUiInputAdapter.h" />
     <ClInclude Include="LambertianTransparentPass.h" />
     <ClInclude Include="MouseUiInputAdapter.h" />
+    <ClInclude Include="ProgressBarCanvasComponent.h" />
+    <ClInclude Include="ProgressBarCanvasView.h" />
+    <ClInclude Include="ProgressBarViewModel.h" />
     <ClInclude Include="Player_Shape.h" />
     <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
@@ -395,6 +403,7 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />
+    <ClInclude Include="UiProgressBar.h" />
     <ClInclude Include="UiButton.h" />
     <ClInclude Include="UiInputFrame.h" />
     <ClInclude Include="UIPass.h" />

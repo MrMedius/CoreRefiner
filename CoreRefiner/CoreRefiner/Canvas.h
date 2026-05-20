@@ -18,14 +18,14 @@ class Canvas : public Drawable
 public:
 	enum Form
 	{
-		Empty,              /**< 全 None（Canvas2D 等默认） */
-		Rectangle,          /**< 整幅矩形 White */
-		RoundedRectangle,   /**< 圆角矩形，圆角半径 = 25% * min(w,h) */
-		Ellipse,            /**< 与四边相切的内接椭圆 */
-		Polygon,           /**< 尖角朝上：底边在下，顶点在上边中点 */
+		Empty,				// formParam is ignored
+		Rectangle,			// formParam is ignored
+		RoundedRectangle,	// formParam: corner radius fraction (0.0f to 0.5f for percentage)
+		Ellipse,			// formParam is ignored
+		Polygon,			// formParam: number of sides (can be float but will be rounded)
 	};
 
-	Canvas(unsigned width, unsigned height, Form form = Empty, float formParam = 0.0f);
+	Canvas(unsigned width, unsigned height, Form form = Rectangle, float formParam = 0.0f);
 	Canvas(const Canvas&) = delete;
 	Canvas& operator=(const Canvas&) = delete;
 	Canvas(Canvas&&) = delete;

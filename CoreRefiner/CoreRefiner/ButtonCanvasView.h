@@ -1,6 +1,7 @@
 #pragma once
 
-#include "IButtonView.h"
+#include "IUiView.h"
+#include "ButtonViewModel.h"
 
 #include "Canvas2D.h"
 #include "Colors.h"
@@ -29,12 +30,12 @@ namespace Ui
 		int paddingPx = 8;
 	};
 
-	class ButtonCanvasView final : public IButtonView
+	class ButtonCanvasView final : public IUiView
 	{
 	public:
 		ButtonCanvasView(class Graphics& gfx, unsigned pixelWidth, unsigned pixelHeight, ButtonCanvasStyle style = {});
 
-		void SyncFrom(const ButtonViewModel& vm) override;
+		void SyncFrom(const ButtonViewModel& vm);
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
 
