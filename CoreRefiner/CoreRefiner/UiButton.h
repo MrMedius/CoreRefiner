@@ -4,6 +4,7 @@
 #include "IUiLogic.h"
 #include "UiInputFrame.h"
 #include "UiTypes.h"
+#include "UiVisualPhase.h"
 
 #include <functional>
 #include <string>
@@ -12,14 +13,6 @@
 namespace Ui
 {
 	class FocusManager;
-
-	enum class ButtonVisualPhase
-	{
-		Normal,		// not hovered, not focused, not pressed, enabled.
-		Focused,	// focused by pointer (mouse) or keyboard or gamepad, but not pressed
-		Pressed,	// pressed by pointer (mouse) or keyboard or gamepad
-		Disabled	// not interactive
-	};
 
 	class UiButton : public IUiLogic
 	{

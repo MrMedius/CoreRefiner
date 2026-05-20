@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UiButton.h"
+#include "UiVisualPhase.h"
 
 #include <string>
 
@@ -8,7 +9,7 @@ namespace Ui
 {
 	struct ButtonViewModel
 	{
-		ButtonVisualPhase phase = ButtonVisualPhase::Normal;
+		ButtonVisualPhase phase = UiVisualPhase::Normal;
 		std::string labelUtf8;
 	};
 

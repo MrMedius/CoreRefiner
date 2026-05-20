@@ -17,11 +17,6 @@ namespace Ui
 			else
 				frame.navigation.tabNext = true;
 		}
-		if (in.KeyTriggered(VK_UP) || in.KeyTriggered(KK_W))
-			frame.navigation.tabPrev = true;
-		if (in.KeyTriggered(VK_DOWN) || in.KeyTriggered(KK_S))
-			frame.navigation.tabNext = true;
-
 		if (in.KeyTriggered(VK_RETURN) || in.KeyTriggered(VK_SPACE))
 			frame.action.confirmPressed = true;
 		if (in.KeyTriggered(VK_ESCAPE))

@@ -226,8 +226,9 @@
     <ClCompile Include="InUserInterfaceRenderGraph.cpp" />
     <ClCompile Include="KeyboardUiInputAdapter.cpp" />
     <ClCompile Include="MouseUiInputAdapter.cpp" />
-    <ClCompile Include="ProgressBarCanvasComponent.cpp" />
-    <ClCompile Include="ProgressBarCanvasView.cpp" />
+    <ClCompile Include="SliderCanvasComponent.cpp" />
+    <ClCompile Include="SliderCanvasView.cpp" />
+    <ClCompile Include="UiSlider.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Player_Shape.cpp" />
     <ClCompile Include="RichText.cpp" />
@@ -249,7 +250,6 @@
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="UiButton.cpp" />
-    <ClCompile Include="UiProgressBar.cpp" />
     <ClCompile Include="Canvas2DRipples.cpp" />
     <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
@@ -373,9 +373,12 @@
     <ClInclude Include="KeyboardUiInputAdapter.h" />
     <ClInclude Include="LambertianTransparentPass.h" />
     <ClInclude Include="MouseUiInputAdapter.h" />
-    <ClInclude Include="ProgressBarCanvasComponent.h" />
-    <ClInclude Include="ProgressBarCanvasView.h" />
-    <ClInclude Include="ProgressBarViewModel.h" />
+    <ClInclude Include="SliderAxis.h" />
+    <ClInclude Include="SliderCanvasComponent.h" />
+    <ClInclude Include="SliderCanvasView.h" />
+    <ClInclude Include="SliderViewModel.h" />
+    <ClInclude Include="UiSlider.h" />
+    <ClInclude Include="UiVisualPhase.h" />
     <ClInclude Include="Player_Shape.h" />
     <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
@@ -403,7 +406,6 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform2DCbuf.h" />
     <ClInclude Include="Transformation.h" />
-    <ClInclude Include="UiProgressBar.h" />
     <ClInclude Include="UiButton.h" />
     <ClInclude Include="UiInputFrame.h" />
     <ClInclude Include="UIPass.h" />

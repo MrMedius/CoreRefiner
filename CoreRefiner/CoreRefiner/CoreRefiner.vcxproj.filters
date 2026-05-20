@@ -487,14 +487,14 @@
     <ClCompile Include="ButtonCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
-    <ClCompile Include="ProgressBarCanvasComponent.cpp">
+    <ClCompile Include="SliderCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
-    <ClCompile Include="ProgressBarCanvasView.cpp">
-      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    <ClCompile Include="SliderCanvasView.cpp">
+      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClCompile>
-    <ClCompile Include="UiProgressBar.cpp">
-      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    <ClCompile Include="UiSlider.cpp">
+      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClCompile>
     <ClCompile Include="DynamicCubeTexture.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
@@ -1020,17 +1020,23 @@
     <ClInclude Include="ButtonCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
     </ClInclude>
-    <ClInclude Include="ProgressBarCanvasComponent.h">
+    <ClInclude Include="SliderCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
     </ClInclude>
-    <ClInclude Include="ProgressBarCanvasView.h">
-      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    <ClInclude Include="SliderCanvasView.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
-    <ClInclude Include="ProgressBarViewModel.h">
-      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    <ClInclude Include="SliderViewModel.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
-    <ClInclude Include="UiProgressBar.h">
-      <Filter>Framework\UI\Widget\ProgressBar</Filter>
+    <ClInclude Include="SliderAxis.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="UiSlider.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="UiVisualPhase.h">
+      <Filter>Framework\UI\Base</Filter>
     </ClInclude>
     <ClInclude Include="UI_Setting.h">
       <Filter>UI</Filter>
