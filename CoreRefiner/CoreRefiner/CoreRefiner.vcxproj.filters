@@ -164,6 +164,9 @@
     <Filter Include="Framework\Helpers\Mathematics">
       <UniqueIdentifier>{e98ad54f-ebfb-4292-9b57-430b94b83493}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Framework\UI\Widget\Slider">
+      <UniqueIdentifier>{bf7ea12b-93bc-4429-94f5-a34490512cec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -490,15 +493,6 @@
     <ClCompile Include="SliderCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
-    <ClCompile Include="SliderCanvasFill.cpp">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClCompile>
-    <ClCompile Include="SliderCanvasView.cpp">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClCompile>
-    <ClCompile Include="UiSlider.cpp">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClCompile>
     <ClCompile Include="DynamicCubeTexture.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
     </ClCompile>
@@ -543,6 +537,15 @@
     </ClCompile>
     <ClCompile Include="Canvas2DRipples.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="SliderCanvasFill.cpp">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClCompile>
+    <ClCompile Include="SliderCanvasView.cpp">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClCompile>
+    <ClCompile Include="UiSlider.cpp">
+      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1011,9 +1014,6 @@
     <ClInclude Include="IUiView.h">
       <Filter>Framework\UI\Base</Filter>
     </ClInclude>
-    <ClInclude Include="IButtonView.h">
-      <Filter>Framework\UI\Widget\Button</Filter>
-    </ClInclude>
     <ClInclude Include="UiButton.h">
       <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
@@ -1025,21 +1025,6 @@
     </ClInclude>
     <ClInclude Include="SliderCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="SliderCanvasFill.h">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClInclude>
-    <ClInclude Include="SliderCanvasView.h">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClInclude>
-    <ClInclude Include="SliderViewModel.h">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClInclude>
-    <ClInclude Include="SliderGrooveLayout.h">
-      <Filter>Framework\UI\Widget\Slider</Filter>
-    </ClInclude>
-    <ClInclude Include="UiSlider.h">
-      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
     <ClInclude Include="UiVisualPhase.h">
       <Filter>Framework\UI\Base</Filter>
@@ -1103,6 +1088,21 @@
     </ClInclude>
     <ClInclude Include="Canvas2DRipples.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="SliderCanvasFill.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="SliderCanvasView.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="SliderGrooveLayout.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="SliderViewModel.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="UiSlider.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
