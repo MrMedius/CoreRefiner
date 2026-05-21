@@ -9,20 +9,20 @@ namespace Ui
 {
 	namespace
 	{
-		Color BackgroundForPhase(const ButtonCanvasStyle& s, ButtonVisualPhase phase)
+		Color BackgroundForPhase(const ButtonCanvasStyle& s, UiVisualPhase phase)
 		{
 			switch (phase)
 			{
-			case ButtonVisualPhase::Disabled: return s.bgDisabled;
-			case ButtonVisualPhase::Pressed:  return s.bgPressed;
-			case ButtonVisualPhase::Focused:  return s.bgFocused;
+			case UiVisualPhase::Disabled: return s.bgDisabled;
+			case UiVisualPhase::Pressed:  return s.bgPressed;
+			case UiVisualPhase::Focused:  return s.bgFocused;
 			default:                         return s.bgNormal;
 			}
 		}
 
-		Color TextColorForPhase(const ButtonCanvasStyle& s, ButtonVisualPhase phase)
+		Color TextColorForPhase(const ButtonCanvasStyle& s, UiVisualPhase phase)
 		{
-			if (phase == ButtonVisualPhase::Disabled)
+			if (phase == UiVisualPhase::Disabled)
 				return s.textDisabled;
 			return s.textNormal;
 		}
@@ -96,7 +96,7 @@ namespace Ui
 
 		ctx.Render(c);
 	
-		if (vm.phase == ButtonVisualPhase::Focused)
+		if (vm.phase == UiVisualPhase::Focused)
 			DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
 	}
 

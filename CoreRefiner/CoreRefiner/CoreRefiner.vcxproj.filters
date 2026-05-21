@@ -490,6 +490,9 @@
     <ClCompile Include="SliderCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
+    <ClCompile Include="SliderCanvasFill.cpp">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClCompile>
     <ClCompile Include="SliderCanvasView.cpp">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClCompile>
@@ -1023,13 +1026,16 @@
     <ClInclude Include="SliderCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
     </ClInclude>
+    <ClInclude Include="SliderCanvasFill.h">
+      <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
     <ClInclude Include="SliderCanvasView.h">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
     <ClInclude Include="SliderViewModel.h">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
-    <ClInclude Include="SliderAxis.h">
+    <ClInclude Include="SliderGrooveLayout.h">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
     <ClInclude Include="UiSlider.h">
@@ -1271,6 +1277,9 @@
     </FxCompile>
     <FxCompile Include="Canvas3D_VS.hlsl">
       <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="SliderCanvasFill_PS.hlsl">
+      <Filter>Shader\2D</Filter>
     </FxCompile>
     <FxCompile Include="Canvas2DRipples_PS.hlsl">
       <Filter>Shader\2D</Filter>

@@ -227,6 +227,7 @@
     <ClCompile Include="KeyboardUiInputAdapter.cpp" />
     <ClCompile Include="MouseUiInputAdapter.cpp" />
     <ClCompile Include="SliderCanvasComponent.cpp" />
+    <ClCompile Include="SliderCanvasFill.cpp" />
     <ClCompile Include="SliderCanvasView.cpp" />
     <ClCompile Include="UiSlider.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -373,8 +374,9 @@
     <ClInclude Include="KeyboardUiInputAdapter.h" />
     <ClInclude Include="LambertianTransparentPass.h" />
     <ClInclude Include="MouseUiInputAdapter.h" />
-    <ClInclude Include="SliderAxis.h" />
+    <ClInclude Include="SliderGrooveLayout.h" />
     <ClInclude Include="SliderCanvasComponent.h" />
+    <ClInclude Include="SliderCanvasFill.h" />
     <ClInclude Include="SliderCanvasView.h" />
     <ClInclude Include="SliderViewModel.h" />
     <ClInclude Include="UiSlider.h" />
@@ -1237,6 +1239,20 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="Canvas2DRipples_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="SliderCanvasFill_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>

@@ -38,17 +38,17 @@ namespace Ui
 	{
 		if (!enabled_)
 		{
-			visualPhase_ = ButtonVisualPhase::Disabled;
+			visualPhase_ = UiVisualPhase::Disabled;
 			return;
 		}
 		const bool focused = IsPointerOver(frame) || focus.IsFocused(focusHandle_);
 		const bool pressVisual = trackingPointerPress_ && frame.pointer.primaryDown;
 		if (pressVisual)
-			visualPhase_ = ButtonVisualPhase::Pressed;
+			visualPhase_ = UiVisualPhase::Pressed;
 		else if (focused)
-			visualPhase_ = ButtonVisualPhase::Focused;
+			visualPhase_ = UiVisualPhase::Focused;
 		else
-			visualPhase_ = ButtonVisualPhase::Normal;
+			visualPhase_ = UiVisualPhase::Normal;
 	}
 
 	void UiButton::Update(const UiInputFrame& frame, const FocusManager& focus)

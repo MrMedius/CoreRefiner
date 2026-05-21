@@ -9,6 +9,4 @@ namespace Ui
 		Pressed,
 		Disabled
 	};
-
-	using ButtonVisualPhase = UiVisualPhase;
 }

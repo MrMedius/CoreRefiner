@@ -9,7 +9,7 @@ namespace Ui
 {
 	struct ButtonViewModel
 	{
-		ButtonVisualPhase phase = UiVisualPhase::Normal;
+		UiVisualPhase phase = UiVisualPhase::Normal;
 		std::string labelUtf8;
 	};
 

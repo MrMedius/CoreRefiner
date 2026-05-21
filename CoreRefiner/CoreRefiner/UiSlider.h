@@ -1,9 +1,7 @@
 #pragma once
-
 #include "FocusTypes.h"
 #include "IUiLogic.h"
-#include "SliderAxis.h"
-#include "UiTypes.h"
+#include "SliderGrooveLayout.h"
 #include "UiVisualPhase.h"
 
 #include <functional>
@@ -12,19 +10,13 @@ namespace Ui
 {
 	class FocusManager;
 
-	/**
-	 * @brief Unity 式 Slider：可交互/只读，水平或垂直。
-	 */
 	class UiSlider : public IUiLogic
 	{
 	public:
-		UiSlider(FocusHandle focusHandle, UiRect bounds, SliderAxis axis, bool interactive = true);
+		UiSlider(FocusHandle focusHandle, bool interactive = true);
 
-		void SetBounds(UiRect r) noexcept { bounds_ = r; }
-		[[nodiscard]] const UiRect& GetBounds() const noexcept { return bounds_; }
-
-		void SetAxis(SliderAxis axis) noexcept { axis_ = axis; }
-		[[nodiscard]] SliderAxis GetAxis() const noexcept { return axis_; }
+		void SetGrooveLayout(SliderGrooveLayout layout) noexcept { grooveLayout_ = layout; }
+		[[nodiscard]] const SliderGrooveLayout& GetGrooveLayout() const noexcept { return grooveLayout_; }
 
 		void SetInteractive(bool on) noexcept { interactive_ = on; }
 		[[nodiscard]] bool IsInteractive() const noexcept { return interactive_; }
@@ -48,6 +40,8 @@ namespace Ui
 		[[nodiscard]] bool IsFocusable() const noexcept override;
 
 	private:
+		[[nodiscard]] bool HasValidGroove_() const noexcept;
+		void PointerToLocal_(float worldX, float worldY, float& localX, float& localY) const noexcept;
 		[[nodiscard]] bool IsPointerOver(const UiInputFrame& frame) const noexcept;
 		[[nodiscard]] float PointerToNormalized(const UiInputFrame& frame) const noexcept;
 		void ApplyNormalized(float t) noexcept;
@@ -56,8 +50,7 @@ namespace Ui
 		void HandleKeyboardGamepad_(const FocusManager& focus) noexcept;
 
 		FocusHandle focusHandle_;
-		UiRect bounds_{};
-		SliderAxis axis_ = SliderAxis::Horizontal;
+		SliderGrooveLayout grooveLayout_{};
 		bool interactive_ = true;
 		bool enabled_ = true;
 

@@ -1,8 +1,8 @@
 #pragma once
-
-#include "SliderAxis.h"
 #include "UiSlider.h"
 #include "UiVisualPhase.h"
+
+#include <cmath>
 
 namespace Ui
 {
@@ -12,26 +12,39 @@ namespace Ui
 		UiVisualPhase phase = UiVisualPhase::Normal;
 		bool enabled = true;
 		bool interactive = true;
-		SliderAxis axis = SliderAxis::Horizontal;
-		float layoutCenterX = 0.0f;
-		float layoutCenterY = 0.0f;
-		float layoutWidth = 1.0f;
-		float layoutHeight = 1.0f;
+		float outerCenterX = 0.0f;
+		float outerCenterY = 0.0f;
+		float outerWidth = 1.0f;
+		float outerHeight = 1.0f;
+		float grooveCenterX = 0.0f;
+		float grooveCenterY = 0.0f;
+		float grooveWidth = 1.0f;
+		float grooveHeight = 1.0f;
+		float rotationRadZ = 0.0f;
+		float rotationDegZ = 0.0f;
 	};
 
 	inline SliderViewModel MakeSliderViewModel(const UiSlider& slider)
 	{
-		const UiRect& b = slider.GetBounds();
+		const SliderGrooveLayout& layout = slider.GetGrooveLayout();
+		const float rotationRad = layout.rotationRadZ;
+		const float rotationDeg = rotationRad * (180.0f / 3.14159265358979323846f);
+
 		return SliderViewModel{
 			.normalized = slider.GetNormalized(),
 			.phase = slider.GetVisualPhase(),
 			.enabled = slider.IsEnabled(),
 			.interactive = slider.IsInteractive(),
-			.axis = slider.GetAxis(),
-			.layoutCenterX = 0.5f * (b.minX + b.maxX),
-			.layoutCenterY = 0.5f * (b.minY + b.maxY),
-			.layoutWidth = b.maxX - b.minX,
-			.layoutHeight = b.maxY - b.minY
+			.outerCenterX = layout.centerX,
+			.outerCenterY = layout.centerY,
+			.outerWidth = layout.outerWidth,
+			.outerHeight = layout.outerHeight,
+			.grooveCenterX = layout.centerX,
+			.grooveCenterY = layout.centerY,
+			.grooveWidth = layout.grooveWidth,
+			.grooveHeight = layout.grooveHeight,
+			.rotationRadZ = rotationRad,
+			.rotationDegZ = rotationDeg
 		};
 	}
 }

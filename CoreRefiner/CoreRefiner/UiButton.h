@@ -1,5 +1,4 @@
 #pragma once
-
 #include "FocusTypes.h"
 #include "IUiLogic.h"
 #include "UiInputFrame.h"
@@ -34,7 +33,7 @@ namespace Ui
 
 		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
 
-		[[nodiscard]] ButtonVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
+		[[nodiscard]] UiVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
 
 		void ResetPointerInteraction() noexcept override;
 		[[nodiscard]] bool IsFocusable() const noexcept override { return enabled_; }
@@ -50,7 +49,7 @@ namespace Ui
 
 		bool trackingPointerPress_ = false;
 
-		ButtonVisualPhase visualPhase_ = ButtonVisualPhase::Normal;
+		UiVisualPhase visualPhase_ = UiVisualPhase::Normal;
 
 		std::function<void()> onClick_;
 

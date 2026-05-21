@@ -16,13 +16,54 @@ namespace Ui
 		{
 			return p.insideLogicalSurface;
 		}
+
+		[[nodiscard]] float KeyAxisLocalX(const float rotationRadZ) noexcept
+		{
+			const InputCodex& in = InputCodex::Get();
+			float worldX = 0.0f;
+			float worldY = 0.0f;
+
+			if (in.KeyTriggered(VK_LEFT) || in.KeyTriggered(KK_A))
+				worldX -= 1.0f;
+			if (in.KeyTriggered(VK_RIGHT) || in.KeyTriggered(KK_D))
+				worldX += 1.0f;
+			if (in.KeyTriggered(VK_UP) || in.KeyTriggered(KK_W))
+				worldY -= 1.0f;
+			if (in.KeyTriggered(VK_DOWN) || in.KeyTriggered(KK_S))
+				worldY += 1.0f;
+
+			const float c = std::cos(-rotationRadZ);
+			const float s = std::sin(-rotationRadZ);
+			return worldX * c - worldY * s;
+		}
+
+		[[nodiscard]] float GamepadAxisLocalX(const int gamepadIndex, const float rotationRadZ) noexcept
+		{
+			if (!InputCodex::Get().PadConnected(gamepadIndex))
+				return 0.0f;
+
+			const InputCodex& in = InputCodex::Get();
+			float worldX = 0.0f;
+			float worldY = 0.0f;
+
+			if (in.GP_Triggered(gamepadIndex, Gamepad::GP_DPAD_LEFT))
+				worldX -= 1.0f;
+			if (in.GP_Triggered(gamepadIndex, Gamepad::GP_DPAD_RIGHT))
+				worldX += 1.0f;
+			if (in.GP_Triggered(gamepadIndex, Gamepad::GP_DPAD_UP))
+				worldY -= 1.0f;
+			if (in.GP_Triggered(gamepadIndex, Gamepad::GP_DPAD_DOWN))
+				worldY += 1.0f;
+
+			const float c = std::cos(-rotationRadZ);
+			const float s = std::sin(-rotationRadZ);
+			return worldX * c - worldY * s;
+		}
 	}
 
-	UiSlider::UiSlider(const FocusHandle focusHandle, UiRect bounds, const SliderAxis axis, const bool interactive)
+	UiSlider::UiSlider(const FocusHandle focusHandle, const bool interactive)
 		:
 		focusHandle_(focusHandle),
-		bounds_(bounds),
-		axis_(axis),
 		interactive_(interactive)
 	{
 		step_ = 0.01f;
@@ -68,26 +109,45 @@ namespace Ui
 		return interactive_ && enabled_ && focusHandle_ != kInvalidFocusHandle;
 	}
 
+	bool UiSlider::HasValidGroove_() const noexcept
+	{
+		return grooveLayout_.grooveWidth > 0.0f && grooveLayout_.grooveHeight > 0.0f;
+	}
+
+	void UiSlider::PointerToLocal_(const float worldX, const float worldY, float& localX, float& localY) const noexcept
+	{
+		const float dx = worldX - grooveLayout_.centerX;
+		const float dy = worldY - grooveLayout_.centerY;
+		const float c = std::cos(-grooveLayout_.rotationRadZ);
+		const float s = std::sin(-grooveLayout_.rotationRadZ);
+		localX = dx * c - dy * s;
+		localY = dx * s + dy * c;
+	}
+
 	bool UiSlider::IsPointerOver(const UiInputFrame& frame) const noexcept
 	{
-		if (!ClientPointValid(frame.pointer))
+		if (!ClientPointValid(frame.pointer) || !HasValidGroove_())
 			return false;
-		return bounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY);
+
+		float localX = 0.0f;
+		float localY = 0.0f;
+		PointerToLocal_(frame.pointer.logicalX, frame.pointer.logicalY, localX, localY);
+
+		const float halfW = grooveLayout_.grooveWidth * 0.5f;
+		const float halfH = grooveLayout_.grooveHeight * 0.5f;
+		return std::abs(localX) <= halfW && std::abs(localY) <= halfH;
 	}
 
 	float UiSlider::PointerToNormalized(const UiInputFrame& frame) const noexcept
 	{
-		const float spanW = bounds_.maxX - bounds_.minX;
-		const float spanH = bounds_.maxY - bounds_.minY;
-		if (axis_ == SliderAxis::Horizontal)
-		{
-			if (spanW <= 0.0f)
-				return 0.0f;
-			return std::clamp((frame.pointer.logicalX - bounds_.minX) / spanW, 0.0f, 1.0f);
-		}
-		if (spanH <= 0.0f)
+		if (!HasValidGroove_())
 			return 0.0f;
-		return std::clamp((frame.pointer.logicalY - bounds_.minY) / spanH, 0.0f, 1.0f);
+
+		float localX = 0.0f;
+		float localY = 0.0f;
+		PointerToLocal_(frame.pointer.logicalX, frame.pointer.logicalY, localX, localY);
+
+		return std::clamp(localX / grooveLayout_.grooveWidth + 0.5f, 0.0f, 1.0f);
 	}
 
 	void UiSlider::ApplyNormalized(const float t) noexcept
@@ -128,34 +188,12 @@ namespace Ui
 		if (!interactive_ || !enabled_ || !focus.IsFocused(focusHandle_))
 			return;
 
-		const InputCodex& in = InputCodex::Get();
-		bool decrease = false;
-		bool increase = false;
+		const float localAxis = KeyAxisLocalX(grooveLayout_.rotationRadZ)
+			+ GamepadAxisLocalX(gamepadIndex_, grooveLayout_.rotationRadZ);
 
-		if (axis_ == SliderAxis::Horizontal)
-		{
-			decrease = in.KeyTriggered(VK_LEFT) || in.KeyTriggered(KK_A);
-			increase = in.KeyTriggered(VK_RIGHT) || in.KeyTriggered(KK_D);
-			if (in.PadConnected(gamepadIndex_))
-			{
-				decrease = decrease || in.GP_Triggered(gamepadIndex_, Gamepad::GP_DPAD_LEFT);
-				increase = increase || in.GP_Triggered(gamepadIndex_, Gamepad::GP_DPAD_RIGHT);
-			}
-		}
-		else
-		{
-			decrease = in.KeyTriggered(VK_UP) || in.KeyTriggered(KK_W);
-			increase = in.KeyTriggered(VK_DOWN) || in.KeyTriggered(KK_S);
-			if (in.PadConnected(gamepadIndex_))
-			{
-				decrease = decrease || in.GP_Triggered(gamepadIndex_, Gamepad::GP_DPAD_UP);
-				increase = increase || in.GP_Triggered(gamepadIndex_, Gamepad::GP_DPAD_DOWN);
-			}
-		}
-
-		if (decrease)
+		if (localAxis < -0.5f)
 			NudgeValue(-1.0f);
-		if (increase)
+		if (localAxis > 0.5f)
 			NudgeValue(1.0f);
 	}
 
@@ -181,7 +219,7 @@ namespace Ui
 		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_ && over)
 			trackingPointerPress_ = true;
 
-		if (trackingPointerPress_ && frame.pointer.primaryDown && over)
+		if (trackingPointerPress_ && frame.pointer.primaryDown && ClientPointValid(frame.pointer))
 			ApplyNormalized(PointerToNormalized(frame));
 
 		if (!frame.pointer.primaryDown)

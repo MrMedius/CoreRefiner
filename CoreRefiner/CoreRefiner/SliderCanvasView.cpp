@@ -1,5 +1,4 @@
 #include "SliderCanvasView.h"
-
 #include "Channels.h"
 
 #include <algorithm>
@@ -35,7 +34,7 @@ namespace Ui
 		:
 		style_(std::move(style)),
 		trackCanvas_(std::make_unique<Canvas2D>(gfx, pixelWidth, pixelHeight)),
-		fillCanvas_(std::make_unique<Canvas2D>(gfx, std::max(1u, pixelWidth), std::max(1u, pixelHeight)))
+		fillCanvas_(std::make_unique<SliderCanvasFill>(gfx, std::max(1u, pixelWidth), std::max(1u, pixelHeight)))
 	{}
 
 	void SliderCanvasView::LinkTechniques(Rgph::RenderGraph& rg)
@@ -89,35 +88,27 @@ namespace Ui
 			FillRect(c, 0u, y0, border - 1u, y1, style_.borderColor);
 			FillRect(c, w - border, y0, w - 1u, y1, style_.borderColor);
 		}
-
-		if (!fillInitialized_)
-		{
-			fillCanvas_->Clear(FillColorForPhase(vm));
-			fillInitialized_ = true;
-		}
 	}
 
-	void SliderCanvasView::ApplyFillTransform_(const SliderViewModel& vm)
+	void SliderCanvasView::ApplyTrackLayout_(const SliderViewModel& vm)
 	{
-		const float pad = static_cast<float>(style_.paddingPx + style_.borderPx);
-		const float innerW = std::max(0.0f, vm.layoutWidth - 2.0f * pad);
-		const float innerH = std::max(0.0f, vm.layoutHeight - 2.0f * pad);
-		const float minExtent = 1.0f;
+		trackCanvas_->SetPosition(DirectX::XMFLOAT3{ vm.outerCenterX, vm.outerCenterY, 0.0f });
+		trackCanvas_->SetScale(DirectX::XMFLOAT3{ vm.outerWidth, vm.outerHeight, 1.0f });
+		trackCanvas_->SetRotation(0.0f, 0.0f, vm.rotationDegZ);
+	}
 
-		if (vm.axis == SliderAxis::Horizontal)
-		{
-			const float fillW = std::max(minExtent, vm.normalized * innerW);
-			const float cx = vm.layoutCenterX - vm.layoutWidth * 0.5f + pad + fillW * 0.5f;
-			fillCanvas_->SetPosition(DirectX::XMFLOAT3{ cx, vm.layoutCenterY, 0.0f });
-			fillCanvas_->SetScale(DirectX::XMFLOAT3{ fillW, vm.layoutHeight - 2.0f * pad, 1.0f });
-		}
-		else
-		{
-			const float fillH = std::max(minExtent, vm.normalized * innerH);
-			const float cy = vm.layoutCenterY - vm.layoutHeight * 0.5f + pad + fillH * 0.5f;
-			fillCanvas_->SetPosition(DirectX::XMFLOAT3{ vm.layoutCenterX, cy, 0.0f });
-			fillCanvas_->SetScale(DirectX::XMFLOAT3{ vm.layoutWidth - 2.0f * pad, fillH, 1.0f });
-		}
+	void SliderCanvasView::ApplyFillLayout_(const SliderViewModel& vm)
+	{
+		fillCanvas_->SetPosition(DirectX::XMFLOAT3{ vm.grooveCenterX, vm.grooveCenterY, 0.0f });
+		fillCanvas_->SetScale(DirectX::XMFLOAT3{ vm.grooveWidth, vm.grooveHeight, 1.0f });
+		fillCanvas_->SetRotation(0.0f, 0.0f, vm.rotationDegZ);
+	}
+
+	void SliderCanvasView::ApplyFillParams_(const SliderViewModel& vm)
+	{
+		SliderCanvasFill::Params params{};
+		params.fillAmount = vm.normalized;
+		fillCanvas_->SetParams(params);
 	}
 
 	void SliderCanvasView::SyncFrom(const SliderViewModel& vm)
@@ -127,25 +118,36 @@ namespace Ui
 			|| vm.enabled != lastPainted_.enabled
 			|| vm.interactive != lastPainted_.interactive;
 
-		const bool fillDirty = !hasPainted_
-			|| vm.normalized != lastPainted_.normalized
-			|| vm.layoutWidth != lastPainted_.layoutWidth
-			|| vm.layoutHeight != lastPainted_.layoutHeight
-			|| vm.layoutCenterX != lastPainted_.layoutCenterX
-			|| vm.layoutCenterY != lastPainted_.layoutCenterY
-			|| vm.axis != lastPainted_.axis;
+		const bool layoutDirty = !hasPainted_
+			|| vm.outerCenterX != lastPainted_.outerCenterX
+			|| vm.outerCenterY != lastPainted_.outerCenterY
+			|| vm.outerWidth != lastPainted_.outerWidth
+			|| vm.outerHeight != lastPainted_.outerHeight
+			|| vm.grooveCenterX != lastPainted_.grooveCenterX
+			|| vm.grooveCenterY != lastPainted_.grooveCenterY
+			|| vm.grooveWidth != lastPainted_.grooveWidth
+			|| vm.grooveHeight != lastPainted_.grooveHeight
+			|| vm.rotationDegZ != lastPainted_.rotationDegZ;
+
+		const bool fillParamsDirty = !hasPainted_
+			|| vm.normalized != lastPainted_.normalized;
 
 		if (trackDirty)
 		{
 			RepaintTrack_(vm);
 			fillCanvas_->Clear(FillColorForPhase(vm));
-			fillInitialized_ = true;
 		}
 
-		if (fillDirty || trackDirty)
-			ApplyFillTransform_(vm);
+		if (layoutDirty)
+		{
+			ApplyTrackLayout_(vm);
+			ApplyFillLayout_(vm);
+		}
 
-		if (trackDirty || fillDirty)
+		if (fillParamsDirty || layoutDirty)
+			ApplyFillParams_(vm);
+
+		if (trackDirty || layoutDirty || fillParamsDirty)
 		{
 			lastPainted_ = vm;
 			hasPainted_ = true;

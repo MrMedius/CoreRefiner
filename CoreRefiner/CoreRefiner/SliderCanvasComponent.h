@@ -1,8 +1,6 @@
 #pragma once
-
 #include "FocusTypes.h"
 #include "IUiComponent.h"
-#include "SliderAxis.h"
 #include "SliderCanvasView.h"
 #include "UiSlider.h"
 #include "UiRoot.h"
@@ -26,7 +24,6 @@ namespace Ui
 		SliderCanvasComponent(
 			Graphics& gfx,
 			FocusHandle focusHandle,
-			SliderAxis axis,
 			unsigned canvasPixelWidth,
 			unsigned canvasPixelHeight,
 			bool interactive = true,
@@ -35,13 +32,13 @@ namespace Ui
 		SliderCanvasComponent(
 			Graphics& gfx,
 			FocusHandle focusHandle,
-			SliderAxis axis,
 			float centerX,
 			float centerY,
 			float width,
 			float height,
 			bool interactive = true,
-			SliderCanvasStyle style = {});
+			SliderCanvasStyle style = {},
+			float rotationDegZ = 0.0f);
 
 		SliderCanvasComponent(const SliderCanvasComponent&) = delete;
 		SliderCanvasComponent& operator=(const SliderCanvasComponent&) = delete;
@@ -55,7 +52,12 @@ namespace Ui
 		[[nodiscard]] SliderCanvasView& View() noexcept { return *view_; }
 		[[nodiscard]] const SliderCanvasView& View() const noexcept { return *view_; }
 
-		void SetLayoutLogicalCenterSize(float centerX, float centerY, float width, float height) noexcept;
+		void SetLayoutLogicalCenterSize(
+			float centerX,
+			float centerY,
+			float width,
+			float height,
+			float rotationDegZ = 0.0f) noexcept;
 
 		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
 		void SyncView() override;
