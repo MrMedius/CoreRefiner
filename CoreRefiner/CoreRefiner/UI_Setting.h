@@ -1,6 +1,7 @@
 #pragma once
 #include "Graphics.h"
 #include "ButtonCanvasComponent.h"
+#include "ToggleCanvasComponent.h"
 #include "UiRoot.h"
 #include "Canvas2D.h"
 #include "TextCodex.h"
@@ -63,11 +64,22 @@ public:
 			btnB_->Button().SetOnClick([this] { btnB_->Button().SetLabel("Btn B | clicks 1"); });
 			btnC_->Button().SetOnClick([this] { PostQuitMessage(0); });
 
+			const float toggleSize = static_cast<float>(btnHeight);
+			const float toggleY = static_cast<float>(centerY + spacingY * 8u);
+			toggleSound_ = std::make_unique<Ui::ToggleCanvasComponent>(
+				gfx, 511u, static_cast<float>(centerX), toggleY, toggleSize);
+			toggleSound_->Toggle().SetIsOn(true, false);
+
+			toggleFullscreen_ = std::make_unique<Ui::ToggleCanvasComponent>(
+				gfx, 512u, static_cast<float>(centerX) + toggleSize * 1.5f, toggleY, toggleSize * 1.25f);
+
 			uiRoot = std::make_unique<Ui::UiRoot>();
 			uiRoot->Clear();
 			btnA_->RegisterTo(*uiRoot);
 			btnB_->RegisterTo(*uiRoot);
 			btnC_->RegisterTo(*uiRoot);
+			toggleSound_->RegisterTo(*uiRoot);
+			toggleFullscreen_->RegisterTo(*uiRoot);
 			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
 		}
@@ -97,6 +109,8 @@ private:
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnA_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnB_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnC_{};
+	std::unique_ptr<Ui::ToggleCanvasComponent> toggleSound_{};
+	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
 
 	std::function<void()> onNewGame_{};
 };

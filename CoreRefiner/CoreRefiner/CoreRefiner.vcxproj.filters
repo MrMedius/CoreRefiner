@@ -487,6 +487,15 @@
     <ClCompile Include="UiRoot.cpp">
       <Filter>Framework\UI\Base</Filter>
     </ClCompile>
+    <ClCompile Include="ToggleCanvasComponent.cpp">
+      <Filter>Framework\UI\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ToggleCanvasView.cpp">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClCompile>
+    <ClCompile Include="UiToggle.cpp">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClCompile>
     <ClCompile Include="ButtonCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
@@ -1019,6 +1028,18 @@
     </ClInclude>
     <ClInclude Include="UiRoot.h">
       <Filter>Framework\UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="ToggleCanvasComponent.h">
+      <Filter>Framework\UI\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ToggleCanvasView.h">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClInclude>
+    <ClInclude Include="ToggleViewModel.h">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClInclude>
+    <ClInclude Include="UiToggle.h">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
     </ClInclude>
     <ClInclude Include="ButtonCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>

@@ -2,6 +2,7 @@
 #include "Graphics.h"
 #include "ButtonCanvasComponent.h"
 #include "SliderCanvasComponent.h"
+#include "ToggleCanvasComponent.h"
 #include "Canvas2DRipples.h"
 
 #include "UiRoot.h"
@@ -110,13 +111,30 @@ public:
 				vBarX, vBarY, vBarH, vBarW,
 				true, Ui::SliderCanvasStyle{}, 45.0f);
 			vSlider_->Slider().SetValue(0.6f);
+
+
+			const float toggleSize = static_cast<float>(btnHeight);
+			const float toggleY = static_cast<float>(centerY);
+			toggleSound_ = std::make_unique<Ui::ToggleCanvasComponent>(
+				gfx, 511u, 200.0f, toggleY, toggleSize);
+			toggleSound_->Toggle().SetIsOn(true, false);
+
+			toggleFullscreen_ = std::make_unique<Ui::ToggleCanvasComponent>(
+				gfx, 512u, 200.0f, toggleY + static_cast<float>(spacingY) * 2.0f, toggleSize * 1.25f);
+
+
 			uiRoot = std::make_unique<Ui::UiRoot>();
 			uiRoot->Clear();
-			hSlider_->RegisterTo(*uiRoot);
 			btnA_->RegisterTo(*uiRoot);
 			btnB_->RegisterTo(*uiRoot);
 			btnC_->RegisterTo(*uiRoot);
+
+			hSlider_->RegisterTo(*uiRoot);
 			vSlider_->RegisterTo(*uiRoot);
+
+			toggleSound_->RegisterTo(*uiRoot);
+			toggleFullscreen_->RegisterTo(*uiRoot);
+
 			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
 		}
@@ -149,8 +167,12 @@ private:
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnA_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnB_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnC_{};
+
 	std::unique_ptr<Ui::SliderCanvasComponent> hSlider_{};
 	std::unique_ptr<Ui::SliderCanvasComponent> vSlider_{};
+
+	std::unique_ptr<Ui::ToggleCanvasComponent> toggleSound_{};
+	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
 
 	std::function<void()> onNewGame_{};
 };
