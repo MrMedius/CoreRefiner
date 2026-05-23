@@ -30,6 +30,7 @@ namespace Ui
 		ToggleCanvasView(Graphics& gfx, unsigned pixelSize, ToggleCanvasStyle style = {});
 
 		void SyncFrom(const ToggleViewModel& vm);
+		void ApplyLayout(float centerX, float centerY, float size, float boxScale) noexcept;
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
 
@@ -39,14 +40,17 @@ namespace Ui
 	private:
 		[[nodiscard]] Color BoxColorForPhase(const ToggleViewModel& vm) const noexcept;
 		[[nodiscard]] Color CheckColorForPhase(const ToggleViewModel& vm) const noexcept;
+		void BakeCheckGeometry_();
 		void RepaintBox_(const ToggleViewModel& vm);
-		void RepaintCheck_(const ToggleViewModel& vm);
-		void ApplyLayout_(const ToggleViewModel& vm);
+		void RepaintCheckColor_(const ToggleViewModel& vm);
 
 		ToggleCanvasStyle style_;
 		std::unique_ptr<Canvas2D> boxCanvas_;
 		std::unique_ptr<Canvas2D> checkCanvas_;
 
+		float layoutBoxScale_ = 1.0f;
+		bool boxLayoutDirty_ = false;
+		bool checkVisible_ = false;
 		ToggleViewModel lastPainted_{};
 		bool hasPainted_ = false;
 	};

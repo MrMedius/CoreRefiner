@@ -57,6 +57,11 @@ namespace Ui
 		SetLayoutLogicalCenterSize(centerX, centerY, size);
 	}
 
+	void ToggleCanvasComponent::ApplyViewLayout_() noexcept
+	{
+		view_->ApplyLayout(layoutCenterX_, layoutCenterY_, layoutSize_, layoutBoxScale_);
+	}
+
 	void ToggleCanvasComponent::SetLayoutLogicalCenterSize(
 		const float centerX,
 		const float centerY,
@@ -65,7 +70,11 @@ namespace Ui
 		if (size <= 0.0f)
 			return;
 
+		layoutCenterX_ = centerX;
+		layoutCenterY_ = centerY;
+		layoutSize_ = size;
 		toggle_->SetBounds(SquareFromCenterSize(centerX, centerY, size));
+		ApplyViewLayout_();
 	}
 
 	void ToggleCanvasComponent::SetLayoutLogicalRect(const UiRect& r) noexcept
@@ -74,6 +83,12 @@ namespace Ui
 		const float cy = 0.5f * (r.minY + r.maxY);
 		const float size = std::max(r.maxX - r.minX, r.maxY - r.minY);
 		SetLayoutLogicalCenterSize(cx, cy, size);
+	}
+
+	void ToggleCanvasComponent::SetLayoutBoxScale(const float scale) noexcept
+	{
+		layoutBoxScale_ = scale;
+		ApplyViewLayout_();
 	}
 
 	void ToggleCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)

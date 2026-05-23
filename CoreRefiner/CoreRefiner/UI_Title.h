@@ -118,6 +118,7 @@ public:
 			toggleSound_ = std::make_unique<Ui::ToggleCanvasComponent>(
 				gfx, 511u, 200.0f, toggleY, toggleSize);
 			toggleSound_->Toggle().SetIsOn(true, false);
+			toggleSound_->SetLayoutBoxScale(0.6f);
 
 			toggleFullscreen_ = std::make_unique<Ui::ToggleCanvasComponent>(
 				gfx, 512u, 200.0f, toggleY + static_cast<float>(spacingY) * 2.0f, toggleSize * 1.25f);

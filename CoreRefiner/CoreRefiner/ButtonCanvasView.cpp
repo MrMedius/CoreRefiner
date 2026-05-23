@@ -9,24 +9,6 @@ namespace Ui
 {
 	namespace
 	{
-		Color BackgroundForPhase(const ButtonCanvasStyle& s, UiVisualPhase phase)
-		{
-			switch (phase)
-			{
-			case UiVisualPhase::Disabled: return s.bgDisabled;
-			case UiVisualPhase::Pressed:  return s.bgPressed;
-			case UiVisualPhase::Focused:  return s.bgFocused;
-			default:                         return s.bgNormal;
-			}
-		}
-
-		Color TextColorForPhase(const ButtonCanvasStyle& s, UiVisualPhase phase)
-		{
-			if (phase == UiVisualPhase::Disabled)
-				return s.textDisabled;
-			return s.textNormal;
-		}
-
 		void DrawFocusRing(Canvas& c, Color ring, unsigned thick)
 		{
 			const unsigned w = c.GetCanvasWidth();
@@ -55,29 +37,78 @@ namespace Ui
 				}
 			}
 		}
+
+		[[nodiscard]] bool IsDisabledPhase(UiVisualPhase phase) noexcept
+		{
+			return phase == UiVisualPhase::Disabled;
+		}
 	}
 
 	ButtonCanvasView::ButtonCanvasView(Graphics& gfx, unsigned pixelWidth, unsigned pixelHeight, ButtonCanvasStyle style)
 		:
 		style_(std::move(style)),
-		canvas_(std::make_unique<Canvas2D>(gfx, pixelWidth, pixelHeight))
-	{}
+		bgCanvas_(std::make_unique<Canvas2D>(gfx, pixelWidth, pixelHeight)),
+		textCanvas_(std::make_unique<Canvas2D>(gfx, pixelWidth, pixelHeight)),
+		ringCanvas_(std::make_unique<Canvas2D>(gfx, pixelWidth, pixelHeight))
+	{
+		ringCanvas_->Clear(Colors::None);
+	}
 
 	void ButtonCanvasView::LinkTechniques(Rgph::RenderGraph& rg)
 	{
-		canvas_->LinkTechniques(rg);
+		bgCanvas_->LinkTechniques(rg);
+		textCanvas_->LinkTechniques(rg);
+		ringCanvas_->LinkTechniques(rg);
 	}
 
 	void ButtonCanvasView::Submit(std::size_t channelMask) const
 	{
-		canvas_->Submit(channelMask);
+		bgCanvas_->Submit(channelMask);
+		textCanvas_->Submit(channelMask);
+		ringCanvas_->Submit(channelMask);
 	}
 
-	void ButtonCanvasView::Repaint_(const ButtonViewModel& vm)
+	Color ButtonCanvasView::BackgroundForPhase(const UiVisualPhase phase) const noexcept
 	{
-		Canvas& c = *canvas_;
-		const Color fill = BackgroundForPhase(style_, vm.phase);
-		c.Clear(fill);
+		switch (phase)
+		{
+		case UiVisualPhase::Disabled: return style_.bgDisabled;
+		case UiVisualPhase::Pressed:  return style_.bgPressed;
+		case UiVisualPhase::Focused:  return style_.bgFocused;
+		default:                      return style_.bgNormal;
+		}
+	}
+
+	Color ButtonCanvasView::TextColorForPhase(const UiVisualPhase phase) const noexcept
+	{
+		return IsDisabledPhase(phase) ? style_.textDisabled : style_.textNormal;
+	}
+
+	void ButtonCanvasView::ApplyLayout(
+		const float centerX,
+		const float centerY,
+		const float width,
+		const float height) noexcept
+	{
+		const DirectX::XMFLOAT3 pos{ centerX, centerY, 0.0f };
+		const DirectX::XMFLOAT3 scale{ width, height, 1.0f };
+		bgCanvas_->SetPosition(pos);
+		bgCanvas_->SetScale(scale);
+		textCanvas_->SetPosition(pos);
+		textCanvas_->SetScale(scale);
+		ringCanvas_->SetPosition(pos);
+		ringCanvas_->SetScale(scale);
+	}
+
+	void ButtonCanvasView::RepaintBackground_(const UiVisualPhase phase)
+	{
+		bgCanvas_->Clear(BackgroundForPhase(phase));
+	}
+
+	void ButtonCanvasView::RepaintText_(const ButtonViewModel& vm)
+	{
+		Canvas& c = *textCanvas_;
+		c.Clear(Colors::None);
 
 		auto ctx = TextCodex::Get().BeginDraw();
 		Text::RenderRequest& rq = ctx.Request();
@@ -91,26 +122,45 @@ namespace Ui
 		rq.style.wordWrapEnabled = true;
 		rq.paddingPx = style_.paddingPx;
 		rq.maxWidthPx = static_cast<float>(c.GetCanvasWidth());
-		rq.defaultColor = TextColorForPhase(style_, vm.phase);
+		rq.defaultColor = TextColorForPhase(vm.phase);
 		rq.backgroundColor = Colors::None;
 
 		ctx.Render(c);
-	
-		if (vm.phase == UiVisualPhase::Focused)
+	}
+
+	void ButtonCanvasView::RepaintFocusRing_(const UiVisualPhase phase)
+	{
+		Canvas& c = *ringCanvas_;
+		c.Clear(Colors::None);
+		if (phase == UiVisualPhase::Focused)
 			DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
 	}
 
 	void ButtonCanvasView::SyncFrom(const ButtonViewModel& vm)
 	{
-		const bool dirty = !hasPainted_
-			|| vm.phase != lastPainted_.phase
-			|| vm.labelUtf8 != lastPainted_.labelUtf8;
+		const bool bgDirty = !hasPainted_
+			|| vm.phase != lastPainted_.phase;
 
-		if (!dirty)
-			return;
+		const bool textDirty = !hasPainted_
+			|| vm.labelUtf8 != lastPainted_.labelUtf8
+			|| IsDisabledPhase(vm.phase) != IsDisabledPhase(lastPainted_.phase);
 
-		Repaint_(vm);
-		lastPainted_ = vm;
-		hasPainted_ = true;
+		const bool ringDirty = !hasPainted_
+			|| (vm.phase == UiVisualPhase::Focused) != (lastPainted_.phase == UiVisualPhase::Focused);
+
+		if (bgDirty)
+			RepaintBackground_(vm.phase);
+
+		if (textDirty)
+			RepaintText_(vm);
+
+		if (ringDirty)
+			RepaintFocusRing_(vm.phase);
+
+		if (bgDirty || textDirty || ringDirty)
+		{
+			lastPainted_ = vm;
+			hasPainted_ = true;
+		}
 	}
 }

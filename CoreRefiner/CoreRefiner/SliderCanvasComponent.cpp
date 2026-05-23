@@ -62,15 +62,17 @@ namespace Ui
 		const float grooveW = std::max(0.0f, width - 2.0f * inset);
 		const float grooveH = std::max(0.0f, height - 2.0f * inset);
 
-		slider_->SetGrooveLayout(SliderGrooveLayout{													
-			.centerX = centerX,													
-			.centerY = centerY,													
-			.outerWidth = width,													
-			.outerHeight = height,													
-			.grooveWidth = grooveW,													
-			.grooveHeight = grooveH,													
-			.rotationRadZ = rotationRadZ													
-		});													
+		slider_->SetGrooveLayout(SliderGrooveLayout{
+			.centerX = centerX,
+			.centerY = centerY,
+			.outerWidth = width,
+			.outerHeight = height,
+			.grooveWidth = grooveW,
+			.grooveHeight = grooveH,
+			.rotationRadZ = rotationRadZ
+		});
+
+		view_->ApplyLayout(slider_->GetGrooveLayout());
 	}
 
 	void SliderCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)																							

@@ -69,9 +69,7 @@ namespace Ui
 
 		const UiRect r = RectFromCenterExtents(centerX, centerY, width, height);
 		button_->SetBounds(r);
-
-		view_->GetCanvas().SetPosition(DirectX::XMFLOAT3{ centerX, centerY, 0.0f });
-		view_->GetCanvas().SetScale(DirectX::XMFLOAT3{ width, height, 1.0f });
+		view_->ApplyLayout(centerX, centerY, width, height);
 	}
 
 	void ButtonCanvasComponent::SetLayoutLogicalRect(const UiRect& r) noexcept

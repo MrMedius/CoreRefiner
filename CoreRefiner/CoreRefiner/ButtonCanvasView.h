@@ -36,17 +36,28 @@ namespace Ui
 		ButtonCanvasView(class Graphics& gfx, unsigned pixelWidth, unsigned pixelHeight, ButtonCanvasStyle style = {});
 
 		void SyncFrom(const ButtonViewModel& vm);
+		void ApplyLayout(float centerX, float centerY, float width, float height) noexcept;
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
 
-		[[nodiscard]] Canvas2D& GetCanvas() noexcept { return *canvas_; }
-		[[nodiscard]] const Canvas2D& GetCanvas() const noexcept { return *canvas_; }
+		[[nodiscard]] Canvas2D& GetBgCanvas() noexcept { return *bgCanvas_; }
+		[[nodiscard]] Canvas2D& GetTextCanvas() noexcept { return *textCanvas_; }
+		[[nodiscard]] Canvas2D& GetRingCanvas() noexcept { return *ringCanvas_; }
+
+		[[nodiscard]] Canvas2D& GetCanvas() noexcept { return *bgCanvas_; }
+		[[nodiscard]] const Canvas2D& GetCanvas() const noexcept { return *bgCanvas_; }
 
 	private:
-		void Repaint_(const ButtonViewModel& vm);
+		[[nodiscard]] Color BackgroundForPhase(UiVisualPhase phase) const noexcept;
+		[[nodiscard]] Color TextColorForPhase(UiVisualPhase phase) const noexcept;
+		void RepaintBackground_(UiVisualPhase phase);
+		void RepaintText_(const ButtonViewModel& vm);
+		void RepaintFocusRing_(UiVisualPhase phase);
 
 		ButtonCanvasStyle style_;
-		std::unique_ptr<Canvas2D> canvas_;
+		std::unique_ptr<Canvas2D> bgCanvas_;
+		std::unique_ptr<Canvas2D> textCanvas_;
+		std::unique_ptr<Canvas2D> ringCanvas_;
 
 		ButtonViewModel lastPainted_{};
 		bool hasPainted_ = false;

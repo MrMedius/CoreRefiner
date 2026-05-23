@@ -51,6 +51,7 @@ namespace Ui
 
 		void SetLayoutLogicalCenterSize(float centerX, float centerY, float size) noexcept;
 		void SetLayoutLogicalRect(const UiRect& r) noexcept;
+		void SetLayoutBoxScale(float scale) noexcept;
 
 		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
 		void SyncView() override;
@@ -62,8 +63,15 @@ namespace Ui
 		void RegisterTo(UiRoot& root);
 
 	private:
+		void ApplyViewLayout_() noexcept;
+
 		FocusHandle focusHandle_;
 		std::unique_ptr<UiToggle> toggle_;
 		std::unique_ptr<ToggleCanvasView> view_;
+
+		float layoutCenterX_ = 0.0f;
+		float layoutCenterY_ = 0.0f;
+		float layoutSize_ = 1.0f;
+		float layoutBoxScale_ = 1.0f;
 	};
 }

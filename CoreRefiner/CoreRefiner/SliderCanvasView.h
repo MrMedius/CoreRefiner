@@ -1,6 +1,6 @@
 #pragma once
-
 #include "IUiView.h"
+#include "SliderGrooveLayout.h"
 #include "SliderViewModel.h"
 
 #include "Canvas2D.h"
@@ -32,6 +32,7 @@ namespace Ui
 		SliderCanvasView(Graphics& gfx, unsigned pixelWidth, unsigned pixelHeight, SliderCanvasStyle style = {});
 
 		void SyncFrom(const SliderViewModel& vm);
+		void ApplyLayout(const SliderGrooveLayout& layout) noexcept;
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
 
@@ -46,9 +47,8 @@ namespace Ui
 	private:
 		[[nodiscard]] Color TrackColorForPhase(const SliderViewModel& vm) const noexcept;
 		[[nodiscard]] Color FillColorForPhase(const SliderViewModel& vm) const noexcept;
-		void RepaintTrack_(const SliderViewModel& vm);
-		void ApplyTrackLayout_(const SliderViewModel& vm);
-		void ApplyFillLayout_(const SliderViewModel& vm);
+		void BakeTrackBorder_();
+		void RepaintTrackFill_(const SliderViewModel& vm);
 		void ApplyFillParams_(const SliderViewModel& vm);
 
 		SliderCanvasStyle style_;
