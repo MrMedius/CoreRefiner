@@ -3,6 +3,7 @@
 #include "ButtonCanvasComponent.h"
 #include "SliderCanvasComponent.h"
 #include "ToggleCanvasComponent.h"
+#include "DropdownCanvasComponent.h"
 #include "Canvas2DRipples.h"
 
 #include "UiRoot.h"
@@ -93,6 +94,11 @@ public:
 			btnB_->Button().SetOnClick([this] { btnB_->Button().SetLabel("Btn B | clicks 1"); });
 			btnC_->Button().SetOnClick([this] { PostQuitMessage(0); });
 
+
+
+
+
+
 			const float hBarW = static_cast<float>(titleWidth) * 0.8f;
 			const float hBarH = 24.0f;
 			const float hBarY = static_cast<float>(centerY / 2u) + static_cast<float>(titleHeight) * 0.5f + 20.0f;
@@ -113,6 +119,10 @@ public:
 			vSlider_->Slider().SetValue(0.6f);
 
 
+
+
+
+
 			const float toggleSize = static_cast<float>(btnHeight);
 			const float toggleY = static_cast<float>(centerY);
 			toggleSound_ = std::make_unique<Ui::ToggleCanvasComponent>(
@@ -122,6 +132,20 @@ public:
 
 			toggleFullscreen_ = std::make_unique<Ui::ToggleCanvasComponent>(
 				gfx, 512u, 200.0f, toggleY + static_cast<float>(spacingY) * 2.0f, toggleSize * 1.25f);
+
+
+
+
+
+
+			const float dropdownW = static_cast<float>(btnWidth) * 1.4f;
+			const float dropdownH = static_cast<float>(btnHeight);
+			const float dropdownX = static_cast<float>(centerX) + static_cast<float>(btnWidth) * 0.9f;
+			dropdownQuality_ = std::make_unique<Ui::DropdownCanvasComponent>(
+				gfx, 513u, dropdownX, toggleY, dropdownW, dropdownH);
+
+
+
 
 
 			uiRoot = std::make_unique<Ui::UiRoot>();
@@ -135,6 +159,8 @@ public:
 
 			toggleSound_->RegisterTo(*uiRoot);
 			toggleFullscreen_->RegisterTo(*uiRoot);
+
+			dropdownQuality_->RegisterTo(*uiRoot);
 
 			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
@@ -174,6 +200,8 @@ private:
 
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleSound_{};
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
+
+	std::unique_ptr<Ui::DropdownCanvasComponent> dropdownQuality_{};
 
 	std::function<void()> onNewGame_{};
 };

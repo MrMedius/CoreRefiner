@@ -193,6 +193,9 @@
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
     <ClCompile Include="UiToggle.cpp" />
+    <ClCompile Include="UiDropdown.cpp" />
+    <ClCompile Include="DropdownCanvasComponent.cpp" />
+    <ClCompile Include="DropdownCanvasView.cpp" />
     <ClCompile Include="ButtonCanvasComponent.cpp" />
     <ClCompile Include="ButtonCanvasView.cpp" />
     <ClCompile Include="Canvas.cpp" />
@@ -327,6 +330,11 @@
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />
     <ClInclude Include="UiToggle.h" />
+    <ClInclude Include="DropdownCanvasTypes.h" />
+    <ClInclude Include="DropdownViewModel.h" />
+    <ClInclude Include="DropdownCanvasView.h" />
+    <ClInclude Include="DropdownCanvasComponent.h" />
+    <ClInclude Include="UiDropdown.h" />
     <ClInclude Include="ButtonCanvasComponent.h" />
     <ClInclude Include="ButtonCanvasView.h" />
     <ClInclude Include="ButtonViewModel.h" />
