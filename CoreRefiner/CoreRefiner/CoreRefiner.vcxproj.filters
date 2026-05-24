@@ -167,6 +167,9 @@
     <Filter Include="Framework\UI\Widget\Slider">
       <UniqueIdentifier>{bf7ea12b-93bc-4429-94f5-a34490512cec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Framework\UI\Widget\Toggle">
+      <UniqueIdentifier>{88beb4ea-4c1c-480b-b261-bb11fe2a278d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -490,12 +493,6 @@
     <ClCompile Include="ToggleCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
-    <ClCompile Include="ToggleCanvasView.cpp">
-      <Filter>Framework\UI\Widget\Toggle</Filter>
-    </ClCompile>
-    <ClCompile Include="UiToggle.cpp">
-      <Filter>Framework\UI\Widget\Toggle</Filter>
-    </ClCompile>
     <ClCompile Include="ButtonCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
@@ -555,6 +552,16 @@
     </ClCompile>
     <ClCompile Include="UiSlider.cpp">
       <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClCompile>
+    <ClCompile Include="UiDropdown.cpp" />
+    <ClCompile Include="DropdownCanvasComponent.cpp" />
+    <ClCompile Include="DropdownCanvasView.cpp" />
+    <ClCompile Include="DropdownListItemCanvasView.cpp" />
+    <ClCompile Include="UiToggle.cpp">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClCompile>
+    <ClCompile Include="ToggleCanvasView.cpp">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1032,15 +1039,6 @@
     <ClInclude Include="ToggleCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
     </ClInclude>
-    <ClInclude Include="ToggleCanvasView.h">
-      <Filter>Framework\UI\Widget\Toggle</Filter>
-    </ClInclude>
-    <ClInclude Include="ToggleViewModel.h">
-      <Filter>Framework\UI\Widget\Toggle</Filter>
-    </ClInclude>
-    <ClInclude Include="UiToggle.h">
-      <Filter>Framework\UI\Widget\Toggle</Filter>
-    </ClInclude>
     <ClInclude Include="ButtonCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
     </ClInclude>
@@ -1124,6 +1122,22 @@
     </ClInclude>
     <ClInclude Include="UiSlider.h">
       <Filter>Framework\UI\Widget\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="DropdownCanvasTypes.h" />
+    <ClInclude Include="DropdownViewModel.h" />
+    <ClInclude Include="DropdownCanvasView.h" />
+    <ClInclude Include="DropdownListItemViewModel.h" />
+    <ClInclude Include="DropdownListItemCanvasView.h" />
+    <ClInclude Include="DropdownCanvasComponent.h" />
+    <ClInclude Include="UiDropdown.h" />
+    <ClInclude Include="UiToggle.h">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClInclude>
+    <ClInclude Include="ToggleViewModel.h">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
+    </ClInclude>
+    <ClInclude Include="ToggleCanvasView.h">
+      <Filter>Framework\UI\Widget\Toggle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

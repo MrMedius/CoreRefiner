@@ -59,6 +59,8 @@ namespace Ui
 		std::unique_ptr<Canvas2D> arrowCanvas_;
 		std::vector<std::unique_ptr<DropdownListItemCanvasView>> listItems_;
 
+		std::size_t activeListItemCount_ = 0u;
+
 		float layoutCenterX_ = 0.0f;
 		float layoutCenterY_ = 0.0f;
 		float layoutWidth_ = 1.0f;

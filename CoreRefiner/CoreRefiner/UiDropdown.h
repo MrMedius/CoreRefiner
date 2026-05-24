@@ -37,6 +37,11 @@ namespace Ui
 
 
 		void SetOptions(std::vector<DropdownOption> options);
+		void AddOptions(std::vector<DropdownOption> options);
+		void AddOption(DropdownOption option);
+		void EraseOptions(std::vector<int> indices);
+		void EraseOption(int index);
+		void ClearOptions() noexcept;
 
 		[[nodiscard]] const std::vector<DropdownOption>& GetOptions() const noexcept { return options_; }
 
@@ -53,6 +58,11 @@ namespace Ui
 		[[nodiscard]] std::string GetSelectedLabel() const;
 
 		[[nodiscard]] bool IsExpanded() const noexcept { return expanded_; }
+
+		/** @brief 展开且启用时，Up/Down 用于列表导航而非切换 Tab 焦点。 */
+		[[nodiscard]] bool ConsumesDirectionalNavigation() const noexcept;
+
+		[[nodiscard]] float GetListOffsetY() const noexcept { return listOffsetY_; }
 
 
 
@@ -81,12 +91,16 @@ namespace Ui
 	private:
 
 		void RebuildItemBounds_() noexcept;
+		void RecomputeListEdgeOffset_() noexcept;
+		void NormalizeSelectionAfterOptionsChange_() noexcept;
 
 		void RecomputeHeaderPhase_(const UiInputFrame& frame, const FocusManager& focus) noexcept;
 
 		[[nodiscard]] bool IsPointerOverHeader_(const UiInputFrame& frame) const noexcept;
 
 		[[nodiscard]] bool IsPointerOverList_(const UiInputFrame& frame) const noexcept;
+
+		[[nodiscard]] bool IsPointerInsideDropdown_(float x, float y) const noexcept;
 
 		[[nodiscard]] int HitTestItemIndex_(float x, float y) const noexcept;
 
@@ -96,7 +110,10 @@ namespace Ui
 
 		void Collapse_() noexcept;
 
+		void TryCollapseOnExternalInteraction_(const UiInputFrame& frame) noexcept;
+
 		void UpdateHighlightFromPointer_(const UiInputFrame& frame) noexcept;
+		void MoveListHighlight_(int delta) noexcept;
 
 
 
@@ -115,6 +132,8 @@ namespace Ui
 		int highlightIndex_ = -1;
 
 		float itemHeight_ = 1.0f;
+
+		float listOffsetY_ = 0.0f;
 
 		bool enabled_ = true;
 

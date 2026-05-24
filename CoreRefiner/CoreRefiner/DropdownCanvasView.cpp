@@ -5,7 +5,6 @@
 #include "TextCodex.h"
 
 #include <algorithm>
-#include <sstream>
 
 namespace Ui
 {
@@ -16,9 +15,6 @@ namespace Ui
 
 		/** @brief 列表项数量上限。 */
 		constexpr std::size_t kMaxListItemCount = 64u;
-
-		/** @brief 构造时预分配列表项池（Title 默认 3 项，留余量）。 */
-		constexpr std::size_t kInitialListItemPool = 8u;
 
 		/**
 		 * @brief 将像素尺寸限制在 [1, kMaxCanvasPixelDim]。
@@ -101,9 +97,10 @@ namespace Ui
 			std::max(8u, style_.arrowWidthPx)))
 	{
 		headerTextCanvas_->Clear(Colors::None);
+		arrowCanvas_->SetRotation(0.0f, 0.0f, -90.0f);
+
 		BakeArrowGeometry_();
 		SyncArrowOrientation_(false);
-		EnsureListItemCount_(kInitialListItemPool);
 	}
 
 	void DropdownCanvasView::LinkTechniques(Rgph::RenderGraph& rg)
@@ -120,14 +117,15 @@ namespace Ui
 	void DropdownCanvasView::Submit(const std::size_t channelMask) const
 	{
 		headerBgCanvas_->Submit(channelMask);
+		headerTextCanvas_->Submit(channelMask);
+		arrowCanvas_->Submit(channelMask);
+
 		if (listVisible_)
 		{
 			listPanelBgCanvas_->Submit(channelMask);
-			for (const auto& item : listItems_)
-				item->Submit(channelMask);
+			for (std::size_t i = 0; i < activeListItemCount_; ++i)
+				listItems_[i]->Submit(channelMask);
 		}
-		headerTextCanvas_->Submit(channelMask);
-		arrowCanvas_->Submit(channelMask);
 	}
 
 	Color DropdownCanvasView::HeaderBackgroundForPhase(const UiVisualPhase phase) const noexcept
@@ -212,12 +210,14 @@ namespace Ui
 		if (!vm.expanded || vm.optionLabels.empty())
 		{
 			listVisible_ = false;
+			activeListItemCount_ = 0u;
 			return;
 		}
 
 		listVisible_ = true;
+		activeListItemCount_ = vm.optionLabels.size();
 		const float listLogicalH = static_cast<float>(vm.optionLabels.size()) * vm.itemHeight;
-		const float headerBottom = layoutCenterY_ + layoutHeight_ * 0.5f;
+		const float headerBottom = layoutCenterY_ + layoutHeight_ * 0.5f + vm.listOffsetY;
 		const float listCenterY = headerBottom + listLogicalH * 0.5f;
 
 		const DirectX::XMFLOAT3 panelPos{ layoutCenterX_, listCenterY, 0.0f };
@@ -238,6 +238,7 @@ namespace Ui
 		if (!vm.expanded || vm.optionLabels.empty())
 		{
 			listVisible_ = false;
+			activeListItemCount_ = 0u;
 			return;
 		}
 
@@ -275,8 +276,9 @@ namespace Ui
 			return;
 
 		arrowExpanded_ = expanded;
-		const float rollDeg = expanded ? 0.0f : -90.0f;
-		arrowCanvas_->SetRotation(rollDeg, 0.0f, 0.0f);
+		// 2D UI 平面内旋转用 yaw（Z 轴）；与 SliderCanvasView 一致。
+		const float yawDeg = expanded ? 180.0f : -90.0f;
+		arrowCanvas_->SetRotation(0.0f, 0.0f, yawDeg);
 	}
 
 	void DropdownCanvasView::RepaintHeaderText_(const DropdownViewModel& vm)
@@ -322,7 +324,8 @@ namespace Ui
 		const bool listStructureDirty = !hasPainted_
 			|| vm.expanded != lastPainted_.expanded
 			|| vm.optionLabels != lastPainted_.optionLabels
-			|| vm.itemHeight != lastPainted_.itemHeight;
+			|| vm.itemHeight != lastPainted_.itemHeight
+			|| vm.listOffsetY != lastPainted_.listOffsetY;
 
 		const bool listContentDirty = !hasPainted_
 			|| vm.expanded != lastPainted_.expanded

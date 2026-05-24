@@ -48,12 +48,20 @@ namespace Ui
 
 		void SetLayoutLogicalCenterSize(float centerX, float centerY, float width, float headerHeight) noexcept;
 
+		void SetOptions(std::vector<DropdownOption> options);
+		void AddOptions(std::vector<DropdownOption> options);
+		void AddOption(DropdownOption option);
+		void EraseOptions(std::vector<int> indices);
+		void EraseOption(int index);
+		void ClearOptions() noexcept;
+
 		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
 		void SyncView() override;
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
 		void ResetPointerInteraction() noexcept override;
 		[[nodiscard]] bool IsFocusable() const noexcept override;
+		[[nodiscard]] bool ConsumesDirectionalNavigation() const noexcept override;
 
 		void RegisterTo(UiRoot& root);
 

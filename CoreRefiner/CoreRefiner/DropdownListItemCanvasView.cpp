@@ -75,10 +75,10 @@ namespace Ui
 
 	Color DropdownListItemCanvasView::BackgroundForRow_(const DropdownListItemViewModel& vm) const noexcept
 	{
-		if (vm.highlighted)
-			return style_.itemHighlight;
 		if (vm.selected)
 			return style_.itemSelected;
+		if (vm.highlighted)
+			return style_.itemHighlight;
 		return style_.itemNormal;
 	}
 

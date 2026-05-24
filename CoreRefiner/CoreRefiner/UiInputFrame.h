@@ -19,6 +19,8 @@ namespace Ui
 	{
 		bool tabNext = false;
 		bool tabPrev = false;
+		bool navUp = false;
+		bool navDown = false;
 	};
 
 	struct UiActionPayload
@@ -48,6 +50,8 @@ namespace Ui
 
 		acc.navigation.tabNext = acc.navigation.tabNext || layer.navigation.tabNext;
 		acc.navigation.tabPrev = acc.navigation.tabPrev || layer.navigation.tabPrev;
+		acc.navigation.navUp = acc.navigation.navUp || layer.navigation.navUp;
+		acc.navigation.navDown = acc.navigation.navDown || layer.navigation.navDown;
 
 		acc.action.confirmPressed = acc.action.confirmPressed || layer.action.confirmPressed;
 		acc.action.cancelPressed = acc.action.cancelPressed || layer.action.cancelPressed;

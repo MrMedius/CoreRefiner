@@ -26,6 +26,11 @@ namespace Ui
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_RB))
 			frame.navigation.tabNext = true;
 
+		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_UP))
+			frame.navigation.navUp = true;
+		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_DOWN))
+			frame.navigation.navDown = true;
+
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_A))
 			frame.action.confirmPressed = true;
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_B))

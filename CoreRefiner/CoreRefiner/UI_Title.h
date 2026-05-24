@@ -140,11 +140,26 @@ public:
 
 			const float dropdownW = static_cast<float>(btnWidth) * 2.0f;
 			const float dropdownH = static_cast<float>(btnHeight);
-			const float dropdownX = static_cast<float>(centerX) + static_cast<float>(btnWidth) * 2.0f;
+			const float dropdownX = static_cast<float>(centerX);
 			dropdownQuality_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 513u, dropdownX, toggleY + static_cast<float>(spacingY) * 6.0f, dropdownW, dropdownH);
+				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY) * 6.5f, dropdownW, dropdownH);
+			dropdownQuality_->AddOptions({
+				{.label = "Ultra" },
+				{.label = "Very Low" },
+				});
 
-
+			dropdownCustom_ = std::make_unique<Ui::DropdownCanvasComponent>(
+				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY), dropdownW, dropdownH);
+			dropdownCustom_->AddOptions({
+				{.label = "Custom 1" },
+				{.label = "Custom 2" },
+				{.label = "Custom 3" },
+				{.label = "Custom 4" },
+				{.label = "Custom 5" },
+				});
+			dropdownCustom_->AddOption({ .label = "Custom 6" });
+			dropdownCustom_->EraseOption(1);
+			dropdownCustom_->EraseOptions({ 1, 3 });
 
 
 
@@ -161,6 +176,7 @@ public:
 			toggleFullscreen_->RegisterTo(*uiRoot);
 
 			dropdownQuality_->RegisterTo(*uiRoot);
+			dropdownCustom_->RegisterTo(*uiRoot);
 
 			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
@@ -202,6 +218,7 @@ private:
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
 
 	std::unique_ptr<Ui::DropdownCanvasComponent> dropdownQuality_{};
+	std::unique_ptr<Ui::DropdownCanvasComponent> dropdownCustom_{};
 
 	std::function<void()> onNewGame_{};
 };

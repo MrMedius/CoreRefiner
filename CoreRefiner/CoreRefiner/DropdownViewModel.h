@@ -40,6 +40,8 @@ namespace Ui
 
 		float itemHeight = 1.0f;
 
+		/** @brief 展开时仅 List 相对默认位置的应用 Y 偏移（Header 不动）。 */
+		float listOffsetY = 0.0f;
 	};
 
 
@@ -64,7 +66,9 @@ namespace Ui
 
 			.highlightIndex = dropdown.GetHighlightIndex(),
 
-			.itemHeight = dropdown.GetItemHeight()
+			.itemHeight = dropdown.GetItemHeight(),
+
+			.listOffsetY = dropdown.GetListOffsetY()
 
 		};
 

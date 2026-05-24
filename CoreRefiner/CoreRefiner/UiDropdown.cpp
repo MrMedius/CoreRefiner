@@ -3,6 +3,7 @@
 
 
 #include "FocusManager.h"
+#include "Graphics.h"
 
 
 
@@ -114,15 +115,149 @@ namespace Ui
 
 		options_ = std::move(options);
 
+		NormalizeSelectionAfterOptionsChange_();
+
+		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::AddOptions(std::vector<DropdownOption> options)
+
+	{
+
+		if (options.empty())
+
+			return;
+
+
+
+		options_.insert(options_.end(),
+
+			std::make_move_iterator(options.begin()),
+
+			std::make_move_iterator(options.end()));
+
+		NormalizeSelectionAfterOptionsChange_();
+
+		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::AddOption(const DropdownOption option)
+
+	{
+
+		options_.push_back(option);
+
+		NormalizeSelectionAfterOptionsChange_();
+
+		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::EraseOptions(std::vector<int> indices)
+
+	{
+
+		if (indices.empty() || options_.empty())
+
+			return;
+
+
+
+		std::sort(indices.begin(), indices.end());
+
+		indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
+
+
+
+		for (auto it = indices.rbegin(); it != indices.rend(); ++it)
+
+		{
+
+			const int idx = *it;
+
+			if (idx < 0 || idx >= static_cast<int>(options_.size()))
+
+				continue;
+
+			options_.erase(options_.begin() + idx);
+
+		}
+
+
+
+		NormalizeSelectionAfterOptionsChange_();
+
+		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::EraseOption(const int index)
+
+	{
+
+		EraseOptions(std::vector<int>{ index });
+
+	}
+
+
+
+	void UiDropdown::ClearOptions() noexcept
+
+	{
+
+		options_.clear();
+
+		selectedIndex_ = -1;
+
+		highlightIndex_ = -1;
+
+		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::NormalizeSelectionAfterOptionsChange_() noexcept
+
+	{
+
 		if (options_.empty())
 
+		{
+
 			selectedIndex_ = -1;
+
+			highlightIndex_ = -1;
+
+			return;
+
+		}
+
+
+
+		if (selectedIndex_ < 0)
+
+			selectedIndex_ = 0;
 
 		else
 
 			selectedIndex_ = std::clamp(selectedIndex_, 0, static_cast<int>(options_.size()) - 1);
 
-		RebuildItemBounds_();
+
+
+		if (highlightIndex_ >= static_cast<int>(options_.size()))
+
+			highlightIndex_ = static_cast<int>(options_.size()) - 1;
 
 	}
 
@@ -184,6 +319,8 @@ namespace Ui
 
 		listBounds_ = {};
 
+		listOffsetY_ = 0.0f;
+
 
 
 		if (!expanded_ || options_.empty() || itemHeight_ <= 0.0f)
@@ -192,11 +329,15 @@ namespace Ui
 
 
 
+		RecomputeListEdgeOffset_();
+
+
+
 		const float left = headerBounds_.minX;
 
 		const float right = headerBounds_.maxX;
 
-		float y = headerBounds_.maxY;
+		float y = headerBounds_.maxY + listOffsetY_;
 
 
 
@@ -248,6 +389,38 @@ namespace Ui
 
 
 
+	void UiDropdown::RecomputeListEdgeOffset_() noexcept
+
+	{
+
+		listOffsetY_ = 0.0f;
+
+
+
+		const float listH = static_cast<float>(options_.size()) * itemHeight_;
+
+		const float listTop = headerBounds_.maxY;
+
+		const float listBottom = listTop + listH;
+
+		constexpr float screenH = static_cast<float>(LOGICAL_CANVAS_HEIGHT);
+
+
+
+		if (listBottom > screenH)
+
+			listOffsetY_ = screenH - listBottom;
+
+
+
+		if (listTop + listOffsetY_ < 0.0f)
+
+			listOffsetY_ -= listTop + listOffsetY_;
+
+	}
+
+
+
 	void UiDropdown::SetExpanded_(const bool expanded) noexcept
 
 	{
@@ -264,7 +437,7 @@ namespace Ui
 
 		{
 
-			highlightIndex_ = selectedIndex_;
+			highlightIndex_ = -1;
 
 			RebuildItemBounds_();
 
@@ -360,6 +533,68 @@ namespace Ui
 
 
 
+	bool UiDropdown::IsPointerInsideDropdown_(const float x, const float y) const noexcept
+
+	{
+
+		if (headerBounds_.Contains(x, y))
+
+			return true;
+
+		return expanded_ && listBounds_.Contains(x, y);
+
+	}
+
+
+
+	void UiDropdown::TryCollapseOnExternalInteraction_(const UiInputFrame& frame) noexcept
+
+	{
+
+		if (!expanded_)
+
+			return;
+
+
+
+		if (frame.navigation.tabNext || frame.navigation.tabPrev)
+
+		{
+
+			Collapse_();
+
+			return;
+
+		}
+
+
+
+		if (!ClientPointValid(frame.pointer))
+
+			return;
+
+
+
+		const float px = frame.pointer.logicalX;
+
+		const float py = frame.pointer.logicalY;
+
+
+
+		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_
+
+			&& !IsPointerInsideDropdown_(px, py))
+
+		{
+
+			Collapse_();
+
+		}
+
+	}
+
+
+
 	void UiDropdown::UpdateHighlightFromPointer_(const UiInputFrame& frame) noexcept
 
 	{
@@ -370,9 +605,69 @@ namespace Ui
 
 
 
-		if (IsPointerOverList_(frame))
+		if (IsPointerOverHeader_(frame))
+
+			highlightIndex_ = -1;
+
+		else if (IsPointerOverList_(frame))
 
 			highlightIndex_ = HitTestItemIndex_(frame.pointer.logicalX, frame.pointer.logicalY);
+
+	}
+
+
+
+	void UiDropdown::MoveListHighlight_(const int delta) noexcept
+
+	{
+
+		if (!expanded_ || options_.empty() || delta == 0)
+
+			return;
+
+
+
+		const int lastIndex = static_cast<int>(options_.size()) - 1;
+
+
+
+		if (delta > 0)
+
+		{
+
+			if (highlightIndex_ < 0)
+
+				highlightIndex_ = 0;
+
+			else if (highlightIndex_ < lastIndex)
+
+				++highlightIndex_;
+
+		}
+
+		else
+
+		{
+
+			if (highlightIndex_ <= 0)
+
+				highlightIndex_ = -1;
+
+			else
+
+				--highlightIndex_;
+
+		}
+
+	}
+
+
+
+	bool UiDropdown::ConsumesDirectionalNavigation() const noexcept
+
+	{
+
+		return enabled_ && expanded_;
 
 	}
 
@@ -440,11 +735,19 @@ namespace Ui
 
 
 
+		TryCollapseOnExternalInteraction_(frame);
+
+
+
 		if (focus.IsFocused(focusHandle_) && frame.action.confirmPressed)
 
 		{
 
-			if (expanded_ && highlightIndex_ >= 0)
+			if (!expanded_)
+
+				SetExpanded_(true);
+
+			else if (highlightIndex_ >= 0)
 
 			{
 
@@ -456,7 +759,23 @@ namespace Ui
 
 			else
 
-				ToggleExpanded_();
+				Collapse_();
+
+		}
+
+
+
+		if (focus.IsFocused(focusHandle_) && expanded_)
+
+		{
+
+			if (frame.navigation.navDown)
+
+				MoveListHighlight_(1);
+
+			if (frame.navigation.navUp)
+
+				MoveListHighlight_(-1);
 
 		}
 

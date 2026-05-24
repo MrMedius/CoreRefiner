@@ -57,8 +57,10 @@ namespace Ui
 
 		const bool nonPointerSemantic =
 			kbd.navigation.tabNext || kbd.navigation.tabPrev
+			|| kbd.navigation.navUp || kbd.navigation.navDown
 			|| kbd.action.confirmPressed || kbd.action.cancelPressed
 			|| pad.navigation.tabNext || pad.navigation.tabPrev
+			|| pad.navigation.navUp || pad.navigation.navDown
 			|| pad.action.confirmPressed || pad.action.cancelPressed;
 
 		const bool inside = m.pointer.insideLogicalSurface;
@@ -106,6 +108,26 @@ namespace Ui
 			StripPointerForWidgets_(widgetFrame);
 
 		focus_.ApplyNavigation(frame);
+
+		bool consumeDirectional = false;
+		const FocusHandle focused = focus_.Focused();
+		for (IUiComponent* c : components_)
+		{
+			if (c->GetFocusHandle() == focused)
+			{
+				consumeDirectional = c->ConsumesDirectionalNavigation();
+				break;
+			}
+		}
+
+		if (!consumeDirectional)
+		{
+			if (frame.navigation.navUp)
+				focus_.FocusPrev();
+			if (frame.navigation.navDown)
+				focus_.FocusNext();
+		}
+
 		for (IUiComponent* c : components_)
 		{
 			c->Update(widgetFrame, focus_);

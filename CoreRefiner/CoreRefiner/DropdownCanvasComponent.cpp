@@ -70,6 +70,36 @@ namespace Ui
 		view_->ApplyLayout(centerX, centerY, width, headerHeight);
 	}
 
+	void DropdownCanvasComponent::SetOptions(std::vector<DropdownOption> options)
+	{
+		dropdown_->SetOptions(std::move(options));
+	}
+
+	void DropdownCanvasComponent::AddOptions(std::vector<DropdownOption> options)
+	{
+		dropdown_->AddOptions(std::move(options));
+	}
+
+	void DropdownCanvasComponent::AddOption(const DropdownOption option)
+	{
+		dropdown_->AddOption(std::move(option));
+	}
+
+	void DropdownCanvasComponent::EraseOptions(std::vector<int> indices)
+	{
+		dropdown_->EraseOptions(std::move(indices));
+	}
+
+	void DropdownCanvasComponent::EraseOption(const int index)
+	{
+		dropdown_->EraseOption(index);
+	}
+
+	void DropdownCanvasComponent::ClearOptions() noexcept
+	{
+		dropdown_->ClearOptions();
+	}
+
 	void DropdownCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)
 	{
 		dropdown_->Update(frame, focus);
@@ -98,6 +128,11 @@ namespace Ui
 	bool DropdownCanvasComponent::IsFocusable() const noexcept
 	{
 		return dropdown_->IsFocusable();
+	}
+
+	bool DropdownCanvasComponent::ConsumesDirectionalNavigation() const noexcept
+	{
+		return dropdown_->ConsumesDirectionalNavigation();
 	}
 
 	void DropdownCanvasComponent::RegisterTo(UiRoot& root)
