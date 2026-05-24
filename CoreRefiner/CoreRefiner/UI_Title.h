@@ -113,7 +113,7 @@ public:
 			const float vBarX = static_cast<float>(centerX) + static_cast<float>(titleWidth) * 0.55f;
 			const float vBarY = static_cast<float>(centerY / 2u);
 			vSlider_ = std::make_unique<Ui::SliderCanvasComponent>(
-				gfx, Ui::kInvalidFocusHandle,
+				gfx, 505u,
 				vBarX, vBarY, vBarH, vBarW,
 				true, Ui::SliderCanvasStyle{}, 45.0f);
 			vSlider_->Slider().SetValue(0.6f);
@@ -138,11 +138,11 @@ public:
 
 
 
-			const float dropdownW = static_cast<float>(btnWidth) * 1.4f;
+			const float dropdownW = static_cast<float>(btnWidth) * 2.0f;
 			const float dropdownH = static_cast<float>(btnHeight);
-			const float dropdownX = static_cast<float>(centerX) + static_cast<float>(btnWidth) * 0.9f;
+			const float dropdownX = static_cast<float>(centerX) + static_cast<float>(btnWidth) * 2.0f;
 			dropdownQuality_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 513u, dropdownX, toggleY, dropdownW, dropdownH);
+				gfx, 513u, dropdownX, toggleY + static_cast<float>(spacingY) * 6.0f, dropdownW, dropdownH);
 
 
 

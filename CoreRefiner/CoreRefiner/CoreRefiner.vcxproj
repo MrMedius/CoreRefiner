@@ -196,6 +196,7 @@
     <ClCompile Include="UiDropdown.cpp" />
     <ClCompile Include="DropdownCanvasComponent.cpp" />
     <ClCompile Include="DropdownCanvasView.cpp" />
+    <ClCompile Include="DropdownListItemCanvasView.cpp" />
     <ClCompile Include="ButtonCanvasComponent.cpp" />
     <ClCompile Include="ButtonCanvasView.cpp" />
     <ClCompile Include="Canvas.cpp" />
@@ -333,6 +334,8 @@
     <ClInclude Include="DropdownCanvasTypes.h" />
     <ClInclude Include="DropdownViewModel.h" />
     <ClInclude Include="DropdownCanvasView.h" />
+    <ClInclude Include="DropdownListItemViewModel.h" />
+    <ClInclude Include="DropdownListItemCanvasView.h" />
     <ClInclude Include="DropdownCanvasComponent.h" />
     <ClInclude Include="UiDropdown.h" />
     <ClInclude Include="ButtonCanvasComponent.h" />

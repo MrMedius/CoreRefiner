@@ -1,16 +1,25 @@
 #pragma once
 
 #include "DropdownCanvasTypes.h"
+#include "DropdownListItemCanvasView.h"
 #include "DropdownViewModel.h"
 #include "IUiView.h"
 
 #include "Canvas2D.h"
 
 #include <memory>
+#include <vector>
+
+class Graphics;
+
+namespace Rgph
+{
+	class RenderGraph;
+}
 
 namespace Ui
 {
-	/** @brief Dropdown Canvas 视图（Header：背景 / 文字 / 箭头 分层）。 */
+	/** @brief Dropdown Canvas 视图（Header 分层 + 面板背景 + vector 列表项）。 */
 	class DropdownCanvasView final : public IUiView
 	{
 	public:
@@ -30,14 +39,25 @@ namespace Ui
 		[[nodiscard]] Color HeaderTextColorForPhase(UiVisualPhase phase) const noexcept;
 		void RepaintHeaderBackground_(UiVisualPhase phase);
 		void RepaintHeaderText_(const DropdownViewModel& vm);
+		void RepaintListPanelBackground_();
 		void BakeArrowGeometry_();
 		void SyncArrowOrientation_(bool expanded) noexcept;
 		void ApplyArrowLayout_() noexcept;
+		void EnsureListItemCount_(std::size_t count);
+		void ApplyListLayout_(const DropdownViewModel& vm);
+		void SyncListItems_(const DropdownViewModel& vm);
 
 		DropdownCanvasStyle style_;
+		Graphics& gfx_;
+		// 须在 Canvas 成员之前：C++ 按声明顺序初始化，否则 Canvas 构造会读到未初始化的尺寸。
+		unsigned headerPixelWidth_ = 1u;
+		unsigned headerPixelHeight_ = 1u;
+		Rgph::RenderGraph* linkedRg_ = nullptr;
 		std::unique_ptr<Canvas2D> headerBgCanvas_;
 		std::unique_ptr<Canvas2D> headerTextCanvas_;
+		std::unique_ptr<Canvas2D> listPanelBgCanvas_;
 		std::unique_ptr<Canvas2D> arrowCanvas_;
+		std::vector<std::unique_ptr<DropdownListItemCanvasView>> listItems_;
 
 		float layoutCenterX_ = 0.0f;
 		float layoutCenterY_ = 0.0f;
@@ -47,5 +67,7 @@ namespace Ui
 		DropdownViewModel lastPainted_{};
 		bool hasPainted_ = false;
 		bool arrowExpanded_ = false;
+		bool listVisible_ = false;
+		bool listPanelPainted_ = false;
 	};
 }

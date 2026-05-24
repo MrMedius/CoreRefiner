@@ -21,20 +21,13 @@ namespace Ui
 		{
 			const InputCodex& in = InputCodex::Get();
 			float worldX = 0.0f;
-			float worldY = 0.0f;
 
-			if (in.KeyTriggered(VK_LEFT) || in.KeyTriggered(KK_A))
+			if (in.KeyPressed(VK_LEFT) || in.KeyPressed(KK_A))
 				worldX -= 1.0f;
-			if (in.KeyTriggered(VK_RIGHT) || in.KeyTriggered(KK_D))
+			if (in.KeyPressed(VK_RIGHT) || in.KeyPressed(KK_D))
 				worldX += 1.0f;
-			if (in.KeyTriggered(VK_UP) || in.KeyTriggered(KK_W))
-				worldY -= 1.0f;
-			if (in.KeyTriggered(VK_DOWN) || in.KeyTriggered(KK_S))
-				worldY += 1.0f;
 
-			const float c = std::cos(-rotationRadZ);
-			const float s = std::sin(-rotationRadZ);
-			return worldX * c - worldY * s;
+			return worldX;
 		}
 
 		[[nodiscard]] float GamepadAxisLocalX(const int gamepadIndex, const float rotationRadZ) noexcept

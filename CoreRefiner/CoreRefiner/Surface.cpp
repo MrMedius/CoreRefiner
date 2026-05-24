@@ -5,15 +5,31 @@
 #include <sstream>
 #include <filesystem>
 #include "Util.h"
+#include "PerfLog.h"
 
 Surface::Surface(unsigned int width, unsigned int height)
 {
+	if (width == 0u || height == 0u)
+	{
+		std::ostringstream oss;
+		oss << "Surface::Surface invalid dimensions w=" << width << " h=" << height
+			<< " (clamped to 1)";
+		PerfLog::Warn(oss.str());
+		width = std::max(1u, width);
+		height = std::max(1u, height);
+	}
+
 	HRESULT hr = scratch.Initialize2D(
 		format,
 		width, height, 1u, 1u
 	);
 	if (FAILED(hr))
 	{
+		std::ostringstream oss;
+		oss << "Surface::Surface failed ScratchImage w=" << width << " h=" << height
+			<< " (0x" << std::hex << width << " x 0x" << height << std::dec << ")"
+			<< " hr=0x" << std::hex << hr;
+		PerfLog::Warn(oss.str());
 		throw Surface::Exception(__LINE__, __FILE__, "Failed to initialize ScratchImage", hr);
 	}
 }

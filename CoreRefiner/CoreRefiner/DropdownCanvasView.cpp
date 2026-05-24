@@ -5,11 +5,29 @@
 #include "TextCodex.h"
 
 #include <algorithm>
+#include <sstream>
 
 namespace Ui
 {
 	namespace
 	{
+		/** @brief UI Canvas 像素尺寸上限。 */
+		constexpr unsigned kMaxCanvasPixelDim = 2048u;
+
+		/** @brief 列表项数量上限。 */
+		constexpr std::size_t kMaxListItemCount = 64u;
+
+		/** @brief 构造时预分配列表项池（Title 默认 3 项，留余量）。 */
+		constexpr std::size_t kInitialListItemPool = 8u;
+
+		/**
+		 * @brief 将像素尺寸限制在 [1, kMaxCanvasPixelDim]。
+		 */
+		[[nodiscard]] unsigned ClampCanvasPixelDim(const unsigned value) noexcept
+		{
+			return std::max(1u, std::min(value, kMaxCanvasPixelDim));
+		}
+
 		void FillRect(::Canvas& c, unsigned x0, unsigned y0, unsigned x1, unsigned y1, Color col)
 		{
 			const unsigned w = c.GetCanvasWidth();
@@ -27,7 +45,7 @@ namespace Ui
 					c.PutPixel(x, y, col);
 		}
 
-		void DrawBoxBorder(::Canvas& c, unsigned border, Color borderColor)
+		void DrawBoxBorder(::Canvas& c, const unsigned border, const Color borderColor)
 		{
 			if (border == 0u)
 				return;
@@ -43,13 +61,12 @@ namespace Ui
 			FillRect(c, w - border, border, w - 1u, h - border - 1u, borderColor);
 		}
 
-		[[nodiscard]] bool IsDisabledPhase(UiVisualPhase phase) noexcept
+		[[nodiscard]] bool IsDisabledPhase(const UiVisualPhase phase) noexcept
 		{
 			return phase == UiVisualPhase::Disabled;
 		}
 
-		/** @brief 将 ApplyForm 生成的白色形状像素染成目标色。 */
-		void TintWhiteShapePixels(::Canvas& c, Color color)
+		void TintWhiteShapePixels(::Canvas& c, const Color color)
 		{
 			const unsigned w = c.GetCanvasWidth();
 			const unsigned h = c.GetCanvasHeight();
@@ -72,8 +89,12 @@ namespace Ui
 		DropdownCanvasStyle style)
 		:
 		style_(std::move(style)),
-		headerBgCanvas_(std::make_unique<Canvas2D>(gfx, headerPixelWidth, headerPixelHeight)),
-		headerTextCanvas_(std::make_unique<Canvas2D>(gfx, headerPixelWidth, headerPixelHeight)),
+		gfx_(gfx),
+		headerPixelWidth_(ClampCanvasPixelDim(headerPixelWidth)),
+		headerPixelHeight_(ClampCanvasPixelDim(headerPixelHeight)),
+		headerBgCanvas_(std::make_unique<Canvas2D>(gfx, headerPixelWidth_, headerPixelHeight_)),
+		headerTextCanvas_(std::make_unique<Canvas2D>(gfx, headerPixelWidth_, headerPixelHeight_)),
+		listPanelBgCanvas_(std::make_unique<Canvas2D>(gfx, 1u, 1u)),
 		arrowCanvas_(std::make_unique<Canvas2D>(
 			gfx,
 			std::max(8u, style_.arrowWidthPx),
@@ -82,18 +103,29 @@ namespace Ui
 		headerTextCanvas_->Clear(Colors::None);
 		BakeArrowGeometry_();
 		SyncArrowOrientation_(false);
+		EnsureListItemCount_(kInitialListItemPool);
 	}
 
 	void DropdownCanvasView::LinkTechniques(Rgph::RenderGraph& rg)
 	{
+		linkedRg_ = &rg;
 		headerBgCanvas_->LinkTechniques(rg);
 		headerTextCanvas_->LinkTechniques(rg);
+		listPanelBgCanvas_->LinkTechniques(rg);
 		arrowCanvas_->LinkTechniques(rg);
+		for (const auto& item : listItems_)
+			item->LinkTechniques(rg);
 	}
 
 	void DropdownCanvasView::Submit(const std::size_t channelMask) const
 	{
 		headerBgCanvas_->Submit(channelMask);
+		if (listVisible_)
+		{
+			listPanelBgCanvas_->Submit(channelMask);
+			for (const auto& item : listItems_)
+				item->Submit(channelMask);
+		}
 		headerTextCanvas_->Submit(channelMask);
 		arrowCanvas_->Submit(channelMask);
 	}
@@ -151,6 +183,78 @@ namespace Ui
 		arrowCanvas_->SetScale(arrowScale);
 	}
 
+	void DropdownCanvasView::RepaintListPanelBackground_()
+	{
+		::Canvas& c = *listPanelBgCanvas_;
+		c.Clear(style_.itemNormal);
+		listPanelPainted_ = true;
+	}
+
+	void DropdownCanvasView::EnsureListItemCount_(const std::size_t count)
+	{
+		const std::size_t cappedCount = std::min(count, kMaxListItemCount);
+
+		while (listItems_.size() < cappedCount)
+		{
+			auto item = std::make_unique<DropdownListItemCanvasView>(
+				gfx_,
+				headerPixelWidth_,
+				headerPixelHeight_,
+				style_);
+			if (linkedRg_ != nullptr)
+				item->LinkTechniques(*linkedRg_);
+			listItems_.push_back(std::move(item));
+		}
+	}
+
+	void DropdownCanvasView::ApplyListLayout_(const DropdownViewModel& vm)
+	{
+		if (!vm.expanded || vm.optionLabels.empty())
+		{
+			listVisible_ = false;
+			return;
+		}
+
+		listVisible_ = true;
+		const float listLogicalH = static_cast<float>(vm.optionLabels.size()) * vm.itemHeight;
+		const float headerBottom = layoutCenterY_ + layoutHeight_ * 0.5f;
+		const float listCenterY = headerBottom + listLogicalH * 0.5f;
+
+		const DirectX::XMFLOAT3 panelPos{ layoutCenterX_, listCenterY, 0.0f };
+		const DirectX::XMFLOAT3 panelScale{ layoutWidth_, listLogicalH, 1.0f };
+		listPanelBgCanvas_->SetPosition(panelPos);
+		listPanelBgCanvas_->SetScale(panelScale);
+
+		const float itemH = vm.itemHeight;
+		for (std::size_t i = 0; i < vm.optionLabels.size(); ++i)
+		{
+			const float itemCenterY = headerBottom + itemH * (static_cast<float>(i) + 0.5f);
+			listItems_[i]->ApplyLayout(layoutCenterX_, itemCenterY, layoutWidth_, itemH);
+		}
+	}
+
+	void DropdownCanvasView::SyncListItems_(const DropdownViewModel& vm)
+	{
+		if (!vm.expanded || vm.optionLabels.empty())
+		{
+			listVisible_ = false;
+			return;
+		}
+
+		EnsureListItemCount_(vm.optionLabels.size());
+		ApplyListLayout_(vm);
+
+		for (std::size_t i = 0; i < vm.optionLabels.size(); ++i)
+		{
+			const DropdownListItemViewModel rowVm{
+				.label = vm.optionLabels[i],
+				.highlighted = static_cast<int>(i) == vm.highlightIndex,
+				.selected = static_cast<int>(i) == vm.selectedIndex
+			};
+			listItems_[i]->SyncFrom(rowVm);
+		}
+	}
+
 	void DropdownCanvasView::RepaintHeaderBackground_(const UiVisualPhase phase)
 	{
 		::Canvas& c = *headerBgCanvas_;
@@ -163,7 +267,6 @@ namespace Ui
 		::Canvas& c = *arrowCanvas_;
 		c.ApplyForm(Canvas::Form::Polygon, 3.0f);
 		TintWhiteShapePixels(c, style_.arrowColor);
-		c.SetRotation(0.0f, 0.0f, -90.0f);
 	}
 
 	void DropdownCanvasView::SyncArrowOrientation_(const bool expanded) noexcept
@@ -172,8 +275,7 @@ namespace Ui
 			return;
 
 		arrowExpanded_ = expanded;
-		// Polygon(3) 默认顶点朝上；折叠态 ▼ 用 180° roll，展开态 ▲ 用 0°。
-		const float rollDeg = expanded ? 0.0f : 180.0f;
+		const float rollDeg = expanded ? 0.0f : -90.0f;
 		arrowCanvas_->SetRotation(rollDeg, 0.0f, 0.0f);
 	}
 
@@ -181,7 +283,6 @@ namespace Ui
 	{
 		::Canvas& c = *headerTextCanvas_;
 		const unsigned w = c.GetCanvasWidth();
-		const unsigned h = c.GetCanvasHeight();
 		const unsigned reservedArrow = style_.arrowWidthPx + style_.headerPaddingPx;
 		const unsigned textMaxW = (w > reservedArrow + style_.headerPaddingPx)
 			? w - reservedArrow - style_.headerPaddingPx
@@ -218,6 +319,17 @@ namespace Ui
 		const bool arrowDirty = !hasPainted_
 			|| vm.expanded != lastPainted_.expanded;
 
+		const bool listStructureDirty = !hasPainted_
+			|| vm.expanded != lastPainted_.expanded
+			|| vm.optionLabels != lastPainted_.optionLabels
+			|| vm.itemHeight != lastPainted_.itemHeight;
+
+		const bool listContentDirty = !hasPainted_
+			|| vm.expanded != lastPainted_.expanded
+			|| vm.optionLabels != lastPainted_.optionLabels
+			|| vm.highlightIndex != lastPainted_.highlightIndex
+			|| vm.selectedIndex != lastPainted_.selectedIndex;
+
 		if (bgDirty)
 			RepaintHeaderBackground_(vm.headerPhase);
 
@@ -227,7 +339,15 @@ namespace Ui
 		if (arrowDirty)
 			SyncArrowOrientation_(vm.expanded);
 
-		if (bgDirty || textDirty || arrowDirty)
+		if (vm.expanded && !listPanelPainted_)
+			RepaintListPanelBackground_();
+
+		if (listContentDirty)
+			SyncListItems_(vm);
+		else if (listStructureDirty)
+			ApplyListLayout_(vm);
+
+		if (bgDirty || textDirty || arrowDirty || listStructureDirty || listContentDirty)
 		{
 			lastPainted_ = vm;
 			hasPainted_ = true;

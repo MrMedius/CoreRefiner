@@ -41,8 +41,13 @@ namespace Ui
 	{
 		assert(focusHandle != kInvalidFocusHandle && "DropdownCanvasComponent: invalid FocusHandle");
 
-		const unsigned pixelW = static_cast<unsigned>(std::max(1.0f, width));
-		const unsigned pixelH = static_cast<unsigned>(std::max(1.0f, headerHeight));
+		constexpr unsigned kMaxCanvasPixelDim = 2048u;
+		const unsigned pixelW = std::min(
+			kMaxCanvasPixelDim,
+			static_cast<unsigned>(std::max(1.0f, width)));
+		const unsigned pixelH = std::min(
+			kMaxCanvasPixelDim,
+			static_cast<unsigned>(std::max(1.0f, headerHeight)));
 
 		constexpr UiRect kPlaceholder{ 0.0f, 0.0f, 1.0f, 1.0f };
 		dropdown_ = std::make_unique<UiDropdown>(focusHandle, kPlaceholder);
@@ -61,6 +66,7 @@ namespace Ui
 			return;
 
 		dropdown_->SetHeaderBounds(RectFromCenterExtents(centerX, centerY, width, headerHeight));
+		dropdown_->SetItemHeight(headerHeight);
 		view_->ApplyLayout(centerX, centerY, width, headerHeight);
 	}
 

@@ -24,6 +24,12 @@ namespace Ui
 		Color headerTextDisabled = Color(130u, 130u, 130u, 255u);
 		Color arrowColor = Color(200u, 200u, 205u, 255u);
 
+		Color itemNormal = Color(40u, 40u, 44u, 255u);
+		Color itemHighlight = Color(55u, 75u, 110u, 255u);
+		Color itemSelected = Color(35u, 65u, 105u, 255u);
+		Color itemText = Colors::White;
+		Color listBorder = Color(80u, 80u, 85u, 255u);
+
 		unsigned headerBorderPx = 1u;
 		unsigned headerPaddingPx = 8u;
 		unsigned arrowWidthPx = 16u;
