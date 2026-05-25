@@ -31,7 +31,7 @@ namespace Ui
 
 		void SetOnClick(std::function<void()> cb) { onClick_ = std::move(cb); }
 
-		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
+		void Update(const UiInputFrame& frame, FocusManager& focus) override;
 
 		[[nodiscard]] UiVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
 

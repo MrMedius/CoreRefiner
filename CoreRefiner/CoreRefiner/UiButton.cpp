@@ -51,7 +51,7 @@ namespace Ui
 			visualPhase_ = UiVisualPhase::Normal;
 	}
 
-	void UiButton::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void UiButton::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		if (!enabled_)
 		{

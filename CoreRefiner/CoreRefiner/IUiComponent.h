@@ -19,7 +19,7 @@ namespace Ui
 	public:
 		virtual ~IUiComponent() = default;
 
-		virtual void Update(const UiInputFrame& frame, const FocusManager& focus) = 0;
+		virtual void Update(const UiInputFrame& frame, FocusManager& focus) = 0;
 		virtual void SyncView() = 0;
 		virtual void LinkTechniques(Rgph::RenderGraph& rg) = 0;
 		virtual void Submit(const std::size_t channelMask) const = 0;

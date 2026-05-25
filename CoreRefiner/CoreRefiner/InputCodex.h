@@ -48,6 +48,7 @@ public:
     int MouseY() const noexcept                     { return mouse.GetPosY(); }
     bool MouseMovedOrButtons() const noexcept       { return mouse.IsMove() || MouseLeftPressed() || MouseRightPressed(); }
     bool MouseInWindow() const noexcept             { return mouse.IsInWindow(); }
+    [[nodiscard]] int WheelStepsThisFrame() const noexcept { return mouse.WheelStepsThisFrame(); }
 
     bool MouseLeftPressed() const noexcept      { return mouse.LeftIsPressed(); }
     bool MouseLeftTriggered() const noexcept    { return mouse.LeftIsTriggered(); }

@@ -91,7 +91,7 @@ namespace Ui
 		ApplyViewLayout_();
 	}
 
-	void ToggleCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void ToggleCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		toggle_->Update(frame, focus);
 	}

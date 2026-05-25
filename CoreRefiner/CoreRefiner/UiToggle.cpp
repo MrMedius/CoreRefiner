@@ -77,7 +77,7 @@ namespace Ui
 			visualPhase_ = UiVisualPhase::Normal;
 	}
 
-	void UiToggle::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void UiToggle::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		if (!enabled_)
 		{

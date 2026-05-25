@@ -51,6 +51,8 @@ namespace Ui
 
 		constexpr UiRect kPlaceholder{ 0.0f, 0.0f, 1.0f, 1.0f };
 		dropdown_ = std::make_unique<UiDropdown>(focusHandle, kPlaceholder);
+		dropdown_->SetMaxListVisibleItems(style.maxListVisibleItems);
+		dropdown_->SetScrollbarWidth(style.scrollbarWidth);
 		view_ = std::make_unique<DropdownCanvasView>(gfx, pixelW, pixelH, std::move(style));
 
 		SetLayoutLogicalCenterSize(centerX, centerY, width, headerHeight);
@@ -100,7 +102,7 @@ namespace Ui
 		dropdown_->ClearOptions();
 	}
 
-	void DropdownCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void DropdownCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		dropdown_->Update(frame, focus);
 	}

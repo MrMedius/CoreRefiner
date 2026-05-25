@@ -190,7 +190,7 @@ namespace Ui
 			NudgeValue(1.0f);
 	}
 
-	void UiSlider::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void UiSlider::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		if (!interactive_)
 		{

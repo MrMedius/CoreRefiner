@@ -5,6 +5,7 @@
 #include "TextCodex.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Ui
 {
@@ -91,6 +92,8 @@ namespace Ui
 		headerBgCanvas_(std::make_unique<Canvas2D>(gfx, headerPixelWidth_, headerPixelHeight_)),
 		headerTextCanvas_(std::make_unique<Canvas2D>(gfx, headerPixelWidth_, headerPixelHeight_)),
 		listPanelBgCanvas_(std::make_unique<Canvas2D>(gfx, 1u, 1u)),
+		scrollbarTrackCanvas_(std::make_unique<Canvas2D>(gfx, 1u, 1u)),
+		scrollbarThumbCanvas_(std::make_unique<Canvas2D>(gfx, 1u, 1u)),
 		arrowCanvas_(std::make_unique<Canvas2D>(
 			gfx,
 			std::max(8u, style_.arrowWidthPx),
@@ -98,6 +101,8 @@ namespace Ui
 	{
 		headerTextCanvas_->Clear(Colors::None);
 		arrowCanvas_->SetRotation(0.0f, 0.0f, -90.0f);
+		scrollbarTrackCanvas_->Clear(style_.scrollbarTrack);
+		scrollbarTrackPainted_ = true;
 
 		BakeArrowGeometry_();
 		SyncArrowOrientation_(false);
@@ -109,6 +114,8 @@ namespace Ui
 		headerBgCanvas_->LinkTechniques(rg);
 		headerTextCanvas_->LinkTechniques(rg);
 		listPanelBgCanvas_->LinkTechniques(rg);
+		scrollbarTrackCanvas_->LinkTechniques(rg);
+		scrollbarThumbCanvas_->LinkTechniques(rg);
 		arrowCanvas_->LinkTechniques(rg);
 		for (const auto& item : listItems_)
 			item->LinkTechniques(rg);
@@ -125,6 +132,12 @@ namespace Ui
 			listPanelBgCanvas_->Submit(channelMask);
 			for (std::size_t i = 0; i < activeListItemCount_; ++i)
 				listItems_[i]->Submit(channelMask);
+		}
+
+		if (scrollbarVisible_)
+		{
+			scrollbarTrackCanvas_->Submit(channelMask);
+			scrollbarThumbCanvas_->Submit(channelMask);
 		}
 	}
 
@@ -207,16 +220,18 @@ namespace Ui
 
 	void DropdownCanvasView::ApplyListLayout_(const DropdownViewModel& vm)
 	{
-		if (!vm.expanded || vm.optionLabels.empty())
+		if (!vm.expanded || vm.optionLabels.empty() || vm.visibleItemCount <= 0)
 		{
 			listVisible_ = false;
 			activeListItemCount_ = 0u;
+			scrollbarVisible_ = false;
 			return;
 		}
 
 		listVisible_ = true;
-		activeListItemCount_ = vm.optionLabels.size();
-		const float listLogicalH = static_cast<float>(vm.optionLabels.size()) * vm.itemHeight;
+		activeListItemCount_ = static_cast<std::size_t>(vm.visibleItemCount);
+
+		const float listLogicalH = vm.listViewportHeight;
 		const float headerBottom = layoutCenterY_ + layoutHeight_ * 0.5f + vm.listOffsetY;
 		const float listCenterY = headerBottom + listLogicalH * 0.5f;
 
@@ -226,33 +241,101 @@ namespace Ui
 		listPanelBgCanvas_->SetScale(panelScale);
 
 		const float itemH = vm.itemHeight;
-		for (std::size_t i = 0; i < vm.optionLabels.size(); ++i)
+		for (int i = 0; i < vm.visibleItemCount; ++i)
 		{
 			const float itemCenterY = headerBottom + itemH * (static_cast<float>(i) + 0.5f);
-			listItems_[i]->ApplyLayout(layoutCenterX_, itemCenterY, layoutWidth_, itemH);
+			listItems_[static_cast<size_t>(i)]->ApplyLayout(layoutCenterX_, itemCenterY, layoutWidth_, itemH);
 		}
+
+		ApplyScrollbarLayout_(vm);
+	}
+
+	void DropdownCanvasView::ApplyScrollbarLayout_(const DropdownViewModel& vm)
+	{
+		if (!vm.showScrollbar || vm.listViewportHeight <= 0.0f)
+		{
+			scrollbarVisible_ = false;
+			return;
+		}
+
+		scrollbarVisible_ = true;
+
+		const float headerBottom = layoutCenterY_ + layoutHeight_ * 0.5f + vm.listOffsetY;
+		const float halfHeaderW = layoutWidth_ * 0.5f;
+		const float trackCenterX = layoutCenterX_ + halfHeaderW - vm.scrollbarWidth * 0.5f;
+		const float trackCenterY = headerBottom + vm.listViewportHeight * 0.5f;
+
+		const DirectX::XMFLOAT3 trackPos{ trackCenterX, trackCenterY, 0.0f };
+		const DirectX::XMFLOAT3 trackScale{ vm.scrollbarWidth, vm.listViewportHeight, 1.0f };
+		scrollbarTrackCanvas_->SetPosition(trackPos);
+		scrollbarTrackCanvas_->SetScale(trackScale);
+
+		const float thumbH = std::max(
+			vm.itemHeight * 0.35f,
+			vm.listViewportHeight * vm.scrollThumbNormalizedSize);
+		const float movable = std::max(0.0f, vm.listViewportHeight - thumbH);
+		const float thumbTop = headerBottom + movable * vm.scrollThumbNormalizedPos;
+		const float thumbCenterY = thumbTop + thumbH * 0.5f;
+
+		const unsigned thumbPixelW = ClampCanvasPixelDim(
+			static_cast<unsigned>(std::max(1.0f, std::round(vm.scrollbarWidth))));
+		const unsigned thumbPixelH = ClampCanvasPixelDim(
+			static_cast<unsigned>(std::max(1.0f, std::round(thumbH))));
+		if (thumbPixelW != scrollbarThumbPixelWidth_ || thumbPixelH != scrollbarThumbPixelHeight_)
+		{
+			scrollbarThumbPixelWidth_ = thumbPixelW;
+			scrollbarThumbPixelHeight_ = thumbPixelH;
+			scrollbarThumbCanvas_->Resize(thumbPixelW, thumbPixelH);
+			scrollbarThumbPainted_ = false;
+		}
+
+		const DirectX::XMFLOAT3 thumbPos{ trackCenterX, thumbCenterY, 0.0f };
+		const DirectX::XMFLOAT3 thumbScale{ vm.scrollbarWidth, thumbH, 1.0f };
+		scrollbarThumbCanvas_->SetPosition(thumbPos);
+		scrollbarThumbCanvas_->SetScale(thumbScale);
+	}
+
+	void DropdownCanvasView::RepaintScrollbarTrack_()
+	{
+		::Canvas& c = *scrollbarTrackCanvas_;
+		c.Clear(style_.scrollbarTrack);
+		scrollbarTrackPainted_ = true;
+	}
+
+	void DropdownCanvasView::RepaintScrollbarThumb_(const bool hovered)
+	{
+		::Canvas& c = *scrollbarThumbCanvas_;
+		c.ApplyForm(Canvas::Form::RoundedRectangle, 0.5f);
+		TintWhiteShapePixels(c, hovered ? style_.scrollbarThumbHover : style_.scrollbarThumb);
+		scrollbarThumbPainted_ = true;
+		scrollbarThumbHovered_ = hovered;
 	}
 
 	void DropdownCanvasView::SyncListItems_(const DropdownViewModel& vm)
 	{
-		if (!vm.expanded || vm.optionLabels.empty())
+		if (!vm.expanded || vm.optionLabels.empty() || vm.visibleItemCount <= 0)
 		{
 			listVisible_ = false;
 			activeListItemCount_ = 0u;
+			scrollbarVisible_ = false;
 			return;
 		}
 
-		EnsureListItemCount_(vm.optionLabels.size());
+		EnsureListItemCount_(static_cast<std::size_t>(vm.visibleItemCount));
 		ApplyListLayout_(vm);
 
-		for (std::size_t i = 0; i < vm.optionLabels.size(); ++i)
+		for (int i = 0; i < vm.visibleItemCount; ++i)
 		{
+			const int optionIndex = vm.scrollOffset + i;
+			if (optionIndex < 0 || optionIndex >= static_cast<int>(vm.optionLabels.size()))
+				continue;
+
 			const DropdownListItemViewModel rowVm{
-				.label = vm.optionLabels[i],
-				.highlighted = static_cast<int>(i) == vm.highlightIndex,
-				.selected = static_cast<int>(i) == vm.selectedIndex
+				.label = vm.optionLabels[static_cast<size_t>(optionIndex)],
+				.highlighted = optionIndex == vm.highlightIndex,
+				.selected = optionIndex == vm.selectedIndex
 			};
-			listItems_[i]->SyncFrom(rowVm);
+			listItems_[static_cast<size_t>(i)]->SyncFrom(rowVm);
 		}
 	}
 
@@ -325,13 +408,37 @@ namespace Ui
 			|| vm.expanded != lastPainted_.expanded
 			|| vm.optionLabels != lastPainted_.optionLabels
 			|| vm.itemHeight != lastPainted_.itemHeight
-			|| vm.listOffsetY != lastPainted_.listOffsetY;
+			|| vm.listOffsetY != lastPainted_.listOffsetY
+			|| vm.scrollOffset != lastPainted_.scrollOffset
+			|| vm.visibleItemCount != lastPainted_.visibleItemCount
+			|| vm.showScrollbar != lastPainted_.showScrollbar
+			|| vm.listViewportHeight != lastPainted_.listViewportHeight
+			|| vm.scrollbarWidth != lastPainted_.scrollbarWidth
+			|| vm.scrollThumbNormalizedPos != lastPainted_.scrollThumbNormalizedPos
+			|| vm.scrollThumbNormalizedSize != lastPainted_.scrollThumbNormalizedSize;
 
 		const bool listContentDirty = !hasPainted_
 			|| vm.expanded != lastPainted_.expanded
 			|| vm.optionLabels != lastPainted_.optionLabels
 			|| vm.highlightIndex != lastPainted_.highlightIndex
-			|| vm.selectedIndex != lastPainted_.selectedIndex;
+			|| vm.selectedIndex != lastPainted_.selectedIndex
+			|| vm.scrollOffset != lastPainted_.scrollOffset
+			|| vm.visibleItemCount != lastPainted_.visibleItemCount;
+
+		const bool scrollbarLayoutDirty = !hasPainted_
+			|| vm.showScrollbar != lastPainted_.showScrollbar
+			|| vm.scrollThumbNormalizedPos != lastPainted_.scrollThumbNormalizedPos
+			|| vm.scrollThumbNormalizedSize != lastPainted_.scrollThumbNormalizedSize
+			|| vm.listViewportHeight != lastPainted_.listViewportHeight
+			|| vm.scrollbarWidth != lastPainted_.scrollbarWidth
+			|| vm.listOffsetY != lastPainted_.listOffsetY;
+
+		const bool scrollbarPaintDirty = !hasPainted_
+			|| vm.showScrollbar != lastPainted_.showScrollbar
+			|| vm.scrollbarHovered != lastPainted_.scrollbarHovered
+			|| vm.scrollThumbNormalizedSize != lastPainted_.scrollThumbNormalizedSize
+			|| vm.listViewportHeight != lastPainted_.listViewportHeight
+			|| vm.scrollbarWidth != lastPainted_.scrollbarWidth;
 
 		if (bgDirty)
 			RepaintHeaderBackground_(vm.headerPhase);
@@ -349,8 +456,14 @@ namespace Ui
 			SyncListItems_(vm);
 		else if (listStructureDirty)
 			ApplyListLayout_(vm);
+		else if (scrollbarLayoutDirty)
+			ApplyScrollbarLayout_(vm);
 
-		if (bgDirty || textDirty || arrowDirty || listStructureDirty || listContentDirty)
+		if (vm.showScrollbar && (!scrollbarThumbPainted_ || scrollbarPaintDirty))
+			RepaintScrollbarThumb_(vm.scrollbarHovered);
+
+		if (bgDirty || textDirty || arrowDirty || listStructureDirty || listContentDirty
+			|| scrollbarLayoutDirty || scrollbarPaintDirty)
 		{
 			lastPainted_ = vm;
 			hasPainted_ = true;

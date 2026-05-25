@@ -75,7 +75,7 @@ int Game::RunGame()
 			wnd.Gfx().BeginFrame();
 			const float dt = timer_update.Mark() * speed_factor;
 			TimeCodex::Get().Update(dt);
-			Update(dt);	
+			Update(dt);
 			InputCodex::Get().Update();
 			SoundCodex::Get().Update();
 			/********************************/

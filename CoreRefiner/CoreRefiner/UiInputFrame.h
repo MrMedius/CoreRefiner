@@ -29,11 +29,18 @@ namespace Ui
 		bool cancelPressed = false;
 	};
 
+	/** @brief 滚轮输入（Up 为正步进，Down 为负）。 */
+	struct UiScrollPayload
+	{
+		int wheelSteps = 0;
+	};
+
 	struct UiInputFrame
 	{
 		UiPointerPayload pointer{};
 		UiNavigationPayload navigation{};
 		UiActionPayload action{};
+		UiScrollPayload scroll{};
 	};
 
 	inline void MergeUiInputFramesOr(UiInputFrame& acc, const UiInputFrame& layer) noexcept
@@ -55,5 +62,7 @@ namespace Ui
 
 		acc.action.confirmPressed = acc.action.confirmPressed || layer.action.confirmPressed;
 		acc.action.cancelPressed = acc.action.cancelPressed || layer.action.cancelPressed;
+
+		acc.scroll.wheelSteps += layer.scroll.wheelSteps;
 	}
 }

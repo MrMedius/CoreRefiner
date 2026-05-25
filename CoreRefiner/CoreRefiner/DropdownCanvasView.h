@@ -46,6 +46,9 @@ namespace Ui
 		void EnsureListItemCount_(std::size_t count);
 		void ApplyListLayout_(const DropdownViewModel& vm);
 		void SyncListItems_(const DropdownViewModel& vm);
+		void ApplyScrollbarLayout_(const DropdownViewModel& vm);
+		void RepaintScrollbarTrack_();
+		void RepaintScrollbarThumb_(bool hovered);
 
 		DropdownCanvasStyle style_;
 		Graphics& gfx_;
@@ -56,6 +59,8 @@ namespace Ui
 		std::unique_ptr<Canvas2D> headerBgCanvas_;
 		std::unique_ptr<Canvas2D> headerTextCanvas_;
 		std::unique_ptr<Canvas2D> listPanelBgCanvas_;
+		std::unique_ptr<Canvas2D> scrollbarTrackCanvas_;
+		std::unique_ptr<Canvas2D> scrollbarThumbCanvas_;
 		std::unique_ptr<Canvas2D> arrowCanvas_;
 		std::vector<std::unique_ptr<DropdownListItemCanvasView>> listItems_;
 
@@ -71,5 +76,11 @@ namespace Ui
 		bool arrowExpanded_ = false;
 		bool listVisible_ = false;
 		bool listPanelPainted_ = false;
+		bool scrollbarVisible_ = false;
+		bool scrollbarTrackPainted_ = false;
+		bool scrollbarThumbPainted_ = false;
+		bool scrollbarThumbHovered_ = false;
+		unsigned scrollbarThumbPixelWidth_ = 1u;
+		unsigned scrollbarThumbPixelHeight_ = 1u;
 	};
 }

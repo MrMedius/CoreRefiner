@@ -30,7 +30,7 @@ namespace Ui
 
 		void SetOnValueChanged(std::function<void(bool)> cb) { onValueChanged_ = std::move(cb); }
 
-		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
+		void Update(const UiInputFrame& frame, FocusManager& focus) override;
 		[[nodiscard]] UiVisualPhase GetVisualPhase() const noexcept { return visualPhase_; }
 
 		void ResetPointerInteraction() noexcept override;

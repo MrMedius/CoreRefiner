@@ -81,7 +81,7 @@ namespace Ui
 		SetLayoutLogicalCenterSize(cx, cy, w, h);
 	}
 
-	void ButtonCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void ButtonCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		button_->Update(frame, focus);
 	}

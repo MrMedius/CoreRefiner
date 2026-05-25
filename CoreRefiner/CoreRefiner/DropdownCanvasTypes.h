@@ -34,6 +34,12 @@ namespace Ui
 		unsigned headerPaddingPx = 8u;
 		unsigned arrowWidthPx = 16u;
 
+		unsigned maxListVisibleItems = 8u;
+		float scrollbarWidth = 12.0f;
+		Color scrollbarTrack = Color(35u, 35u, 38u, 255u);
+		Color scrollbarThumb = Color(90u, 90u, 95u, 255u);
+		Color scrollbarThumbHover = Color(120u, 120u, 128u, 255u);
+
 		Text::FontSource primaryFont = Text::FontSource::System(L"Segoe UI");
 		float fontSize = 18.0f;
 	};

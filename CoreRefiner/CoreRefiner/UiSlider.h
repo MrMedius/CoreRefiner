@@ -34,7 +34,7 @@ namespace Ui
 
 		void SetOnValueChanged(std::function<void(float)> cb) { onValueChanged_ = std::move(cb); }
 
-		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
+		void Update(const UiInputFrame& frame, FocusManager& focus) override;
 		[[nodiscard]] FocusHandle GetFocusHandle() const noexcept override { return focusHandle_; }
 		void ResetPointerInteraction() noexcept override;
 		[[nodiscard]] bool IsFocusable() const noexcept override;

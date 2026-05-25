@@ -75,7 +75,7 @@ namespace Ui
 		view_->ApplyLayout(slider_->GetGrooveLayout());
 	}
 
-	void SliderCanvasComponent::Update(const UiInputFrame& frame, const FocusManager& focus)																							
+	void SliderCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)																							
 	{																							
 		slider_->Update(frame, focus);																							
 	}

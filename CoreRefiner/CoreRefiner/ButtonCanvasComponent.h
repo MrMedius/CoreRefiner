@@ -58,7 +58,7 @@ namespace Ui
 
 		void SetLayoutLogicalRect(const UiRect& r) noexcept;
 
-		void Update(const UiInputFrame& frame, const FocusManager& focus) override;
+		void Update(const UiInputFrame& frame, FocusManager& focus) override;
 		void SyncView() override;
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;

@@ -9,6 +9,8 @@
 
 #include <algorithm>
 
+#include <cmath>
+
 
 
 namespace Ui
@@ -82,6 +84,188 @@ namespace Ui
 		itemHeight_ = std::max(1.0f, logicalHeight);
 
 		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::SetMaxListVisibleItems(const unsigned count) noexcept
+
+	{
+
+		maxListVisibleItems_ = std::max(1u, count);
+
+		ClampScrollOffset_();
+
+		if (expanded_)
+
+			RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::SetScrollbarWidth(const float logicalWidth) noexcept
+
+	{
+
+		scrollbarWidth_ = std::max(4.0f, logicalWidth);
+
+		if (expanded_)
+
+			RebuildItemBounds_();
+
+	}
+
+
+
+	int UiDropdown::GetVisibleItemCount() const noexcept
+
+	{
+
+		if (options_.empty())
+
+			return 0;
+
+
+
+		const int capacity = GetVisibleItemCapacity_();
+
+		return std::min(capacity, static_cast<int>(options_.size()) - scrollOffset_);
+
+	}
+
+
+
+	bool UiDropdown::GetShowScrollbar() const noexcept
+
+	{
+
+		return expanded_ && NeedsScroll_();
+
+	}
+
+
+
+	float UiDropdown::GetListViewportHeight() const noexcept
+
+	{
+
+		return static_cast<float>(GetVisibleItemCount()) * itemHeight_;
+
+	}
+
+
+
+	float UiDropdown::GetScrollThumbNormalizedPos() const noexcept
+
+	{
+
+		const int maxScroll = GetMaxScrollOffset_();
+
+		if (maxScroll <= 0)
+
+			return 0.0f;
+
+
+
+		return static_cast<float>(scrollOffset_) / static_cast<float>(maxScroll);
+
+	}
+
+
+
+	float UiDropdown::GetScrollThumbNormalizedSize() const noexcept
+
+	{
+
+		if (options_.empty())
+
+			return 1.0f;
+
+
+
+		const int capacity = GetVisibleItemCapacity_();
+
+		return std::min(
+
+			1.0f,
+
+			static_cast<float>(capacity) / static_cast<float>(options_.size()));
+
+	}
+
+
+
+	int UiDropdown::GetVisibleItemCapacity_() const noexcept
+
+	{
+
+		return static_cast<int>(std::max(1u, maxListVisibleItems_));
+
+	}
+
+
+
+	int UiDropdown::GetMaxScrollOffset_() const noexcept
+
+	{
+
+		if (!NeedsScroll_())
+
+			return 0;
+
+
+
+		return static_cast<int>(options_.size()) - GetVisibleItemCapacity_();
+
+	}
+
+
+
+	bool UiDropdown::NeedsScroll_() const noexcept
+
+	{
+
+		return static_cast<int>(options_.size()) > GetVisibleItemCapacity_();
+
+	}
+
+
+
+	void UiDropdown::ClampScrollOffset_() noexcept
+
+	{
+
+		scrollOffset_ = std::clamp(scrollOffset_, 0, GetMaxScrollOffset_());
+
+	}
+
+
+
+	void UiDropdown::EnsureHighlightVisible_() noexcept
+
+	{
+
+		if (highlightIndex_ < 0 || !NeedsScroll_())
+
+			return;
+
+
+
+		const int capacity = GetVisibleItemCapacity_();
+
+		if (highlightIndex_ < scrollOffset_)
+
+			scrollOffset_ = highlightIndex_;
+
+		else if (highlightIndex_ >= scrollOffset_ + capacity)
+
+			scrollOffset_ = highlightIndex_ - capacity + 1;
+
+
+
+		ClampScrollOffset_();
 
 	}
 
@@ -259,6 +443,10 @@ namespace Ui
 
 			highlightIndex_ = static_cast<int>(options_.size()) - 1;
 
+
+
+		ClampScrollOffset_();
+
 	}
 
 
@@ -319,6 +507,10 @@ namespace Ui
 
 		listBounds_ = {};
 
+		scrollbarTrackBounds_ = {};
+
+		scrollbarThumbBounds_ = {};
+
 		listOffsetY_ = 0.0f;
 
 
@@ -328,6 +520,8 @@ namespace Ui
 			return;
 
 
+
+		ClampScrollOffset_();
 
 		RecomputeListEdgeOffset_();
 
@@ -341,9 +535,13 @@ namespace Ui
 
 
 
-		itemBounds_.reserve(options_.size());
+		const int visibleCount = GetVisibleItemCount();
 
-		for (size_t i = 0; i < options_.size(); ++i)
+		itemBounds_.reserve(static_cast<size_t>(visibleCount));
+
+
+
+		for (int localIndex = 0; localIndex < visibleCount; ++localIndex)
 
 		{
 
@@ -365,7 +563,7 @@ namespace Ui
 
 
 
-			if (i == 0u)
+			if (localIndex == 0)
 
 				listBounds_ = item;
 
@@ -385,6 +583,10 @@ namespace Ui
 
 		}
 
+
+
+		RecomputeScrollbarBounds_();
+
 	}
 
 
@@ -397,7 +599,7 @@ namespace Ui
 
 
 
-		const float listH = static_cast<float>(options_.size()) * itemHeight_;
+		const float listH = GetListViewportHeight();
 
 		const float listTop = headerBounds_.maxY;
 
@@ -421,6 +623,68 @@ namespace Ui
 
 
 
+	void UiDropdown::RecomputeScrollbarBounds_() noexcept
+
+	{
+
+		scrollbarTrackBounds_ = {};
+
+		scrollbarThumbBounds_ = {};
+
+
+
+		if (!GetShowScrollbar())
+
+			return;
+
+
+
+		const float trackTop = headerBounds_.maxY + listOffsetY_;
+
+		const float trackBottom = trackTop + GetListViewportHeight();
+
+
+
+		scrollbarTrackBounds_ = {
+
+			.minX = headerBounds_.maxX - scrollbarWidth_,
+
+			.minY = trackTop,
+
+			.maxX = headerBounds_.maxX,
+
+			.maxY = trackBottom
+
+		};
+
+
+
+		const float trackH = trackBottom - trackTop;
+
+		const float thumbH = std::max(itemHeight_ * 0.35f, trackH * GetScrollThumbNormalizedSize());
+
+		const float movable = std::max(0.0f, trackH - thumbH);
+
+		const float thumbTop = trackTop + movable * GetScrollThumbNormalizedPos();
+
+
+
+		scrollbarThumbBounds_ = {
+
+			.minX = scrollbarTrackBounds_.minX,
+
+			.minY = thumbTop,
+
+			.maxX = scrollbarTrackBounds_.maxX,
+
+			.maxY = thumbTop + thumbH
+
+		};
+
+	}
+
+
+
 	void UiDropdown::SetExpanded_(const bool expanded) noexcept
 
 	{
@@ -439,6 +703,28 @@ namespace Ui
 
 			highlightIndex_ = -1;
 
+			keyboardListNavPrimed_ = false;
+
+			trackingScrollbarDrag_ = false;
+
+			scrollbarHovered_ = false;
+
+			scrollOffset_ = 0;
+
+			if (selectedIndex_ >= 0 && NeedsScroll_())
+
+			{
+
+				const int capacity = GetVisibleItemCapacity_();
+
+				if (selectedIndex_ >= capacity)
+
+					scrollOffset_ = std::min(selectedIndex_ - capacity + 1, GetMaxScrollOffset_());
+
+			}
+
+			ClampScrollOffset_();
+
 			RebuildItemBounds_();
 
 		}
@@ -451,7 +737,19 @@ namespace Ui
 
 			listBounds_ = {};
 
+			scrollbarTrackBounds_ = {};
+
+			scrollbarThumbBounds_ = {};
+
 			highlightIndex_ = -1;
+
+			keyboardListNavPrimed_ = false;
+
+			trackingScrollbarDrag_ = false;
+
+			scrollbarHovered_ = false;
+
+			scrollOffset_ = 0;
 
 		}
 
@@ -523,7 +821,7 @@ namespace Ui
 
 			if (itemBounds_[static_cast<size_t>(i)].Contains(x, y))
 
-				return i;
+				return scrollOffset_ + i;
 
 		}
 
@@ -541,7 +839,35 @@ namespace Ui
 
 			return true;
 
-		return expanded_ && listBounds_.Contains(x, y);
+		if (!expanded_)
+
+			return false;
+
+
+
+		if (listBounds_.Contains(x, y))
+
+			return true;
+
+
+
+		return scrollbarTrackBounds_.Contains(x, y);
+
+	}
+
+
+
+	bool UiDropdown::IsPointerOverScrollbar_(const UiInputFrame& frame) const noexcept
+
+	{
+
+		if (!GetShowScrollbar() || !ClientPointValid(frame.pointer))
+
+			return false;
+
+
+
+		return scrollbarTrackBounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY);
 
 	}
 
@@ -599,19 +925,219 @@ namespace Ui
 
 	{
 
+		if (!expanded_ || !ClientPointValid(frame.pointer) || trackingScrollbarDrag_)
+
+			return;
+
+
+
+		keyboardListNavPrimed_ = false;
+
+
+
+		if (IsPointerOverList_(frame))
+
+			highlightIndex_ = HitTestItemIndex_(frame.pointer.logicalX, frame.pointer.logicalY);
+
+		else if (IsPointerOverScrollbar_(frame))
+
+			highlightIndex_ = -1;
+
+		else
+
+			highlightIndex_ = -1;
+
+	}
+
+
+
+	void UiDropdown::HandleListScrollInput_(const UiInputFrame& frame) noexcept
+
+	{
+
+		if (!expanded_ || !NeedsScroll_() || frame.scroll.wheelSteps == 0)
+
+			return;
+
+
+
+		scrollOffset_ -= frame.scroll.wheelSteps;
+
+		ClampScrollOffset_();
+
+		RebuildItemBounds_();
+
+	}
+
+
+
+	void UiDropdown::ApplyScrollFromPointerY_(const float pointerY) noexcept
+
+	{
+
+		if (!GetShowScrollbar())
+
+			return;
+
+
+
+		const float trackTop = scrollbarTrackBounds_.minY;
+
+		const float trackH = scrollbarTrackBounds_.maxY - trackTop;
+
+		const float thumbH = scrollbarThumbBounds_.maxY - scrollbarThumbBounds_.minY;
+
+		const float movable = std::max(0.0f, trackH - thumbH);
+
+		if (movable <= 0.0f)
+
+		{
+
+			scrollOffset_ = 0;
+
+			ClampScrollOffset_();
+
+			return;
+
+		}
+
+
+
+		const float relY = std::clamp(pointerY - trackTop - thumbH * 0.5f, 0.0f, movable);
+
+		const float t = relY / movable;
+
+		const int maxScroll = GetMaxScrollOffset_();
+
+		scrollOffset_ = static_cast<int>(std::lround(t * static_cast<float>(maxScroll)));
+
+		ClampScrollOffset_();
+
+	}
+
+
+
+	void UiDropdown::UpdateScrollbarInteraction_(const UiInputFrame& frame) noexcept
+
+	{
+
+		if (!expanded_)
+
+		{
+
+			trackingScrollbarDrag_ = false;
+
+			scrollbarHovered_ = false;
+
+			return;
+
+		}
+
+
+
+		scrollbarHovered_ = IsPointerOverScrollbar_(frame);
+
+
+
+		if (trackingScrollbarDrag_)
+
+		{
+
+			if (!frame.pointer.primaryDown)
+
+			{
+
+				trackingScrollbarDrag_ = false;
+
+			}
+
+			else if (ClientPointValid(frame.pointer))
+
+			{
+
+				ApplyScrollFromPointerY_(frame.pointer.logicalY);
+
+				RebuildItemBounds_();
+
+			}
+
+			return;
+
+		}
+
+
+
+		if (!GetShowScrollbar() || !ClientPointValid(frame.pointer))
+
+			return;
+
+
+
+		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_)
+
+		{
+
+			if (scrollbarTrackBounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY))
+
+			{
+
+				trackingScrollbarDrag_ = true;
+
+				keyboardListNavPrimed_ = false;
+
+
+
+				if (!scrollbarThumbBounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY))
+
+					ApplyScrollFromPointerY_(frame.pointer.logicalY);
+
+
+
+				RebuildItemBounds_();
+
+			}
+
+		}
+
+	}
+
+
+
+	void UiDropdown::HandleExpandedListNavigation_(const UiInputFrame& frame) noexcept
+
+	{
+
 		if (!expanded_)
 
 			return;
 
 
 
-		if (IsPointerOverHeader_(frame))
+		if (!frame.navigation.navUp && !frame.navigation.navDown)
+
+			return;
+
+
+
+		if (!ClientPointValid(frame.pointer) && !keyboardListNavPrimed_)
+
+		{
 
 			highlightIndex_ = -1;
 
-		else if (IsPointerOverList_(frame))
+			keyboardListNavPrimed_ = true;
 
-			highlightIndex_ = HitTestItemIndex_(frame.pointer.logicalX, frame.pointer.logicalY);
+		}
+
+
+
+		if (frame.navigation.navDown)
+
+			MoveListHighlight_(1);
+
+		if (frame.navigation.navUp)
+
+			MoveListHighlight_(-1);
 
 	}
 
@@ -659,6 +1185,14 @@ namespace Ui
 
 		}
 
+
+
+		EnsureHighlightVisible_();
+
+		if (NeedsScroll_())
+
+			RebuildItemBounds_();
+
 	}
 
 
@@ -677,7 +1211,7 @@ namespace Ui
 
 		const UiInputFrame& frame,
 
-		const FocusManager& focus) noexcept
+		FocusManager& focus) noexcept
 
 	{
 
@@ -686,6 +1220,22 @@ namespace Ui
 		{
 
 			headerPhase_ = UiVisualPhase::Disabled;
+
+			return;
+
+		}
+
+
+
+		if (expanded_)
+
+		{
+
+			headerPhase_ = focus.IsFocused(focusHandle_)
+
+				? UiVisualPhase::Focused
+
+				: UiVisualPhase::Normal;
 
 			return;
 
@@ -715,7 +1265,7 @@ namespace Ui
 
 
 
-	void UiDropdown::Update(const UiInputFrame& frame, const FocusManager& focus)
+	void UiDropdown::Update(const UiInputFrame& frame, FocusManager& focus)
 
 	{
 
@@ -739,13 +1289,31 @@ namespace Ui
 
 
 
-		if (focus.IsFocused(focusHandle_) && frame.action.confirmPressed)
+		if (expanded_)
+
+		{
+
+			UpdateScrollbarInteraction_(frame);
+
+			HandleListScrollInput_(frame);
+
+		}
+
+
+
+		if (frame.action.confirmPressed)
 
 		{
 
 			if (!expanded_)
 
-				SetExpanded_(true);
+			{
+
+				if (focus.IsFocused(focusHandle_))
+
+					SetExpanded_(true);
+
+			}
 
 			else if (highlightIndex_ >= 0)
 
@@ -765,19 +1333,7 @@ namespace Ui
 
 
 
-		if (focus.IsFocused(focusHandle_) && expanded_)
-
-		{
-
-			if (frame.navigation.navDown)
-
-				MoveListHighlight_(1);
-
-			if (frame.navigation.navUp)
-
-				MoveListHighlight_(-1);
-
-		}
+		HandleExpandedListNavigation_(frame);
 
 
 
@@ -789,6 +1345,8 @@ namespace Ui
 
 		const bool overHeader = IsPointerOverHeader_(frame);
 
+
+
 		if (expanded_)
 
 			UpdateHighlightFromPointer_(frame);
@@ -799,7 +1357,17 @@ namespace Ui
 
 		{
 
-			if (overHeader || (expanded_ && IsPointerOverList_(frame)))
+			if (expanded_)
+
+			{
+
+				if (IsPointerOverList_(frame) || IsPointerOverScrollbar_(frame))
+
+					trackingPointerPress_ = true;
+
+			}
+
+			else if (overHeader)
 
 				trackingPointerPress_ = true;
 
@@ -841,11 +1409,7 @@ namespace Ui
 
 					}
 
-					else if (overHeader)
-
-						Collapse_();
-
-					else if (!headerBounds_.Contains(px, py) && !listBounds_.Contains(px, py))
+					else if (!IsPointerInsideDropdown_(px, py))
 
 						Collapse_();
 
@@ -853,7 +1417,13 @@ namespace Ui
 
 				else if (overHeader)
 
+				{
+
 					ToggleExpanded_();
+
+					focus.RequestFocus(focusHandle_);
+
+				}
 
 			}
 
@@ -874,6 +1444,10 @@ namespace Ui
 	{
 
 		trackingPointerPress_ = false;
+
+		trackingScrollbarDrag_ = false;
+
+		scrollbarHovered_ = false;
 
 		pointerWasDownLastFrame_ = false;
 

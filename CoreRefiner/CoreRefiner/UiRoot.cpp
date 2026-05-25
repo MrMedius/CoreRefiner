@@ -109,15 +109,32 @@ namespace Ui
 
 		focus_.ApplyNavigation(frame);
 
-		bool consumeDirectional = false;
-		const FocusHandle focused = focus_.Focused();
+		IUiComponent* directionalConsumer = nullptr;
+		IUiComponent* scrollWheelConsumer = nullptr;
 		for (IUiComponent* c : components_)
 		{
-			if (c->GetFocusHandle() == focused)
+			if (!c->ConsumesDirectionalNavigation())
+				continue;
+
+			if (scrollWheelConsumer == nullptr)
+				scrollWheelConsumer = c;
+
+			if (focus_.IsFocused(c->GetFocusHandle()))
 			{
-				consumeDirectional = c->ConsumesDirectionalNavigation();
+				scrollWheelConsumer = c;
+				directionalConsumer = c;
 				break;
 			}
+
+			if (directionalConsumer == nullptr)
+				directionalConsumer = c;
+		}
+
+		const bool consumeDirectional = directionalConsumer != nullptr;
+		if (consumeDirectional
+			&& (frame.navigation.navUp || frame.navigation.navDown))
+		{
+			focus_.RequestFocus(directionalConsumer->GetFocusHandle());
 		}
 
 		if (!consumeDirectional)
@@ -130,7 +147,11 @@ namespace Ui
 
 		for (IUiComponent* c : components_)
 		{
-			c->Update(widgetFrame, focus_);
+			UiInputFrame componentFrame = widgetFrame;
+			if (scrollWheelConsumer != nullptr && c != scrollWheelConsumer)
+				componentFrame.scroll.wheelSteps = 0;
+
+			c->Update(componentFrame, focus_);
 			c->SyncView();
 		}
 	}

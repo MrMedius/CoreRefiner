@@ -142,14 +142,16 @@ public:
 			const float dropdownH = static_cast<float>(btnHeight);
 			const float dropdownX = static_cast<float>(centerX);
 			dropdownQuality_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY) * 6.5f, dropdownW, dropdownH);
+				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY) * 6.5f, dropdownW, dropdownH,
+				Ui::DropdownCanvasStyle{ .maxListVisibleItems = 3u });
 			dropdownQuality_->AddOptions({
 				{.label = "Ultra" },
 				{.label = "Very Low" },
 				});
 
 			dropdownCustom_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY), dropdownW, dropdownH);
+				gfx, 514u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY), dropdownW, dropdownH,
+				Ui::DropdownCanvasStyle{ .maxListVisibleItems = 5u });
 			dropdownCustom_->AddOptions({
 				{.label = "Custom 1" },
 				{.label = "Custom 2" },

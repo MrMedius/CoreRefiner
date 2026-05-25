@@ -7,6 +7,8 @@ void Mouse::Update(void)
 	rightOldState = rightState;
 	oldX = x;
 	oldY = y;
+	wheelStepsThisFrame_ = wheelStepsPending_;
+	wheelStepsPending_ = 0;
 }
 
 std::pair<int,int> Mouse::GetPos() const noexcept
@@ -169,12 +171,14 @@ void Mouse::OnRightReleased( int x,int y ) noexcept
 
 void Mouse::OnWheelUp( int x,int y ) noexcept
 {
+	++wheelStepsPending_;
 	buffer.push( Mouse::Event( Mouse::Event::Type::WheelUp,*this ) );
 	TrimBuffer();
 }
 
 void Mouse::OnWheelDown( int x,int y ) noexcept
 {
+	--wheelStepsPending_;
 	buffer.push( Mouse::Event( Mouse::Event::Type::WheelDown,*this ) );
 	TrimBuffer();
 }

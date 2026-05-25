@@ -42,6 +42,24 @@ namespace Ui
 
 		/** @brief 展开时仅 List 相对默认位置的应用 Y 偏移（Header 不动）。 */
 		float listOffsetY = 0.0f;
+
+		/** @brief 列表滚动：首条可见选项在 optionLabels 中的索引。 */
+		int scrollOffset = 0;
+
+		/** @brief 当前视口内可见行数（≤ maxListVisibleItems）。 */
+		int visibleItemCount = 0;
+
+		bool showScrollbar = false;
+
+		float listViewportHeight = 0.0f;
+
+		float scrollbarWidth = 12.0f;
+
+		float scrollThumbNormalizedPos = 0.0f;
+
+		float scrollThumbNormalizedSize = 1.0f;
+
+		bool scrollbarHovered = false;
 	};
 
 
@@ -68,7 +86,23 @@ namespace Ui
 
 			.itemHeight = dropdown.GetItemHeight(),
 
-			.listOffsetY = dropdown.GetListOffsetY()
+			.listOffsetY = dropdown.GetListOffsetY(),
+
+			.scrollOffset = dropdown.GetScrollOffset(),
+
+			.visibleItemCount = dropdown.GetVisibleItemCount(),
+
+			.showScrollbar = dropdown.GetShowScrollbar(),
+
+			.listViewportHeight = dropdown.GetListViewportHeight(),
+
+			.scrollbarWidth = dropdown.GetScrollbarWidth(),
+
+			.scrollThumbNormalizedPos = dropdown.GetScrollThumbNormalizedPos(),
+
+			.scrollThumbNormalizedSize = dropdown.GetScrollThumbNormalizedSize(),
+
+			.scrollbarHovered = dropdown.IsScrollbarHovered()
 
 		};
 
