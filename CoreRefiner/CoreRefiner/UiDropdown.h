@@ -200,9 +200,11 @@ namespace Ui
 
 		void ToggleExpanded_() noexcept;
 
-		void Collapse_() noexcept;
+		void Collapse_(FocusManager& focus) noexcept;
 
-		void TryCollapseOnExternalInteraction_(const UiInputFrame& frame) noexcept;
+		void ReleaseFocusIfHeld_(FocusManager& focus) noexcept;
+
+		void TryCollapseOnExternalInteraction_(const UiInputFrame& frame, FocusManager& focus) noexcept;
 
 
 

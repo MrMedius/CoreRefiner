@@ -285,7 +285,7 @@ namespace Ui
 
 			pointerWasDownLastFrame_ = false;
 
-			Collapse_();
+			SetExpanded_(false);
 
 		}
 
@@ -767,11 +767,25 @@ namespace Ui
 
 
 
-	void UiDropdown::Collapse_() noexcept
+	void UiDropdown::ReleaseFocusIfHeld_(FocusManager& focus) noexcept
+
+	{
+
+		if (focus.IsFocused(focusHandle_))
+
+			focus.ClearFocus();
+
+	}
+
+
+
+	void UiDropdown::Collapse_(FocusManager& focus) noexcept
 
 	{
 
 		SetExpanded_(false);
+
+		ReleaseFocusIfHeld_(focus);
 
 	}
 
@@ -873,21 +887,21 @@ namespace Ui
 
 
 
-	void UiDropdown::TryCollapseOnExternalInteraction_(const UiInputFrame& frame) noexcept
+	void UiDropdown::TryCollapseOnExternalInteraction_(
+
+		const UiInputFrame& frame,
+
+		FocusManager& focus) noexcept
 
 	{
-
-		if (!expanded_)
-
-			return;
-
-
 
 		if (frame.navigation.tabNext || frame.navigation.tabPrev)
 
 		{
 
-			Collapse_();
+			if (expanded_)
+
+				Collapse_(focus);
 
 			return;
 
@@ -913,7 +927,13 @@ namespace Ui
 
 		{
 
-			Collapse_();
+			if (expanded_)
+
+				Collapse_(focus);
+
+			else
+
+				ReleaseFocusIfHeld_(focus);
 
 		}
 
@@ -1285,7 +1305,7 @@ namespace Ui
 
 
 
-		TryCollapseOnExternalInteraction_(frame);
+		TryCollapseOnExternalInteraction_(frame, focus);
 
 
 
@@ -1321,13 +1341,13 @@ namespace Ui
 
 				SetSelectedIndex(highlightIndex_, true);
 
-				Collapse_();
+				Collapse_(focus);
 
 			}
 
 			else
 
-				Collapse_();
+				Collapse_(focus);
 
 		}
 
@@ -1339,7 +1359,7 @@ namespace Ui
 
 		if (frame.action.cancelPressed && expanded_)
 
-			Collapse_();
+			Collapse_(focus);
 
 
 
@@ -1361,7 +1381,7 @@ namespace Ui
 
 			{
 
-				if (IsPointerOverList_(frame) || IsPointerOverScrollbar_(frame))
+				if (IsPointerOverList_(frame) || IsPointerOverScrollbar_(frame) || overHeader)
 
 					trackingPointerPress_ = true;
 
@@ -1405,13 +1425,17 @@ namespace Ui
 
 						SetSelectedIndex(hitItem, true);
 
-						Collapse_();
+						Collapse_(focus);
 
 					}
 
+					else if (overHeader)
+
+						Collapse_(focus);
+
 					else if (!IsPointerInsideDropdown_(px, py))
 
-						Collapse_();
+						Collapse_(focus);
 
 				}
 
