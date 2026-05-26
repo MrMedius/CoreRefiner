@@ -24,8 +24,13 @@ namespace Ui
 			frame.navigation.navUp = true;
 
 
+		const bool confirmDown = in.KeyPressed(VK_RETURN) || in.KeyPressed(VK_SPACE);
+		if (confirmDown)
+			frame.action.confirmDown = true;
 		if (in.KeyTriggered(VK_RETURN) || in.KeyTriggered(VK_SPACE))
 			frame.action.confirmPressed = true;
+		if (in.KeyReleased(VK_RETURN) || in.KeyReleased(VK_SPACE))
+			frame.action.confirmReleased = true;
 		if (in.KeyTriggered(VK_ESCAPE))
 			frame.action.cancelPressed = true;
 

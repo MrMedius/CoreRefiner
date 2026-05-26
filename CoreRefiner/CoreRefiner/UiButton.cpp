@@ -23,6 +23,7 @@ namespace Ui
 		if (!enabled_)
 		{
 			trackingPointerPress_ = false;
+			trackingConfirmPress_ = false;
 			pointerWasDownLastFrame_ = false;
 		}
 	}
@@ -42,7 +43,8 @@ namespace Ui
 			return;
 		}
 		const bool focused = IsPointerOver(frame) || focus.IsFocused(focusHandle_);
-		const bool pressVisual = trackingPointerPress_ && frame.pointer.primaryDown;
+		const bool pressVisual = (trackingPointerPress_ && frame.pointer.primaryDown)
+			|| (trackingConfirmPress_ && frame.action.confirmDown);
 		if (pressVisual)
 			visualPhase_ = UiVisualPhase::Pressed;
 		else if (focused)
@@ -56,15 +58,29 @@ namespace Ui
 		if (!enabled_)
 		{
 			trackingPointerPress_ = false;
+			trackingConfirmPress_ = false;
 			pointerWasDownLastFrame_ = frame.pointer.primaryDown;
 			RecomputeVisualPhase(frame, focus);
 			return;
 		}
-		if (focus.IsFocused(focusHandle_) && frame.action.confirmPressed)
+
+		const bool focused = focus.IsFocused(focusHandle_);
+		if (frame.action.confirmPressed && focused)
+			trackingConfirmPress_ = true;
+		if (frame.action.confirmReleased)
 		{
-			if (onClick_)
-				onClick_();
+			if (trackingConfirmPress_)
+			{
+				trackingConfirmPress_ = false;
+				if (focused && onClick_)
+					onClick_();
+			}
 		}
+		else if (trackingConfirmPress_ && !frame.action.confirmDown)
+			trackingConfirmPress_ = false;
+		if (trackingConfirmPress_ && !focused)
+			trackingConfirmPress_ = false;
+
 		const bool over = IsPointerOver(frame);
 		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_ && over)
 			trackingPointerPress_ = true;
@@ -86,6 +102,7 @@ namespace Ui
 	void UiButton::ResetPointerInteraction() noexcept
 	{
 		trackingPointerPress_ = false;
+		trackingConfirmPress_ = false;
 		pointerWasDownLastFrame_ = false;
 	}
 }

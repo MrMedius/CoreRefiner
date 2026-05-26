@@ -159,15 +159,8 @@ public:
 				{.label = "Custom 3" },
 				{.label = "Custom 4" },
 				{.label = "Custom 5" },
-				{.label = "Custom 10" },
-				{.label = "Custom 20" },
-				{.label = "Custom 30" },
-				{.label = "Custom 40" },
-				{.label = "Custom 50" },
 				});
 			dropdownCustom_->AddOption({ .label = "Custom 6" });
-
-
 
 			uiRoot = std::make_unique<Ui::UiRoot>();
 			uiRoot->Clear();

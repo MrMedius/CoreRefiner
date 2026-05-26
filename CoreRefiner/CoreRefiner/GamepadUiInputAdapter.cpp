@@ -31,8 +31,12 @@ namespace Ui
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_DPAD_DOWN))
 			frame.navigation.navDown = true;
 
+		if (in.GP_Pressed(padIndex_, Gamepad::GP_A))
+			frame.action.confirmDown = true;
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_A))
 			frame.action.confirmPressed = true;
+		if (in.GP_Released(padIndex_, Gamepad::GP_A))
+			frame.action.confirmReleased = true;
 		if (in.GP_Triggered(padIndex_, Gamepad::GP_B))
 			frame.action.cancelPressed = true;
 

@@ -77,10 +77,10 @@ namespace Ui
 		const bool nonPointerSemantic =
 			kbd.navigation.tabNext || kbd.navigation.tabPrev
 			|| kbd.navigation.navUp || kbd.navigation.navDown
-			|| kbd.action.confirmPressed || kbd.action.cancelPressed
+			|| kbd.action.confirmDown || kbd.action.confirmPressed || kbd.action.cancelPressed
 			|| pad.navigation.tabNext || pad.navigation.tabPrev
 			|| pad.navigation.navUp || pad.navigation.navDown
-			|| pad.action.confirmPressed || pad.action.cancelPressed;
+			|| pad.action.confirmDown || pad.action.confirmPressed || pad.action.cancelPressed;
 
 		const bool inside = m.pointer.insideLogicalSurface;
 		bool movedEnough = false;

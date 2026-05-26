@@ -48,6 +48,7 @@ namespace Ui
 		std::string labelUtf8_;
 
 		bool trackingPointerPress_ = false;
+		bool trackingConfirmPress_ = false;
 
 		UiVisualPhase visualPhase_ = UiVisualPhase::Normal;
 
