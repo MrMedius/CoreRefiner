@@ -20,7 +20,6 @@ namespace Ui
 		frame.pointer.primaryDown = in.MouseLeftPressed();
 		frame.pointer.primaryPressed = in.MouseLeftTriggered();
 		frame.pointer.primaryReleased = in.MouseLeftReleased();
-		frame.scroll.wheelSteps = in.WheelStepsThisFrame();
 
 		return frame;
 	}

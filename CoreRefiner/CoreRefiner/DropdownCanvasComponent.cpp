@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <utility>
 
 namespace Ui
 {
@@ -51,8 +52,6 @@ namespace Ui
 
 		constexpr UiRect kPlaceholder{ 0.0f, 0.0f, 1.0f, 1.0f };
 		dropdown_ = std::make_unique<UiDropdown>(focusHandle, kPlaceholder);
-		dropdown_->SetMaxListVisibleItems(style.maxListVisibleItems);
-		dropdown_->SetScrollbarWidth(style.scrollbarWidth);
 		view_ = std::make_unique<DropdownCanvasView>(gfx, pixelW, pixelH, std::move(style));
 
 		SetLayoutLogicalCenterSize(centerX, centerY, width, headerHeight);
@@ -102,6 +101,12 @@ namespace Ui
 		dropdown_->ClearOptions();
 	}
 
+	void DropdownCanvasComponent::SetOnValueChanged(
+		std::function<void(int index, const std::string& label)> cb)
+	{
+		dropdown_->SetOnValueChanged(std::move(cb));
+	}
+
 	void DropdownCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		dropdown_->Update(frame, focus);
@@ -135,6 +140,17 @@ namespace Ui
 	bool DropdownCanvasComponent::ConsumesDirectionalNavigation() const noexcept
 	{
 		return dropdown_->ConsumesDirectionalNavigation();
+	}
+
+	bool DropdownCanvasComponent::IsPopupOpen() const noexcept
+	{
+		return dropdown_->IsExpanded();
+	}
+
+	void DropdownCanvasComponent::OnPopupInput(UiInputFrame& frame, FocusManager&)
+	{
+		frame.navigation.tabNext = false;
+		frame.navigation.tabPrev = false;
 	}
 
 	void DropdownCanvasComponent::RegisterTo(UiRoot& root)

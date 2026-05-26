@@ -1,6 +1,7 @@
 #include "UiRoot.h"
 
 #include "IUiComponent.h"
+#include "IUiPopupConsumer.h"
 
 namespace Ui
 {
@@ -47,6 +48,24 @@ namespace Ui
 		out.pointer.primaryDown = false;
 		out.pointer.primaryPressed = false;
 		out.pointer.primaryReleased = false;
+	}
+
+	IUiPopupConsumer* UiRoot::FindOpenPopup_() const noexcept
+	{
+		for (IUiComponent* c : components_)
+		{
+			auto* popup = dynamic_cast<IUiPopupConsumer*>(c);
+			if (popup != nullptr && popup->IsPopupOpen())
+				return popup;
+		}
+		return nullptr;
+	}
+
+	IUiComponent* UiRoot::PopupAsComponent_(IUiPopupConsumer* popup) const noexcept
+	{
+		if (popup == nullptr)
+			return nullptr;
+		return dynamic_cast<IUiComponent*>(popup);
 	}
 
 	void UiRoot::UpdateAfterInput()
@@ -107,21 +126,23 @@ namespace Ui
 		if (dominance_ == UiInputDominance::NonPointer)
 			StripPointerForWidgets_(widgetFrame);
 
-		focus_.ApplyNavigation(frame);
+		IUiPopupConsumer* const openPopup = FindOpenPopup_();
+		IUiComponent* const popupComponent = PopupAsComponent_(openPopup);
+
+		UiInputFrame navigationFrame = frame;
+		if (openPopup != nullptr)
+			openPopup->OnPopupInput(navigationFrame, focus_);
+
+		focus_.ApplyNavigation(navigationFrame);
 
 		IUiComponent* directionalConsumer = nullptr;
-		IUiComponent* scrollWheelConsumer = nullptr;
 		for (IUiComponent* c : components_)
 		{
 			if (!c->ConsumesDirectionalNavigation())
 				continue;
 
-			if (scrollWheelConsumer == nullptr)
-				scrollWheelConsumer = c;
-
 			if (focus_.IsFocused(c->GetFocusHandle()))
 			{
-				scrollWheelConsumer = c;
 				directionalConsumer = c;
 				break;
 			}
@@ -131,11 +152,8 @@ namespace Ui
 		}
 
 		const bool consumeDirectional = directionalConsumer != nullptr;
-		if (consumeDirectional
-			&& (frame.navigation.navUp || frame.navigation.navDown))
-		{
+		if (consumeDirectional && (frame.navigation.navUp || frame.navigation.navDown))
 			focus_.RequestFocus(directionalConsumer->GetFocusHandle());
-		}
 
 		if (!consumeDirectional)
 		{
@@ -147,11 +165,10 @@ namespace Ui
 
 		for (IUiComponent* c : components_)
 		{
-			UiInputFrame componentFrame = widgetFrame;
-			if (scrollWheelConsumer != nullptr && c != scrollWheelConsumer)
-				componentFrame.scroll.wheelSteps = 0;
+			if (popupComponent != nullptr && c != popupComponent)
+				continue;
 
-			c->Update(componentFrame, focus_);
+			c->Update(widgetFrame, focus_);
 			c->SyncView();
 		}
 	}
@@ -171,7 +188,16 @@ namespace Ui
 
 	void UiRoot::Submit(const std::size_t channelMask) const
 	{
+		IUiComponent* const popupComponent = PopupAsComponent_(FindOpenPopup_());
+
 		for (const IUiComponent* c : components_)
+		{
+			if (popupComponent != nullptr && c == popupComponent)
+				continue;
 			c->Submit(channelMask);
+		}
+
+		if (popupComponent != nullptr)
+			popupComponent->Submit(channelMask);
 	}
 }

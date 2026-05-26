@@ -142,26 +142,30 @@ public:
 			const float dropdownH = static_cast<float>(btnHeight);
 			const float dropdownX = static_cast<float>(centerX);
 			dropdownQuality_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY) * 6.5f, dropdownW, dropdownH,
-				Ui::DropdownCanvasStyle{ .maxListVisibleItems = 3u });
+				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY) * 6.5f, dropdownW, dropdownH);
 			dropdownQuality_->AddOptions({
 				{.label = "Ultra" },
 				{.label = "Very Low" },
 				});
+			dropdownQuality_->SetOnValueChanged([this](int, const std::string& label) {
+				btnB_->Button().SetLabel("Quality: " + label);
+			});
 
 			dropdownCustom_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 514u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY), dropdownW, dropdownH,
-				Ui::DropdownCanvasStyle{ .maxListVisibleItems = 5u });
+				gfx, 514u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY), dropdownW, dropdownH);
 			dropdownCustom_->AddOptions({
 				{.label = "Custom 1" },
 				{.label = "Custom 2" },
 				{.label = "Custom 3" },
 				{.label = "Custom 4" },
 				{.label = "Custom 5" },
+				{.label = "Custom 10" },
+				{.label = "Custom 20" },
+				{.label = "Custom 30" },
+				{.label = "Custom 40" },
+				{.label = "Custom 50" },
 				});
 			dropdownCustom_->AddOption({ .label = "Custom 6" });
-			dropdownCustom_->EraseOption(1);
-			dropdownCustom_->EraseOptions({ 1, 3 });
 
 
 

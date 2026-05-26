@@ -376,6 +376,7 @@
     <ClInclude Include="GamepadUiInputAdapter.h" />
     <ClInclude Include="GameStatsCodex.h" />
     <ClInclude Include="IUiComponent.h" />
+    <ClInclude Include="IUiPopupConsumer.h" />
     <ClInclude Include="IUiLogic.h" />
     <ClInclude Include="IUiView.h" />
     <ClInclude Include="InGameRenderGraph.h" />

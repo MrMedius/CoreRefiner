@@ -1,6 +1,7 @@
 #pragma once
 #include "FocusManager.h"
 #include "IUiComponent.h"
+#include "IUiPopupConsumer.h"
 #include "MouseUiInputAdapter.h"
 #include "KeyboardUiInputAdapter.h"
 #include "GamepadUiInputAdapter.h"
@@ -50,6 +51,10 @@ namespace Ui
 
 		void ResetToMouseDominantState_();
 		void ResetToNonPointerDominantState_();
+
+		[[nodiscard]] IUiPopupConsumer* FindOpenPopup_() const noexcept;
+
+		[[nodiscard]] IUiComponent* PopupAsComponent_(IUiPopupConsumer* popup) const noexcept;
 
 		FocusManager focus_{};
 		MouseUiInputAdapter mouse_{};

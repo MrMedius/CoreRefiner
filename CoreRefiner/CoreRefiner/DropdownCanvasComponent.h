@@ -3,11 +3,13 @@
 #include "DropdownCanvasView.h"
 #include "FocusTypes.h"
 #include "IUiComponent.h"
+#include "IUiPopupConsumer.h"
 #include "UiDropdown.h"
 #include "UiRoot.h"
 #include "UiTypes.h"
 
 #include <DirectXMath.h>
+#include <functional>
 #include <memory>
 
 class Graphics;
@@ -19,8 +21,8 @@ namespace Rgph
 
 namespace Ui
 {
-	/** @brief Dropdown Canvas 组件（Step 3：Header 可见 + 注册到 UiRoot）。 */
-	class DropdownCanvasComponent final : public IUiComponent
+	/** @brief Dropdown Canvas 组件（Header + 展开列表 + Modal Popup）。 */
+	class DropdownCanvasComponent final : public IUiComponent, public IUiPopupConsumer
 	{
 	public:
 		DropdownCanvasComponent(
@@ -55,6 +57,8 @@ namespace Ui
 		void EraseOption(int index);
 		void ClearOptions() noexcept;
 
+		void SetOnValueChanged(std::function<void(int index, const std::string& label)> cb);
+
 		void Update(const UiInputFrame& frame, FocusManager& focus) override;
 		void SyncView() override;
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
@@ -62,6 +66,10 @@ namespace Ui
 		void ResetPointerInteraction() noexcept override;
 		[[nodiscard]] bool IsFocusable() const noexcept override;
 		[[nodiscard]] bool ConsumesDirectionalNavigation() const noexcept override;
+
+		[[nodiscard]] bool IsPopupOpen() const noexcept override;
+
+		void OnPopupInput(UiInputFrame& frame, FocusManager& focus) override;
 
 		void RegisterTo(UiRoot& root);
 
