@@ -5,7 +5,6 @@
 #include <vector>
 namespace Ui
 {
-	/** @brief Dropdown 视图快照。 */
 	struct DropdownViewModel
 	{
 		std::string selectedLabel;
@@ -15,13 +14,13 @@ namespace Ui
 		int selectedIndex = 0;
 		int highlightIndex = -1;
 		std::vector<std::string> optionLabels;
+		std::vector<UiVisualPhase> listItemPhases;
 		float itemHeight = 1.0f;
-		/** @brief 展开时 List 相对默认位置的应用 Y 偏移（Header 不动）。 */
+
 		float listOffsetY = 0.0f;
 		float listHeight = 0.0f;
 	};
 
-	/** @brief 从 UiDropdown 生成 ViewModel。 */
 	inline DropdownViewModel MakeDropdownViewModel(const UiDropdown& dropdown)
 	{
 		DropdownViewModel vm{
@@ -38,8 +37,12 @@ namespace Ui
 
 		const auto& options = dropdown.GetOptions();
 		vm.optionLabels.reserve(options.size());
-		for (const DropdownOption& opt : options)
-			vm.optionLabels.push_back(opt.label);
+		vm.listItemPhases.reserve(options.size());
+		for (int i = 0; i < static_cast<int>(options.size()); ++i)
+		{
+			vm.optionLabels.push_back(options[static_cast<size_t>(i)].label);
+			vm.listItemPhases.push_back(dropdown.GetListItemVisualPhase(i));
+		}
 		return vm;
 	}
 

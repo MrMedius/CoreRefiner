@@ -11,15 +11,10 @@ namespace Ui
 {
 	namespace
 	{
-		/** @brief UI Canvas 像素尺寸上限。 */
 		constexpr unsigned kMaxCanvasPixelDim = 2048u;
 
-		/** @brief 列表项数量上限。 */
 		constexpr std::size_t kMaxListItemCount = 64u;
 
-		/**
-		 * @brief 将像素尺寸限制在 [1, kMaxCanvasPixelDim]。
-		 */
 		[[nodiscard]] unsigned ClampCanvasPixelDim(const unsigned value) noexcept
 		{
 			return std::max(1u, std::min(value, kMaxCanvasPixelDim));
@@ -249,8 +244,12 @@ namespace Ui
 
 		for (std::size_t i = 0; i < activeListItemCount_; ++i)
 		{
+			const UiVisualPhase phase = i < vm.listItemPhases.size()
+				? vm.listItemPhases[i]
+				: UiVisualPhase::Normal;
 			const DropdownListItemViewModel rowVm{
 				.label = vm.optionLabels[i],
+				.phase = phase,
 				.highlighted = static_cast<int>(i) == vm.highlightIndex,
 				.selected = static_cast<int>(i) == vm.selectedIndex
 			};
@@ -278,7 +277,8 @@ namespace Ui
 			return;
 
 		arrowExpanded_ = expanded;
-		// 2D UI 平面内旋转用 yaw（Z 轴）；与 SliderCanvasView 一致。
+
+		// Rotate the small triangle on right
 		const float yawDeg = expanded ? 180.0f : -90.0f;
 		arrowCanvas_->SetRotation(0.0f, 0.0f, yawDeg);
 	}
@@ -334,7 +334,8 @@ namespace Ui
 			|| vm.expanded != lastPainted_.expanded
 			|| vm.optionLabels != lastPainted_.optionLabels
 			|| vm.highlightIndex != lastPainted_.highlightIndex
-			|| vm.selectedIndex != lastPainted_.selectedIndex;
+			|| vm.selectedIndex != lastPainted_.selectedIndex
+			|| vm.listItemPhases != lastPainted_.listItemPhases;
 
 		if (bgDirty)
 			RepaintHeaderBackground_(vm.headerPhase);

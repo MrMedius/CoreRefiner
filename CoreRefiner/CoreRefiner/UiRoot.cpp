@@ -50,6 +50,13 @@ namespace Ui
 		out.pointer.primaryReleased = false;
 	}
 
+	void UiRoot::StripPrimaryPointer_(UiInputFrame& out) noexcept
+	{
+		out.pointer.primaryDown = false;
+		out.pointer.primaryPressed = false;
+		out.pointer.primaryReleased = false;
+	}
+
 	IUiPopupConsumer* UiRoot::FindOpenPopup_() const noexcept
 	{
 		for (IUiComponent* c : components_)
@@ -129,6 +136,12 @@ namespace Ui
 		IUiPopupConsumer* const openPopup = FindOpenPopup_();
 		IUiComponent* const popupComponent = PopupAsComponent_(openPopup);
 
+		const bool popupBlocksUnderlying = openPopup != nullptr
+			&& widgetFrame.pointer.insideLogicalSurface
+			&& openPopup->BlocksUnderlyingPointerAt(
+				widgetFrame.pointer.logicalX,
+				widgetFrame.pointer.logicalY);
+
 		UiInputFrame navigationFrame = frame;
 		if (openPopup != nullptr)
 			openPopup->OnPopupInput(navigationFrame, focus_);
@@ -163,12 +176,22 @@ namespace Ui
 				focus_.FocusNext();
 		}
 
+		if (popupBlocksUnderlying
+			&& dominance_ == UiInputDominance::Mouse
+			&& popupComponent != nullptr)
+		{
+			const FocusHandle popupFocus = popupComponent->GetFocusHandle();
+			if (popupFocus != kInvalidFocusHandle)
+				focus_.RequestFocus(popupFocus);
+		}
+
 		for (IUiComponent* c : components_)
 		{
-			if (popupComponent != nullptr && c != popupComponent)
-				continue;
+			UiInputFrame componentFrame = widgetFrame;
+			if (popupBlocksUnderlying && c != popupComponent)
+				StripPointerForWidgets_(componentFrame);
 
-			c->Update(widgetFrame, focus_);
+			c->Update(componentFrame, focus_);
 			c->SyncView();
 		}
 	}

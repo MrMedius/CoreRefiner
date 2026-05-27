@@ -19,7 +19,6 @@ namespace Rgph
 
 namespace Ui
 {
-	/** @brief Dropdown Canvas 视图（Header 分层 + 面板背景 + vector 列表项）。 */
 	class DropdownCanvasView final : public IUiView
 	{
 	public:
@@ -49,7 +48,7 @@ namespace Ui
 
 		DropdownCanvasStyle style_;
 		Graphics& gfx_;
-		// 须在 Canvas 成员之前：C++ 按声明顺序初始化，否则 Canvas 构造会读到未初始化的尺寸。
+
 		unsigned headerPixelWidth_ = 1u;
 		unsigned headerPixelHeight_ = 1u;
 		Rgph::RenderGraph* linkedRg_ = nullptr;

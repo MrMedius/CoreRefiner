@@ -147,6 +147,15 @@ namespace Ui
 		return dropdown_->IsExpanded();
 	}
 
+	bool DropdownCanvasComponent::BlocksUnderlyingPointerAt(
+		const float x,
+		const float y) const noexcept
+	{
+		if (!dropdown_->IsExpanded())
+			return false;
+		return dropdown_->BlocksUnderlyingPointerAt(x, y);
+	}
+
 	void DropdownCanvasComponent::OnPopupInput(UiInputFrame& frame, FocusManager&)
 	{
 		frame.navigation.tabNext = false;

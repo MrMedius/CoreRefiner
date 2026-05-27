@@ -146,13 +146,14 @@ public:
 			dropdownQuality_->AddOptions({
 				{.label = "Ultra" },
 				{.label = "Very Low" },
+				{.label = "Very Very Low" },
 				});
 			dropdownQuality_->SetOnValueChanged([this](int, const std::string& label) {
 				btnB_->Button().SetLabel("Quality: " + label);
 			});
 
 			dropdownCustom_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 514u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY), dropdownW, dropdownH);
+				gfx, 514u, dropdownX + static_cast<float>(btnWidth) * 2.0f + static_cast<float>(spacingY), toggleY + static_cast<float>(spacingY), dropdownW, dropdownH);
 			dropdownCustom_->AddOptions({
 				{.label = "Custom 1" },
 				{.label = "Custom 2" },
@@ -161,6 +162,7 @@ public:
 				{.label = "Custom 5" },
 				});
 			dropdownCustom_->AddOption({ .label = "Custom 6" });
+			dropdownCustom_->AddOption({ .label = "Custom 7" });
 
 			uiRoot = std::make_unique<Ui::UiRoot>();
 			uiRoot->Clear();

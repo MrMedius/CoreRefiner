@@ -9,13 +9,11 @@
 namespace Ui
 {
 	class FocusManager;
-	/** @brief Dropdown 单个选项（逻辑层数据，与渲染后端无关）。 */
 	struct DropdownOption
 	{
 		std::string label;
 	};
 
-	/** @brief Dropdown 逻辑：展开/折叠、鼠标点选、列表 hit-test。 */
 	class UiDropdown : public IUiLogic
 	{
 	public:
@@ -37,9 +35,12 @@ namespace Ui
 		[[nodiscard]] int GetSelectedIndex() const noexcept { return selectedIndex_; }
 		void SetSelectedIndex(int index, bool notify = true) noexcept;
 		[[nodiscard]] int GetHighlightIndex() const noexcept { return highlightIndex_; }
+		[[nodiscard]] UiVisualPhase GetListItemVisualPhase(int index) const noexcept;
 		[[nodiscard]] std::string GetSelectedLabel() const;
 		[[nodiscard]] bool IsExpanded() const noexcept { return expanded_; }
 		[[nodiscard]] bool ConsumesDirectionalNavigation() const noexcept;
+		[[nodiscard]] bool ClaimsPointerInteraction(float x, float y) const noexcept;
+		[[nodiscard]] bool BlocksUnderlyingPointerAt(float x, float y) const noexcept;
 		[[nodiscard]] float GetListOffsetY() const noexcept { return listOffsetY_; }
 		[[nodiscard]] float GetListHeight() const noexcept;
 		void SetOnValueChanged(std::function<void(int index, const std::string& label)> cb)
@@ -69,6 +70,8 @@ namespace Ui
 		void UpdateHighlightFromPointer_(const UiInputFrame& frame) noexcept;
 		void MoveListHighlight_(int delta) noexcept;
 		void HandleExpandedListNavigation_(const UiInputFrame& frame) noexcept;
+		void RecomputeListItemPhases_(const UiInputFrame& frame) noexcept;
+		[[nodiscard]] bool IsListItemPressed_(int index, const UiInputFrame& frame) const noexcept;
 		FocusHandle focusHandle_;
 		UiRect headerBounds_{};
 		UiRect listBounds_{};
@@ -80,9 +83,11 @@ namespace Ui
 		float listOffsetY_ = 0.0f;
 		bool enabled_ = true;
 		bool expanded_ = false;
-		bool trackingPointerPress_ = false;
+		bool trackingHeaderPress_ = false;
+		int listPressItemIndex_ = -1;
 		bool pointerWasDownLastFrame_ = false;
 		bool keyboardListNavPrimed_ = false;
+		std::vector<UiVisualPhase> listItemPhases_;
 		UiVisualPhase headerPhase_ = UiVisualPhase::Normal;
 		std::function<void(int index, const std::string& label)> onValueChanged_;
 	};

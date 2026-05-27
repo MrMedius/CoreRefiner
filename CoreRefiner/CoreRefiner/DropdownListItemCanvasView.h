@@ -16,9 +16,7 @@ namespace Rgph
 
 namespace Ui
 {
-	/**
-	 * @brief Dropdown 列表单行 Canvas 视图（bg + text 分层，仿 Button 结构）。
-	 */
+	/** @brief Dropdown 列表单行 Canvas 视图（bg + focus ring + text）。 */
 	class DropdownListItemCanvasView
 	{
 	public:
@@ -36,10 +34,14 @@ namespace Ui
 	private:
 		[[nodiscard]] Color BackgroundForRow_(const DropdownListItemViewModel& vm) const noexcept;
 		void RepaintBackground_(const DropdownListItemViewModel& vm);
+		void RepaintFocusRing_(const DropdownListItemViewModel& vm);
 		void RepaintText_(const DropdownListItemViewModel& vm);
 
 		DropdownCanvasStyle style_;
+		unsigned pixelWidth_ = 1u;
+		unsigned pixelHeight_ = 1u;
 		std::unique_ptr<Canvas2D> bgCanvas_;
+		std::unique_ptr<Canvas2D> ringCanvas_;
 		std::unique_ptr<Canvas2D> textCanvas_;
 
 		DropdownListItemViewModel lastPainted_{};

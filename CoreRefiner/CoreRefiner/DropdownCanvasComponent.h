@@ -69,6 +69,8 @@ namespace Ui
 
 		[[nodiscard]] bool IsPopupOpen() const noexcept override;
 
+		[[nodiscard]] bool BlocksUnderlyingPointerAt(float x, float y) const noexcept override;
+
 		void OnPopupInput(UiInputFrame& frame, FocusManager& focus) override;
 
 		void RegisterTo(UiRoot& root);

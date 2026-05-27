@@ -10,38 +10,41 @@ namespace Ui
 {
 	namespace
 	{
-		/** @brief UI Canvas 像素尺寸上限，避免 ScratchImage 分配过大。 */
 		constexpr unsigned kMaxCanvasPixelDim = 2048u;
 
-		/**
-		 * @brief 将像素尺寸限制在 [1, kMaxCanvasPixelDim]。
-		 */
 		[[nodiscard]] unsigned ClampCanvasPixelDim(const unsigned value) noexcept
 		{
 			return std::max(1u, std::min(value, kMaxCanvasPixelDim));
 		}
 
-		void DrawBoxBorder(::Canvas& c, const unsigned border, const Color borderColor)
+		void DrawFocusRing(::Canvas& c, const Color ring, const unsigned thick)
 		{
-			if (border == 0u)
-				return;
-
 			const unsigned w = c.GetCanvasWidth();
 			const unsigned h = c.GetCanvasHeight();
-			if (border * 2u >= w || border * 2u >= h)
+			if (w == 0u || h == 0u || thick == 0u)
 				return;
 
-			auto fill = [&](const unsigned x0, const unsigned y0, const unsigned x1, const unsigned y1)
+			for (unsigned t = 0; t < thick; ++t)
 			{
-				for (unsigned y = y0; y <= y1; ++y)
-					for (unsigned x = x0; x <= x1; ++x)
-						c.PutPixel(x, y, borderColor);
-			};
-
-			fill(0u, 0u, w - 1u, border - 1u);
-			fill(0u, h - border, w - 1u, h - 1u);
-			fill(0u, border, border - 1u, h - border - 1u);
-			fill(w - border, border, w - 1u, h - border - 1u);
+				if (t >= w || t >= h)
+					break;
+				const unsigned y1 = t;
+				const unsigned y2 = h - 1u - t;
+				for (unsigned x = 0; x < w; ++x)
+				{
+					c.PutPixel(x, y1, ring);
+					if (y2 != y1)
+						c.PutPixel(x, y2, ring);
+				}
+				const unsigned x1 = t;
+				const unsigned x2 = w - 1u - t;
+				for (unsigned y = y1; y <= y2; ++y)
+				{
+					c.PutPixel(x1, y, ring);
+					if (x2 != x1)
+						c.PutPixel(x2, y, ring);
+				}
+			}
 		}
 	}
 
@@ -52,33 +55,43 @@ namespace Ui
 		const DropdownCanvasStyle& style)
 		:
 		style_(style),
+		pixelWidth_(ClampCanvasPixelDim(pixelWidth)),
+		pixelHeight_(ClampCanvasPixelDim(pixelHeight)),
 		bgCanvas_(std::make_unique<Canvas2D>(gfx, 1u, 1u)),
-		textCanvas_(std::make_unique<Canvas2D>(
-			gfx,
-			ClampCanvasPixelDim(pixelWidth),
-			ClampCanvasPixelDim(pixelHeight)))
+		ringCanvas_(std::make_unique<Canvas2D>(gfx, pixelWidth_, pixelHeight_)),
+		textCanvas_(std::make_unique<Canvas2D>(gfx, pixelWidth_, pixelHeight_))
 	{
+		ringCanvas_->Clear(Colors::None);
 		textCanvas_->Clear(Colors::None);
 	}
 
 	void DropdownListItemCanvasView::LinkTechniques(Rgph::RenderGraph& rg)
 	{
 		bgCanvas_->LinkTechniques(rg);
+		ringCanvas_->LinkTechniques(rg);
 		textCanvas_->LinkTechniques(rg);
 	}
 
 	void DropdownListItemCanvasView::Submit(const std::size_t channelMask) const
 	{
 		bgCanvas_->Submit(channelMask);
+		ringCanvas_->Submit(channelMask);
 		textCanvas_->Submit(channelMask);
 	}
 
 	Color DropdownListItemCanvasView::BackgroundForRow_(const DropdownListItemViewModel& vm) const noexcept
 	{
+		if (vm.phase == UiVisualPhase::Pressed)
+			return style_.itemPressed;
+		if (vm.phase == UiVisualPhase::Focused)
+		{
+			if (vm.highlighted)
+				return style_.itemHighlight;
+			if (vm.selected)
+				return style_.itemSelected;
+		}
 		if (vm.selected)
 			return style_.itemSelected;
-		if (vm.highlighted)
-			return style_.itemHighlight;
 		return style_.itemNormal;
 	}
 
@@ -94,6 +107,8 @@ namespace Ui
 		const DirectX::XMFLOAT3 scale{ safeW, safeH, 1.0f };
 		bgCanvas_->SetPosition(pos);
 		bgCanvas_->SetScale(scale);
+		ringCanvas_->SetPosition(pos);
+		ringCanvas_->SetScale(scale);
 		textCanvas_->SetPosition(pos);
 		textCanvas_->SetScale(scale);
 	}
@@ -102,6 +117,14 @@ namespace Ui
 	{
 		::Canvas& c = *bgCanvas_;
 		c.Clear(BackgroundForRow_(vm));
+	}
+
+	void DropdownListItemCanvasView::RepaintFocusRing_(const DropdownListItemViewModel& vm)
+	{
+		::Canvas& c = *ringCanvas_;
+		c.Clear(Colors::None);
+		if (vm.phase == UiVisualPhase::Focused)
+			DrawFocusRing(c, style_.itemFocusRing, style_.itemFocusRingThicknessPx);
 	}
 
 	void DropdownListItemCanvasView::RepaintText_(const DropdownListItemViewModel& vm)
@@ -129,8 +152,12 @@ namespace Ui
 	void DropdownListItemCanvasView::SyncFrom(const DropdownListItemViewModel& vm)
 	{
 		const bool bgDirty = !hasPainted_
+			|| vm.phase != lastPainted_.phase
 			|| vm.highlighted != lastPainted_.highlighted
 			|| vm.selected != lastPainted_.selected;
+
+		const bool ringDirty = !hasPainted_
+			|| vm.phase != lastPainted_.phase;
 
 		const bool textDirty = !hasPainted_
 			|| vm.label != lastPainted_.label;
@@ -138,10 +165,13 @@ namespace Ui
 		if (bgDirty)
 			RepaintBackground_(vm);
 
+		if (ringDirty)
+			RepaintFocusRing_(vm);
+
 		if (textDirty)
 			RepaintText_(vm);
 
-		if (bgDirty || textDirty)
+		if (bgDirty || ringDirty || textDirty)
 		{
 			lastPainted_ = vm;
 			hasPainted_ = true;
