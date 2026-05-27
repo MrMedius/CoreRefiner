@@ -457,7 +457,7 @@ namespace Ui
 
 		const bool overHeader = IsPointerOverHeader_(frame);
 		const bool focused = overHeader || focus.IsFocused(focusHandle_);
-		const bool pressVisual = trackingHeaderPress_ && frame.pointer.primaryDown && overHeader;
+		const bool pressVisual = trackingHeaderPress_ && frame.pointer.primaryDown;
 		if (pressVisual)
 			headerPhase_ = UiVisualPhase::Pressed;
 		else if (focused)
