@@ -2,6 +2,7 @@
 #include "FocusTypes.h"
 #include "IUiLogic.h"
 #include "SliderGrooveLayout.h"
+#include "UiPointerPressTracker.h"
 #include "UiVisualPhase.h"
 
 #include <functional>
@@ -59,8 +60,7 @@ namespace Ui
 		float value_ = 0.0f;
 		float step_ = 0.0f;
 
-		bool trackingPointerPress_ = false;
-		bool pointerWasDownLastFrame_ = false;
+		UiPointerPressTracker pointerPress_;
 		UiVisualPhase visualPhase_ = UiVisualPhase::Normal;
 
 		int gamepadIndex_ = 0;

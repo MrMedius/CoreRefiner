@@ -1,6 +1,7 @@
 #pragma once
 #include "FocusTypes.h"
 #include "IUiLogic.h"
+#include "UiPointerPressTracker.h"
 #include "UiTypes.h"
 #include "UiVisualPhase.h"
 
@@ -10,7 +11,6 @@ namespace Ui
 {
 	class FocusManager;
 
-	/** @brief Unity 风格 Toggle 逻辑：bool isOn + 点击/确认键切换。 */
 	class UiToggle : public IUiLogic
 	{
 	public:
@@ -46,8 +46,7 @@ namespace Ui
 		bool enabled_ = true;
 		bool isOn_ = false;
 
-		bool trackingPointerPress_ = false;
-		bool pointerWasDownLastFrame_ = false;
+		UiPointerPressTracker pointerPress_;
 		UiVisualPhase visualPhase_ = UiVisualPhase::Normal;
 
 		std::function<void(bool)> onValueChanged_;

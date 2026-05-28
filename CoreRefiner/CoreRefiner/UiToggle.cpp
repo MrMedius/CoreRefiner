@@ -3,29 +3,17 @@
 
 namespace Ui
 {
-	namespace
-	{
-		constexpr bool ClientPointValid(const UiPointerPayload& p) noexcept
-		{
-			return p.insideLogicalSurface;
-		}
-	}
-
 	UiToggle::UiToggle(const FocusHandle focusHandle, UiRect bounds)
 		:
 		focusHandle_(focusHandle),
 		bounds_(bounds)
-	{
-	}
+	{}
 
 	void UiToggle::SetEnabled(const bool enabled) noexcept
 	{
 		enabled_ = enabled;
 		if (!enabled_)
-		{
-			trackingPointerPress_ = false;
-			pointerWasDownLastFrame_ = false;
-		}
+			pointerPress_.Reset();
 	}
 
 	void UiToggle::ApplyIsOn_(const bool on, const bool notify) noexcept
@@ -54,35 +42,26 @@ namespace Ui
 
 	bool UiToggle::IsPointerOver(const UiInputFrame& frame) const noexcept
 	{
-		if (!ClientPointValid(frame.pointer))
+		if (!Input::ClientPointValid(frame.pointer))
 			return false;
 		return bounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY);
 	}
 
 	void UiToggle::RecomputeVisualPhase(const UiInputFrame& frame, const FocusManager& focus) noexcept
 	{
-		if (!enabled_)
-		{
-			visualPhase_ = UiVisualPhase::Disabled;
-			return;
-		}
-
-		const bool focused = IsPointerOver(frame) || focus.IsFocused(focusHandle_);
-		const bool pressVisual = trackingPointerPress_ && frame.pointer.primaryDown;
-		if (pressVisual)
-			visualPhase_ = UiVisualPhase::Pressed;
-		else if (focused)
-			visualPhase_ = UiVisualPhase::Focused;
-		else
-			visualPhase_ = UiVisualPhase::Normal;
+		visualPhase_ = ComputeStandardPhase(
+			enabled_,
+			pointerPress_.ShouldShowPressed(frame.pointer.primaryDown),
+			IsPointerOver(frame),
+			focus.IsFocused(focusHandle_));
 	}
 
 	void UiToggle::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		if (!enabled_)
 		{
-			trackingPointerPress_ = false;
-			pointerWasDownLastFrame_ = frame.pointer.primaryDown;
+			pointerPress_.Reset();
+			pointerPress_.SyncFrame(frame.pointer.primaryDown);
 			RecomputeVisualPhase(frame, focus);
 			return;
 		}
@@ -91,28 +70,18 @@ namespace Ui
 			Toggle();
 
 		const bool over = IsPointerOver(frame);
-		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_ && over)
-			trackingPointerPress_ = true;
+		pointerPress_.TryBeginPress(frame.pointer.primaryDown, over);
+		const bool releaseInside = Input::ClientPointValid(frame.pointer)
+			&& bounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY);
+		if (pointerPress_.TryCompletePress(frame.pointer.primaryDown, releaseInside))
+			Toggle();
 
-		if (!frame.pointer.primaryDown)
-		{
-			if (trackingPointerPress_)
-			{
-				trackingPointerPress_ = false;
-				const bool releaseInside = ClientPointValid(frame.pointer)
-					&& bounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY);
-				if (releaseInside)
-					Toggle();
-			}
-		}
-
-		pointerWasDownLastFrame_ = frame.pointer.primaryDown;
+		pointerPress_.SyncFrame(frame.pointer.primaryDown);
 		RecomputeVisualPhase(frame, focus);
 	}
 
 	void UiToggle::ResetPointerInteraction() noexcept
 	{
-		trackingPointerPress_ = false;
-		pointerWasDownLastFrame_ = false;
+		pointerPress_.Reset();
 	}
 }

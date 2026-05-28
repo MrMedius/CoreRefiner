@@ -399,6 +399,7 @@
     <ClInclude Include="SliderCanvasView.h" />
     <ClInclude Include="SliderViewModel.h" />
     <ClInclude Include="UiSlider.h" />
+    <ClInclude Include="UiPointerPressTracker.h" />
     <ClInclude Include="UiVisualPhase.h" />
     <ClInclude Include="Player_Shape.h" />
     <ClInclude Include="Provides.h" />

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "FocusTypes.h"
 #include "IUiLogic.h"
+#include "UiPointerPressTracker.h"
 #include "UiTypes.h"
 #include "UiVisualPhase.h"
 #include <functional>
@@ -83,9 +84,8 @@ namespace Ui
 		float listOffsetY_ = 0.0f;
 		bool enabled_ = true;
 		bool expanded_ = false;
-		bool trackingHeaderPress_ = false;
-		int listPressItemIndex_ = -1;
-		bool pointerWasDownLastFrame_ = false;
+		UiPointerPressTracker headerPress_;
+		UiIndexedPointerPressTracker listPress_;
 		bool keyboardListNavPrimed_ = false;
 		std::vector<UiVisualPhase> listItemPhases_;
 		UiVisualPhase headerPhase_ = UiVisualPhase::Normal;

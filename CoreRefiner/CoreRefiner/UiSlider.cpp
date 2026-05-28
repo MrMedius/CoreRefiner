@@ -12,11 +12,6 @@ namespace Ui
 {
 	namespace
 	{
-		constexpr bool ClientPointValid(const UiPointerPayload& p) noexcept
-		{
-			return p.insideLogicalSurface;
-		}
-
 		[[nodiscard]] float KeyAxisLocalX(const float rotationRadZ) noexcept
 		{
 			const InputCodex& in = InputCodex::Get();
@@ -83,10 +78,7 @@ namespace Ui
 	{
 		enabled_ = enabled;
 		if (!enabled_)
-		{
-			trackingPointerPress_ = false;
-			pointerWasDownLastFrame_ = false;
-		}
+			pointerPress_.Reset();
 	}
 
 	float UiSlider::GetNormalized() const noexcept
@@ -119,7 +111,7 @@ namespace Ui
 
 	bool UiSlider::IsPointerOver(const UiInputFrame& frame) const noexcept
 	{
-		if (!ClientPointValid(frame.pointer) || !HasValidGroove_())
+		if (!Input::ClientPointValid(frame.pointer) || !HasValidGroove_())
 			return false;
 
 		float localX = 0.0f;
@@ -167,7 +159,7 @@ namespace Ui
 			return;
 		}
 		const bool focused = IsPointerOver(frame) || focus.IsFocused(focusHandle_);
-		const bool pressVisual = trackingPointerPress_ && frame.pointer.primaryDown;
+		const bool pressVisual = pointerPress_.ShouldShowPressed(frame.pointer.primaryDown);
 		if (pressVisual)
 			visualPhase_ = UiVisualPhase::Pressed;
 		else if (focused)
@@ -200,8 +192,8 @@ namespace Ui
 
 		if (!enabled_)
 		{
-			trackingPointerPress_ = false;
-			pointerWasDownLastFrame_ = frame.pointer.primaryDown;
+			pointerPress_.Reset();
+			pointerPress_.SyncFrame(frame.pointer.primaryDown);
 			RecomputeVisualPhase(frame, focus);
 			return;
 		}
@@ -209,22 +201,19 @@ namespace Ui
 		HandleKeyboardGamepad_(focus);
 
 		const bool over = IsPointerOver(frame);
-		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_ && over)
-			trackingPointerPress_ = true;
+		pointerPress_.TryBeginPress(frame.pointer.primaryDown, over);
 
-		if (trackingPointerPress_ && frame.pointer.primaryDown && ClientPointValid(frame.pointer))
+		if (pointerPress_.IsHoldActive(frame.pointer.primaryDown) && Input::ClientPointValid(frame.pointer))
 			ApplyNormalized(PointerToNormalized(frame));
 
-		if (!frame.pointer.primaryDown)
-			trackingPointerPress_ = false;
+		pointerPress_.CancelIfReleased(frame.pointer.primaryDown);
 
-		pointerWasDownLastFrame_ = frame.pointer.primaryDown;
+		pointerPress_.SyncFrame(frame.pointer.primaryDown);
 		RecomputeVisualPhase(frame, focus);
 	}
 
 	void UiSlider::ResetPointerInteraction() noexcept
 	{
-		trackingPointerPress_ = false;
-		pointerWasDownLastFrame_ = false;
+		pointerPress_.Reset();
 	}
 }

@@ -2,6 +2,7 @@
 #include "FocusTypes.h"
 #include "IUiLogic.h"
 #include "UiInputFrame.h"
+#include "UiPointerPressTracker.h"
 #include "UiTypes.h"
 #include "UiVisualPhase.h"
 
@@ -47,13 +48,11 @@ namespace Ui
 		bool enabled_ = true;
 		std::string labelUtf8_;
 
-		bool trackingPointerPress_ = false;
+		UiPointerPressTracker pointerPress_;
 		bool trackingConfirmPress_ = false;
 
 		UiVisualPhase visualPhase_ = UiVisualPhase::Normal;
 
 		std::function<void()> onClick_;
-
-		bool pointerWasDownLastFrame_ = false;
 	};
 }

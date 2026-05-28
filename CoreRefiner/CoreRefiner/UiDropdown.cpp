@@ -4,14 +4,6 @@
 #include <algorithm>
 namespace Ui
 {
-	namespace
-	{
-		[[nodiscard]] bool ClientPointValid(const UiPointerPayload& p) noexcept
-		{
-			return p.insideLogicalSurface;
-		}
-
-	}
 
 	UiDropdown::UiDropdown(const FocusHandle focusHandle, UiRect headerBounds)
 		:
@@ -54,9 +46,8 @@ namespace Ui
 		enabled_ = enabled;
 		if (!enabled_)
 		{
-			trackingHeaderPress_ = false;
-			listPressItemIndex_ = -1;
-			pointerWasDownLastFrame_ = false;
+			headerPress_.Reset();
+			listPress_.Reset();
 			SetExpanded_(false);
 		}
 
@@ -227,7 +218,7 @@ namespace Ui
 			listBounds_ = {};
 			highlightIndex_ = -1;
 			keyboardListNavPrimed_ = false;
-			listPressItemIndex_ = -1;
+			listPress_.Reset();
 			listItemPhases_.clear();
 		}
 
@@ -257,14 +248,14 @@ namespace Ui
 
 	bool UiDropdown::IsPointerOverHeader_(const UiInputFrame& frame) const noexcept
 	{
-		if (!ClientPointValid(frame.pointer))
+		if (!Input::ClientPointValid(frame.pointer))
 			return false;
 		return headerBounds_.Contains(frame.pointer.logicalX, frame.pointer.logicalY);
 	}
 
 	bool UiDropdown::IsPointerOverList_(const UiInputFrame& frame) const noexcept
 	{
-		if (!expanded_ || !ClientPointValid(frame.pointer))
+		if (!expanded_ || !Input::ClientPointValid(frame.pointer))
 			return false;
 		return HitTestItemIndex_(frame.pointer.logicalX, frame.pointer.logicalY) >= 0;
 	}
@@ -328,11 +319,11 @@ namespace Ui
 			return;
 		}
 
-		if (!ClientPointValid(frame.pointer))
+		if (!Input::ClientPointValid(frame.pointer))
 			return;
 		const float px = frame.pointer.logicalX;
 		const float py = frame.pointer.logicalY;
-		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_
+		if (frame.pointer.primaryDown && !headerPress_.PrimaryDownLastFrame()
 			&& !IsPointerInsideDropdown_(px, py))
 		{
 			if (expanded_)
@@ -345,7 +336,7 @@ namespace Ui
 
 	void UiDropdown::UpdateHighlightFromPointer_(const UiInputFrame& frame) noexcept
 	{
-		if (!expanded_ || !ClientPointValid(frame.pointer))
+		if (!expanded_ || !Input::ClientPointValid(frame.pointer))
 			return;
 		keyboardListNavPrimed_ = false;
 		if (IsPointerOverList_(frame))
@@ -360,7 +351,7 @@ namespace Ui
 			return;
 		if (!frame.navigation.navUp && !frame.navigation.navDown)
 			return;
-		if (!ClientPointValid(frame.pointer) && !keyboardListNavPrimed_)
+		if (!Input::ClientPointValid(frame.pointer) && !keyboardListNavPrimed_)
 		{
 			highlightIndex_ = -1;
 			keyboardListNavPrimed_ = true;
@@ -404,7 +395,7 @@ namespace Ui
 	{
 		if (index < 0)
 			return false;
-		if (listPressItemIndex_ == index && frame.pointer.primaryDown)
+		if (listPress_.ShouldShowPressed(index, frame.pointer.primaryDown))
 			return true;
 		if (frame.action.confirmDown && highlightIndex_ == index)
 			return true;
@@ -457,7 +448,7 @@ namespace Ui
 
 		const bool overHeader = IsPointerOverHeader_(frame);
 		const bool focused = overHeader || focus.IsFocused(focusHandle_);
-		const bool pressVisual = trackingHeaderPress_ && frame.pointer.primaryDown;
+		const bool pressVisual = headerPress_.ShouldShowPressed(frame.pointer.primaryDown);
 		if (pressVisual)
 			headerPhase_ = UiVisualPhase::Pressed;
 		else if (focused)
@@ -470,9 +461,10 @@ namespace Ui
 	{
 		if (!enabled_)
 		{
-			trackingHeaderPress_ = false;
-			listPressItemIndex_ = -1;
-			pointerWasDownLastFrame_ = frame.pointer.primaryDown;
+			headerPress_.Reset();
+			listPress_.Reset();
+			headerPress_.SyncFrame(frame.pointer.primaryDown);
+			listPress_.SyncFrame(frame.pointer.primaryDown);
 			RecomputeListItemPhases_(frame);
 			RecomputeHeaderPhase_(frame, focus);
 			return;
@@ -504,7 +496,7 @@ namespace Ui
 		if (expanded_)
 			UpdateHighlightFromPointer_(frame);
 
-		if (frame.pointer.primaryDown && !pointerWasDownLastFrame_ && ClientPointValid(frame.pointer))
+		if (frame.pointer.primaryDown && !headerPress_.PrimaryDownLastFrame() && Input::ClientPointValid(frame.pointer))
 		{
 			const float px = frame.pointer.logicalX;
 			const float py = frame.pointer.logicalY;
@@ -512,70 +504,74 @@ namespace Ui
 			{
 				const int hitItem = HitTestItemIndex_(px, py);
 				if (hitItem >= 0)
-					listPressItemIndex_ = hitItem;
-				else if (overHeader)
-					trackingHeaderPress_ = true;
+					listPress_.TryBeginPress(frame.pointer.primaryDown, hitItem);
+				else
+					headerPress_.TryBeginPress(frame.pointer.primaryDown, overHeader);
 			}
-			else if (overHeader)
+			else
 			{
-				trackingHeaderPress_ = true;
+				headerPress_.TryBeginPress(frame.pointer.primaryDown, overHeader);
 			}
 		}
 
 		if (!frame.pointer.primaryDown)
 		{
-			if (listPressItemIndex_ >= 0)
+			if (Input::ClientPointValid(frame.pointer) && expanded_)
 			{
-				if (ClientPointValid(frame.pointer))
+				const float px = frame.pointer.logicalX;
+				const float py = frame.pointer.logicalY;
+				const int hitItem = HitTestItemIndex_(px, py);
+				int completedIndex = -1;
+				if (listPress_.TryCompletePress(
+					frame.pointer.primaryDown,
+					hitItem,
+					true,
+					completedIndex))
 				{
-					const float px = frame.pointer.logicalX;
-					const float py = frame.pointer.logicalY;
-					if (expanded_)
-					{
-						const int hitItem = HitTestItemIndex_(px, py);
-						if (hitItem >= 0 && hitItem == listPressItemIndex_)
-						{
-							SetSelectedIndex(hitItem, true);
-							CollapseFromPointer_(focus);
-						}
-					}
+					SetSelectedIndex(completedIndex, true);
+					CollapseFromPointer_(focus);
 				}
-				listPressItemIndex_ = -1;
+			}
+			else
+			{
+				int completedIndex = -1;
+				listPress_.TryCompletePress(
+					frame.pointer.primaryDown,
+					-1,
+					false,
+					completedIndex);
 			}
 
-			if (trackingHeaderPress_)
+			if (headerPress_.EndPress(frame.pointer.primaryDown)
+				&& Input::ClientPointValid(frame.pointer))
 			{
-				trackingHeaderPress_ = false;
-				if (ClientPointValid(frame.pointer))
+				const float px = frame.pointer.logicalX;
+				const float py = frame.pointer.logicalY;
+				if (expanded_)
 				{
-					const float px = frame.pointer.logicalX;
-					const float py = frame.pointer.logicalY;
-					if (expanded_)
-					{
-						if (IsPointerOverHeader_(frame))
-							CollapseFromPointer_(focus);
-						else if (!IsPointerInsideDropdown_(px, py))
-							CollapseFromPointer_(focus);
-					}
-					else if (IsPointerOverHeader_(frame))
-					{
-						ToggleExpanded_();
-						focus.RequestFocus(focusHandle_);
-					}
+					if (IsPointerOverHeader_(frame))
+						CollapseFromPointer_(focus);
+					else if (!IsPointerInsideDropdown_(px, py))
+						CollapseFromPointer_(focus);
+				}
+				else if (IsPointerOverHeader_(frame))
+				{
+					ToggleExpanded_();
+					focus.RequestFocus(focusHandle_);
 				}
 			}
 		}
 
-		pointerWasDownLastFrame_ = frame.pointer.primaryDown;
+		headerPress_.SyncFrame(frame.pointer.primaryDown);
+		listPress_.SyncFrame(frame.pointer.primaryDown);
 		RecomputeListItemPhases_(frame);
 		RecomputeHeaderPhase_(frame, focus);
 	}
 
 	void UiDropdown::ResetPointerInteraction() noexcept
 	{
-		trackingHeaderPress_ = false;
-		listPressItemIndex_ = -1;
-		pointerWasDownLastFrame_ = false;
+		headerPress_.Reset();
+		listPress_.Reset();
 	}
 
 }
