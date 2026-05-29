@@ -77,6 +77,34 @@ namespace
 		}
 		return IsInsideConvexPolygon(px, py, vx, vy, sides);
 	}
+
+	/** @brief 等腰三角形：顶点在顶边中点，底边为底边两角。 */
+	bool IsInsideIsoscelesTriangle(
+		const float px,
+		const float py,
+		const unsigned w,
+		const unsigned h) noexcept
+	{
+		if (w == 0u || h == 0u)
+			return false;
+
+		const float topX = static_cast<float>(w) * 0.5f;
+		const float topY = 0.5f;
+		const float bottomLeftX = 0.5f;
+		const float bottomLeftY = static_cast<float>(h) - 0.5f;
+		const float bottomRightX = static_cast<float>(w) - 0.5f;
+		const float bottomRightY = static_cast<float>(h) - 0.5f;
+
+		std::array<float, kMaxPolygonSides> vx{};
+		std::array<float, kMaxPolygonSides> vy{};
+		vx[0] = topX;
+		vy[0] = topY;
+		vx[1] = bottomLeftX;
+		vy[1] = bottomLeftY;
+		vx[2] = bottomRightX;
+		vy[2] = bottomRightY;
+		return IsInsideConvexPolygon(px, py, vx, vy, 3u);
+	}
 }
 
 Canvas::Canvas(unsigned width, unsigned height, Form form, float formParam)
@@ -139,6 +167,9 @@ void Canvas::ApplyForm(Form form, float formParam) noexcept
 				break;
 			case Form::Polygon:
 				inside = IsInsideRegularPolygon(px, py, cx, cy, halfW, halfH, polygonSides);
+				break;
+			case Form::Triangle:
+				inside = IsInsideIsoscelesTriangle(px, py, w, h);
 				break;
 			case Form::RoundedRectangle:
 				inside = IsInsideRoundedRect(px, py, cx, cy, halfW, halfH, cornerR);

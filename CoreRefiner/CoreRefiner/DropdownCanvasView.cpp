@@ -267,7 +267,7 @@ namespace Ui
 	void DropdownCanvasView::BakeArrowGeometry_()
 	{
 		::Canvas& c = *arrowCanvas_;
-		c.ApplyForm(Canvas::Form::Polygon, 3.0f);
+		c.ApplyForm(Canvas::Form::Triangle, 0.0f);
 		TintWhiteShapePixels(c, style_.arrowColor);
 	}
 
@@ -287,8 +287,9 @@ namespace Ui
 	{
 		::Canvas& c = *headerTextCanvas_;
 		const unsigned w = c.GetCanvasWidth();
+		const unsigned pad = static_cast<unsigned>(style_.headerPaddingPx);
 		const unsigned reservedArrow = style_.arrowWidthPx + style_.headerPaddingPx;
-		const unsigned textMaxW = (w > reservedArrow + style_.headerPaddingPx)
+		const unsigned textMaxW = w > reservedArrow + style_.headerPaddingPx
 			? w - reservedArrow - style_.headerPaddingPx
 			: w;
 
@@ -320,8 +321,7 @@ namespace Ui
 			|| vm.selectedLabel != lastPainted_.selectedLabel
 			|| IsDisabledPhase(vm.headerPhase) != IsDisabledPhase(lastPainted_.headerPhase);
 
-		const bool arrowDirty = !hasPainted_
-			|| vm.expanded != lastPainted_.expanded;
+		const bool arrowDirty = !hasPainted_ || vm.expanded != lastPainted_.expanded;
 
 		const bool listStructureDirty = !hasPainted_
 			|| vm.expanded != lastPainted_.expanded

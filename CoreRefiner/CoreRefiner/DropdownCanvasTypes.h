@@ -2,6 +2,7 @@
 
 #include "Colors.h"
 #include "TextTypes.h"
+#include "UiOptionList.h"
 
 #include <functional>
 
@@ -9,8 +10,6 @@ class Canvas;
 
 namespace Ui
 {
-	struct DropdownOption;
-
 	struct DropdownCanvasStyle
 	{
 		Color headerNormal = Color(45u, 45u, 48u, 255u);
@@ -41,7 +40,7 @@ namespace Ui
 
 	using DropdownCanvasItemDrawFn = std::function<void(
 		::Canvas& canvas,
-		const DropdownOption& option,
+		const UiOption& option,
 		unsigned itemIndex,
 		bool highlighted,
 		bool selected)>;

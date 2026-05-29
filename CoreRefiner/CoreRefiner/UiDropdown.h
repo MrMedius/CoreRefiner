@@ -1,19 +1,17 @@
 ﻿#pragma once
 #include "FocusTypes.h"
 #include "IUiLogic.h"
+#include "UiOptionList.h"
 #include "UiPointerPressTracker.h"
 #include "UiTypes.h"
 #include "UiVisualPhase.h"
 #include <functional>
 #include <string>
 #include <vector>
+
 namespace Ui
 {
 	class FocusManager;
-	struct DropdownOption
-	{
-		std::string label;
-	};
 
 	class UiDropdown : public IUiLogic
 	{
@@ -26,14 +24,23 @@ namespace Ui
 		[[nodiscard]] FocusHandle GetFocusHandle() const noexcept override { return focusHandle_; }
 		void SetEnabled(bool enabled) noexcept;
 		[[nodiscard]] bool IsEnabled() const noexcept { return enabled_; }
-		void SetOptions(std::vector<DropdownOption> options);
-		void AddOptions(std::vector<DropdownOption> options);
-		void AddOption(DropdownOption option);
+
+		void BindOptionList(UiOptionList& list) noexcept { optionList_ = &list; }
+		void UnbindOptionList() noexcept { optionList_ = &ownedList_; }
+		[[nodiscard]] UiOptionList& OptionList() noexcept { return *optionList_; }
+		[[nodiscard]] const UiOptionList& OptionList() const noexcept { return *optionList_; }
+
+		void SetOptions(std::vector<UiOption> options);
+		void AddOptions(std::vector<UiOption> options);
+		void AddOption(UiOption option);
 		void EraseOptions(std::vector<int> indices);
 		void EraseOption(int index);
 		void ClearOptions() noexcept;
-		[[nodiscard]] const std::vector<DropdownOption>& GetOptions() const noexcept { return options_; }
-		[[nodiscard]] int GetSelectedIndex() const noexcept { return selectedIndex_; }
+		[[nodiscard]] const std::vector<UiOption>& GetOptions() const noexcept
+		{
+			return optionList_->GetOptions();
+		}
+		[[nodiscard]] int GetSelectedIndex() const noexcept { return optionList_->GetSelectedIndex(); }
 		void SetSelectedIndex(int index, bool notify = true) noexcept;
 		[[nodiscard]] int GetHighlightIndex() const noexcept { return highlightIndex_; }
 		[[nodiscard]] UiVisualPhase GetListItemVisualPhase(int index) const noexcept;
@@ -73,12 +80,14 @@ namespace Ui
 		void HandleExpandedListNavigation_(const UiInputFrame& frame) noexcept;
 		void RecomputeListItemPhases_(const UiInputFrame& frame) noexcept;
 		[[nodiscard]] bool IsListItemPressed_(int index, const UiInputFrame& frame) const noexcept;
+
+	private:
 		FocusHandle focusHandle_;
 		UiRect headerBounds_{};
 		UiRect listBounds_{};
 		std::vector<UiRect> itemBounds_;
-		std::vector<DropdownOption> options_;
-		int selectedIndex_ = 0;
+		UiOptionList ownedList_;
+		UiOptionList* optionList_ = &ownedList_;
 		int highlightIndex_ = -1;
 		float itemHeight_ = 1.0f;
 		float listOffsetY_ = 0.0f;
@@ -91,5 +100,4 @@ namespace Ui
 		UiVisualPhase headerPhase_ = UiVisualPhase::Normal;
 		std::function<void(int index, const std::string& label)> onValueChanged_;
 	};
-
 }

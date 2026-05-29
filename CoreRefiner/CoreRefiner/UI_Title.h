@@ -1,9 +1,12 @@
 #pragma once
 #include "Graphics.h"
+
 #include "ButtonCanvasComponent.h"
 #include "SliderCanvasComponent.h"
+#include "StepperCanvasComponent.h"
 #include "ToggleCanvasComponent.h"
 #include "DropdownCanvasComponent.h"
+#include "UiOptionList.h"
 #include "Canvas2DRipples.h"
 
 #include "UiRoot.h"
@@ -15,7 +18,6 @@
 
 #include <memory>
 #include <functional>
-
 
 #include "SoundCodex.h"
 
@@ -78,7 +80,7 @@ public:
 			}
 		}
 		{
-		unsigned spacingY = SCREEN_HEIGHT / 20u;
+			unsigned spacingY = SCREEN_HEIGHT / 20u;
 			unsigned btnWidth = SCREEN_WIDTH / 10u;
 			unsigned btnHeight = SCREEN_HEIGHT / 15u;
 
@@ -98,7 +100,6 @@ public:
 
 
 
-
 			const float hBarW = static_cast<float>(titleWidth) * 0.8f;
 			const float hBarH = 24.0f;
 			const float hBarY = static_cast<float>(centerY / 2u) + static_cast<float>(titleHeight) * 0.5f + 20.0f;
@@ -107,6 +108,22 @@ public:
 				static_cast<float>(centerX), hBarY, hBarW, hBarH,
 				true);
 			hSlider_->Slider().SetValue(0.35f);
+			hSlider_->Slider().SetInteractive(false);
+
+			const float stepperSliderTotalW = hBarH * 2.0f + hBarW;
+			stepperSlider_ = std::make_unique<Ui::StepperCanvasComponent>(
+				gfx, 515u,
+				static_cast<float>(centerX), hBarY, stepperSliderTotalW, hBarH);
+			stepperSlider_->SetCenterVisible(false);
+			stepperSlider_->SetCenterGapWidth(hBarW);
+			stepperSlider_->Stepper().SetRange(0.0f, 10.0f);
+			stepperSlider_->Stepper().SetValue(3.5f);
+			stepperSlider_->Stepper().SetOnValueChanged([this](float v) {
+				hSlider_->Slider().SetValue(v / 10.0f);
+			});
+			hSlider_->Slider().SetOnValueChanged([this](float norm) {
+				stepperSlider_->Stepper().SetValue(norm * 10.0f, false);
+			});
 
 			const float vBarW = 24.0f;
 			const float vBarH = static_cast<float>(titleHeight) * 1.2f;
@@ -117,7 +134,6 @@ public:
 				vBarX, vBarY, vBarH, vBarW,
 				true, Ui::SliderCanvasStyle{}, 45.0f);
 			vSlider_->Slider().SetValue(0.6f);
-
 
 
 
@@ -137,32 +153,82 @@ public:
 
 
 
+			const float stepperDemoH = static_cast<float>(btnHeight);
+			const float stepperDemoTextW = static_cast<float>(btnWidth);
+			const float stepperDemoTotalW = stepperDemoH * 2.0f + stepperDemoTextW;
+			const float stepperDemoX = static_cast<float>(centerX) - static_cast<float>(btnWidth) * 2.5f;
+			const float stepperDemoY = toggleY + static_cast<float>(spacingY) * 4.0f;
+			stepperDemo_ = std::make_unique<Ui::StepperCanvasComponent>(
+				gfx, 516u, stepperDemoX, stepperDemoY, stepperDemoTotalW, stepperDemoH);
+			stepperDemo_->Stepper().SetLabel("Volume: 5");
+			stepperDemo_->Stepper().SetRange(0.0f, 10.0f);
+			stepperDemo_->Stepper().SetValue(5.0f);
+			stepperDemo_->Stepper().SetOnValueChanged([this](float v) {
+				stepperDemo_->Stepper().SetLabel(
+					"Volume: " + std::to_string(static_cast<int>(v)));
+			});
 
 			const float dropdownW = static_cast<float>(btnWidth) * 2.0f;
 			const float dropdownH = static_cast<float>(btnHeight);
 			const float dropdownX = static_cast<float>(centerX);
-			dropdownQuality_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 513u, dropdownX + static_cast<float>(btnWidth) * 2.0f, toggleY + static_cast<float>(spacingY) * 6.5f, dropdownW, dropdownH);
-			dropdownQuality_->AddOptions({
+			const float qualityY = toggleY + static_cast<float>(spacingY) * 6.5f;
+			const float qualityX = dropdownX + static_cast<float>(btnWidth) * 2.0f;
+
+			qualityOptions_ = std::make_unique<Ui::UiOptionList>();
+			qualityOptions_->SetOptions({
 				{.label = "Ultra" },
 				{.label = "Very Low" },
 				{.label = "Very Very Low" },
 				});
-			dropdownQuality_->SetOnValueChanged([this](int, const std::string& label) {
+			qualityOptions_->SetOnSelectionChanged([this](int, const std::string& label) {
 				btnB_->Button().SetLabel("Quality: " + label);
+				stepperQuality_->Stepper().SetLabel(label);
+				stepperQuality_->Stepper().SetValue(
+					static_cast<float>(qualityOptions_->GetSelectedIndex()), false);
 			});
 
-			dropdownCustom_ = std::make_unique<Ui::DropdownCanvasComponent>(
-				gfx, 514u, dropdownX + static_cast<float>(btnWidth) * 2.0f + static_cast<float>(spacingY), toggleY + static_cast<float>(spacingY), dropdownW, dropdownH);
-			dropdownCustom_->AddOptions({
+
+
+
+
+			const float stepperQualityTextW = dropdownW;
+			const float stepperQualityTotalW = dropdownH * 2.0f + stepperQualityTextW;
+			stepperQuality_ = std::make_unique<Ui::StepperCanvasComponent>(
+				gfx, 517u, qualityX, qualityY, stepperQualityTotalW, dropdownH);
+			stepperQuality_->Stepper().SetLabel(qualityOptions_->GetSelectedLabel());
+			stepperQuality_->Stepper().SetRange(
+				0.0f, static_cast<float>(qualityOptions_->Count() - 1));
+			stepperQuality_->Stepper().SetStep(1.0f);
+			stepperQuality_->Stepper().SetValue(
+				static_cast<float>(qualityOptions_->GetSelectedIndex()));
+			stepperQuality_->Stepper().SetOnValueChanged([this](float v) {
+				qualityOptions_->SetSelectedIndex(static_cast<int>(v));
+			});
+
+
+
+
+
+			customOptions_ = std::make_unique<Ui::UiOptionList>();
+			customOptions_->SetOptions({
 				{.label = "Custom 1" },
 				{.label = "Custom 2" },
 				{.label = "Custom 3" },
 				{.label = "Custom 4" },
 				{.label = "Custom 5" },
 				});
-			dropdownCustom_->AddOption({ .label = "Custom 6" });
-			dropdownCustom_->AddOption({ .label = "Custom 7" });
+			customOptions_->AddOption({ .label = "Custom 6" });
+
+			dropdownCustom_ = std::make_unique<Ui::DropdownCanvasComponent>(
+				gfx, 514u,
+				dropdownX + static_cast<float>(btnWidth) * 2.0f + static_cast<float>(spacingY),
+				toggleY + static_cast<float>(spacingY),
+				dropdownW, dropdownH);
+			dropdownCustom_->BindOptionList(*customOptions_);
+
+
+
+
 
 			uiRoot = std::make_unique<Ui::UiRoot>();
 			uiRoot->Clear();
@@ -176,8 +242,11 @@ public:
 			toggleSound_->RegisterTo(*uiRoot);
 			toggleFullscreen_->RegisterTo(*uiRoot);
 
-			dropdownQuality_->RegisterTo(*uiRoot);
 			dropdownCustom_->RegisterTo(*uiRoot);
+
+			stepperSlider_->RegisterTo(*uiRoot);
+			stepperDemo_->RegisterTo(*uiRoot);
+			stepperQuality_->RegisterTo(*uiRoot);
 
 			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
@@ -208,6 +277,7 @@ private:
 	std::unique_ptr<Canvas2DRipples> titleCanvasRipple;
 
 	std::unique_ptr<Ui::UiRoot> uiRoot;
+
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnA_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnB_{};
 	std::unique_ptr<Ui::ButtonCanvasComponent> btnC_{};
@@ -218,8 +288,14 @@ private:
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleSound_{};
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
 
-	std::unique_ptr<Ui::DropdownCanvasComponent> dropdownQuality_{};
+	std::unique_ptr<Ui::UiOptionList> qualityOptions_{};
+	std::unique_ptr<Ui::UiOptionList> customOptions_{};
+
 	std::unique_ptr<Ui::DropdownCanvasComponent> dropdownCustom_{};
+
+	std::unique_ptr<Ui::StepperCanvasComponent> stepperSlider_{};
+	std::unique_ptr<Ui::StepperCanvasComponent> stepperDemo_{};
+	std::unique_ptr<Ui::StepperCanvasComponent> stepperQuality_{};
 
 	std::function<void()> onNewGame_{};
 };

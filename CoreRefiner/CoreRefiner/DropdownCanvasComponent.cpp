@@ -71,17 +71,17 @@ namespace Ui
 		view_->ApplyLayout(centerX, centerY, width, headerHeight);
 	}
 
-	void DropdownCanvasComponent::SetOptions(std::vector<DropdownOption> options)
+	void DropdownCanvasComponent::SetOptions(std::vector<UiOption> options)
 	{
 		dropdown_->SetOptions(std::move(options));
 	}
 
-	void DropdownCanvasComponent::AddOptions(std::vector<DropdownOption> options)
+	void DropdownCanvasComponent::AddOptions(std::vector<UiOption> options)
 	{
 		dropdown_->AddOptions(std::move(options));
 	}
 
-	void DropdownCanvasComponent::AddOption(const DropdownOption option)
+	void DropdownCanvasComponent::AddOption(const UiOption option)
 	{
 		dropdown_->AddOption(std::move(option));
 	}
@@ -105,6 +105,16 @@ namespace Ui
 		std::function<void(int index, const std::string& label)> cb)
 	{
 		dropdown_->SetOnValueChanged(std::move(cb));
+	}
+
+	void DropdownCanvasComponent::BindOptionList(UiOptionList& list) noexcept
+	{
+		dropdown_->BindOptionList(list);
+	}
+
+	void DropdownCanvasComponent::UnbindOptionList() noexcept
+	{
+		dropdown_->UnbindOptionList();
 	}
 
 	void DropdownCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)

@@ -23,6 +23,7 @@ public:
 		RoundedRectangle,	// formParam: corner radius fraction (0.0f to 0.5f for percentage)
 		Ellipse,			// formParam is ignored
 		Polygon,			// formParam: number of sides (can be float but will be rounded)
+		Triangle,			// formParam is ignored; tip at top edge center, base at bottom corners
 	};
 
 	Canvas(unsigned width, unsigned height, Form form = Rectangle, float formParam = 0.0f);

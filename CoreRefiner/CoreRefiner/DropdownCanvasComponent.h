@@ -50,12 +50,17 @@ namespace Ui
 
 		void SetLayoutLogicalCenterSize(float centerX, float centerY, float width, float headerHeight) noexcept;
 
-		void SetOptions(std::vector<DropdownOption> options);
-		void AddOptions(std::vector<DropdownOption> options);
-		void AddOption(DropdownOption option);
+		void SetOptions(std::vector<UiOption> options);
+		void AddOptions(std::vector<UiOption> options);
+		void AddOption(UiOption option);
 		void EraseOptions(std::vector<int> indices);
 		void EraseOption(int index);
 		void ClearOptions() noexcept;
+
+		void BindOptionList(UiOptionList& list) noexcept;
+		void UnbindOptionList() noexcept;
+		[[nodiscard]] UiOptionList& OptionList() noexcept { return dropdown_->OptionList(); }
+		[[nodiscard]] const UiOptionList& OptionList() const noexcept { return dropdown_->OptionList(); }
 
 		void SetOnValueChanged(std::function<void(int index, const std::string& label)> cb);
 

@@ -3,6 +3,7 @@
 #include "UiVisualPhase.h"
 #include <string>
 #include <vector>
+
 namespace Ui
 {
 	struct DropdownViewModel
@@ -45,5 +46,4 @@ namespace Ui
 		}
 		return vm;
 	}
-
 }

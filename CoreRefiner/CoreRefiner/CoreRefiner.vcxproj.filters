@@ -571,6 +571,9 @@
     <ClCompile Include="UiDropdown.cpp">
       <Filter>Framework\UI\Widget\Dropdown</Filter>
     </ClCompile>
+    <ClCompile Include="UiOptionList.cpp">
+      <Filter>Framework\UI\Model</Filter>
+    </ClCompile>
     <ClCompile Include="DropdownCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
@@ -1166,6 +1169,9 @@
     </ClInclude>
     <ClInclude Include="UiDropdown.h">
       <Filter>Framework\UI\Widget\Dropdown</Filter>
+    </ClInclude>
+    <ClInclude Include="UiOptionList.h">
+      <Filter>Framework\UI\Model</Filter>
     </ClInclude>
     <ClInclude Include="DropdownCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>

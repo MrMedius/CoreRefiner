@@ -11,12 +11,11 @@ namespace Ui
 		headerBounds_(headerBounds)
 	{
 		//options_ = {
-		//	DropdownOption{ .label = "Low" },
-		//	DropdownOption{ .label = "Medium" },
-		//	DropdownOption{ .label = "High" }
+		//	UiOption{ .label = "Low" },
+		//	UiOption{ .label = "Medium" },
+		//	UiOption{ .label = "High" }
 		//};
 
-		selectedIndex_ = 0;
 		itemHeight_ = std::max(1.0f, headerBounds_.maxY - headerBounds_.minY);
 	}
 
@@ -36,9 +35,9 @@ namespace Ui
 
 	float UiDropdown::GetListHeight() const noexcept
 	{
-		if (options_.empty())
+		if (optionList_->GetOptions().empty())
 			return 0.0f;
-		return static_cast<float>(options_.size()) * itemHeight_;
+		return static_cast<float>(optionList_->GetOptions().size()) * itemHeight_;
 	}
 
 	void UiDropdown::SetEnabled(const bool enabled) noexcept
@@ -50,48 +49,32 @@ namespace Ui
 			listPress_.Reset();
 			SetExpanded_(false);
 		}
-
 	}
 
-	void UiDropdown::SetOptions(std::vector<DropdownOption> options)
+	void UiDropdown::SetOptions(std::vector<UiOption> options)
 	{
-		options_ = std::move(options);
+		optionList_->SetOptions(std::move(options));
 		NormalizeSelectionAfterOptionsChange_();
 		RebuildItemBounds_();
 	}
 
-	void UiDropdown::AddOptions(std::vector<DropdownOption> options)
+	void UiDropdown::AddOptions(std::vector<UiOption> options)
 	{
-		if (options.empty())
-			return;
-		options_.insert(options_.end(),
-			std::make_move_iterator(options.begin()),
-			std::make_move_iterator(options.end()));
+		optionList_->AddOptions(std::move(options));
 		NormalizeSelectionAfterOptionsChange_();
 		RebuildItemBounds_();
 	}
 
-	void UiDropdown::AddOption(const DropdownOption option)
+	void UiDropdown::AddOption(const UiOption option)
 	{
-		options_.push_back(option);
+		optionList_->AddOption(option);
 		NormalizeSelectionAfterOptionsChange_();
 		RebuildItemBounds_();
 	}
 
 	void UiDropdown::EraseOptions(std::vector<int> indices)
 	{
-		if (indices.empty() || options_.empty())
-			return;
-		std::sort(indices.begin(), indices.end());
-		indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
-		for (auto it = indices.rbegin(); it != indices.rend(); ++it)
-		{
-			const int idx = *it;
-			if (idx < 0 || idx >= static_cast<int>(options_.size()))
-				continue;
-			options_.erase(options_.begin() + idx);
-		}
-
+		optionList_->EraseOptions(std::move(indices));
 		NormalizeSelectionAfterOptionsChange_();
 		RebuildItemBounds_();
 	}
@@ -103,50 +86,37 @@ namespace Ui
 
 	void UiDropdown::ClearOptions() noexcept
 	{
-		options_.clear();
-		selectedIndex_ = -1;
+		optionList_->ClearOptions();
 		highlightIndex_ = -1;
 		RebuildItemBounds_();
 	}
 
 	void UiDropdown::NormalizeSelectionAfterOptionsChange_() noexcept
 	{
-		if (options_.empty())
+		const auto& options = optionList_->GetOptions();
+		if (options.empty())
 		{
-			selectedIndex_ = -1;
 			highlightIndex_ = -1;
 			return;
 		}
 
-		if (selectedIndex_ < 0)
-			selectedIndex_ = 0;
-		else
-			selectedIndex_ = std::clamp(selectedIndex_, 0, static_cast<int>(options_.size()) - 1);
-		if (highlightIndex_ >= static_cast<int>(options_.size()))
-			highlightIndex_ = static_cast<int>(options_.size()) - 1;
+		if (highlightIndex_ >= static_cast<int>(options.size()))
+			highlightIndex_ = static_cast<int>(options.size()) - 1;
 	}
 
 	void UiDropdown::SetSelectedIndex(const int index, const bool notify) noexcept
 	{
-		if (options_.empty())
-		{
-			selectedIndex_ = -1;
+		const int prevIndex = optionList_->GetSelectedIndex();
+		optionList_->SetSelectedIndex(index, notify);
+		if (optionList_->GetSelectedIndex() == prevIndex)
 			return;
-		}
-
-		const int clamped = std::clamp(index, 0, static_cast<int>(options_.size()) - 1);
-		if (selectedIndex_ == clamped)
-			return;
-		selectedIndex_ = clamped;
 		if (notify && onValueChanged_)
-			onValueChanged_(selectedIndex_, options_[static_cast<size_t>(selectedIndex_)].label);
+			onValueChanged_(optionList_->GetSelectedIndex(), optionList_->GetSelectedLabel());
 	}
 
 	std::string UiDropdown::GetSelectedLabel() const
 	{
-		if (selectedIndex_ < 0 || selectedIndex_ >= static_cast<int>(options_.size()))
-			return {};
-		return options_[static_cast<size_t>(selectedIndex_)].label;
+		return optionList_->GetSelectedLabel();
 	}
 
 	void UiDropdown::RebuildItemBounds_() noexcept
@@ -154,15 +124,16 @@ namespace Ui
 		itemBounds_.clear();
 		listBounds_ = {};
 		listOffsetY_ = 0.0f;
-		if (!expanded_ || options_.empty() || itemHeight_ <= 0.0f)
+		const auto& options = optionList_->GetOptions();
+		if (!expanded_ || options.empty() || itemHeight_ <= 0.0f)
 			return;
 
 		RecomputeListEdgeOffset_();
 		const float left = headerBounds_.minX;
 		const float right = headerBounds_.maxX;
 		float y = headerBounds_.maxY + listOffsetY_;
-		itemBounds_.reserve(options_.size());
-		for (size_t i = 0; i < options_.size(); ++i)
+		itemBounds_.reserve(options.size());
+		for (size_t i = 0; i < options.size(); ++i)
 		{
 			const UiRect item{
 				.minX = left,
@@ -365,9 +336,10 @@ namespace Ui
 
 	void UiDropdown::MoveListHighlight_(const int delta) noexcept
 	{
-		if (!expanded_ || options_.empty() || delta == 0)
+		const auto& options = optionList_->GetOptions();
+		if (!expanded_ || options.empty() || delta == 0)
 			return;
-		const int lastIndex = static_cast<int>(options_.size()) - 1;
+		const int lastIndex = static_cast<int>(options.size()) - 1;
 		if (delta > 0)
 		{
 			if (highlightIndex_ < 0)
@@ -404,11 +376,13 @@ namespace Ui
 
 	void UiDropdown::RecomputeListItemPhases_(const UiInputFrame& frame) noexcept
 	{
-		listItemPhases_.assign(options_.size(), UiVisualPhase::Normal);
+		const auto& options = optionList_->GetOptions();
+		listItemPhases_.assign(options.size(), UiVisualPhase::Normal);
 		if (!expanded_)
 			return;
 
-		for (size_t i = 0; i < options_.size(); ++i)
+		const int selectedIndex = optionList_->GetSelectedIndex();
+		for (size_t i = 0; i < options.size(); ++i)
 		{
 			const int idx = static_cast<int>(i);
 			if (IsListItemPressed_(idx, frame))
@@ -416,7 +390,7 @@ namespace Ui
 				listItemPhases_[i] = UiVisualPhase::Pressed;
 				continue;
 			}
-			if (highlightIndex_ == idx || selectedIndex_ == idx)
+			if (highlightIndex_ == idx || selectedIndex == idx)
 				listItemPhases_[i] = UiVisualPhase::Focused;
 		}
 	}
