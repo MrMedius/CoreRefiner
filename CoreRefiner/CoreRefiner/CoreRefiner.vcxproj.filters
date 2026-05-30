@@ -173,6 +173,9 @@
     <Filter Include="Framework\UI\Widget\Dropdown">
       <UniqueIdentifier>{1ff7de66-d0f3-4a39-8407-0e0a8e67ce86}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Framework\UI\Widget\Stepper">
+      <UniqueIdentifier>{a887444a-66fa-4868-91cd-9f8301c4b0b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -490,6 +493,18 @@
     <ClCompile Include="UiButton.cpp">
       <Filter>Framework\UI\Widget\Button</Filter>
     </ClCompile>
+    <ClCompile Include="UiTextField.cpp">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClCompile>
+    <ClCompile Include="TextFieldCanvasView.cpp">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClCompile>
+    <ClCompile Include="TextFieldCanvasComponent.cpp">
+      <Filter>Framework\UI\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="UiUtf8EditBuffer.cpp">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClCompile>
     <ClCompile Include="UiRoot.cpp">
       <Filter>Framework\UI\Base</Filter>
     </ClCompile>
@@ -571,11 +586,20 @@
     <ClCompile Include="UiDropdown.cpp">
       <Filter>Framework\UI\Widget\Dropdown</Filter>
     </ClCompile>
-    <ClCompile Include="UiOptionList.cpp">
-      <Filter>Framework\UI\Model</Filter>
-    </ClCompile>
     <ClCompile Include="DropdownCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="UiOptionList.cpp">
+      <Filter>Framework\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="StepperCanvasComponent.cpp">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
+    </ClCompile>
+    <ClCompile Include="StepperCanvasView.cpp">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
+    </ClCompile>
+    <ClCompile Include="UiStepper.cpp">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1035,6 +1059,21 @@
     <ClInclude Include="ButtonViewModel.h">
       <Filter>Framework\UI\Widget\Button</Filter>
     </ClInclude>
+    <ClInclude Include="TextFieldViewModel.h">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClInclude>
+    <ClInclude Include="TextFieldCanvasView.h">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClInclude>
+    <ClInclude Include="UiTextField.h">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClInclude>
+    <ClInclude Include="UiUtf8EditBuffer.h">
+      <Filter>Framework\UI\Widget\TextField</Filter>
+    </ClInclude>
+    <ClInclude Include="TextFieldCanvasComponent.h">
+      <Filter>Framework\UI\Component</Filter>
+    </ClInclude>
     <ClInclude Include="IUiComponent.h">
       <Filter>Framework\UI\Base</Filter>
     </ClInclude>
@@ -1170,11 +1209,23 @@
     <ClInclude Include="UiDropdown.h">
       <Filter>Framework\UI\Widget\Dropdown</Filter>
     </ClInclude>
-    <ClInclude Include="UiOptionList.h">
-      <Filter>Framework\UI\Model</Filter>
-    </ClInclude>
     <ClInclude Include="DropdownCanvasComponent.h">
       <Filter>Framework\UI\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="UiOptionList.h">
+      <Filter>Framework\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="StepperCanvasComponent.h">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
+    </ClInclude>
+    <ClInclude Include="StepperCanvasView.h">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
+    </ClInclude>
+    <ClInclude Include="StepperViewModel.h">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
+    </ClInclude>
+    <ClInclude Include="UiStepper.h">
+      <Filter>Framework\UI\Widget\Stepper</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

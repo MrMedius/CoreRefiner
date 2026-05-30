@@ -1,6 +1,9 @@
 #pragma once
 #include "UiTypes.h"
 
+#include <string>
+#include <vector>
+
 namespace Ui
 {
 	struct UiPointerPayload
@@ -32,11 +35,19 @@ namespace Ui
 		bool cancelPressed = false;
 	};
 
+	struct UiTextInputPayload
+	{
+		std::vector<std::string> commitUtf8;
+		std::string imeCompositionUtf8;
+		bool imeCompositionActive = false;
+	};
+
 	struct UiInputFrame
 	{
 		UiPointerPayload pointer{};
 		UiNavigationPayload navigation{};
 		UiActionPayload action{};
+		UiTextInputPayload text{};
 	};
 
 	inline void MergeUiInputFramesOr(UiInputFrame& acc, const UiInputFrame& layer) noexcept
@@ -60,5 +71,15 @@ namespace Ui
 		acc.action.confirmPressed = acc.action.confirmPressed || layer.action.confirmPressed;
 		acc.action.confirmReleased = acc.action.confirmReleased || layer.action.confirmReleased;
 		acc.action.cancelPressed = acc.action.cancelPressed || layer.action.cancelPressed;
+
+		acc.text.commitUtf8.insert(
+			acc.text.commitUtf8.end(),
+			layer.text.commitUtf8.begin(),
+			layer.text.commitUtf8.end());
+		if (layer.text.imeCompositionActive)
+		{
+			acc.text.imeCompositionUtf8 = layer.text.imeCompositionUtf8;
+			acc.text.imeCompositionActive = true;
+		}
 	}
 }

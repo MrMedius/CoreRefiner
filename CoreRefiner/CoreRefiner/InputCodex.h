@@ -1,8 +1,18 @@
 #pragma once
 #include <optional>
+#include <string>
+#include <vector>
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "Gamepad.h"
+
+/** @brief 一帧文本输入（WM_CHAR / IME），由 Window 注入、上层 Drain。 */
+struct TextInputFrame
+{
+    std::vector<std::string> commitUtf8;
+    std::string imeCompositionUtf8;
+    bool imeCompositionActive = false;
+};
 
 class InputCodex
 {
@@ -39,6 +49,15 @@ public:
     bool KeyAutorepeatEnabled() const noexcept  { return keyboard.AutorepeatIsEnabled(); }
 
     bool KeyboardInput() noexcept { return keyboard.AnyKeyPressed(); }
+
+
+    // -----------------------------------------------------------
+    // Text / IME (UTF-8 commit + composition; separate from Keyboard charbuffer)
+    void DrainTextFrame(TextInputFrame& out);
+    void ClearTextInput() noexcept;
+
+    void SetTextCaptureRequested(bool requested) noexcept { textCaptureRequested_ = requested; }
+    [[nodiscard]] bool TextCaptureRequested() const noexcept { return textCaptureRequested_; }
 
 
     // -----------------------------------------------------------
@@ -141,6 +160,9 @@ private:
     void OnKeyUp(unsigned char keycode) noexcept;
     void OnChar(char character) noexcept;
 
+    void OnTextCommitUtf8(std::string utf8);
+    void OnImeComposition(std::string utf8, bool active);
+
     void OnMouseMove(int x, int y) noexcept;
     void OnMouseEnter() noexcept;
     void OnMouseLeave() noexcept;
@@ -187,4 +209,9 @@ private:
     Mouse mouse;
     static constexpr int kMaxPads = 4;
     Gamepad pads[kMaxPads] = { Gamepad(0), Gamepad(1), Gamepad(2), Gamepad(3) };
+
+    std::vector<std::string> pendingTextCommits_;
+    std::string imeCompositionUtf8_;
+    bool imeCompositionActive_ = false;
+    bool textCaptureRequested_ = false;
 };

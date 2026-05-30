@@ -262,6 +262,10 @@
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="UiButton.cpp" />
+    <ClCompile Include="UiTextField.cpp" />
+    <ClCompile Include="TextFieldCanvasComponent.cpp" />
+    <ClCompile Include="TextFieldCanvasView.cpp" />
+    <ClCompile Include="UiUtf8EditBuffer.cpp" />
     <ClCompile Include="Canvas2DRipples.cpp" />
     <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
@@ -346,6 +350,11 @@
     <ClInclude Include="ButtonCanvasComponent.h" />
     <ClInclude Include="ButtonCanvasView.h" />
     <ClInclude Include="ButtonViewModel.h" />
+    <ClInclude Include="TextFieldViewModel.h" />
+    <ClInclude Include="UiTextField.h" />
+    <ClInclude Include="TextFieldCanvasComponent.h" />
+    <ClInclude Include="TextFieldCanvasView.h" />
+    <ClInclude Include="UiUtf8EditBuffer.h" />
     <ClInclude Include="StepperCanvasComponent.h" />
     <ClInclude Include="StepperCanvasView.h" />
     <ClInclude Include="StepperViewModel.h" />

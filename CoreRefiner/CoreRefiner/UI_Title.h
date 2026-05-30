@@ -6,6 +6,7 @@
 #include "StepperCanvasComponent.h"
 #include "ToggleCanvasComponent.h"
 #include "DropdownCanvasComponent.h"
+#include "TextFieldCanvasComponent.h"
 #include "UiOptionList.h"
 #include "Canvas2DRipples.h"
 
@@ -166,6 +167,8 @@ public:
 			stepperDemo_->Stepper().SetOnValueChanged([this](float v) {
 				stepperDemo_->Stepper().SetLabel(
 					"Volume: " + std::to_string(static_cast<int>(v)));
+				if (textField_)
+					textField_->Field().SetFontSize(12.0f + v * 2.0f);
 			});
 
 			const float dropdownW = static_cast<float>(btnWidth) * 2.0f;
@@ -226,6 +229,18 @@ public:
 				dropdownW, dropdownH);
 			dropdownCustom_->BindOptionList(*customOptions_);
 
+			const float textFieldW = static_cast<float>(btnWidth) * 2.5f;
+			const float textFieldH = static_cast<float>(btnHeight);
+			const float textFieldX = static_cast<float>(centerX);
+			const float textFieldY = qualityY + static_cast<float>(spacingY) * 2.0f;
+			textField_ = std::make_unique<Ui::TextFieldCanvasComponent>(
+				gfx, 518u, textFieldX, textFieldY, textFieldW, textFieldH);
+			textField_->Field().SetPlaceholder("Enter name...");
+			textField_->Field().SetFontSize(16.0f);
+			textField_->Field().SetOnTextChanged([this](const std::string& s) {
+				btnB_->Button().SetLabel(s.empty() ? "Settings" : ("Name: " + s));
+			});
+
 
 
 
@@ -247,6 +262,7 @@ public:
 			stepperSlider_->RegisterTo(*uiRoot);
 			stepperDemo_->RegisterTo(*uiRoot);
 			stepperQuality_->RegisterTo(*uiRoot);
+			textField_->RegisterTo(*uiRoot);
 
 			uiRoot->RebuildTabOrder();
 			uiRoot->InitLinkTechniques(rg);
@@ -296,6 +312,7 @@ private:
 	std::unique_ptr<Ui::StepperCanvasComponent> stepperSlider_{};
 	std::unique_ptr<Ui::StepperCanvasComponent> stepperDemo_{};
 	std::unique_ptr<Ui::StepperCanvasComponent> stepperQuality_{};
+	std::unique_ptr<Ui::TextFieldCanvasComponent> textField_{};
 
 	std::function<void()> onNewGame_{};
 };

@@ -29,5 +29,7 @@ namespace Ui
 		[[nodiscard]] virtual bool IsFocusable() const noexcept = 0;
 
 		[[nodiscard]] virtual bool ConsumesDirectionalNavigation() const noexcept { return false; }
+
+		[[nodiscard]] virtual bool ConsumesTextInput() const noexcept { return false; }
 	};
 }

@@ -8,6 +8,10 @@
 #include "InputCodex.h"
 #include "SoundCodex.h"
 #include "TextCodex.h"
+#include "Util.h"
+
+#include <imm.h>
+#pragma comment(lib, "imm32.lib")
 
 
 // Window Class Stuff
@@ -458,12 +462,76 @@ LRESULT Window::HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noex
 		input.OnKeyUp(static_cast<unsigned char>(wParam));
 		break;
 	case WM_CHAR:
-		// stifle this keyboard message if imgui wants to capture
-		if (imio.WantCaptureKeyboard)
+	{
+		const bool uiTextActive = input.TextCaptureRequested();
+		if (uiTextActive && !imio.WantCaptureKeyboard)
 		{
-			break;
+			const wchar_t ch = static_cast<wchar_t>(wParam);
+			if (ch >= 32 && ch != 127)
+			{
+				HIMC imc = ImmGetContext(hWnd);
+				bool hasComp = false;
+				if (imc != nullptr)
+				{
+					const LONG compLen = ImmGetCompositionStringW(imc, GCS_COMPSTR, nullptr, 0);
+					hasComp = compLen > 0;
+					ImmReleaseContext(hWnd, imc);
+				}
+				if (!hasComp)
+				{
+					const std::wstring ws(1, ch);
+					input.OnTextCommitUtf8(ToUtf8(ws));
+				}
+			}
+			return 0;
 		}
+		if (imio.WantCaptureKeyboard)
+			break;
 		input.OnChar(static_cast<unsigned char>(wParam));
+		break;
+	}
+	case WM_IME_COMPOSITION:
+	{
+		if (!input.TextCaptureRequested() || imio.WantCaptureKeyboard)
+			break;
+
+		HIMC imc = ImmGetContext(hWnd);
+		if (imc == nullptr)
+			break;
+
+		if (lParam & GCS_RESULTSTR)
+		{
+			const LONG byteLen = ImmGetCompositionStringW(imc, GCS_RESULTSTR, nullptr, 0);
+			if (byteLen > 0)
+			{
+				std::wstring result(static_cast<std::size_t>(byteLen) / sizeof(wchar_t), L'\0');
+				ImmGetCompositionStringW(imc, GCS_RESULTSTR, result.data(), byteLen);
+				input.OnTextCommitUtf8(ToUtf8(result));
+			}
+			input.OnImeComposition({}, false);
+		}
+		if (lParam & GCS_COMPSTR)
+		{
+			const LONG byteLen = ImmGetCompositionStringW(imc, GCS_COMPSTR, nullptr, 0);
+			if (byteLen > 0)
+			{
+				std::wstring comp(static_cast<std::size_t>(byteLen) / sizeof(wchar_t), L'\0');
+				ImmGetCompositionStringW(imc, GCS_COMPSTR, comp.data(), byteLen);
+				input.OnImeComposition(ToUtf8(comp), true);
+			}
+			else
+				input.OnImeComposition({}, false);
+		}
+
+		ImmReleaseContext(hWnd, imc);
+		return 0;
+	}
+	case WM_IME_ENDCOMPOSITION:
+		if (input.TextCaptureRequested() && !imio.WantCaptureKeyboard)
+		{
+			input.OnImeComposition({}, false);
+			return 0;
+		}
 		break;
 		/*********** END KEYBOARD MESSAGES ***********/
 

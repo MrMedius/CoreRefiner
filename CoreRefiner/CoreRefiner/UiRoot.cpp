@@ -2,6 +2,7 @@
 
 #include "IUiComponent.h"
 #include "IUiPopupConsumer.h"
+#include "InputCodex.h"
 
 namespace Ui
 {
@@ -184,6 +185,25 @@ namespace Ui
 			if (popupFocus != kInvalidFocusHandle)
 				focus_.RequestFocus(popupFocus);
 		}
+
+		TextInputFrame drainedText{};
+		InputCodex::Get().DrainTextFrame(drainedText);
+		widgetFrame.text.commitUtf8 = std::move(drainedText.commitUtf8);
+		widgetFrame.text.imeCompositionUtf8 = std::move(drainedText.imeCompositionUtf8);
+		widgetFrame.text.imeCompositionActive = drainedText.imeCompositionActive;
+
+		bool textInputActive = false;
+		for (IUiComponent* c : components_)
+		{
+			if (!focus_.IsFocused(c->GetFocusHandle()))
+				continue;
+			if (c->ConsumesTextInput())
+			{
+				textInputActive = true;
+				break;
+			}
+		}
+		InputCodex::Get().SetTextCaptureRequested(textInputActive);
 
 		for (IUiComponent* c : components_)
 		{

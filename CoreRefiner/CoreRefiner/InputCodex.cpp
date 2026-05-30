@@ -7,6 +7,8 @@ void InputCodex::ClearAll() noexcept
     keyboard.ClearState();
     mouse.Flush();
     keyboard.Flush();
+    ClearTextInput();
+    textCaptureRequested_ = false;
 }
 
 // Keyboard injection
@@ -21,6 +23,40 @@ void InputCodex::OnKeyUp(unsigned char keycode) noexcept
 void InputCodex::OnChar(char character) noexcept
 {
     keyboard.OnChar(character);
+}
+
+void InputCodex::OnTextCommitUtf8(std::string utf8)
+{
+    if (utf8.empty())
+        return;
+    pendingTextCommits_.push_back(std::move(utf8));
+}
+
+void InputCodex::OnImeComposition(std::string utf8, const bool active)
+{
+    imeCompositionUtf8_ = std::move(utf8);
+    imeCompositionActive_ = active;
+    if (!active)
+        imeCompositionUtf8_.clear();
+}
+
+void InputCodex::DrainTextFrame(TextInputFrame& out)
+{
+    out.commitUtf8.insert(
+        out.commitUtf8.end(),
+        pendingTextCommits_.begin(),
+        pendingTextCommits_.end());
+    pendingTextCommits_.clear();
+
+    out.imeCompositionUtf8 = imeCompositionUtf8_;
+    out.imeCompositionActive = imeCompositionActive_;
+}
+
+void InputCodex::ClearTextInput() noexcept
+{
+    pendingTextCommits_.clear();
+    imeCompositionUtf8_.clear();
+    imeCompositionActive_ = false;
 }
 
 // Mouse injection
