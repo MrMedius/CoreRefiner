@@ -210,16 +210,17 @@ namespace Ui
 		rq.backgroundColor = Colors::None;
 
 		const Text::MeasureResult measure = ctx.Measure();
-		const int caretX = static_cast<int>(measure.widthPx);
-		const int caretY = static_cast<int>(style_.paddingPx);
-		const int caretH = static_cast<int>(measure.heightPx);
+		const int caretX = static_cast<int>(measure.widthPx) - style_.paddingPx;
+		const float fontSize = vm.fontSize > 0.0f ? vm.fontSize : style_.fontSize;
+		const int caretH = static_cast<int>(fontSize * 1.1f);
+		const int canvasH = static_cast<int>(c.GetCanvasHeight());
+		const int y0 = style_.paddingPx;
+		const int y1 = std::min(canvasH - 1, y0 + caretH);
 		const int x0 = std::max(0, caretX);
-		const int y0 = caretY;
-		const int y1 = std::min(static_cast<int>(c.GetCanvasHeight()) - 1, y0 + std::max(caretH, 4));
 
 		for (int y = y0; y <= y1; ++y)
 		{
-			if (x0 >= 0 && static_cast<unsigned>(x0) < c.GetCanvasWidth())
+			if (static_cast<unsigned>(x0) < c.GetCanvasWidth())
 				c.PutPixel(static_cast<unsigned>(x0), static_cast<unsigned>(y), style_.caretColor);
 		}
 	}

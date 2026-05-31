@@ -77,20 +77,6 @@ namespace Ui
 			buffer_.DeleteBackward();
 		if (in.KeyTriggered(KK_DELETE))
 			buffer_.DeleteForward();
-
-		if (in.KeyTriggered(KK_LEFT))
-			buffer_.MoveCaretLeft();
-		if (in.KeyTriggered(KK_RIGHT))
-			buffer_.MoveCaretRight();
-		if (in.KeyTriggered(KK_UP))
-			buffer_.MoveCaretUp();
-		if (in.KeyTriggered(KK_DOWN))
-			buffer_.MoveCaretDown();
-		if (in.KeyTriggered(KK_HOME))
-			buffer_.MoveCaretLineHome();
-		if (in.KeyTriggered(KK_END))
-			buffer_.MoveCaretLineEnd();
-
 		if (in.KeyTriggered(KK_ENTER))
 			buffer_.InsertUtf8("\n");
 
