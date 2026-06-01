@@ -74,9 +74,35 @@ namespace Ui
 		const InputCodex& in = InputCodex::Get();
 
 		if (in.KeyTriggered(KK_BACK))
+		{
 			buffer_.DeleteBackward();
+			backspaceHoldFrames_ = 0u;
+		}
+		else if (in.KeyPressed(KK_BACK))
+		{
+			++backspaceHoldFrames_;
+			if (backspaceHoldFrames_ > kBackspaceInitialDelay
+				&& backspaceHoldFrames_ % kBackspaceRepeatInterval == 0u)
+				buffer_.DeleteBackward();
+		}
+		else
+			backspaceHoldFrames_ = 0u;
+
 		if (in.KeyTriggered(KK_DELETE))
+		{
 			buffer_.DeleteForward();
+			deleteHoldFrames_ = 0u;
+		}
+		else if (in.KeyPressed(KK_DELETE))
+		{
+			++deleteHoldFrames_;
+			if (deleteHoldFrames_ > kBackspaceInitialDelay
+				&& deleteHoldFrames_ % kBackspaceRepeatInterval == 0u)
+				buffer_.DeleteForward();
+		}
+		else
+			deleteHoldFrames_ = 0u;
+
 		if (in.KeyTriggered(KK_ENTER))
 			buffer_.InsertUtf8("\n");
 
@@ -102,6 +128,8 @@ namespace Ui
 		const bool over = IsPointerOver(frame);
 		if (frame.pointer.primaryPressed && over)
 			focus.RequestFocus(focusHandle_);
+		else if (frame.pointer.primaryPressed && !over && IsFocused(focus))
+			focus.ClearFocus();
 
 		pointerPress_.TryBeginPress(frame.pointer.primaryDown, over);
 		pointerPress_.SyncFrame(frame.pointer.primaryDown);

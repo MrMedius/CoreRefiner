@@ -79,6 +79,11 @@ namespace Ui
 		bool showCaret_ = true;
 		bool focused_ = false;
 
+		static constexpr unsigned kBackspaceInitialDelay = 20u;
+		static constexpr unsigned kBackspaceRepeatInterval = 3u;
+		unsigned backspaceHoldFrames_ = 0u;
+		unsigned deleteHoldFrames_ = 0u;
+
 		std::function<void(const std::string&)> onTextChanged_;
 	};
 }
