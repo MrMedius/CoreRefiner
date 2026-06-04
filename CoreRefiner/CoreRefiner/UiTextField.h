@@ -37,6 +37,14 @@ namespace Ui
 		void SetFontSize(float size) noexcept { fontSize_ = size; }
 		[[nodiscard]] float GetFontSize() const noexcept { return fontSize_; }
 
+		/**
+		 * @brief 限制输入的最大字符数（按 UTF-8 codepoint 计）；0 表示不限制。
+		 *
+		 * 若当前文本已超过新上限，会立即裁剪到上限并触发一次 OnTextChanged。
+		 */
+		void SetMaxLength(std::size_t maxCodepoints);
+		[[nodiscard]] std::size_t GetMaxLength() const noexcept { return maxLength_; }
+
 		void SetOnTextChanged(std::function<void(const std::string&)> cb) { onTextChanged_ = std::move(cb); }
 
 		void Update(const UiInputFrame& frame, FocusManager& focus) override;
@@ -61,11 +69,13 @@ namespace Ui
 		void ApplyTextInput(const UiTextInputPayload& text);
 		void ApplyEditingKeys(const UiInputFrame& frame);
 		void NotifyTextChangedIfNeeded_();
+		void ClampToMaxLength_();
 
 		FocusHandle focusHandle_;
 		UiRect bounds_{};
 		bool enabled_ = true;
 		float fontSize_ = 18.0f;
+		std::size_t maxLength_ = 0u;
 
 		UiUtf8EditBuffer buffer_;
 		std::string placeholderUtf8_;

@@ -18,9 +18,11 @@ namespace Ui
 				frame.navigation.tabNext = true;
 		}
 
-		if (in.KeyTriggered(KK_S) || in.KeyTriggered(VK_DOWN))
+		// 文本输入激活时，W/S 用于打字，不再充当导航；方向键始终可切换控件。
+		const bool textCapture = in.TextCaptureRequested();
+		if ((!textCapture && in.KeyTriggered(KK_S)) || in.KeyTriggered(VK_DOWN))
 			frame.navigation.navDown = true;
-		if (in.KeyTriggered(KK_W) || in.KeyTriggered(VK_UP))
+		if ((!textCapture && in.KeyTriggered(KK_W)) || in.KeyTriggered(VK_UP))
 			frame.navigation.navUp = true;
 
 

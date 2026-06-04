@@ -236,6 +236,7 @@ public:
 			textField_ = std::make_unique<Ui::TextFieldCanvasComponent>(
 				gfx, 518u, textFieldX, textFieldY, textFieldW, textFieldH);
 			textField_->Field().SetPlaceholder("Enter name...");
+			textField_->Field().SetMaxLength(16);
 			textField_->Field().SetFontSize(16.0f);
 			textField_->Field().SetOnTextChanged([this](const std::string& s) {
 				btnB_->Button().SetLabel(s.empty() ? "Settings" : ("Name: " + s));

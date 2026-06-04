@@ -47,11 +47,12 @@ namespace Ui
 		[[nodiscard]] Color TextColorForPhase(UiVisualPhase phase) const noexcept;
 		[[nodiscard]] std::string BuildDisplayText_(const TextFieldViewModel& vm) const;
 		[[nodiscard]] std::size_t CaretIndexInDisplay_(const TextFieldViewModel& vm) const;
+		[[nodiscard]] float ComputeScrollOffsetX_(const std::string& displayText, float fontSize) const;
 
 		void RepaintBackground_(UiVisualPhase phase);
-		void RepaintText_(const TextFieldViewModel& vm);
+		void RepaintText_(const TextFieldViewModel& vm, float scrollOffsetX);
 		void RepaintFocusRing_(UiVisualPhase phase);
-		void RepaintCaret_(const TextFieldViewModel& vm, std::string_view displayText, std::size_t caretIndex);
+		void RepaintCaret_(const TextFieldViewModel& vm, std::string_view displayText, std::size_t caretIndex, float scrollOffsetX);
 
 		TextFieldCanvasStyle style_;
 		std::unique_ptr<Canvas2D> bgCanvas_;

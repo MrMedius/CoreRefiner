@@ -36,11 +36,13 @@ Game::Game(const std::string& commandLine)
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
 
-	// Sound Base Setting
-	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
-	SoundCodex::Get().SetBgmVolume(0.1f);
-	SoundCodex::Get().SetSeVolume(1.0f);
-	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
+	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
+
+	//// Sound Base Setting
+	//SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
+	//SoundCodex::Get().SetBgmVolume(0.1f);
+	//SoundCodex::Get().SetSeVolume(1.0f);
+	//SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
 }
 
 Game::~Game()
@@ -103,12 +105,12 @@ void Game::Update(float dt)
 	switch (Scene)
 	{
 	case SCENE_TITLE:
-		uiTitle->Update(dt);
-
-		if (InputCodex::Get().KeyTriggered(VK_SPACE))
-		{
-			SetScene(SCENE_GAME);
-		}
+		//uiTitle->Update(dt);
+		uiSample->Update(dt);
+		//if (InputCodex::Get().KeyTriggered(VK_SPACE))
+		//{
+		//	SetScene(SCENE_GAME);
+		//}
 		break;
 	case SCENE_GAME:
 		if (!Pause)
@@ -142,7 +144,8 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-		uiTitle->Submit();
+		//uiTitle->Submit();
+		uiSample->Submit();
 
 		UIRG.Execute(wnd.Gfx());
 		break;

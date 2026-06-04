@@ -26,6 +26,30 @@ namespace Ui
 	void UiTextField::SetText(std::string utf8)
 	{
 		buffer_.SetText(std::move(utf8));
+		ClampToMaxLength_();
+	}
+
+	void UiTextField::SetMaxLength(const std::size_t maxCodepoints)
+	{
+		maxLength_ = maxCodepoints;
+		ClampToMaxLength_();
+	}
+
+	void UiTextField::ClampToMaxLength_()
+	{
+		if (maxLength_ == 0u)
+			return;
+
+		const std::string& current = buffer_.GetText();
+		if (Utf8CodepointCount(current) <= maxLength_)
+			return;
+
+		std::size_t end = 0u;
+		for (std::size_t n = 0u; n < maxLength_; ++n)
+			end = Utf8Next(current, end);
+
+		buffer_.SetText(current.substr(0, end));
+		NotifyTextChangedIfNeeded_();
 	}
 
 	bool UiTextField::IsPointerOver(const UiInputFrame& frame) const noexcept
@@ -42,7 +66,9 @@ namespace Ui
 
 	bool UiTextField::ConsumesDirectionalNavigation() const noexcept
 	{
-		return enabled_ && focused_;
+		// 不再拦截上下方向导航：聚焦时仍允许用上下键切换控件；
+		// W/S 的输入冲突由 KeyboardUiInputAdapter 在文本捕获时屏蔽。
+		return false;
 	}
 
 	void UiTextField::RecomputeVisualPhase(
@@ -59,19 +85,54 @@ namespace Ui
 
 	void UiTextField::ApplyTextInput(const UiTextInputPayload& text)
 	{
+		bool inserted = false;
 		for (const std::string& commit : text.commitUtf8)
-			buffer_.InsertUtf8(commit);
+		{
+			if (commit.empty())
+				continue;
+
+			if (maxLength_ == 0u)
+			{
+				buffer_.InsertUtf8(commit);
+				inserted = true;
+				continue;
+			}
+
+			const std::size_t current = Utf8CodepointCount(buffer_.GetText());
+			if (current >= maxLength_)
+				break;
+
+			const std::size_t room = maxLength_ - current;
+			const std::size_t incoming = Utf8CodepointCount(commit);
+			if (incoming <= room)
+			{
+				buffer_.InsertUtf8(commit);
+				inserted = true;
+			}
+			else
+			{
+				// 截断到剩余可容纳的 codepoint 数
+				std::size_t end = 0u;
+				for (std::size_t n = 0u; n < room; ++n)
+					end = Utf8Next(commit, end);
+				buffer_.InsertUtf8(std::string_view(commit).substr(0, end));
+				inserted = true;
+				break;
+			}
+		}
 
 		imeCompositionActive_ = text.imeCompositionActive;
 		imeCompositionUtf8_ = text.imeCompositionUtf8;
 
-		if (!text.commitUtf8.empty())
+		if (inserted)
 			NotifyTextChangedIfNeeded_();
 	}
 
 	void UiTextField::ApplyEditingKeys(const UiInputFrame& frame)
 	{
 		const InputCodex& in = InputCodex::Get();
+
+		const std::size_t beforeSize = buffer_.GetText().size();
 
 		if (in.KeyTriggered(KK_BACK))
 		{
@@ -105,6 +166,9 @@ namespace Ui
 
 		if (in.KeyTriggered(KK_ENTER))
 			buffer_.InsertUtf8("\n");
+
+		if (buffer_.GetText().size() != beforeSize)
+			NotifyTextChangedIfNeeded_();
 
 		(void)frame;
 	}

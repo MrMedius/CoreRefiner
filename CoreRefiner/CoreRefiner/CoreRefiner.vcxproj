@@ -452,6 +452,7 @@
     <ClInclude Include="UiRoot.h" />
     <ClInclude Include="UiTypes.h" />
     <ClInclude Include="Canvas2DRipples.h" />
+    <ClInclude Include="UI_Sample.h" />
     <ClInclude Include="UI_Setting.h" />
     <ClInclude Include="UI_Title.h" />
     <ClInclude Include="Util.h" />

@@ -15,6 +15,7 @@
 #include "EnemyManager.h"
 
 #include "UI_Title.h"
+#include "UI_Sample.h"
 
 class Game
 {
@@ -64,4 +65,5 @@ private:
 	std::unique_ptr<EnemyManager> pEnemyManager;
 
 	std::unique_ptr<UI_Title> uiTitle;
+	std::unique_ptr<UI_Sample> uiSample;
 };
