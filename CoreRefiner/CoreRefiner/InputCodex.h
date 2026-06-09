@@ -6,7 +6,6 @@
 #include "Mouse.h"
 #include "Gamepad.h"
 
-/** @brief 一帧文本输入（WM_CHAR / IME），由 Window 注入、上层 Drain。 */
 struct TextInputFrame
 {
     std::vector<std::string> commitUtf8;

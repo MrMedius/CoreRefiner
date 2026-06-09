@@ -38,11 +38,11 @@ Game::Game(const std::string& commandLine)
 
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
-	//// Sound Base Setting
-	//SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
-	//SoundCodex::Get().SetBgmVolume(0.1f);
-	//SoundCodex::Get().SetSeVolume(1.0f);
-	//SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
+	// Sound Base Setting
+	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
+	SoundCodex::Get().SetBgmVolume(0.1f);
+	SoundCodex::Get().SetSeVolume(1.0f);
+	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
 }
 
 Game::~Game()

@@ -7,9 +7,7 @@
 
 namespace Ui
 {
-	/**
-	 * @brief 多行 UTF-8 编辑缓冲与 caret（字节索引）。
-	 */
+	// 多行 UTF-8 编辑缓冲与 caret（字节索引）。
 	class UiUtf8EditBuffer
 	{
 	public:

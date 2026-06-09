@@ -33,8 +33,8 @@ static inline Color AlphaBlendCoverage(Color dst, Color srcColor, uint8_t covera
 
 TextCodex& TextCodex::Get() noexcept
 {
-    static TextCodex s;
-    return s;
+    static TextCodex inst;
+    return inst;
 }
 
 // =============================================================================
