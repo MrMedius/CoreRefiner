@@ -1,6 +1,5 @@
 #include "Player.h"
 #include "Enemy.h"
-#include "Channels.h"
 
 #include "InputCodex.h"
 #include "SoundCodex.h"
@@ -39,22 +38,18 @@ void Player::Update(float dt)
 	// 移動
 	{
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-		const auto pos = GetPosition();
-		visualPre_Head->SetPosition(pos);
-		visualPre_Body->SetPosition(pos);
 	}
 
 	// マップ要素との当たり判定
 	boxCollider.center = GetPosition();
 	MapItemCollide();
+
+	UpdateComponents(dt);
 }
 
 void Player::Submit(void)
 {
-	// 描画
-	// visualPre
-	visualPre_Head->Submit(Chan::main);
-	visualPre_Body->Submit(Chan::main);
+	SubmitComponents();
 
 #ifdef _DEBUG
 	if (!IsDeath)

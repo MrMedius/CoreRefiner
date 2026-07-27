@@ -3,6 +3,7 @@
 #include "RenderGraph.h"
 #include "Field_Shape.h"
 #include "Channels.h"
+#include "VisualComponent.h"
 
 class Field : public Environment
 {
@@ -17,10 +18,10 @@ public:
 		SetCollisionSize(size);
 		SetCollisionOnOff(onCollision);
 
-		// graphics init
+		// graphics init (mesh already baked to `size`; do not syncScale)
 		visualPre = std::make_unique<Field_Shape>(gfx, size);
-		visualPre->SetPosition(GetPosition());
 		visualPre->LinkTechniques(rg);
+		AddComponent<VisualComponent>(visualPre.get(), Chan::main | Chan::shadow, false, false);
 
 		// collider init
 		DirectX::XMFLOAT3 localHalf{ 0.5f, 0.5f, 0.5f };
@@ -31,11 +32,13 @@ public:
 #endif
 	}
 	void OnEnable(void) override {}
-	void Update(float dt) override {}
+	void Update(float dt) override
+	{
+		UpdateComponents(dt);
+	}
 	void Submit(void) override
 	{
-		visualPre->Submit(Chan::main);
-		visualPre->Submit(Chan::shadow);
+		SubmitComponents();
 #ifdef _DEBUG
 		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
 #endif

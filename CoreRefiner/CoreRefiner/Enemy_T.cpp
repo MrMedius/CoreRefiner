@@ -1,7 +1,6 @@
 #include "Enemy_T.h"
 #include "Math.h"
 #include "XMath.h"
-#include "Channels.h"
 
 void Enemy_T::Update(float dt)
 {
@@ -25,20 +24,18 @@ void Enemy_T::Update(float dt)
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 	const auto pos = GetPosition();
 	const auto rot = GetRotation();
-	visualPre->SetPosition(pos);
-	visualPre->SetRotation(0.0f, rot.y, 0.0f);
 
 	// マップ要素との当たり判定
 	boxCollider.center = pos;
 	boxCollider.axisY = rot;
 	MapItemCollide();
+
+	UpdateComponents(dt);
 }
 
 void Enemy_T::Submit(void)
 {
-	// 描画
-	visualPre->Submit(Chan::main);
-	visualPre->Submit(Chan::shadow);
+	SubmitComponents();
 
 #ifdef _DEBUG
 	if (!IsDeath)

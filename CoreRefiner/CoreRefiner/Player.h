@@ -4,8 +4,10 @@
 #include "ObjectCodex.h"
 #include "CameraContainer.h"
 #include "Player_Shape.h"
+#include "VisualComponent.h"
+#include "Channels.h"
 
-// プレイヤー状態のID
+// 繝励Ξ繧､繝､繝ｼ迥ｶ諷九�ｮID
 enum PLAYER_STATE_ID {
 	PLAYER_IDLE,
 	PLAYER_MOVE,
@@ -13,7 +15,7 @@ enum PLAYER_STATE_ID {
 	PLAYER_HURT,
 	PLAYER_DEATH,
 };
-// プレイヤー状態の名前
+// 繝励Ξ繧､繝､繝ｼ迥ｶ諷九�ｮ蜷榊燕
 static const std::string PLAYER_STATE[] = {
 	"PLAYER_IDLE",
 	"PLAYER_MOVE",
@@ -50,14 +52,14 @@ public:
 		SetMoveAccel(0.035f);
 		SetAttackInterval(1.5f);
 
-		// graphics init
+		// graphics init (shape scale is independent of host GetSize; syncScale=false)
 		visualPre_Head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
-		visualPre_Head->SetPosition(GetPosition());
 		visualPre_Head->LinkTechniques(rg);
+		AddComponent<VisualComponent>(visualPre_Head.get(), Chan::main, false, false);
 
 		visualPre_Body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
-		visualPre_Body->SetPosition(GetPosition());
 		visualPre_Body->LinkTechniques(rg);
+		AddComponent<VisualComponent>(visualPre_Body.get(), Chan::main, false, false);
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Player>>(this);

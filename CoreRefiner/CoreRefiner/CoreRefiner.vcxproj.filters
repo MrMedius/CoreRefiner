@@ -409,6 +409,9 @@
     <ClCompile Include="Enemy_T.cpp">
       <Filter>Object\Character\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="VisualComponent.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
     <ClCompile Include="Ball.cpp">
       <Filter>Object\Attack</Filter>
     </ClCompile>
@@ -793,6 +796,9 @@
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="IComponent.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualComponent.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="ObjectCodex.h">

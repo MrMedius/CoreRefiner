@@ -1,6 +1,8 @@
 #pragma once
 #include "Enemy.h"
 #include "Enemy_T_Shape.h"
+#include "VisualComponent.h"
+#include "Channels.h"
 
 class Enemy_T_ChaseState;
 class Enemy_T_AttackState;
@@ -26,8 +28,8 @@ public:
 
 		// graphics init
 		visualPre = std::make_unique<Enemy_T_Shape>(gfx, GetSize());
-		visualPre->SetPosition(GetPosition());
 		visualPre->LinkTechniques(rg);
+		AddComponent<VisualComponent>(visualPre.get(), Chan::main | Chan::shadow, true);
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Enemy_T>>(this);

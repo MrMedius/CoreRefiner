@@ -188,7 +188,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AttackManager.cpp" />
-    <ClCompile Include="Ball.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
@@ -215,6 +214,7 @@
     <ClCompile Include="DynamicCubeTexture.cpp" />
     <ClCompile Include="DynamicVertexBuffer.cpp" />
     <ClCompile Include="Enemy_T.cpp" />
+    <ClCompile Include="VisualComponent.cpp" />
     <ClCompile Include="CubeWireframe.cpp" />
     <ClCompile Include="DynamicTexture.cpp" />
     <ClCompile Include="DynamicTexture.h" />
@@ -423,6 +423,7 @@
     <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="IComponent.h" />
+    <ClInclude Include="VisualComponent.h" />
     <ClInclude Include="ObjectBase.h" />
     <ClInclude Include="ObjectCodex.h" />
     <ClInclude Include="Player.h" />

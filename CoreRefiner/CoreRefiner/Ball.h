@@ -4,6 +4,7 @@
 #include "RenderGraph.h"
 #include "Channels.h"
 #include "Ball_Shape.h"
+#include "VisualComponent.h"
 
 class Ball : public Attack
 {
@@ -21,9 +22,8 @@ class Ball : public Attack
 
 		// graphics init
 		visualPre = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ 1.0f,1.0f,1.0f });
-		visualPre->SetPosition(GetPosition());
-		visualPre->SetScale(GetSize());
 		visualPre->LinkTechniques(rg);
+		AddComponent<VisualComponent>(visualPre.get(), Chan::main, false, true);
 
 		// collider init
 #ifdef _DEBUG
@@ -41,8 +41,8 @@ class Ball : public Attack
 		ResetMoveVelocity();
 		lastTime = 0.0f;
 
-		// reset animation
-		visualPre->SetPosition(GetPosition());
+		// sync pooled visual without re-adding the component
+		UpdateComponents(0.0f);
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override
@@ -51,14 +51,15 @@ class Ball : public Attack
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 		const auto pos = GetPosition();
-		visualPre->SetPosition(pos);
 
 		// collider update
 		boxCollider.center = pos;
+
+		UpdateComponents(dt);
 	}
 	void Submit(void) override
 	{
-		visualPre->Submit(Chan::main);
+		SubmitComponents();
 #ifdef _DEBUG
 		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
 #endif

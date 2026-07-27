@@ -22,43 +22,43 @@ public:
 	virtual void OnEnable(void) override = 0;
 	virtual void Update(float dt) override = 0;
 	virtual void Submit(void) override = 0;
-	void CalculateHpCurrent(float offset)	{ HpCurrent += offset; HpCurrent = std::clamp(HpCurrent, 0.0f, HpMax); } // ¡‚Ì‘Ì—Í‚ÌŒvZ
-	float GetHpCurrent(void) const			{ return HpCurrent; }													 // ¡‚Ì‘Ì—Í‚ğƒQƒbƒg
-	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }	// ˆÚ“®’l‚ğƒZƒbƒg
-	void CalculateMoveVelocity(XMFLOAT3 offset)				{ CalculateMoveVelocity(offset.x, offset.y, offset.z); }			// ˆÚ“®’l‚ğƒZƒbƒg
-	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }											// ˆÚ“®’l‚ğƒQƒbƒg
-	void SetMoveAccel(float accel)							{ MoveAccel = accel; }	// ˆÚ“®‰Á‘¬’l‚ğƒZƒbƒg
-	float GetMoveAccel(void) const							{ return MoveAccel; }	// ˆÚ“®‰Á‘¬’l‚ğƒQƒbƒg
-	void ResetAttackCountDown(void)							{ AttackCountDown = AttackInterval; }			// UŒ‚‚ÌƒRƒŠƒWƒ‡ƒ“‚ğƒŠƒZƒbƒg
-	void DoAttackCountDown(void)							{ if (AttackCountDown > 0) AttackCountDown--; }	// UŒ‚‚ğƒJƒEƒ“ƒgƒ_ƒEƒ“
-	void SetIsAttack(bool state)	{ IsAttack = state; }		// UŒ‚ó‘Ô‚ğƒZƒbƒg
-	bool GetIsAttack(void) const	{ return IsAttack; }		// UŒ‚ó‘Ô‚ğƒQƒbƒg
-	void SetIsHurt(bool state)		{ IsHurt = state; }			// UŒ‚‚³‚ê‚½ó‘Ô‚ğƒZƒbƒg
-	bool GetIsHurt(void) const		{ return IsHurt; }			// UŒ‚‚³‚ê‚½ó‘Ô‚ğƒQƒbƒg
-	void SetIsDeath(bool state)		{ IsDeath = state; }		// €–Só‘Ô‚ğƒZƒbƒg
-	bool GetIsDeath(void) const		{ return IsDeath; }			// €–Só‘Ô‚ğƒQƒbƒg
-	virtual bool AttackCollide(float damage, XMFLOAT3 repel) = 0;						// UŒ‚ƒRƒŠƒWƒ‡ƒ“‚Ì‰¼‘zŠÖ”
+	void CalculateHpCurrent(float offset)	{ HpCurrent += offset; HpCurrent = std::clamp(HpCurrent, 0.0f, HpMax); } // ä»Šã®ä½“åŠ›ã®è¨ˆç®—
+	float GetHpCurrent(void) const			{ return HpCurrent; }													 // ä»Šã®ä½“åŠ›ã‚’ã‚²ãƒƒãƒˆ
+	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }	// ç§»å‹•å€¤ã‚’ã‚»ãƒƒãƒˆ
+	void CalculateMoveVelocity(XMFLOAT3 offset)				{ CalculateMoveVelocity(offset.x, offset.y, offset.z); }			// ç§»å‹•å€¤ã‚’ã‚»ãƒƒãƒˆ
+	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }											// ç§»å‹•å€¤ã‚’ã‚²ãƒƒãƒˆ
+	void SetMoveAccel(float accel)							{ MoveAccel = accel; }	// ç§»å‹•åŠ é€Ÿå€¤ã‚’ã‚»ãƒƒãƒˆ
+	float GetMoveAccel(void) const							{ return MoveAccel; }	// ç§»å‹•åŠ é€Ÿå€¤ã‚’ã‚²ãƒƒãƒˆ
+	void ResetAttackCountDown(void)							{ AttackCountDown = AttackInterval; }			// æ”»æ’ƒã®ã‚³ãƒªã‚¸ãƒ§ãƒ³ã‚’ãƒªã‚»ãƒƒãƒˆ
+	void DoAttackCountDown(void)							{ if (AttackCountDown > 0) AttackCountDown--; }	// æ”»æ’ƒã‚’ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³
+	void SetIsAttack(bool state)	{ IsAttack = state; }		// æ”»æ’ƒçŠ¶æ…‹ã‚’ã‚»ãƒƒãƒˆ
+	bool GetIsAttack(void) const	{ return IsAttack; }		// æ”»æ’ƒçŠ¶æ…‹ã‚’ã‚²ãƒƒãƒˆ
+	void SetIsHurt(bool state)		{ IsHurt = state; }			// æ”»æ’ƒã•ã‚ŒãŸçŠ¶æ…‹ã‚’ã‚»ãƒƒãƒˆ
+	bool GetIsHurt(void) const		{ return IsHurt; }			// æ”»æ’ƒã•ã‚ŒãŸçŠ¶æ…‹ã‚’ã‚²ãƒƒãƒˆ
+	void SetIsDeath(bool state)		{ IsDeath = state; }		// æ­»äº¡çŠ¶æ…‹ã‚’ã‚»ãƒƒãƒˆ
+	bool GetIsDeath(void) const		{ return IsDeath; }			// æ­»äº¡çŠ¶æ…‹ã‚’ã‚²ãƒƒãƒˆ
+	virtual bool AttackCollide(float damage, XMFLOAT3 repel) = 0;						// æ”»æ’ƒã‚³ãƒªã‚¸ãƒ§ãƒ³ã®ä»®æƒ³é–¢æ•°
 protected:
-	virtual void SetupTransitions(void) = 0;	// ó‘Ô‘JˆÚğŒ
-	virtual void MapItemCollide(void);			// ƒ}ƒbƒvƒIƒuƒWƒFƒNƒg‚Æ‚ÌƒRƒŠƒWƒ‡ƒ“
-	void SetHpMax(float hp)					{ HpMax = hp; }							// Å‘å‘Ì—Í‚ğƒZƒbƒg
-	void ResetHpCurrent(void)				{ HpCurrent = HpMax; }					// ¡‚Ì‘Ì—Í‚ğƒŠƒZƒbƒg
-	void SetAttackInterval(float second)	{ AttackInterval = second * 60.0f; }	// UŒ‚ŠÔŠu‚ğƒZƒbƒg
-	float GetAttackInterval(void) const		{ return AttackInterval; }				// UŒ‚ŠÔŠu‚ğƒQƒbƒg
-	void SetAttackCountDown(float count)	{ AttackCountDown = count; }			// UŒ‚ŠÔŠuƒJƒEƒ“ƒgƒ_ƒEƒ“‚ğƒZƒbƒg
-	float GetAttackCountDown(void) const	{ return AttackCountDown; }				// UŒ‚ŠÔŠuƒJƒEƒ“ƒgƒ_ƒEƒ“‚ğƒQƒbƒg
+	virtual void SetupTransitions(void) = 0;	// çŠ¶æ…‹é·ç§»æ¡ä»¶
+	virtual void MapItemCollide(void);			// ãƒãƒƒãƒ—ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã¨ã®ã‚³ãƒªã‚¸ãƒ§ãƒ³
+	void SetHpMax(float hp)					{ HpMax = hp; }							// æœ€å¤§ä½“åŠ›ã‚’ã‚»ãƒƒãƒˆ
+	void ResetHpCurrent(void)				{ HpCurrent = HpMax; }					// ä»Šã®ä½“åŠ›ã‚’ãƒªã‚»ãƒƒãƒˆ
+	void SetAttackInterval(float second)	{ AttackInterval = second * 60.0f; }	// æ”»æ’ƒé–“éš”ã‚’ã‚»ãƒƒãƒˆ
+	float GetAttackInterval(void) const		{ return AttackInterval; }				// æ”»æ’ƒé–“éš”ã‚’ã‚²ãƒƒãƒˆ
+	void SetAttackCountDown(float count)	{ AttackCountDown = count; }			// æ”»æ’ƒé–“éš”ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³ã‚’ã‚»ãƒƒãƒˆ
+	float GetAttackCountDown(void) const	{ return AttackCountDown; }				// æ”»æ’ƒé–“éš”ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³ã‚’ã‚²ãƒƒãƒˆ
 protected:
-	static constexpr float GRAVITY = 1.0f;				// d—Í
-	static constexpr float 	FORCE_RATE = 0.1f;			// –€C—Í
-	float HpMax{ 0.0f };								// Å‘å‘Ì—Í
-	float HpCurrent{ 0.0f };							// ¡‚Ì‘Ì—Í
-	XMFLOAT3 PositionOld{ GetPosition() };				// 1ƒtƒŒ[ƒ€‘O‚ÌÀ•W
-	float MoveAccel{ 0.0f };							// ˆÚ“®‰Á‘¬’l
-	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };			// ˆÚ“®’l
-	float AttackInterval{ 0 };							// UŒ‚ŠÔŠu
-	float AttackCountDown{ 0 };							// UŒ‚ŠÔŠuƒJƒEƒ“ƒgƒ_ƒEƒ“
-	bool OnFloor{ false };								// ’n–Ê‚Éæ‚Á‚Ä‚¢‚é‚©‚Ç‚¤‚©‚Ì”»’f
-	bool IsAttack{ false };								// UŒ‚ó‘Ô‚Ì”»’f
-	bool IsHurt{ false };								// UŒ‚‚³‚ê‚½ó‘Ô‚Ì”»’f
-	bool IsDeath{ false };								// €–Só‘Ô‚Ì”»’f
+	static constexpr float GRAVITY = 1.0f;				// é‡åŠ›
+	static constexpr float 	FORCE_RATE = 0.1f;			// æ‘©æ“¦åŠ›
+	float HpMax{ 0.0f };								// æœ€å¤§ä½“åŠ›
+	float HpCurrent{ 0.0f };							// ä»Šã®ä½“åŠ›
+	XMFLOAT3 PositionOld{ GetPosition() };				// 1ãƒ•ãƒ¬ãƒ¼ãƒ å‰ã®åº§æ¨™
+	float MoveAccel{ 0.0f };							// ç§»å‹•åŠ é€Ÿå€¤
+	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };			// ç§»å‹•å€¤
+	float AttackInterval{ 0 };							// æ”»æ’ƒé–“éš”
+	float AttackCountDown{ 0 };							// æ”»æ’ƒé–“éš”ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³
+	bool OnFloor{ false };								// åœ°é¢ã«ä¹—ã£ã¦ã„ã‚‹ã‹ã©ã†ã‹ã®åˆ¤æ–­
+	bool IsAttack{ false };								// æ”»æ’ƒçŠ¶æ…‹ã®åˆ¤æ–­
+	bool IsHurt{ false };								// æ”»æ’ƒã•ã‚ŒãŸçŠ¶æ…‹ã®åˆ¤æ–­
+	bool IsDeath{ false };								// æ­»äº¡çŠ¶æ…‹ã®åˆ¤æ–­
 };
