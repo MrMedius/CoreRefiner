@@ -23,7 +23,7 @@ void Enemy_T::Update(float dt)
 	// 移動
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 
-	// collider must be current before MapItemCollide queries GetBoxCollider()
+	// collider must be current before MapItemCollide queries ColliderComponent
 	if (pCollider_ != nullptr)
 	{
 		pCollider_->SyncFromOwner();
@@ -35,15 +35,11 @@ void Enemy_T::Update(float dt)
 
 void Enemy_T::Submit(void)
 {
-	SubmitComponents();
-
-#ifdef _DEBUG
-	if (!IsDeath)
+	if (pCollider_ != nullptr)
 	{
-		auto box = GetBoxCollider();
-		boxColliderWire->DoSubmit(GetPosition(), GetRotation(), box.GetSize());
+		pCollider_->SetDebugDraw(!IsDeath);
 	}
-#endif
+	SubmitComponents();
 }
 
 void Enemy_T::SetupTransitions(void)
@@ -134,8 +130,10 @@ void Enemy_T_HurtState::OnExit(Enemy_T* owner)
 void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
 {
 	// set anime
-	owner->GetVisualPre()->Update(dt);
-
+	if (auto* visual = owner->GetVisual())
+	{
+		visual->Update(dt);
+	}
 
 	// 攻撃をカウントダウン
 	owner->DoAttackCountDown();
@@ -157,7 +155,10 @@ void Enemy_T_DeathState::OnEnter(Enemy_T* owner)
 void Enemy_T_DeathState::Update(Enemy_T* owner, float dt)
 {
 	// set anime
-	owner->GetVisualPre()->Update(dt);
+	if (auto* visual = owner->GetVisual())
+	{
+		visual->Update(dt);
+	}
 
 	// 終わったら使用終わるをセットする
 	owner->Deactivate();

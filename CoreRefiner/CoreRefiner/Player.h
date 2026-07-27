@@ -46,25 +46,29 @@ public:
 		// parameters init
 		SetPosition(position);
 		SetSize({ 5.0f, 5.0f, 0.0f });
-		SetCollisionSize({ 1.5f, 5.0f, 2.0f });
-		SetCollisionOnOff(true);
 		SetHpMax(30.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.035f);
 		SetAttackInterval(1.5f);
 
-		// graphics init (shape scale is independent of host GetSize; syncScale=false)
-		visualPre_Head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
-		visualPre_Head->LinkTechniques(rg);
-		AddComponent<VisualComponent>(visualPre_Head.get(), Chan::main, false, false);
-
-		visualPre_Body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
-		visualPre_Body->LinkTechniques(rg);
-		AddComponent<VisualComponent>(visualPre_Body.get(), Chan::main, false, false);
+		// graphics init — VisualComponent owns each Drawable (shape scale independent; syncScale=false)
+		{
+			auto head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
+			head->LinkTechniques(rg);
+			AddComponent<VisualComponent>(std::move(head), Chan::main, false, false);
+		}
+		{
+			auto body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
+			body->LinkTechniques(rg);
+			AddComponent<VisualComponent>(std::move(body), Chan::main, false, false);
+		}
 
 		pCollider_ = AddComponent<ColliderComponent>(
 			Collider3D::CollideType::Box,
 			ColliderSyncMode::FollowCenter);
+		pCollider_->SetCollisionSize({ 1.5f, 5.0f, 2.0f });
+		pCollider_->SetEnabled(true);
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 1.0f, 0.0f, 0.0f });
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Player>>(this);
@@ -78,12 +82,6 @@ public:
 		SetupTransitions();
 		// init the state
 		FSM->ChangeState(PLAYER_STATE[PLAYER_IDLE]);
-
-		// collider init
-#ifdef _DEBUG
-		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3{ 1.0f, 0.0f, 0.0f }, "wireBox");
-		boxColliderWire->LinkTechniques(rg);
-#endif
 	}
 	void OnEnable(void) override
 	{
@@ -111,8 +109,6 @@ public:
 private:
 	void SetupTransitions(void) override;
 private:
-	std::unique_ptr<Player_Head> visualPre_Head;
-	std::unique_ptr<Player_Body> visualPre_Body;
 	ColliderComponent* pCollider_{ nullptr };
 	Graphics& Gfx;
 	Rgph::RenderGraph& Rg;

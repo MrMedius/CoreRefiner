@@ -1,20 +1,23 @@
 #include "VisualComponent.h"
 #include "ObjectBase.h"
-#include "Drawable.h"
 
 VisualComponent::VisualComponent(
 	ObjectBase* owner,
-	Drawable* drawable,
+	std::unique_ptr<Drawable> drawable,
 	std::size_t channelMask,
 	bool yawOnly,
 	bool syncScale) noexcept
 	:
 	IComponent(owner),
-	drawable_(drawable),
+	drawable_(std::move(drawable)),
 	channelMask_(channelMask),
 	yawOnly_(yawOnly),
 	syncScale_(syncScale)
-{}
+{
+	assert(drawable_ != nullptr && "VisualComponent requires a Drawable");
+}
+
+VisualComponent::~VisualComponent() = default;
 
 void VisualComponent::OnEnable()
 {

@@ -17,30 +17,30 @@ class Ball : public Attack
 		// parameters init
 		SetPosition(position);
 		SetSize({ 1.0f,1.0f,1.0f });
-		SetCollisionSize({ 2.0f,2.0f,2.0f });
-		SetCollisionOnOff(true);
 		SetMoveAccel(direction);
 
-		// graphics init
-		visualPre = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ 1.0f,1.0f,1.0f });
-		visualPre->LinkTechniques(rg);
-		AddComponent<VisualComponent>(visualPre.get(), Chan::main, false, true);
+		// graphics init — VisualComponent owns the Drawable
+		{
+			auto shape = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ 1.0f,1.0f,1.0f });
+			shape->LinkTechniques(rg);
+			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
+		}
 
 		pCollider_ = AddComponent<ColliderComponent>(
 			Collider3D::CollideType::Box,
 			ColliderSyncMode::FollowCenter);
-
-		// collider init
-#ifdef _DEBUG
-		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3(0.0f, 0.0f, 1.0f));
-		boxColliderWire->LinkTechniques(rg);
-#endif
+		pCollider_->SetCollisionSize({ 2.0f,2.0f,2.0f });
+		pCollider_->SetEnabled(true);
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(0.0f, 0.0f, 1.0f));
 	}
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
 		// reset parameters
 		SetPosition(pos);
-		SetCollisionOnOff(true);
+		if (pCollider_ != nullptr)
+		{
+			pCollider_->SetEnabled(true);
+		}
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
 		lastTime = 0.0f;
@@ -58,10 +58,6 @@ class Ball : public Attack
 	void Submit(void) override
 	{
 		SubmitComponents();
-#ifdef _DEBUG
-		auto box = GetBoxCollider();
-		boxColliderWire->DoSubmit(GetPosition(), box.GetSize());
-#endif
 	}
 	void OnCollide(Character* other) override
 	{
@@ -69,7 +65,10 @@ class Ball : public Attack
 
 		SetMoveAccel({0.0f, 0.0f, 0.0f});
 		MoveVelocity = { 0.0f,0.0f,0.0f };
-		SetCollisionOnOff(false);
+		if (pCollider_ != nullptr)
+		{
+			pCollider_->SetEnabled(false);
+		}
 		auto hitPos = other->GetPosition();
 		hitPos.z -= 0.1f;
 		SetPosition(hitPos);
@@ -89,6 +88,5 @@ class Ball : public Attack
 		}
 	}
 private:
-	std::unique_ptr<Ball_Shape> visualPre;
 	ColliderComponent* pCollider_{ nullptr };
 };

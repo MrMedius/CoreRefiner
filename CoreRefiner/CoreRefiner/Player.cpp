@@ -51,15 +51,11 @@ void Player::Update(float dt)
 
 void Player::Submit(void)
 {
-	SubmitComponents();
-
-#ifdef _DEBUG
-	if (!IsDeath)
+	if (pCollider_ != nullptr)
 	{
-		auto box = GetBoxCollider();
-		boxColliderWire->DoSubmit(GetPosition(), box.GetSize());
+		pCollider_->SetDebugDraw(!IsDeath);
 	}
-#endif
+	SubmitComponents();
 }
 
 void Player::DoMove(float ratio)
@@ -248,7 +244,10 @@ void Player_AttackState::Update(Player* owner, float dt)
 void Player_HurtState::OnEnter(Player* owner)
 {
 	// anime set
-	owner->SetCollisionOnOff(false); // コリジュンを閉じる
+	if (auto* col = owner->GetComponent<ColliderComponent>())
+	{
+		col->SetEnabled(false); // コリジュンを閉じる
+	}
 
 	SoundCodex::Get().PlaySE(SndPath::SE_Player_Hurt);
 	InputCodex::Get().GP_SetVibrationPulse(owner->boundPadIndex, 0.8f, 0.8f, 30);
@@ -257,7 +256,10 @@ void Player_HurtState::OnEnter(Player* owner)
 void Player_HurtState::OnExit(Player* owner)
 {
 	owner->SetIsHurt(false); // DeathStateに遷移するかも、も一回IsHurtをリセットする
-	owner->SetCollisionOnOff(true); // コリジュンを開ける
+	if (auto* col = owner->GetComponent<ColliderComponent>())
+	{
+		col->SetEnabled(true); // コリジュンを開ける
+	}
 }
 
 void Player_HurtState::Update(Player* owner, float dt)

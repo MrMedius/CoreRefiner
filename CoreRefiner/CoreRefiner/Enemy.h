@@ -1,7 +1,10 @@
 #pragma once
 #include "Character.h"
-#include "Enemy_T_Shape.h"
 #include "Player.h"
+#include "ColliderComponent.h"
+#ifdef _DEBUG
+#include "CubeWireframe.h"
+#endif
 
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
@@ -71,9 +74,15 @@ public:
 	}
 	bool AttackCollide(float damage, XMFLOAT3 repel) override
 	{
-		if (!AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath() && AttackTarget->GetCollisionOnOff())
+		auto* selfCol = GetComponent<ColliderComponent>();
+		auto* targetCol = AttackTarget->GetComponent<ColliderComponent>();
+		if (selfCol == nullptr || targetCol == nullptr || !targetCol->IsEnabled())
 		{
-			bool isHit = CollisionSystem::IsOverlap(GetBoxCollider(), AttackTarget->GetBoxCollider());
+			return false;
+		}
+		if (!AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath())
+		{
+			bool isHit = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), targetCol->GetBoxCollider());
 
 			if (isHit)
 			{
@@ -85,7 +94,7 @@ public:
 				float dx = AttackTarget->GetPosition().x - selfPos.x;
 				float dz = AttackTarget->GetPosition().z - selfPos.z;
 				float angle = atan2f(dx, dz);
-				AttackTarget->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z); // ???????
+				AttackTarget->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
 				return true;
 			}
 		}
@@ -105,19 +114,22 @@ public:
 	virtual int GetKillScore() const noexcept = 0;
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
-	Enemy_T_Shape* GetVisualPre(void) { return visualPre.get(); }
 protected:
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = { area.x / 2,area.y / 2 ,area.z / 2 }; }
 	XMFLOAT3 GetSearchArea(void) const	  { return searchCollider.half; }
 	bool CheckIsInArea(void)
 	{
-		return IsInArea = CollisionSystem::IsOverlap(searchCollider, AttackTarget->GetBoxCollider());
+		auto* targetCol = AttackTarget->GetComponent<ColliderComponent>();
+		if (targetCol == nullptr)
+		{
+			return IsInArea = false;
+		}
+		return IsInArea = CollisionSystem::IsOverlap(searchCollider, targetCol->GetBoxCollider());
 	}
 private:
 	void SetupTransitions(void) override = 0;
 protected:
-	std::unique_ptr<Enemy_T_Shape> visualPre;
 	ENEMY_TYPE_ID Type{ ENEMY_TYPE_NONE };	// 敵の種類
 	Player* AttackTarget;					// ターゲット
 	BoxCollider searchCollider;				// 検査のコリジョン

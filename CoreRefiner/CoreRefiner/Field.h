@@ -16,24 +16,22 @@ public:
 		// parameters init
 		SetPosition(position);
 		SetSize(size);
-		SetCollisionSize(size);
-		SetCollisionOnOff(onCollision);
 
-		// graphics init (mesh already baked to `size`; do not syncScale)
-		visualPre = std::make_unique<Field_Shape>(gfx, size);
-		visualPre->LinkTechniques(rg);
-		AddComponent<VisualComponent>(visualPre.get(), Chan::main | Chan::shadow, false, false);
+		// graphics init — VisualComponent owns the Drawable (mesh baked to size; syncScale=false)
+		{
+			auto shape = std::make_unique<Field_Shape>(gfx, size);
+			shape->LinkTechniques(rg);
+			AddComponent<VisualComponent>(std::move(shape), Chan::main | Chan::shadow, false, false);
+		}
 
-		// register Box rebuilt from world matrix each sync
+		// register Box rebuilt from world matrix each sync (do not SetCollisionSize — it would overwrite matrix half)
 		DirectX::XMFLOAT3 localHalf{ 0.5f, 0.5f, 0.5f };
 		pCollider_ = AddComponent<ColliderComponent>(
 			Collider3D::CollideType::Box,
 			ColliderSyncMode::FromWorldMatrix,
 			localHalf);
-#ifdef _DEBUG
-		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3(1.0f, 0.0f, 0.0f));
-		boxColliderWire->LinkTechniques(rg);
-#endif
+		pCollider_->SetEnabled(onCollision);
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(1.0f, 0.0f, 0.0f));
 	}
 	void OnEnable(void) override {}
 	void Update(float dt) override
@@ -43,13 +41,8 @@ public:
 	void Submit(void) override
 	{
 		SubmitComponents();
-#ifdef _DEBUG
-		auto box = GetBoxCollider();
-		boxColliderWire->DoSubmit(GetPosition(), box.GetSize());
-#endif
 	}
 	void OnCollide(Character* other) override {}
 private:
-	std::unique_ptr<Field_Shape> visualPre;
 	ColliderComponent* pCollider_{ nullptr };
 };

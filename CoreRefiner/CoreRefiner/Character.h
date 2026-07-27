@@ -3,6 +3,8 @@
 #include "Collision.h"
 #include "FSM.h"
 
+using namespace Collider3D;
+
 class Character : public ObjectBase
 {
 public:
@@ -14,10 +16,10 @@ public:
 		:
 		ObjectBase(tag)
 	{
+		(void)collisionSize; // set via ColliderComponent::SetCollisionSize after AddComponent
+		(void)onCollision;   // set via ColliderComponent::SetEnabled after AddComponent
 		SetPosition(position);
 		SetSize(size);
-		SetCollisionSize(collisionSize);
-		SetCollisionOnOff(onCollision);
 	}
 	virtual void OnEnable(void) override = 0;
 	virtual void Update(float dt) override = 0;

@@ -3,7 +3,15 @@
 #include "Collision.h"
 #include <DirectXMath.h>
 #include <cstdint>
+#include <memory>
 #include <variant>
+
+class Graphics;
+namespace Rgph { class RenderGraph; }
+
+#ifdef _DEBUG
+#include "CubeWireframe.h"
+#endif
 
 /**
  * @brief How the registered volume tracks the host transform.
@@ -24,7 +32,7 @@ enum class ColliderSyncMode : uint8_t
 
 /**
  * @brief Host-driven collision volume with a type chosen at construction time.
- * @note Supports Box / Sphere / Point from Collider3D; gameplay currently registers Box.
+ * @note Owns volume data, enable flag, and optional debug wire.
  */
 class ColliderComponent : public IComponent
 {
@@ -40,15 +48,20 @@ public:
 		Collider3D::CollideType type,
 		ColliderSyncMode syncMode = ColliderSyncMode::FollowCenter,
 		DirectX::XMFLOAT3 worldMatrixLocalHalf = { 0.5f, 0.5f, 0.5f }) noexcept;
+	~ColliderComponent() override;
 
 	void OnEnable() override;
 	void Update(float dt) override;
+	void Submit() override;
 
 	/** @brief Refresh the registered volume from the host transform. */
 	void SyncFromOwner();
 
 	[[nodiscard]] Collider3D::CollideType GetCollideType() const noexcept { return type_; }
 	[[nodiscard]] ColliderSyncMode GetSyncMode() const noexcept { return syncMode_; }
+
+	void SetEnabled(bool enabled) noexcept { enabled_ = enabled; }
+	[[nodiscard]] bool IsEnabled() const noexcept { return enabled_; }
 
 	/** @brief Polymorphic volume for CollisionSystem::IsOverlap. */
 	[[nodiscard]] Collider3D::Collision3D& GetVolume();
@@ -63,10 +76,29 @@ public:
 	[[nodiscard]] const Collider3D::SphereCollider* TryGetSphere() const noexcept;
 
 	/**
+	 * @brief Copy of box volume; asserts if type is not Box.
+	 */
+	[[nodiscard]] Collider3D::BoxCollider GetBoxCollider() const;
+
+	/**
+	 * @brief Box half extents (or empty if not Box).
+	 */
+	[[nodiscard]] DirectX::XMFLOAT3 GetCollisionSize() const noexcept;
+
+	/**
 	 * @brief Set full size into the registered volume.
 	 * @note Box: half = size/2. Sphere: radius = max(size)/2. Point: no-op.
+	 * @warning Do not call under FromWorldMatrix sync (overwrites matrix half).
 	 */
 	void SetCollisionSize(DirectX::XMFLOAT3 size) noexcept;
+
+	/**
+	 * @brief Create and link a debug wireframe for the box volume.
+	 */
+	void LinkDebugWire(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 color, const char* name = "wireBox");
+
+	void SetDebugDraw(bool enabled) noexcept { debugDraw_ = enabled; }
+	[[nodiscard]] bool GetDebugDraw() const noexcept { return debugDraw_; }
 
 private:
 	void RegisterVolume(ObjectBase* owner);
@@ -74,9 +106,15 @@ private:
 	Collider3D::CollideType type_{ Collider3D::CollideType::Box };
 	ColliderSyncMode syncMode_{ ColliderSyncMode::FollowCenter };
 	DirectX::XMFLOAT3 worldMatrixLocalHalf_{ 0.5f, 0.5f, 0.5f };
+	bool enabled_{ true };
+	bool debugDraw_{ true };
 
 	std::variant<
 		Collider3D::BoxCollider,
 		Collider3D::SphereCollider,
 		Collider3D::PointCollider> volume_;
+
+#ifdef _DEBUG
+	std::unique_ptr<CubeWireframe> debugWire_;
+#endif
 };

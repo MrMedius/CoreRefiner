@@ -20,22 +20,26 @@ public:
 		// parameters init
 		SetPosition(position);
 		SetSize({ 2.0f, 2.0f, 2.0f });
-		SetCollisionSize(GetSize());
-		SetCollisionOnOff(true);
 		SetHpMax(4.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.01f);
 		SetAttackInterval(2.5f);
 
-		// graphics init
-		visualPre = std::make_unique<Enemy_T_Shape>(gfx, GetSize());
-		visualPre->LinkTechniques(rg);
-		AddComponent<VisualComponent>(visualPre.get(), Chan::main | Chan::shadow, true);
+		// graphics init — VisualComponent owns the Drawable
+		{
+			auto shape = std::make_unique<Enemy_T_Shape>(gfx, GetSize());
+			shape->LinkTechniques(rg);
+			pVisual_ = AddComponent<VisualComponent>(
+				std::move(shape), Chan::main | Chan::shadow, true);
+		}
 
-		// collision: register Box + Enemy sync policy
+		// collision: register Box then write size
 		pCollider_ = AddComponent<ColliderComponent>(
 			Collider3D::CollideType::Box,
 			ColliderSyncMode::FollowCenterAxisYFromRotation);
+		pCollider_->SetCollisionSize(GetSize());
+		pCollider_->SetEnabled(true);
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 1.0f, 0.0f, 0.0f });
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Enemy_T>>(this);
@@ -48,12 +52,6 @@ public:
 		SetupTransitions();
 		// init the state
 		FSM->ChangeState(ENEMY_STATE[ENEMY_CHASE]);
-
-		// collider init
-#ifdef _DEBUG
-		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3{ 1.0f, 0.0f, 0.0f }, "wireBox");
-		boxColliderWire->LinkTechniques(rg);
-#endif
 	}
 	void OnEnable(void) override
 	{
@@ -63,10 +61,18 @@ public:
 	void Update(float dt) override;
 	void Submit(void) override;
 	int GetKillScore() const noexcept override { return 40; }
+	/**
+	 * @brief Typed access to the owned Enemy_T_Shape for hurt/death animation.
+	 */
+	Enemy_T_Shape* GetVisual() noexcept
+	{
+		return pVisual_ != nullptr ? pVisual_->GetDrawableAs<Enemy_T_Shape>() : nullptr;
+	}
 private:
 	void SetupTransitions(void) override;
 private:
 	std::unique_ptr<StateMachine<Enemy_T>> FSM;
+	VisualComponent* pVisual_{ nullptr };
 	ColliderComponent* pCollider_{ nullptr };
 };
 

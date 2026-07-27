@@ -1,5 +1,8 @@
 #include "ColliderComponent.h"
 #include "ObjectBase.h"
+#include "CubeWireframe.h"
+#include "RenderGraph.h"
+#include "Graphics.h"
 
 #include <algorithm>
 #include <cassert>
@@ -32,43 +35,22 @@ ColliderComponent::ColliderComponent(
 	RegisterVolume(owner);
 }
 
+ColliderComponent::~ColliderComponent() = default;
+
 void ColliderComponent::RegisterVolume(ObjectBase* owner)
 {
+	(void)owner;
 	switch (type_)
 	{
 	case Collider3D::CollideType::Box:
-	{
-		Collider3D::BoxCollider box{};
-		if (owner != nullptr)
-		{
-			// Seed half extents from host legacy box when available.
-			box = owner->GetBoxCollider();
-		}
-		volume_ = box;
+		volume_ = Collider3D::BoxCollider{};
 		break;
-	}
 	case Collider3D::CollideType::Sphere:
-	{
-		Collider3D::SphereCollider sphere{};
-		if (owner != nullptr)
-		{
-			const auto half = owner->GetCollisionSize();
-			sphere.center = owner->GetPosition();
-			sphere.radius = Max3(half);
-		}
-		volume_ = sphere;
+		volume_ = Collider3D::SphereCollider{};
 		break;
-	}
 	case Collider3D::CollideType::Point:
-	{
-		Collider3D::PointCollider point{};
-		if (owner != nullptr)
-		{
-			point.position = owner->GetPosition();
-		}
-		volume_ = point;
+		volume_ = Collider3D::PointCollider{};
 		break;
-	}
 	default:
 		volume_ = Collider3D::BoxCollider{};
 		type_ = Collider3D::CollideType::Box;
@@ -85,6 +67,35 @@ void ColliderComponent::Update(float dt)
 {
 	(void)dt;
 	SyncFromOwner();
+}
+
+void ColliderComponent::Submit()
+{
+#ifdef _DEBUG
+	if (!debugDraw_ || debugWire_ == nullptr)
+	{
+		return;
+	}
+	ObjectBase* owner = GetOwner();
+	const Collider3D::BoxCollider* box = TryGetBox();
+	if (owner == nullptr || box == nullptr)
+	{
+		return;
+	}
+	if (syncMode_ == ColliderSyncMode::FollowCenterAxisYFromRotation)
+	{
+		debugWire_->DoSubmit(
+			owner->GetPosition(),
+			owner->GetRotation(),
+			{ box->half.x * 2.0f, box->half.y * 2.0f, box->half.z * 2.0f });
+	}
+	else
+	{
+		debugWire_->DoSubmit(
+			owner->GetPosition(),
+			{ box->half.x * 2.0f, box->half.y * 2.0f, box->half.z * 2.0f });
+	}
+#endif
 }
 
 void ColliderComponent::SyncFromOwner()
@@ -168,6 +179,26 @@ const Collider3D::SphereCollider* ColliderComponent::TryGetSphere() const noexce
 	return std::get_if<Collider3D::SphereCollider>(&volume_);
 }
 
+Collider3D::BoxCollider ColliderComponent::GetBoxCollider() const
+{
+	const Collider3D::BoxCollider* box = TryGetBox();
+	assert(box != nullptr && "GetBoxCollider requires Box type");
+	if (box != nullptr)
+	{
+		return *box;
+	}
+	return {};
+}
+
+DirectX::XMFLOAT3 ColliderComponent::GetCollisionSize() const noexcept
+{
+	if (const Collider3D::BoxCollider* box = TryGetBox())
+	{
+		return box->half;
+	}
+	return {};
+}
+
 void ColliderComponent::SetCollisionSize(DirectX::XMFLOAT3 size) noexcept
 {
 	switch (type_)
@@ -188,4 +219,17 @@ void ColliderComponent::SetCollisionSize(DirectX::XMFLOAT3 size) noexcept
 	default:
 		break;
 	}
+}
+
+void ColliderComponent::LinkDebugWire(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 color, const char* name)
+{
+#ifdef _DEBUG
+	debugWire_ = std::make_unique<CubeWireframe>(gfx, color, name != nullptr ? name : "wireBox");
+	debugWire_->LinkTechniques(rg);
+#else
+	(void)gfx;
+	(void)rg;
+	(void)color;
+	(void)name;
+#endif
 }

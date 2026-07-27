@@ -1,15 +1,22 @@
-﻿#include <math.h>
+#include <math.h>
 #include "Character.h"
 #include "Environment.h"
 #include "Attack.h"
 #include "ObjectCodex.h"
 #include "Collision.h"
+#include "ColliderComponent.h"
 
 void Character::MapItemCollide(void)
 {
+	auto* selfCol = GetComponent<ColliderComponent>();
+	if (selfCol == nullptr || !selfCol->IsEnabled())
+	{
+		return;
+	}
+
 	// 上下左右の当たり方向を検出するため、oldを用いたチェックを行う
 	auto Position = GetPosition();
-	auto CollHalf = GetCollisionSize();
+	auto CollHalf = selfCol->GetCollisionSize();
 	float OwnerTop =	Position.y + CollHalf.y; // プレイヤーの上端
 	float OwnerBottom =	Position.y - CollHalf.y; // プレイヤーの下端
 	float OwnerRight =	Position.x + CollHalf.x; // プレイヤーの右端
@@ -59,14 +66,15 @@ void Character::MapItemCollide(void)
 	// ループでコリジョン判断
 	for (auto e : mapEnvironment)
 	{
-		if (!e->GetCollisionOnOff()) continue;
+		auto* eCol = e->GetComponent<ColliderComponent>();
+		if (eCol == nullptr || !eCol->IsEnabled()) continue;
 
-		bool isCollide = CollisionSystem::IsOverlap(GetBoxCollider(), e->GetBoxCollider());
+		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), eCol->GetBoxCollider());
 
 		if (isCollide)
 		{
 			auto ItemPosition = e->GetPosition();
-			auto ItemCollHalf = e->GetCollisionSize();
+			auto ItemCollHalf = eCol->GetCollisionSize();
 			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// ブロックの上端
 			ItemBottom = ItemPosition.y - ItemCollHalf.y;	// ブロックの下端
 			ItemRight =	 ItemPosition.x + ItemCollHalf.x;	// ブロックの右端
@@ -136,23 +144,24 @@ void Character::MapItemCollide(void)
 		character_Enemy_T,
 		}) {
 		// 全てのキャラクターを探す
-		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);
-		// 全てのキャラクターを整理する
-		mapCharacters.reserve(mapCharacters.size() + found.size());
-		mapCharacters.insert(mapCharacters.end(), found.begin(), found.end());
-	}
+		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);		// 全てのキャラクターを整理する
+			mapCharacters.reserve(mapCharacters.size() + found.size());
+					mapCharacters.insert(mapCharacters.end(), found.begin(), found.end());
+						}
 
 	// ループでコリジョン判断
 	for (auto c : mapCharacters)
 	{
-		if (this == c || this->IsDeath || c->IsDeath || !this->OnCollision || !c->OnCollision) continue;
+		auto* cCol = c->GetComponent<ColliderComponent>();
+		if (this == c || this->IsDeath || c->IsDeath ||
+			cCol == nullptr || !cCol->IsEnabled()) continue;
 
-		bool isCollide = CollisionSystem::IsOverlap(GetBoxCollider(), c->GetBoxCollider());
+		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), cCol->GetBoxCollider());
 
 		if (isCollide)
 		{
 			auto ItemPosition = c->GetPosition();
-			auto ItemCollHalf = c->GetCollisionSize();
+			auto ItemCollHalf = cCol->GetCollisionSize();
 			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// キャラクターの上端
 			ItemBottom = ItemPosition.y - ItemCollHalf.y;	// キャラクターの下端
 			ItemRight =	 ItemPosition.x + ItemCollHalf.x;	// キャラクターの右端
@@ -254,9 +263,10 @@ void Character::MapItemCollide(void)
 		// ループでコリジョン判断
 		for (auto a : mapAttack_P)
 		{
-			if (!a->GetCollisionOnOff()) continue;
+			auto* aCol = a->GetComponent<ColliderComponent>();
+			if (aCol == nullptr || !aCol->IsEnabled()) continue;
 
-			bool isCollide = CollisionSystem::IsOverlap(GetBoxCollider(), a->GetBoxCollider());
+			bool isCollide = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), aCol->GetBoxCollider());
 
 			if (isCollide)
 			{

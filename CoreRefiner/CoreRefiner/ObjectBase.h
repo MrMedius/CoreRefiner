@@ -5,14 +5,9 @@
 #include <utility>
 #include <vector>
 #include "Transformation.h"
-#include "Collision.h"
 #include "IComponent.h"
-#include "ColliderComponent.h"
-
-#include "CubeWireframe.h"
 
 using namespace DirectX;
-using namespace Collider3D;
 
 enum Object_Type_Tag
 {
@@ -54,35 +49,6 @@ public:
 	/** @brief Raw stored rotation (gameplay may keep degrees). */
 	XMFLOAT3 GetRotation(void) const		{ return transform_.GetRotationRaw(); }
 	XMFLOAT3 GetSize(void) const			{ return transform_.GetScale(); }
-	/**
-	 * @brief Active box volume: prefers ColliderComponent when it registered a Box.
-	 * @note Legacy host `boxCollider` remains until Phase 4.4 removal.
-	 */
-	BoxCollider GetBoxCollider(void) const
-	{
-		if (const ColliderComponent* collider = GetComponent<ColliderComponent>())
-		{
-			if (const BoxCollider* box = collider->TryGetBox())
-			{
-				return *box;
-			}
-		}
-		return boxCollider;
-	}
-	XMFLOAT3 GetCollisionSize(void) const
-	{
-		return GetBoxCollider().half;
-	}
-	void SetCollisionOnOff(bool OnOff)		{ OnCollision = OnOff; }
-	void SetCollisionSize(XMFLOAT3 size)
-	{
-		boxCollider.half = { size.x / 2, size.y / 2, size.z / 2 };
-		if (ColliderComponent* collider = GetComponent<ColliderComponent>())
-		{
-			collider->SetCollisionSize(size);
-		}
-	}
-	bool GetCollisionOnOff(void) const		{ return OnCollision; }
 	/** @brief Host transform (single source of truth). */
 	Transformation& GetTransform() noexcept { return transform_; }
 	const Transformation& GetTransform() const noexcept { return transform_; }
@@ -183,12 +149,4 @@ protected:
 
 	/** @brief Owned gameplay components. */
 	std::vector<std::unique_ptr<IComponent>> components_;
-
-	/** @brief Legacy host box; used when no ColliderComponent is attached. */
-	BoxCollider boxCollider;
-#ifdef _DEBUG
-	std::unique_ptr<CubeWireframe> boxColliderWire;
-#endif
-
-	bool OnCollision{ false };
 };
