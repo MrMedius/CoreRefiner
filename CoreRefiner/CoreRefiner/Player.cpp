@@ -19,38 +19,39 @@ void Player::Update(float dt)
 {
 	BuildInputSnapshot();
 
-	// •ÏX‘O‚ÌÀ•W‚ğŠi”[
-	auto Position = transInfo.position;
+	// å¤‰æ›´å‰ã®åº§æ¨™ã‚’æ ¼ç´
+	auto Position = GetPosition();
 	PositionOld = Position;
-	// UŒ‚”ÍˆÍ‚ÌXV
+	// æ”»æ’ƒç¯„å›²ã®æ›´æ–°
 
-	// ó‘Ô‘JˆÚ
+	// çŠ¶æ…‹é·ç§»
 	// FSM update
 	FSM->Update(dt);
 
-	// d—Í
+	// é‡åŠ›
 	if (!OnFloor) 
 		MoveVelocity.y -= GRAVITY * dt;
 
-	// ’ïR—Í
+	// æŠµæŠ—åŠ›
 	MoveVelocity.x -= MoveVelocity.x * FORCE_RATE;
 	MoveVelocity.z -= MoveVelocity.z * FORCE_RATE;
 
-	// ˆÚ“®
+	// ç§»å‹•
 	{
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-		visualPre_Head->SetPosition(transInfo.position);
-		visualPre_Body->SetPosition(transInfo.position);
+		const auto pos = GetPosition();
+		visualPre_Head->SetPosition(pos);
+		visualPre_Body->SetPosition(pos);
 	}
 
-	// ƒ}ƒbƒv—v‘f‚Æ‚Ì“–‚½‚è”»’è
-	boxCollider.center = transInfo.position;
+	// ãƒãƒƒãƒ—è¦ç´ ã¨ã®å½“ãŸã‚Šåˆ¤å®š
+	boxCollider.center = GetPosition();
 	MapItemCollide();
 }
 
 void Player::Submit(void)
 {
-	// •`‰æ
+	// æç”»
 	// visualPre
 	visualPre_Head->Submit(Chan::main);
 	visualPre_Body->Submit(Chan::main);
@@ -58,7 +59,7 @@ void Player::Submit(void)
 #ifdef _DEBUG
 	if (!IsDeath)
 	{
-		boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
+		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
 	}
 #endif
 }
@@ -81,9 +82,9 @@ bool Player::AttackCollide(float damage, XMFLOAT3 repel)
 	for (auto tag : {
 		character_Enemy_T,
 		}) {
-		// ƒvƒŒƒCƒ„[‚ğUŒ‚‚Å‚«‚é‘S‚Ä‚Ì“G‚ğ’T‚·
+		// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’æ”»æ’ƒã§ãã‚‹å…¨ã¦ã®æ•µã‚’æ¢ã™
 		auto found = ObjectCodex::FindActiveObjectsByTag<Enemy>(tag);
-		// ‘S‚Ä‚Ì“G‚ğ®—‚·‚é
+		// å…¨ã¦ã®æ•µã‚’æ•´ç†ã™ã‚‹
 		enemies.reserve(enemies.size() + found.size());
 		enemies.insert(enemies.end(), found.begin(), found.end());
 	}
@@ -98,44 +99,44 @@ void Player::AttackCameraShake(int frames, float minRange, float maxRange)
 
 void Player::SetupTransitions(void)
 {
-	// ó‘Ô‚Ì‘JˆÚğŒ‚ğ‘‰Á‚·‚é
-	// PLAYER_IDLE ¨ PLAYER_MOVE
+	// çŠ¶æ…‹ã®é·ç§»æ¡ä»¶ã‚’å¢—åŠ ã™ã‚‹
+	// PLAYER_IDLE â†’ PLAYER_MOVE
 	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_MOVE], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);	// “ü‚Á‚½‘ÎÛ‚ğPlayer‚É‚È‚é
+		auto player = static_cast<Player*>(owner);	// å…¥ã£ãŸå¯¾è±¡ã‚’Playerã«ãªã‚‹
 		return player->Input().moveHeld;
 		});
 
-	// PLAYER_IDLE ¨ PLAYER_ATTACK
+	// PLAYER_IDLE â†’ PLAYER_ATTACK
 	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack;
 		});
 
-	// PLAYER_MOVE ¨ PLAYER_IDLE
+	// PLAYER_MOVE â†’ PLAYER_IDLE
 	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->Input().moveHeld;
 		});
 
-	// PLAYER_MOVE ¨ PLAYER_ATTACK
+	// PLAYER_MOVE â†’ PLAYER_ATTACK
 	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack;
 		});
 
-	// PLAYER_ATTACK ¨ PLAYER_IDLE
+	// PLAYER_ATTACK â†’ PLAYER_IDLE
 	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->IsAttack;
 		});
 
-	// PLAYER_HURT ¨ PLAYER_IDLE
+	// PLAYER_HURT â†’ PLAYER_IDLE
 	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->IsHurt && !player->IsDeath;
 		});
 
-	// PLAYER_HURT ¨ PLAYER_DEATH
+	// PLAYER_HURT â†’ PLAYER_DEATH
 	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_DEATH], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsDeath;
@@ -196,17 +197,17 @@ void Player_IdleState::OnEnter(Player* owner)
 
 void Player_IdleState::Update(Player* owner,  float dt)
 {
-	// ‘JˆÚ”»’f
+	// é·ç§»åˆ¤æ–­
 	const auto& in = owner->Input();
 	if (in.attack)	owner->SetIsAttack(true);
 
-	// UŒ‚‚ğƒJƒEƒ“ƒgƒ_ƒEƒ“
+	// æ”»æ’ƒã‚’ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³
 	owner->DoAttackCountDown();
 }
 
 
 /*------------------------------------------------------------------------------
-   Player_MoveStateŠÖ”
+   Player_MoveState
 ------------------------------------------------------------------------------*/
 void Player_MoveState::OnEnter(Player* owner)
 {
@@ -214,20 +215,20 @@ void Player_MoveState::OnEnter(Player* owner)
 
 void Player_MoveState::Update(Player* owner, float dt)
 {
-	// ‘JˆÚ”»’f
+	// é·ç§»åˆ¤æ–­
 	const auto& in = owner->Input();
 	if (in.attack)	owner->SetIsAttack(true);
 
-	// ˆÚ“®
+	// ç§»å‹•
 	owner->DoMove(1.0f);
 
-	// UŒ‚‚ğƒJƒEƒ“ƒgƒ_ƒEƒ“
+	// æ”»æ’ƒã‚’ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³
 	owner->DoAttackCountDown();
 }
 
 
 /*------------------------------------------------------------------------------
-   Player_AttackStateŠÖ”
+   Player_AttackState
 ------------------------------------------------------------------------------*/
 void Player_AttackState::OnEnter(Player* owner)
 {
@@ -249,7 +250,7 @@ void Player_AttackState::Update(Player* owner, float dt)
 void Player_HurtState::OnEnter(Player* owner)
 {
 	// anime set
-	owner->SetCollisionOnOff(false); // ƒRƒŠƒWƒ…ƒ“‚ğ•Â‚¶‚é
+	owner->SetCollisionOnOff(false); // ã‚³ãƒªã‚¸ãƒ¥ãƒ³ã‚’é–‰ã˜ã‚‹
 
 	SoundCodex::Get().PlaySE(SndPath::SE_Player_Hurt);
 	InputCodex::Get().GP_SetVibrationPulse(owner->boundPadIndex, 0.8f, 0.8f, 30);
@@ -257,8 +258,8 @@ void Player_HurtState::OnEnter(Player* owner)
 
 void Player_HurtState::OnExit(Player* owner)
 {
-	owner->SetIsHurt(false); // DeathState‚É‘JˆÚ‚·‚é‚©‚àA‚àˆê‰ñIsHurt‚ğƒŠƒZƒbƒg‚·‚é
-	owner->SetCollisionOnOff(true); // ƒRƒŠƒWƒ…ƒ“‚ğŠJ‚¯‚é
+	owner->SetIsHurt(false); // DeathStateã«é·ç§»ã™ã‚‹ã‹ã‚‚ã€ã‚‚ä¸€å›IsHurtã‚’ãƒªã‚»ãƒƒãƒˆã™ã‚‹
+	owner->SetCollisionOnOff(true); // ã‚³ãƒªã‚¸ãƒ¥ãƒ³ã‚’é–‹ã‘ã‚‹
 }
 
 void Player_HurtState::Update(Player* owner, float dt)
@@ -276,5 +277,5 @@ void Player_DeathState::OnEnter(Player* owner)
 
 void Player_DeathState::Update(Player* owner, float dt)
 {
-	// I‚í‚Á‚½‚ç‰½‚ª‚·‚éc
+	// çµ‚ã‚ã£ãŸã‚‰ä½•ãŒã™ã‚‹â€¦
 }

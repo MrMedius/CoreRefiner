@@ -6,21 +6,21 @@
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
 
-// “Gó‘Ô‚ÌID
+// æ•µçŠ¶æ…‹ã®ID
 enum ENEMY_STATE_ID {
 	ENEMY_CHASE,
 	ENEMY_ATTACK,
 	ENEMY_HURT,
 	ENEMY_DEATH,
 };
-// “Gó‘Ô‚Ì–¼‘O
+// æ•µçŠ¶æ…‹ã®åå‰
 static const std::string ENEMY_STATE[] = {
 	"ENEMY_CHASE",
 	"ENEMY_ATTACK",
 	"ENEMY_HURT",
 	"ENEMY_DEATH",
 };
-// “G‚Ìí—Ş
+// æ•µã®ç¨®é¡
 enum ENEMY_TYPE_ID {
 	ENEMY_TYPE_NONE,
 
@@ -48,22 +48,23 @@ public:
 	}
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
-	void DoChase(void)	// ƒ^[ƒQƒbƒg‚ğ’Ç‚¢‚©‚¯‚é
+	void DoChase(void)	// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’è¿½ã„ã‹ã‘ã‚‹
 	{
 		if (!IsInAttackArea)
 		{
-			float dx = AttackTarget->GetPosition().x - transInfo.position.x;
-			float dz = AttackTarget->GetPosition().z - transInfo.position.z;
+			const auto selfPos = GetPosition();
+			float dx = AttackTarget->GetPosition().x - selfPos.x;
+			float dz = AttackTarget->GetPosition().z - selfPos.z;
 
-			// ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ğŒü‚­
+			// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹å‘ã‚’å‘ã
 			float angle = atan2f(dx, dz);
 			SetRotation({ 0.0f, XMConvertToDegrees(angle), 0.0f });
 
-			// ƒ^[ƒQƒbƒg‚ÉŒü‚©‚Á‚ÄˆÚ“®
+			// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã«å‘ã‹ã£ã¦ç§»å‹•
 			CalculateMoveVelocity(sinf(angle) * GetMoveAccel(), 0.0f, cosf(angle) * GetMoveAccel());
 		}
 	}
-	bool CheckIsAttack(void)	// UŒ‚‚·‚é‚©‚Ç‚¤‚©‚ğ”»’f
+	bool CheckIsAttack(void)	// æ”»æ’ƒã™ã‚‹ã‹ã©ã†ã‹ã‚’åˆ¤æ–­
 	{
 		if (IsInAttackArea && AttackCountDown == 0) SetIsAttack(true);
 		return IsAttack;
@@ -80,10 +81,11 @@ public:
 				AttackTarget->CalculateHpCurrent(damage);
 				GameStatsCodex::AddInputDamage(-damage);
 
-				float dx = AttackTarget->GetPosition().x - transInfo.position.x;
-				float dz = AttackTarget->GetPosition().z - transInfo.position.z;
+				const auto selfPos = GetPosition();
+				float dx = AttackTarget->GetPosition().x - selfPos.x;
+				float dz = AttackTarget->GetPosition().z - selfPos.z;
 				float angle = atan2f(dx, dz);
-				AttackTarget->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z); // Œ‚‘Ş‚·‚é
+				AttackTarget->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z); // ???????
 				return true;
 			}
 		}
@@ -116,12 +118,12 @@ private:
 	void SetupTransitions(void) override = 0;
 protected:
 	std::unique_ptr<Enemy_T_Shape> visualPre;
-	ENEMY_TYPE_ID Type{ ENEMY_TYPE_NONE };	// “G‚Ìí—Ş
-	Player* AttackTarget;					// ƒ^[ƒQƒbƒg
-	BoxCollider searchCollider;				// ŒŸ¸‚ÌƒRƒŠƒWƒ‡ƒ“
-	bool IsInArea{ false };					// ƒ^[ƒQƒbƒg‚ªŒŸ¸”ÍˆÍ‚É‚¢‚é
-	bool IsInAttackArea{ false };			// ƒ^[ƒQƒbƒg‚ªUŒ‚”ÍˆÍ‚É‚¢‚é
-	bool WasHurt{ false };					// UŒ‚‚³‚ê‚½‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO
+	ENEMY_TYPE_ID Type{ ENEMY_TYPE_NONE };	// æ•µã®ç¨®é¡
+	Player* AttackTarget;					// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ
+	BoxCollider searchCollider;				// æ¤œæŸ»ã®ã‚³ãƒªã‚¸ãƒ§ãƒ³
+	bool IsInArea{ false };					// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒæ¤œæŸ»ç¯„å›²ã«ã„ã‚‹
+	bool IsInAttackArea{ false };			// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒæ”»æ’ƒç¯„å›²ã«ã„ã‚‹
+	bool WasHurt{ false };					// æ”»æ’ƒã•ã‚ŒãŸã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚°
 #ifdef _DEBUG
 	std::unique_ptr<CubeWireframe> searchColliderWire;
 #endif

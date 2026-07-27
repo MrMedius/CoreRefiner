@@ -44,7 +44,7 @@ void EnemyManager::Update(float dt)
 	XMFLOAT3 pos = { position.x + d(rng),10.0f,position.z + d(rng) };
 
 
-	// V‚µEnemyTest‚ğ¶¬‚·‚é
+	// æ–°ã—EnemyTestã‚’ç”Ÿæˆã™ã‚‹
 	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::Acquire<Enemy_T>(character_Enemy_T, gfx, rg, pos));	  Created = true; }
 	if (Created)
 	{
@@ -55,7 +55,7 @@ void EnemyManager::Update(float dt)
 
 	for (int i = 0; i < enemies.size(); i++)
 	{
-		// ‘ÎÛ‚©ƒAƒNƒeƒBƒu‚Å‚¢‚ê‚ÎXV‚·‚éA‚»‚¤‚Å‚È‚¢ê‡‚Í—eŠí‚©‚çíœ‚·‚é
+		// å¯¾è±¡ã‹ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã§ã„ã‚Œã°æ›´æ–°ã™ã‚‹ã€ãã†ã§ãªã„å ´åˆã¯å®¹å™¨ã‹ã‚‰å‰Šé™¤ã™ã‚‹
 		if (enemies[i]->IsActive())
 			enemies[i]->Update(dt);
 		else

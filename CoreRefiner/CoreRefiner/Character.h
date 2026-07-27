@@ -52,7 +52,7 @@ protected:
 	static constexpr float 	FORCE_RATE = 0.1f;			// 摩擦力
 	float HpMax{ 0.0f };								// 最大体力
 	float HpCurrent{ 0.0f };							// 今の体力
-	XMFLOAT3 PositionOld{ transInfo.position };			// 1フレーム前の座標
+	XMFLOAT3 PositionOld{ GetPosition() };				// 1フレーム前の座標
 	float MoveAccel{ 0.0f };							// 移動加速値
 	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };			// 移動値
 	float AttackInterval{ 0 };							// 攻撃間隔

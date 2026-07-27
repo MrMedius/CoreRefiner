@@ -52,11 +52,11 @@ public:
 
 		// graphics init
 		visualPre_Head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
-		visualPre_Head->SetPosition(transInfo.position);
+		visualPre_Head->SetPosition(GetPosition());
 		visualPre_Head->LinkTechniques(rg);
 
 		visualPre_Body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
-		visualPre_Body->SetPosition(transInfo.position);
+		visualPre_Body->SetPosition(GetPosition());
 		visualPre_Body->LinkTechniques(rg);
 
 		// FSM state init

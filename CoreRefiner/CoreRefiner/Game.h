@@ -25,7 +25,7 @@ private:
 		SCENE_TITLE,
 		SCENE_GAME,
 		SCENE_RESULT,
-	}Scene{ SCENE_TITLE };
+	}Scene{ SCENE_GAME };
 public:
 	Game(const std::string& commandLine = "");
 	int RunGame();

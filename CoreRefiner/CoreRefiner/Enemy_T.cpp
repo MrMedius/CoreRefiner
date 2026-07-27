@@ -5,81 +5,83 @@
 
 void Enemy_T::Update(float dt)
 {
-	// •ÏX‘O‚ÌÀ•W‚ðŠi”[
-	auto Position = transInfo.position;
+	// å¤‰æ›´å‰ã®åº§æ¨™ã‚’æ ¼ç´
+	auto Position = GetPosition();
 	PositionOld = Position;
 	searchCollider.center = Position;
 	CheckIsInArea();
 
-	// ó‘Ô‘JˆÚ
+	// çŠ¶æ…‹é·ç§»
 	FSM->Update(dt);
 
-	// d—Í
+	// é‡åŠ›
 	if (!OnFloor) MoveVelocity.y -= GRAVITY * dt;
 
-	// ’ïR—Í
+	// æŠµæŠ—åŠ›
 	MoveVelocity.x -= MoveVelocity.x * FORCE_RATE;
 	MoveVelocity.z -= MoveVelocity.z * FORCE_RATE;
 
-	// ˆÚ“®
+	// ç§»å‹•
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-	visualPre->SetPosition(transInfo.position);
-	visualPre->SetRotation(0.0f, transInfo.rotation.y, 0.0f);
+	const auto pos = GetPosition();
+	const auto rot = GetRotation();
+	visualPre->SetPosition(pos);
+	visualPre->SetRotation(0.0f, rot.y, 0.0f);
 
-	// ƒ}ƒbƒv—v‘f‚Æ‚Ì“–‚½‚è”»’è
-	boxCollider.center = transInfo.position;
-	boxCollider.axisY = transInfo.rotation;
+	// ãƒžãƒƒãƒ—è¦ç´ ã¨ã®å½“ãŸã‚Šåˆ¤å®š
+	boxCollider.center = pos;
+	boxCollider.axisY = rot;
 	MapItemCollide();
 }
 
 void Enemy_T::Submit(void)
 {
-	// •`‰æ
+	// æç”»
 	visualPre->Submit(Chan::main);
 	visualPre->Submit(Chan::shadow);
 
 #ifdef _DEBUG
 	if (!IsDeath)
 	{
-		boxColliderWire->DoSubmit(transInfo.position, transInfo.rotation,boxCollider.GetSize());
+		boxColliderWire->DoSubmit(GetPosition(), GetRotation(), boxCollider.GetSize());
 	}
 #endif
 }
 
 void Enemy_T::SetupTransitions(void)
 {
-	// ó‘Ô‚Ì‘JˆÚðŒ‚ð‘‰Á‚·‚é
-	// ENEMY_CHASE ¨ ENEMY_ATTACK
+	// çŠ¶æ…‹ã®é·ç§»æ¡ä»¶ã‚’å¢—åŠ ã™ã‚‹
+	// ENEMY_CHASE â†’ ENEMY_ATTACK
 	FSM->AddTransition(ENEMY_STATE[ENEMY_CHASE], ENEMY_STATE[ENEMY_ATTACK], [](Character* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsAttack;
 		});
 
-	// ENEMY_CHASE ¨ ENEMY_HURT
+	// ENEMY_CHASE â†’ ENEMY_HURT
 	FSM->AddTransition(ENEMY_STATE[ENEMY_CHASE], ENEMY_STATE[ENEMY_HURT], [](Character* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsHurt;
 		});
 
-	// ENEMY_ATTACK ¨ ENEMY_CHASE
+	// ENEMY_ATTACK â†’ ENEMY_CHASE
 	FSM->AddTransition(ENEMY_STATE[ENEMY_ATTACK], ENEMY_STATE[ENEMY_CHASE], [](Character* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return !enemy->IsAttack;
 		});
 
-	// ENEMY_ATTACK ¨ ENEMY_HURT
+	// ENEMY_ATTACK â†’ ENEMY_HURT
 	FSM->AddTransition(ENEMY_STATE[ENEMY_ATTACK], ENEMY_STATE[ENEMY_HURT], [](Character* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsHurt;
 		});
 
-	// ENEMY_HURT ¨ ENEMY_CHASE
+	// ENEMY_HURT â†’ ENEMY_CHASE
 	FSM->AddTransition(ENEMY_STATE[ENEMY_HURT], ENEMY_STATE[ENEMY_CHASE], [](Character* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return !enemy->IsHurt && !enemy->IsDeath;
 		});
 
-	// ENEMY_HURT ¨ ENEMY_DEATH
+	// ENEMY_HURT â†’ ENEMY_DEATH
 	FSM->AddTransition(ENEMY_STATE[ENEMY_HURT], ENEMY_STATE[ENEMY_DEATH], [](Character* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsDeath;
@@ -98,7 +100,7 @@ void Enemy_T_ChaseState::OnEnter(Enemy_T* owner)
 void Enemy_T_ChaseState::Update(Enemy_T* owner, float dt)
 {
 	// general jobs
-	owner->DoChase();			// ƒ^[ƒQƒbƒg‚ð’Ç‚¢‚©‚¯‚é
+	owner->DoChase();			// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’è¿½ã„ã‹ã‘ã‚‹
 }
 
 
@@ -137,7 +139,7 @@ void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
 	owner->GetVisualPre()->Update(dt);
 
 
-	// UŒ‚‚ðƒJƒEƒ“ƒgƒ_ƒEƒ“
+	// æ”»æ’ƒã‚’ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³
 	owner->DoAttackCountDown();
 
 	if (owner->GetHpCurrent() == 0)	owner->SetIsDeath(true);
@@ -159,6 +161,6 @@ void Enemy_T_DeathState::Update(Enemy_T* owner, float dt)
 	// set anime
 	owner->GetVisualPre()->Update(dt);
 
-	// I‚í‚Á‚½‚çŽg—pI‚í‚é‚ðƒZƒbƒg‚·‚é
+	// çµ‚ã‚ã£ãŸã‚‰ä½¿ç”¨çµ‚ã‚ã‚‹ã‚’ã‚»ãƒƒãƒˆã™ã‚‹
 	owner->Deactivate();
 }

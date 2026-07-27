@@ -1,4 +1,4 @@
-#include <math.h>
+ï»¿#include <math.h>
 #include "Character.h"
 #include "Environment.h"
 #include "Attack.h"
@@ -7,126 +7,142 @@
 
 void Character::MapItemCollide(void)
 {
-	// ã‰º¶‰E‚Ì“–‚½‚è•ûŒü‚ğŒŸo‚·‚é‚½‚ßAold‚ğ—p‚¢‚½ƒ`ƒFƒbƒN‚ğs‚¤
+	// ä¸Šä¸‹å·¦å³ã®å½“ãŸã‚Šæ–¹å‘ã‚’æ¤œå‡ºã™ã‚‹ãŸã‚ã€oldã‚’ç”¨ã„ãŸãƒã‚§ãƒƒã‚¯ã‚’è¡Œã†
 	auto Position = GetPosition();
 	auto CollHalf = GetCollisionSize();
-	float OwnerTop =	Position.y + CollHalf.y; // ƒvƒŒƒCƒ„[‚Ìã’[
-	float OwnerBottom =	Position.y - CollHalf.y; // ƒvƒŒƒCƒ„[‚Ì‰º’[
-	float OwnerRight =	Position.x + CollHalf.x; // ƒvƒŒƒCƒ„[‚Ì‰E’[
-	float OwnerLeft =	Position.x - CollHalf.x; // ƒvƒŒƒCƒ„[‚Ì¶’[
-	float OwnerBack =	Position.z + CollHalf.z; // ƒvƒŒƒCƒ„[‚ÌŒã’[
-	float OwnerFront =	Position.z - CollHalf.z; // ƒvƒŒƒCƒ„[‚Ì‘O’[
-	float OwnerOldTop =		PositionOld.y + CollHalf.y;	// ƒvƒŒƒCƒ„[‚ÌŒÃ‚¢ˆÊ’u‚Ìã’[
-	float OwnerOldBottom =	PositionOld.y - CollHalf.y;	// ƒvƒŒƒCƒ„[‚ÌŒÃ‚¢ˆÊ’u‚Ì‰º’[
-	float OwnerOldRight =	PositionOld.x + CollHalf.x;	// ƒvƒŒƒCƒ„[‚ÌŒÃ‚¢ˆÊ’u‚Ì‰E’[
-	float OwnerOldLeft =	PositionOld.x - CollHalf.x;	// ƒvƒŒƒCƒ„[‚ÌŒÃ‚¢ˆÊ’u‚Ì¶’[
-	float OwnerOldBack =	PositionOld.z + CollHalf.z;	// ƒvƒŒƒCƒ„[‚ÌŒÃ‚¢ˆÊ’u‚ÌŒã’[
-	float OwnerOldFront =	PositionOld.z - CollHalf.z;	// ƒvƒŒƒCƒ„[‚ÌŒÃ‚¢ˆÊ’u‚Ì‘O’[
+	float OwnerTop =	Position.y + CollHalf.y; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ä¸Šç«¯
+	float OwnerBottom =	Position.y - CollHalf.y; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ä¸‹ç«¯
+	float OwnerRight =	Position.x + CollHalf.x; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å³ç«¯
+	float OwnerLeft =	Position.x - CollHalf.x; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å·¦ç«¯
+	float OwnerBack =	Position.z + CollHalf.z; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¾Œç«¯
+	float OwnerFront =	Position.z - CollHalf.z; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‰ç«¯
+	float OwnerOldTop =		PositionOld.y + CollHalf.y;	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¤ã„ä½ç½®ã®ä¸Šç«¯
+	float OwnerOldBottom =	PositionOld.y - CollHalf.y;	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¤ã„ä½ç½®ã®ä¸‹ç«¯
+	float OwnerOldRight =	PositionOld.x + CollHalf.x;	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¤ã„ä½ç½®ã®å³ç«¯
+	float OwnerOldLeft =	PositionOld.x - CollHalf.x;	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¤ã„ä½ç½®ã®å·¦ç«¯
+	float OwnerOldBack =	PositionOld.z + CollHalf.z;	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¤ã„ä½ç½®ã®å¾Œç«¯
+	float OwnerOldFront =	PositionOld.z - CollHalf.z;	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¤ã„ä½ç½®ã®å‰ç«¯
 	float ItemTop, ItemBottom, ItemRight, ItemLeft, ItemBack, ItemFront;
 
-/*------------------------------------------------------------------------------
-   MapEnvironment
-------------------------------------------------------------------------------*/
-	OnFloor = false; //æ‚¸‚Í°‚É‚¢‚È‚¢‚ğ‘z’è‚·‚é
+	/**
+	 * @brief Write a single position axis through the host Transformation API.
+	 */
+	auto setPosComponent = [this](char axis, float value)
+	{
+		auto p = GetPosition();
+		switch (axis)
+		{
+		case 'x': p.x = value; break;
+		case 'y': p.y = value; break;
+		case 'z': p.z = value; break;
+		default: break;
+		}
+		SetPosition(p);
+	};
+
+	/*------------------------------------------------------------------------------
+	   MapEnvironment
+	------------------------------------------------------------------------------*/
+	OnFloor = false; //å…ˆãšã¯åºŠã«ã„ãªã„ã‚’æƒ³å®šã™ã‚‹
 
 	std::vector<Environment*> mapEnvironment;
 	for (auto tag : {
 		environment_Field
 		}) {
-		// ‘S‚Ä‚Ìƒ}ƒbƒvƒIƒuƒWƒFƒNƒg‚ğ’T‚·
+		// å…¨ã¦ã®ãƒãƒƒãƒ—ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¢ã™
 		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
-		// ‘S‚Ä‚Ìƒ}ƒbƒvƒIƒuƒWƒFƒNƒg‚ğƒ}ƒbƒvƒIƒuƒWƒFƒNƒg‚ğ‚µ‚Ä®—‚·‚é
+		// å…¨ã¦ã®ãƒãƒƒãƒ—ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ãƒãƒƒãƒ—ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ã—ã¦æ•´ç†ã™ã‚‹
 		mapEnvironment.reserve(mapEnvironment.size() + found.size());
 		mapEnvironment.insert(mapEnvironment.end(), found.begin(), found.end());
 	}
 
-	// ƒ‹[ƒv‚ÅƒRƒŠƒWƒ‡ƒ“”»’f
+	// ãƒ«ãƒ¼ãƒ—ã§ã‚³ãƒªã‚¸ãƒ§ãƒ³åˆ¤æ–­
 	for (auto e : mapEnvironment)
 	{
 		if (!e->GetCollisionOnOff()) continue;
 
-		 bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, e->GetBoxCollider());
-		
+		bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, e->GetBoxCollider());
+
 		if (isCollide)
 		{
 			auto ItemPosition = e->GetPosition();
 			auto ItemCollHalf = e->GetCollisionSize();
-			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// ƒuƒƒbƒN‚Ìã’[
-			ItemBottom = ItemPosition.y - ItemCollHalf.y;	// ƒuƒƒbƒN‚Ì‰º’[
-			ItemRight =	 ItemPosition.x + ItemCollHalf.x;	// ƒuƒƒbƒN‚Ì‰E’[
-			ItemLeft =	 ItemPosition.x - ItemCollHalf.x;	// ƒuƒƒbƒN‚Ì¶’[
-			ItemBack =	 ItemPosition.z + ItemCollHalf.z;	// ƒuƒƒbƒN‚ÌŒã’[
-			ItemFront =	 ItemPosition.z - ItemCollHalf.z;	// ƒuƒƒbƒN‚Ì‘O’[
+			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸Šç«¯
+			ItemBottom = ItemPosition.y - ItemCollHalf.y;	// ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸‹ç«¯
+			ItemRight =	 ItemPosition.x + ItemCollHalf.x;	// ãƒ–ãƒ­ãƒƒã‚¯ã®å³ç«¯
+			ItemLeft =	 ItemPosition.x - ItemCollHalf.x;	// ãƒ–ãƒ­ãƒƒã‚¯ã®å·¦ç«¯
+			ItemBack =	 ItemPosition.z + ItemCollHalf.z;	// ãƒ–ãƒ­ãƒƒã‚¯ã®å¾Œç«¯
+			ItemFront =	 ItemPosition.z - ItemCollHalf.z;	// ãƒ–ãƒ­ãƒƒã‚¯ã®å‰ç«¯
 
-			// ŠÂ‹«—v‘f‚Ì“–‚½‚èˆ—‚ğŒÄ‚Ño‚·
+			// ç’°å¢ƒè¦ç´ ã®å½“ãŸã‚Šå‡¦ç†ã‚’å‘¼ã³å‡ºã™
 			e->OnCollide(this);
 
-			// ã‚©‚ç‰º‚É“–‚½‚Á‚½(æ‚Á‚½)
+			// ä¸Šã‹ã‚‰ä¸‹ã«å½“ãŸã£ãŸ(ä¹—ã£ãŸ)
 			if (OwnerOldBottom >= ItemTop && OwnerBottom <= ItemTop)
 			{
-				// ‰º‚ÆƒuƒƒbƒN‚Ìã‚ğ”ä‚×A‰º‚ªold‚Ì‚Íã‘¤‚É‚ ‚èAŒ»İ‚Í‰º‘¤‚É‚ ‚éê‡
-				// ’…’n
+				// ä¸‹ã¨ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸Šã‚’æ¯”ã¹ã€ä¸‹ãŒoldã®æ™‚ã¯ä¸Šå´ã«ã‚ã‚Šã€ç¾åœ¨ã¯ä¸‹å´ã«ã‚ã‚‹å ´åˆ
+				// ç€åœ°
 				MoveVelocity.y = 0.0f;
-				// ƒvƒŒƒCƒ„[‚ÌêŠ‚ğŒÅ’è(’n–Ê‚Éˆø‚Á‚©‚©‚ç‚È‚¢‚æ‚¤‚É)
-				transInfo.position.y = ItemTop + CollHalf.y + 0.001f;
-				// ’n–Ê‚Éæ‚Á‚Ä‚¢‚é
+				// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å ´æ‰€ã‚’å›ºå®š(åœ°é¢ã«å¼•ã£ã‹ã‹ã‚‰ãªã„ã‚ˆã†ã«)
+				setPosComponent('y', ItemTop + CollHalf.y + 0.001f);
+				// åœ°é¢ã«ä¹—ã£ã¦ã„ã‚‹
 				OnFloor = true;
 				continue;
 			}
-			// ‰º‚©‚çã‚É“–‚½‚Á‚½
+			// ä¸‹ã‹ã‚‰ä¸Šã«å½“ãŸã£ãŸ
 			if (OwnerOldTop <= ItemBottom && OwnerTop >= ItemBottom)
 			{
-				// ã‚ÆƒuƒƒbƒN‚Ì‰º‚ğ”ä‚×Aã‚ªold‚Ì‚Í‰º‘¤‚É‚ ‚èAŒ»İ‚Íã‘¤‚É‚ ‚éê‡
-				// ~‚ß‚é
+				// ä¸Šã¨ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸‹ã‚’æ¯”ã¹ã€ä¸ŠãŒoldã®æ™‚ã¯ä¸‹å´ã«ã‚ã‚Šã€ç¾åœ¨ã¯ä¸Šå´ã«ã‚ã‚‹å ´åˆ
+				// æ­¢ã‚ã‚‹
 				MoveVelocity.y = 0.0f;
-				// ƒvƒŒƒCƒ„[‚ÌêŠ‚ğŒÅ’è
-				transInfo.position.y = ItemBottom - CollHalf.y - 0.1f;
+				// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å ´æ‰€ã‚’å›ºå®š
+				setPosComponent('y', ItemBottom - CollHalf.y - 0.1f);
 				continue;
 			}
-			// ¶‚©‚ç‰E‚É“–‚½‚Á‚½
+			// å·¦ã‹ã‚‰å³ã«å½“ãŸã£ãŸ
 			if (OwnerOldRight <= ItemLeft && OwnerRight >= ItemLeft)
 			{
-				transInfo.position.x = ItemLeft - CollHalf.x - 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('x', ItemLeft - CollHalf.x - 0.1f); // å ´æ‰€ã‚’å›ºå®š
 				continue;
 			}
-			// ‰E‚©‚ç¶‚É“–‚½‚Á‚½
+			// å³ã‹ã‚‰å·¦ã«å½“ãŸã£ãŸ
 			if (OwnerOldLeft >= ItemRight && OwnerLeft <= ItemRight)
 			{
-				transInfo.position.x = ItemRight + CollHalf.x + 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('x', ItemRight + CollHalf.x + 0.1f); // å ´æ‰€ã‚’å›ºå®š
 				continue;
 			}
-			// Œã‚©‚ç‘O‚É“–‚½‚Á‚½
+			// å¾Œã‹ã‚‰å‰ã«å½“ãŸã£ãŸ
 			if (OwnerOldBack <= ItemFront && OwnerBack >= ItemFront)
 			{
-				transInfo.position.z = ItemFront - CollHalf.z - 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('z', ItemFront - CollHalf.z - 0.1f); // å ´æ‰€ã‚’å›ºå®š
 				continue;
 			}
-			// ‘O‚©‚çŒã‚É“–‚½‚Á‚½
+			// å‰ã‹ã‚‰å¾Œã«å½“ãŸã£ãŸ
 			if (OwnerOldFront >= ItemBack && OwnerFront <= ItemBack)
 			{
-				transInfo.position.z = ItemBack + CollHalf.z + 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('z', ItemBack + CollHalf.z + 0.1f); // å ´æ‰€ã‚’å›ºå®š
 				continue;
 			}
 		}
 	}
 
 
-/*------------------------------------------------------------------------------
-   MapCharacter
-------------------------------------------------------------------------------*/
+	/*------------------------------------------------------------------------------
+	   MapCharacter
+	------------------------------------------------------------------------------*/
 	std::vector<Character*> mapCharacters;
 	for (auto tag : {
 		character_Player,
 		character_Enemy_T,
 		}) {
-		// ‘S‚Ä‚ÌƒLƒƒƒ‰ƒNƒ^[‚ğ’T‚·
+		// å…¨ã¦ã®ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚’æ¢ã™
 		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);
-		// ‘S‚Ä‚ÌƒLƒƒƒ‰ƒNƒ^[‚ğ®—‚·‚é
+		// å…¨ã¦ã®ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚’æ•´ç†ã™ã‚‹
 		mapCharacters.reserve(mapCharacters.size() + found.size());
 		mapCharacters.insert(mapCharacters.end(), found.begin(), found.end());
 	}
 
-	// ƒ‹[ƒv‚ÅƒRƒŠƒWƒ‡ƒ“”»’f
+	// ãƒ«ãƒ¼ãƒ—ã§ã‚³ãƒªã‚¸ãƒ§ãƒ³åˆ¤æ–­
 	for (auto c : mapCharacters)
 	{
 		if (this == c || this->IsDeath || c->IsDeath || !this->OnCollision || !c->OnCollision) continue;
@@ -137,79 +153,79 @@ void Character::MapItemCollide(void)
 		{
 			auto ItemPosition = c->GetPosition();
 			auto ItemCollHalf = c->GetCollisionSize();
-			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// ƒLƒƒƒ‰ƒNƒ^[‚Ìã’[
-			ItemBottom = ItemPosition.y - ItemCollHalf.y;	// ƒLƒƒƒ‰ƒNƒ^[‚Ì‰º’[
-			ItemRight =	 ItemPosition.x + ItemCollHalf.x;	// ƒLƒƒƒ‰ƒNƒ^[‚Ì‰E’[
-			ItemLeft =	 ItemPosition.x - ItemCollHalf.x;	// ƒLƒƒƒ‰ƒNƒ^[‚Ì¶’[
-			ItemBack =	 ItemPosition.z + ItemCollHalf.z;	// ƒLƒƒƒ‰ƒNƒ^[‚ÌŒã’[
-			ItemFront =	 ItemPosition.z - ItemCollHalf.z;	// ƒLƒƒƒ‰ƒNƒ^[‚Ì‘O’[
+			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®ä¸Šç«¯
+			ItemBottom = ItemPosition.y - ItemCollHalf.y;	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®ä¸‹ç«¯
+			ItemRight =	 ItemPosition.x + ItemCollHalf.x;	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®å³ç«¯
+			ItemLeft =	 ItemPosition.x - ItemCollHalf.x;	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®å·¦ç«¯
+			ItemBack =	 ItemPosition.z + ItemCollHalf.z;	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®å¾Œç«¯
+			ItemFront =	 ItemPosition.z - ItemCollHalf.z;	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®å‰ç«¯
 
-			// ‰Ÿ‚µ•Ô‚·Š„‡
-			float push_rate = 0.2f; 
+			// æŠ¼ã—è¿”ã™å‰²åˆ
+			float push_rate = 0.2f;
 			float push_rate_half = push_rate / 2.0f;
 
-			// ã‚©‚ç‰º‚É“–‚½‚Á‚½(æ‚Á‚½)
+			// ä¸Šã‹ã‚‰ä¸‹ã«å½“ãŸã£ãŸ(ä¹—ã£ãŸ)
 			if (OwnerOldBottom >= ItemTop && OwnerBottom <= ItemTop)
 			{
-				// ‰º‚ÆƒuƒƒbƒN‚Ìã‚ğ”ä‚×A‰º‚ªold‚Ì‚Íã‘¤‚É‚ ‚èAŒ»İ‚Í‰º‘¤‚É‚ ‚éê‡
-				// ’…’n
+				// ä¸‹ã¨ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸Šã‚’æ¯”ã¹ã€ä¸‹ãŒoldã®æ™‚ã¯ä¸Šå´ã«ã‚ã‚Šã€ç¾åœ¨ã¯ä¸‹å´ã«ã‚ã‚‹å ´åˆ
+				// ç€åœ°
 				MoveVelocity.y = 0.0f;
-				// êŠ‚ğŒÅ’è(’n–Ê‚Éˆø‚Á‚©‚©‚ç‚È‚¢‚æ‚¤‚É)
+				// å ´æ‰€ã‚’å›ºå®š(åœ°é¢ã«å¼•ã£ã‹ã‹ã‚‰ãªã„ã‚ˆã†ã«)
 
-				transInfo.position.y = ItemTop + CollHalf.y + 0.001f;
+				setPosComponent('y', ItemTop + CollHalf.y + 0.001f);
 
 				float UpOrDown = (c->GetPosition().z - PositionOld.z > 0.0f) ? 1.0f : -1.0f;
 				float RightOrLeft = (c->GetPosition().x - PositionOld.x > 0.0f) ? 1.0f : -1.0f;
 				c->CalculateMoveVelocity(MoveAccel* push_rate* RightOrLeft, 0.0f, MoveAccel* push_rate* UpOrDown);
 
-				// ’n–Ê‚Éæ‚Á‚Ä‚¢‚é
+				// åœ°é¢ã«ä¹—ã£ã¦ã„ã‚‹
 				OnFloor = true;
 				continue;
 			}
-			// ‰º‚©‚çã‚É“–‚½‚Á‚½
+			// ä¸‹ã‹ã‚‰ä¸Šã«å½“ãŸã£ãŸ
 			if (OwnerOldTop <= ItemBottom && OwnerTop >= ItemBottom)
 			{
-				// ã‚ÆƒuƒƒbƒN‚Ì‰º‚ğ”ä‚×Aã‚ªold‚Ì‚Í‰º‘¤‚É‚ ‚èAŒ»İ‚Íã‘¤‚É‚ ‚éê‡
-				// ~‚ß‚é
+				// ä¸Šã¨ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸‹ã‚’æ¯”ã¹ã€ä¸ŠãŒoldã®æ™‚ã¯ä¸‹å´ã«ã‚ã‚Šã€ç¾åœ¨ã¯ä¸Šå´ã«ã‚ã‚‹å ´åˆ
+				// æ­¢ã‚ã‚‹
 				MoveVelocity.y = 0.0f;
-				// ƒvƒŒƒCƒ„[‚ÌêŠ‚ğŒÅ’è
-				transInfo.position.y = ItemBottom - CollHalf.y - 0.1f;
+				// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å ´æ‰€ã‚’å›ºå®š
+				setPosComponent('y', ItemBottom - CollHalf.y - 0.1f);
 				continue;
 			}
-			// ¶‚©‚ç‰E‚É“–‚½‚Á‚½
+			// å·¦ã‹ã‚‰å³ã«å½“ãŸã£ãŸ
 			if (OwnerOldRight <= ItemLeft && OwnerRight >= ItemLeft)
 			{
-				transInfo.position.x = ItemLeft - CollHalf.x - 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('x', ItemLeft - CollHalf.x - 0.1f); // å ´æ‰€ã‚’å›ºå®š
 
 				float UpOrDown = (c->GetPosition().z - PositionOld.z > 0.0f) ? 1.0f : -1.0f;
 				c->CalculateMoveVelocity(MoveAccel* push_rate, 0.0f, MoveAccel* push_rate_half * UpOrDown);
 
 				continue;
 			}
-			// ‰E‚©‚ç¶‚É“–‚½‚Á‚½
+			// å³ã‹ã‚‰å·¦ã«å½“ãŸã£ãŸ
 			if (OwnerOldLeft >= ItemRight && OwnerLeft <= ItemRight)
 			{
-				transInfo.position.x = ItemRight + CollHalf.x + 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('x', ItemRight + CollHalf.x + 0.1f); // å ´æ‰€ã‚’å›ºå®š
 
 				float UpOrDown = (c->GetPosition().z - PositionOld.z > 0.0f) ? 1.0f : -1.0f;
 				c->CalculateMoveVelocity(-MoveAccel * push_rate, 0.0f, MoveAccel* push_rate_half * UpOrDown);
 
 				continue;
 			}
-			// Œã‚©‚ç‘O‚É“–‚½‚Á‚½
+			// å¾Œã‹ã‚‰å‰ã«å½“ãŸã£ãŸ
 			if (OwnerOldBack <= ItemFront && OwnerBack >= ItemFront)
 			{
-				transInfo.position.z = ItemFront - CollHalf.z - 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('z', ItemFront - CollHalf.z - 0.1f); // å ´æ‰€ã‚’å›ºå®š
 
 				float RightOrLeft = (c->GetPosition().x - PositionOld.x > 0.0f) ? 1.0f : -1.0f;
 				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, MoveAccel * push_rate);
 
 				continue;
 			}
-			// ‘O‚©‚çŒã‚É“–‚½‚Á‚½
+			// å‰ã‹ã‚‰å¾Œã«å½“ãŸã£ãŸ
 			if (OwnerOldFront >= ItemBack && OwnerFront <= ItemBack)
 			{
-				transInfo.position.z = ItemBack + CollHalf.z + 0.1f; // êŠ‚ğŒÅ’è
+				setPosComponent('z', ItemBack + CollHalf.z + 0.1f); // å ´æ‰€ã‚’å›ºå®š
 
 				float RightOrLeft = (c->GetPosition().x - PositionOld.x > 0.0f) ? 1.0f : -1.0f;
 				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, -MoveAccel * push_rate);
@@ -219,23 +235,23 @@ void Character::MapItemCollide(void)
 		}
 	}
 
-/*------------------------------------------------------------------------------
-   MapAttack_Player
-------------------------------------------------------------------------------*/
+	/*------------------------------------------------------------------------------
+	   MapAttack_Player
+	------------------------------------------------------------------------------*/
 	if (this->Tag != character_Player)
 	{
 		std::vector<Attack*> mapAttack_P;
 		for (auto tag : {
 			attack_Ball,
 			}) {
-			// ‘S‚Ä‚ÌƒLƒƒƒ‰ƒNƒ^[‚ğ’T‚·
+			// å…¨ã¦ã®ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚’æ¢ã™
 			auto found = ObjectCodex::FindActiveObjectsByTag<Attack>(tag);
-			// ‘S‚Ä‚ÌƒLƒƒƒ‰ƒNƒ^[‚ğ®—‚·‚é
+			// å…¨ã¦ã®ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚’æ•´ç†ã™ã‚‹
 			mapAttack_P.reserve(mapAttack_P.size() + found.size());
 			mapAttack_P.insert(mapAttack_P.end(), found.begin(), found.end());
 		}
 
-		// ƒ‹[ƒv‚ÅƒRƒŠƒWƒ‡ƒ“”»’f
+		// ãƒ«ãƒ¼ãƒ—ã§ã‚³ãƒªã‚¸ãƒ§ãƒ³åˆ¤æ–­
 		for (auto a : mapAttack_P)
 		{
 			if (!a->GetCollisionOnOff()) continue;

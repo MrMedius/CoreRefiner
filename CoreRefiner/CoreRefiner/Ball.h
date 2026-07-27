@@ -21,8 +21,8 @@ class Ball : public Attack
 
 		// graphics init
 		visualPre = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ 1.0f,1.0f,1.0f });
-		visualPre->SetPosition(transInfo.position);
-		visualPre->SetScale(transInfo.scale);
+		visualPre->SetPosition(GetPosition());
+		visualPre->SetScale(GetSize());
 		visualPre->LinkTechniques(rg);
 
 		// collider init
@@ -35,14 +35,14 @@ class Ball : public Attack
 	{
 		// reset parameters
 		SetPosition(pos);
-		boxCollider.center = transInfo.position;
+		boxCollider.center = GetPosition();
 		SetCollisionOnOff(true);
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
 		lastTime = 0.0f;
 
 		// reset animation
-		visualPre->SetPosition(transInfo.position);
+		visualPre->SetPosition(GetPosition());
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override
@@ -50,16 +50,17 @@ class Ball : public Attack
 		// move update
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-		visualPre->SetPosition(transInfo.position);
+		const auto pos = GetPosition();
+		visualPre->SetPosition(pos);
 
 		// collider update
-		boxCollider.center = transInfo.position;
+		boxCollider.center = pos;
 	}
 	void Submit(void) override
 	{
 		visualPre->Submit(Chan::main);
 #ifdef _DEBUG
-		boxColliderWire->DoSubmit(transInfo.position, boxCollider.GetSize());
+		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
 #endif
 	}
 	void OnCollide(Character* other) override
@@ -69,20 +70,22 @@ class Ball : public Attack
 		SetMoveAccel({0.0f, 0.0f, 0.0f});
 		MoveVelocity = { 0.0f,0.0f,0.0f };
 		SetCollisionOnOff(false);
-		transInfo.position = other->GetPosition();
-		transInfo.position.z -= 0.1f;
+		auto hitPos = other->GetPosition();
+		hitPos.z -= 0.1f;
+		SetPosition(hitPos);
 
 		if (auto* e = dynamic_cast<Enemy*>(other))
 		{
-			e->SetIsHurt(true);	// 攻撃された状態に遷移
+			e->SetIsHurt(true);
 			e->SetWasHurt(true);
-			e->CalculateHpCurrent(-1.0f); // 体力計算
+			e->CalculateHpCurrent(-1.0f);
 
-			float dx = e->GetPosition().x - transInfo.position.x;
-			float dz = e->GetPosition().z - transInfo.position.z;
+			const auto selfPos = GetPosition();
+			float dx = e->GetPosition().x - selfPos.x;
+			float dz = e->GetPosition().z - selfPos.z;
 			float angle = atan2f(dx, dz);
 			XMFLOAT3 repel{ 0.3f,0.1f,0.1f };
-			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z); // 撃退する
+			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
 		}
 	}
 private:
