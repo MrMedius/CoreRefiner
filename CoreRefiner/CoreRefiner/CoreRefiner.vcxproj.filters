@@ -412,6 +412,9 @@
     <ClCompile Include="VisualComponent.cpp">
       <Filter>Object</Filter>
     </ClCompile>
+    <ClCompile Include="ColliderComponent.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
     <ClCompile Include="Ball.cpp">
       <Filter>Object\Attack</Filter>
     </ClCompile>
@@ -799,6 +802,9 @@
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="VisualComponent.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="ColliderComponent.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="ObjectCodex.h">

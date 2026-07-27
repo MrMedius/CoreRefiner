@@ -5,6 +5,7 @@
 #include "Channels.h"
 #include "Ball_Shape.h"
 #include "VisualComponent.h"
+#include "ColliderComponent.h"
 
 class Ball : public Attack
 {
@@ -25,6 +26,10 @@ class Ball : public Attack
 		visualPre->LinkTechniques(rg);
 		AddComponent<VisualComponent>(visualPre.get(), Chan::main, false, true);
 
+		pCollider_ = AddComponent<ColliderComponent>(
+			Collider3D::CollideType::Box,
+			ColliderSyncMode::FollowCenter);
+
 		// collider init
 #ifdef _DEBUG
 		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3(0.0f, 0.0f, 1.0f));
@@ -35,33 +40,27 @@ class Ball : public Attack
 	{
 		// reset parameters
 		SetPosition(pos);
-		boxCollider.center = GetPosition();
 		SetCollisionOnOff(true);
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
 		lastTime = 0.0f;
 
-		// sync pooled visual without re-adding the component
+		// sync pooled visual + collider without re-adding components
 		UpdateComponents(0.0f);
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override
 	{
-		// move update
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-		const auto pos = GetPosition();
-
-		// collider update
-		boxCollider.center = pos;
-
 		UpdateComponents(dt);
 	}
 	void Submit(void) override
 	{
 		SubmitComponents();
 #ifdef _DEBUG
-		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
+		auto box = GetBoxCollider();
+		boxColliderWire->DoSubmit(GetPosition(), box.GetSize());
 #endif
 	}
 	void OnCollide(Character* other) override
@@ -91,4 +90,5 @@ class Ball : public Attack
 	}
 private:
 	std::unique_ptr<Ball_Shape> visualPre;
+	ColliderComponent* pCollider_{ nullptr };
 };

@@ -2,6 +2,7 @@
 #include "Enemy.h"
 #include "Enemy_T_Shape.h"
 #include "VisualComponent.h"
+#include "ColliderComponent.h"
 #include "Channels.h"
 
 class Enemy_T_ChaseState;
@@ -30,6 +31,11 @@ public:
 		visualPre = std::make_unique<Enemy_T_Shape>(gfx, GetSize());
 		visualPre->LinkTechniques(rg);
 		AddComponent<VisualComponent>(visualPre.get(), Chan::main | Chan::shadow, true);
+
+		// collision: register Box + Enemy sync policy
+		pCollider_ = AddComponent<ColliderComponent>(
+			Collider3D::CollideType::Box,
+			ColliderSyncMode::FollowCenterAxisYFromRotation);
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Enemy_T>>(this);
@@ -61,6 +67,7 @@ private:
 	void SetupTransitions(void) override;
 private:
 	std::unique_ptr<StateMachine<Enemy_T>> FSM;
+	ColliderComponent* pCollider_{ nullptr };
 };
 
 

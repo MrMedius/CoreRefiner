@@ -4,6 +4,7 @@
 #include "Field_Shape.h"
 #include "Channels.h"
 #include "VisualComponent.h"
+#include "ColliderComponent.h"
 
 class Field : public Environment
 {
@@ -23,9 +24,12 @@ public:
 		visualPre->LinkTechniques(rg);
 		AddComponent<VisualComponent>(visualPre.get(), Chan::main | Chan::shadow, false, false);
 
-		// collider init
+		// register Box rebuilt from world matrix each sync
 		DirectX::XMFLOAT3 localHalf{ 0.5f, 0.5f, 0.5f };
-		boxCollider = BoxCollider::BuildFromWorldMatrix(GetTransform().GetInfo().GetWorldMatrix(), localHalf);
+		pCollider_ = AddComponent<ColliderComponent>(
+			Collider3D::CollideType::Box,
+			ColliderSyncMode::FromWorldMatrix,
+			localHalf);
 #ifdef _DEBUG
 		boxColliderWire = std::make_unique<CubeWireframe>(gfx, XMFLOAT3(1.0f, 0.0f, 0.0f));
 		boxColliderWire->LinkTechniques(rg);
@@ -40,10 +44,12 @@ public:
 	{
 		SubmitComponents();
 #ifdef _DEBUG
-		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
+		auto box = GetBoxCollider();
+		boxColliderWire->DoSubmit(GetPosition(), box.GetSize());
 #endif
 	}
 	void OnCollide(Character* other) override {}
 private:
 	std::unique_ptr<Field_Shape> visualPre;
+	ColliderComponent* pCollider_{ nullptr };
 };

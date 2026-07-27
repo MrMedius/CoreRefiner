@@ -40,8 +40,10 @@ void Player::Update(float dt)
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 	}
 
-	// マップ要素との当たり判定
-	boxCollider.center = GetPosition();
+	if (pCollider_ != nullptr)
+	{
+		pCollider_->SyncFromOwner();
+	}
 	MapItemCollide();
 
 	UpdateComponents(dt);
@@ -54,7 +56,8 @@ void Player::Submit(void)
 #ifdef _DEBUG
 	if (!IsDeath)
 	{
-		boxColliderWire->DoSubmit(GetPosition(), boxCollider.GetSize());
+		auto box = GetBoxCollider();
+		boxColliderWire->DoSubmit(GetPosition(), box.GetSize());
 	}
 #endif
 }

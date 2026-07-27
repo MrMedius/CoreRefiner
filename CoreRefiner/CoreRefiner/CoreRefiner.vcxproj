@@ -215,6 +215,7 @@
     <ClCompile Include="DynamicVertexBuffer.cpp" />
     <ClCompile Include="Enemy_T.cpp" />
     <ClCompile Include="VisualComponent.cpp" />
+    <ClCompile Include="ColliderComponent.cpp" />
     <ClCompile Include="CubeWireframe.cpp" />
     <ClCompile Include="DynamicTexture.cpp" />
     <ClCompile Include="DynamicTexture.h" />
@@ -424,6 +425,7 @@
     <ClInclude Include="Math.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="VisualComponent.h" />
+    <ClInclude Include="ColliderComponent.h" />
     <ClInclude Include="ObjectBase.h" />
     <ClInclude Include="ObjectCodex.h" />
     <ClInclude Include="Player.h" />

@@ -22,12 +22,12 @@ void Enemy_T::Update(float dt)
 
 	// 移動
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-	const auto pos = GetPosition();
-	const auto rot = GetRotation();
 
-	// マップ要素との当たり判定
-	boxCollider.center = pos;
-	boxCollider.axisY = rot;
+	// collider must be current before MapItemCollide queries GetBoxCollider()
+	if (pCollider_ != nullptr)
+	{
+		pCollider_->SyncFromOwner();
+	}
 	MapItemCollide();
 
 	UpdateComponents(dt);
@@ -40,7 +40,8 @@ void Enemy_T::Submit(void)
 #ifdef _DEBUG
 	if (!IsDeath)
 	{
-		boxColliderWire->DoSubmit(GetPosition(), GetRotation(), boxCollider.GetSize());
+		auto box = GetBoxCollider();
+		boxColliderWire->DoSubmit(GetPosition(), GetRotation(), box.GetSize());
 	}
 #endif
 }

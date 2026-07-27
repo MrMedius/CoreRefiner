@@ -7,6 +7,7 @@
 #include "Transformation.h"
 #include "Collision.h"
 #include "IComponent.h"
+#include "ColliderComponent.h"
 
 #include "CubeWireframe.h"
 
@@ -53,10 +54,34 @@ public:
 	/** @brief Raw stored rotation (gameplay may keep degrees). */
 	XMFLOAT3 GetRotation(void) const		{ return transform_.GetRotationRaw(); }
 	XMFLOAT3 GetSize(void) const			{ return transform_.GetScale(); }
-	BoxCollider	GetBoxCollider(void) const	{ return boxCollider; }
-	XMFLOAT3 GetCollisionSize(void) const	{ return boxCollider.half; }
+	/**
+	 * @brief Active box volume: prefers ColliderComponent when it registered a Box.
+	 * @note Legacy host `boxCollider` remains until Phase 4.4 removal.
+	 */
+	BoxCollider GetBoxCollider(void) const
+	{
+		if (const ColliderComponent* collider = GetComponent<ColliderComponent>())
+		{
+			if (const BoxCollider* box = collider->TryGetBox())
+			{
+				return *box;
+			}
+		}
+		return boxCollider;
+	}
+	XMFLOAT3 GetCollisionSize(void) const
+	{
+		return GetBoxCollider().half;
+	}
 	void SetCollisionOnOff(bool OnOff)		{ OnCollision = OnOff; }
-	void SetCollisionSize(XMFLOAT3 size)	{ boxCollider.half = { size.x / 2,size.y / 2 ,size.z / 2 }; }
+	void SetCollisionSize(XMFLOAT3 size)
+	{
+		boxCollider.half = { size.x / 2, size.y / 2, size.z / 2 };
+		if (ColliderComponent* collider = GetComponent<ColliderComponent>())
+		{
+			collider->SetCollisionSize(size);
+		}
+	}
 	bool GetCollisionOnOff(void) const		{ return OnCollision; }
 	/** @brief Host transform (single source of truth). */
 	Transformation& GetTransform() noexcept { return transform_; }
@@ -79,6 +104,36 @@ public:
 			raw->OnEnable();
 		}
 		return raw;
+	}
+
+	/**
+	 * @brief Find first attached component of type T.
+	 */
+	template <typename T>
+	T* GetComponent() noexcept
+	{
+		static_assert(std::is_base_of_v<IComponent, T>, "T must inherit from IComponent");
+		for (auto& c : components_)
+		{
+			if (T* typed = dynamic_cast<T*>(c.get()))
+			{
+				return typed;
+			}
+		}
+		return nullptr;
+	}
+	template <typename T>
+	const T* GetComponent() const noexcept
+	{
+		static_assert(std::is_base_of_v<IComponent, T>, "T must inherit from IComponent");
+		for (const auto& c : components_)
+		{
+			if (const T* typed = dynamic_cast<const T*>(c.get()))
+			{
+				return typed;
+			}
+		}
+		return nullptr;
 	}
 protected:
 	void Transform(float X, float Y, float Z)	{ transform_.Translate(X, Y, Z); }
@@ -126,9 +181,10 @@ protected:
 	/** @brief Owned transform storage (single source of truth for gameplay). */
 	Transformation transform_;
 
-	/** @brief Owned gameplay components (empty until Phase 3+). */
+	/** @brief Owned gameplay components. */
 	std::vector<std::unique_ptr<IComponent>> components_;
 
+	/** @brief Legacy host box; used when no ColliderComponent is attached. */
 	BoxCollider boxCollider;
 #ifdef _DEBUG
 	std::unique_ptr<CubeWireframe> boxColliderWire;

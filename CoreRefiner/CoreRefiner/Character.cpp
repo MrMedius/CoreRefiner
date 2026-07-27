@@ -61,7 +61,7 @@ void Character::MapItemCollide(void)
 	{
 		if (!e->GetCollisionOnOff()) continue;
 
-		bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, e->GetBoxCollider());
+		bool isCollide = CollisionSystem::IsOverlap(GetBoxCollider(), e->GetBoxCollider());
 
 		if (isCollide)
 		{
@@ -147,7 +147,7 @@ void Character::MapItemCollide(void)
 	{
 		if (this == c || this->IsDeath || c->IsDeath || !this->OnCollision || !c->OnCollision) continue;
 
-		bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, c->GetBoxCollider());
+		bool isCollide = CollisionSystem::IsOverlap(GetBoxCollider(), c->GetBoxCollider());
 
 		if (isCollide)
 		{
@@ -256,7 +256,7 @@ void Character::MapItemCollide(void)
 		{
 			if (!a->GetCollisionOnOff()) continue;
 
-			bool isCollide = CollisionSystem::IsOverlap(this->boxCollider, a->GetBoxCollider());
+			bool isCollide = CollisionSystem::IsOverlap(GetBoxCollider(), a->GetBoxCollider());
 
 			if (isCollide)
 			{

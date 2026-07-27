@@ -5,6 +5,7 @@
 #include "CameraContainer.h"
 #include "Player_Shape.h"
 #include "VisualComponent.h"
+#include "ColliderComponent.h"
 #include "Channels.h"
 
 // プレイヤー状態のID
@@ -61,6 +62,10 @@ public:
 		visualPre_Body->LinkTechniques(rg);
 		AddComponent<VisualComponent>(visualPre_Body.get(), Chan::main, false, false);
 
+		pCollider_ = AddComponent<ColliderComponent>(
+			Collider3D::CollideType::Box,
+			ColliderSyncMode::FollowCenter);
+
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Player>>(this);
 		FSM->AddState(PLAYER_STATE[PLAYER_IDLE],	std::make_unique<Player_IdleState>());
@@ -108,6 +113,7 @@ private:
 private:
 	std::unique_ptr<Player_Head> visualPre_Head;
 	std::unique_ptr<Player_Body> visualPre_Body;
+	ColliderComponent* pCollider_{ nullptr };
 	Graphics& Gfx;
 	Rgph::RenderGraph& Rg;
 	CameraContainer* pCamera;
