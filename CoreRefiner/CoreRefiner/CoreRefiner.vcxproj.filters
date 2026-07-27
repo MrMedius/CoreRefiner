@@ -792,6 +792,9 @@
     <ClInclude Include="ObjectBase.h">
       <Filter>Object</Filter>
     </ClInclude>
+    <ClInclude Include="IComponent.h">
+      <Filter>Object</Filter>
+    </ClInclude>
     <ClInclude Include="ObjectCodex.h">
       <Filter>Object</Filter>
     </ClInclude>

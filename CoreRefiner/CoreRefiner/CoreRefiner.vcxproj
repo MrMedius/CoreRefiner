@@ -422,6 +422,7 @@
     <ClInclude Include="Player_Shape.h" />
     <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
+    <ClInclude Include="IComponent.h" />
     <ClInclude Include="ObjectBase.h" />
     <ClInclude Include="ObjectCodex.h" />
     <ClInclude Include="Player.h" />
