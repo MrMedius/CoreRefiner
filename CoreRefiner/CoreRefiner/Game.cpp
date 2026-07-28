@@ -49,7 +49,7 @@ Game::Game(const std::string& commandLine)
 	cameras.LinkTechniques(gameRG);
 
 	// Persistent player (survives scene leave)
-	pPlayer = ObjectCodex::AcquirePersistent<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,15.0f,0.0f });
+	pPlayer = ObjectCodex::AcquirePersistent<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,20.0f,0.0f });
 	pAttackManager = std::make_unique<AttackManager>(wnd.Gfx(), gameRG);
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
 	pEnemyManager = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG);

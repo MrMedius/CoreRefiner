@@ -151,7 +151,7 @@ namespace Collider3D
     {
         OBB = 0,        // general OBB
         IdentityAABB,   // no rotation
-        NormalizedAABB  // axis-aligned (maybe 90‹ swap/flip)
+        NormalizedAABB  // axis-aligned (maybe 90?? swap/flip)
     };
     class BoxCollider final : public Collision3D
     {
@@ -192,12 +192,25 @@ namespace Collider3D
 
 	// Real Collision System
     using CollideFn = bool(*)(const Collision3D&, const Collision3D&);
+    using SeparateFn = bool(*)(const Collision3D&, const Collision3D&, DirectX::XMFLOAT3&, float&);
     class CollisionSystem
     {
     public:
         static bool IsOverlap(const Collision3D& a, const Collision3D& b);
+        /**
+         * @brief Polymorphic penetration resolve (parallel to IsOverlap).
+         * @param outNormal Unit axis that pushes `a` out of `b`.
+         * @param outDepth Penetration depth (>= 0). Apply: a.pos += outNormal * outDepth.
+         * @return true when overlapping; false when separated or unsupported pair.
+         */
+        static bool TrySeparate(
+            const Collision3D& a,
+            const Collision3D& b,
+            DirectX::XMFLOAT3& outNormal,
+            float& outDepth);
     private:
         static const std::array<std::array<CollideFn, (size_t)CollideType::Count>, (size_t)CollideType::Count>& Table();
+        static const std::array<std::array<SeparateFn, (size_t)CollideType::Count>, (size_t)CollideType::Count>& SeparateTable();
     };
 
     // Intersection Types
@@ -217,4 +230,25 @@ namespace Collider3D
     bool Intersect(const PointCollider& p, const CapsuleCollider& c);
     bool Intersect(const CapsuleCollider& c, const BoxCollider& b);
     bool Intersect(const BoxCollider& b, const CapsuleCollider& c);
+
+    /**
+     * @brief Typed penetration resolve. outNormal pushes the first argument out of the second.
+     * @note Apply: first.pos += outNormal * outDepth.
+     */
+    bool ComputeSeparation(const SphereCollider& a, const SphereCollider& b, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const SphereCollider& s, const PointCollider& p, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const PointCollider& p, const SphereCollider& s, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const PointCollider& p, const BoxCollider& b, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const BoxCollider& b, const PointCollider& p, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const SphereCollider& s, const BoxCollider& b, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const BoxCollider& b, const SphereCollider& s, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const BoxCollider& a, const BoxCollider& b, DirectX::XMFLOAT3& outNormal, float& outDepth);
+
+    bool ComputeSeparation(const CapsuleCollider& a, const CapsuleCollider& b, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const CapsuleCollider& c, const SphereCollider& s, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const SphereCollider& s, const CapsuleCollider& c, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const CapsuleCollider& c, const PointCollider& p, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const PointCollider& p, const CapsuleCollider& c, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const CapsuleCollider& c, const BoxCollider& b, DirectX::XMFLOAT3& outNormal, float& outDepth);
+    bool ComputeSeparation(const BoxCollider& b, const CapsuleCollider& c, DirectX::XMFLOAT3& outNormal, float& outDepth);
 }

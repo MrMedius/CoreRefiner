@@ -28,6 +28,16 @@ namespace
 		cap.pointB = { center.x, center.y - halfSeg, center.z };
 		cap.radius = r;
 	}
+
+	DirectX::XMFLOAT3 Add3(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b) noexcept
+	{
+		return { a.x + b.x, a.y + b.y, a.z + b.z };
+	}
+}
+
+DirectX::XMFLOAT3 ColliderComponent::ResolveSyncCenter(const ObjectBase& owner) const noexcept
+{
+	return Add3(owner.GetPosition(), centerOffset_);
 }
 
 ColliderComponent::ColliderComponent(
@@ -109,11 +119,11 @@ void ColliderComponent::Submit()
 		const DirectX::XMFLOAT3 size{ box->half.x * 2.0f, box->half.y * 2.0f, box->half.z * 2.0f };
 		if (syncMode_ == ColliderSyncMode::FollowCenterAxisYFromRotation)
 		{
-			debugBoxWire_->DoSubmit(owner->GetPosition(), owner->GetRotation(), size);
+			debugBoxWire_->DoSubmit(box->center, owner->GetRotation(), size);
 		}
 		else
 		{
-			debugBoxWire_->DoSubmit(owner->GetPosition(), size);
+			debugBoxWire_->DoSubmit(box->center, size);
 		}
 		return;
 	}
@@ -124,7 +134,7 @@ void ColliderComponent::Submit()
 		{
 			return;
 		}
-		debugSphereWire_->DoSubmit(owner->GetPosition(), sphere->radius * 2.0f);
+		debugSphereWire_->DoSubmit(sphere->center, sphere->radius * 2.0f);
 		return;
 	}
 
@@ -147,6 +157,8 @@ void ColliderComponent::SyncFromOwner()
 		return;
 	}
 
+	const DirectX::XMFLOAT3 syncCenter = ResolveSyncCenter(*owner);
+
 	switch (type_)
 	{
 	case Collider3D::CollideType::Box:
@@ -155,16 +167,17 @@ void ColliderComponent::SyncFromOwner()
 		switch (syncMode_)
 		{
 		case ColliderSyncMode::FollowCenter:
-			box.center = owner->GetPosition();
+			box.center = syncCenter;
 			break;
 		case ColliderSyncMode::FollowCenterAxisYFromRotation:
-			box.center = owner->GetPosition();
+			box.center = syncCenter;
 			box.axisY = owner->GetRotation();
 			break;
 		case ColliderSyncMode::FromWorldMatrix:
 			box = Collider3D::BoxCollider::BuildFromWorldMatrix(
 				owner->GetTransform().GetInfo().GetWorldMatrix(),
 				worldMatrixLocalHalf_);
+			box.center = Add3(box.center, centerOffset_);
 			break;
 		}
 		break;
@@ -172,19 +185,19 @@ void ColliderComponent::SyncFromOwner()
 	case Collider3D::CollideType::Sphere:
 	{
 		auto& sphere = std::get<Collider3D::SphereCollider>(volume_);
-		sphere.center = owner->GetPosition();
+		sphere.center = syncCenter;
 		break;
 	}
 	case Collider3D::CollideType::Point:
 	{
 		auto& point = std::get<Collider3D::PointCollider>(volume_);
-		point.position = owner->GetPosition();
+		point.position = syncCenter;
 		break;
 	}
 	case Collider3D::CollideType::Capsule:
 	{
 		auto& capsule = std::get<Collider3D::CapsuleCollider>(volume_);
-		SyncCapsuleYUp(capsule, owner->GetPosition(), capsuleTotalHeight_);
+		SyncCapsuleYUp(capsule, syncCenter, capsuleTotalHeight_);
 		break;
 	}
 	default:
@@ -297,9 +310,15 @@ void ColliderComponent::SetCapsule(float radius, float totalHeight) noexcept
 		capsuleTotalHeight_ = (std::max)(totalHeight, 2.0f * capsule->radius);
 		if (ObjectBase* owner = GetOwner())
 		{
-			SyncCapsuleYUp(*capsule, owner->GetPosition(), capsuleTotalHeight_);
+			SyncCapsuleYUp(*capsule, ResolveSyncCenter(*owner), capsuleTotalHeight_);
 		}
 	}
+}
+
+void ColliderComponent::SetCenterOffset(DirectX::XMFLOAT3 offset) noexcept
+{
+	centerOffset_ = offset;
+	SyncFromOwner();
 }
 
 void ColliderComponent::LinkDebugWire(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 color, const char* name)

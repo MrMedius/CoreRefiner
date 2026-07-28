@@ -116,6 +116,13 @@ public:
 	void SetCapsule(float radius, float totalHeight) noexcept;
 
 	/**
+	 * @brief World-space offset added to host position when syncing the volume center.
+	 * @note Applies to Box / Sphere / Point / Capsule (and after FromWorldMatrix rebuild).
+	 */
+	void SetCenterOffset(DirectX::XMFLOAT3 offset) noexcept;
+	[[nodiscard]] DirectX::XMFLOAT3 GetCenterOffset() const noexcept { return centerOffset_; }
+
+	/**
 	 * @brief Create and link a debug wireframe matching the registered volume type.
 	 * @note Box → CubeWireframe, Sphere → SphereWireframe, Capsule → CapsuleWireframe.
 	 */
@@ -126,10 +133,13 @@ public:
 
 private:
 	void RegisterVolume(ObjectBase* owner);
+	/** @brief Host position + centerOffset_ (world space). */
+	[[nodiscard]] DirectX::XMFLOAT3 ResolveSyncCenter(const ObjectBase& owner) const noexcept;
 
 	Collider3D::CollideType type_{ Collider3D::CollideType::Box };
 	ColliderSyncMode syncMode_{ ColliderSyncMode::FollowCenter };
 	DirectX::XMFLOAT3 worldMatrixLocalHalf_{ 0.5f, 0.5f, 0.5f };
+	DirectX::XMFLOAT3 centerOffset_{ 0.0f, 0.0f, 0.0f };
 	bool enabled_{ true };
 	bool debugDraw_{ true };
 

@@ -42,7 +42,10 @@ public:
 	virtual bool AttackCollide(float damage, XMFLOAT3 repel) = 0;						// 攻撃コリジョンの仮想関数
 protected:
 	virtual void SetupTransitions(void) = 0;	// 状態遷移条件
-	virtual void MapItemCollide(void);			// マップオブジェクトとのコリジョン
+	/**
+	 * @brief Default Box AABB resolve (Enemy path). Non-Box hosts must override.
+	 */
+	virtual void MapItemCollide(void);
 	void SetHpMax(float hp)					{ HpMax = hp; }							// 最大体力をセット
 	void ResetHpCurrent(void)				{ HpCurrent = HpMax; }					// 今の体力をリセット
 	void SetAttackInterval(float second)	{ AttackInterval = second * 60.0f; }	// 攻撃間隔をセット

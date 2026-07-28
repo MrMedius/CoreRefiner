@@ -381,7 +381,6 @@
     <ClInclude Include="CubeWireframe.h" />
     <ClInclude Include="SphereWireframe.h" />
     <ClInclude Include="CapsuleWireframe.h" />
-    <ClInclude Include="CapsuleProbe.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyManager.h" />

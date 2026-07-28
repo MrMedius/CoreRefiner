@@ -834,9 +834,6 @@
     <ClInclude Include="CapsuleWireframe.h">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
-    <ClInclude Include="CapsuleProbe.h">
-      <Filter>Object</Filter>
-    </ClInclude>
     <ClInclude Include="Enemy.h">
       <Filter>Object\Character\Enemy</Filter>
     </ClInclude>

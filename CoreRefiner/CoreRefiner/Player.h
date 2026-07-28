@@ -64,11 +64,14 @@ public:
 		}
 
 		pCollider_ = AddComponent<ColliderComponent>(
-			Collider3D::CollideType::Box,
+			Collider3D::CollideType::Capsule,
 			ColliderSyncMode::FollowCenter);
-		pCollider_->SetCollisionSize({ 1.5f, 5.0f, 2.0f });
+		// Was Box full size {1.5, 5, 2} → radius 1, total height 5
+		pCollider_->SetCapsule(1.0f, 5.0f);
+		// World-space offset from Player::GetPosition() to capsule center (tune Y if pivot ≠ waist)
+		pCollider_->SetCenterOffset({ 0.0f, 1.0f, 0.0f });
 		pCollider_->SetEnabled(true);
-		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 1.0f, 0.0f, 0.0f });
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 0.0f, 1.0f, 1.0f }, "wirePlayerCapsule");
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Player>>(this);
@@ -106,6 +109,11 @@ public:
 	void DoMove(float ratio);
 	bool AttackCollide(float damage, XMFLOAT3 repel) override;
 	void AttackCameraShake(int frames, float minRange, float maxRange);
+protected:
+	/**
+	 * @brief Player collision resolve via Capsule + TrySeparate (not Character AABB).
+	 */
+	void MapItemCollide(void) override;
 private:
 	void SetupTransitions(void) override;
 private:

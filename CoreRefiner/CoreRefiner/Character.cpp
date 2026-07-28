@@ -1,4 +1,5 @@
 #include <math.h>
+#include <cassert>
 #include "Character.h"
 #include "Environment.h"
 #include "Attack.h"
@@ -6,11 +7,21 @@
 #include "Collision.h"
 #include "ColliderComponent.h"
 
+/**
+ * @brief Default Box AABB resolve for Environment / Character / Attack queries.
+ * @note Used by Enemy_T only. Player overrides with Capsule + TrySeparate.
+ */
 void Character::MapItemCollide(void)
 {
 	auto* selfCol = GetComponent<ColliderComponent>();
 	if (selfCol == nullptr || !selfCol->IsEnabled())
 	{
+		return;
+	}
+	// Base path is Box AABB only (non-Box hosts must override MapItemCollide).
+	if (selfCol->GetCollideType() != Collider3D::CollideType::Box)
+	{
+		assert(false && "Character::MapItemCollide requires Box collider; override for other shapes");
 		return;
 	}
 
@@ -54,8 +65,7 @@ void Character::MapItemCollide(void)
 
 	std::vector<Environment*> mapEnvironment;
 	for (auto tag : {
-		environment_Field,
-		environment_CapsuleProbe
+		environment_Field
 		}) {
 		// 全てのマップオブジェクトを探す
 		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
@@ -77,11 +87,9 @@ void Character::MapItemCollide(void)
 			// 環境要素の当たり処理を呼び出す
 			e->OnCollide(this);
 
-			// AABB push resolution is Box-only (Capsule/Sphere skip displacement)
-			if (selfCol->GetCollideType() != Collider3D::CollideType::Box ||
-				eCol->GetCollideType() != Collider3D::CollideType::Box)
+			// AABB push resolution is Box-only
+			if (eCol->GetCollideType() != Collider3D::CollideType::Box)
 			{
-				SetPosition({ 0, 5, 0 });
 				continue;
 			}
 
@@ -165,10 +173,40 @@ void Character::MapItemCollide(void)
 		if (this == c || this->IsDeath || c->IsDeath ||
 			cCol == nullptr || !cCol->IsEnabled()) continue;
 
-		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), cCol->GetBoxCollider());
+		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetVolume(), cCol->GetVolume());
 
 		if (isCollide)
 		{
+			// Non-Box peers (e.g. Capsule Player): separate this Box host via MTV.
+			if (cCol->GetCollideType() != Collider3D::CollideType::Box)
+			{
+				DirectX::XMFLOAT3 n{};
+				float depth = 0.0f;
+				if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth) &&
+					depth > 0.0f)
+				{
+					auto p = GetPosition();
+					p.x += n.x * depth;
+					p.y += n.y * depth;
+					p.z += n.z * depth;
+					SetPosition(p);
+					selfCol->SyncFromOwner();
+					const float vn =
+						MoveVelocity.x * n.x + MoveVelocity.y * n.y + MoveVelocity.z * n.z;
+					if (vn < 0.0f)
+					{
+						MoveVelocity.x -= vn * n.x;
+						MoveVelocity.y -= vn * n.y;
+						MoveVelocity.z -= vn * n.z;
+					}
+					if (n.y > 0.5f)
+					{
+						OnFloor = true;
+					}
+				}
+				continue;
+			}
+
 			auto ItemPosition = c->GetPosition();
 			auto ItemCollHalf = cCol->GetCollisionSize();
 			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// キャラクターの上端

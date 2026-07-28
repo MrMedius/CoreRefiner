@@ -1,4 +1,5 @@
 #include "Collision.h"
+#include <cfloat>
 
 namespace Collider3D
 {
@@ -278,6 +279,129 @@ namespace Collider3D
         return true;
     }
 
+    /**
+     * @brief OBB-OBB SAT with MTV: pushes A out of B along minimum penetration axis.
+     */
+    static bool SeparateOBB_OBB_SAT(
+        const BoxCollider& A,
+        const BoxCollider& B,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        constexpr float EPS = 1e-6f;
+
+        dx::XMVECTOR A0 = dx::XMLoadFloat3(&A.axisX);
+        dx::XMVECTOR A1 = dx::XMLoadFloat3(&A.axisY);
+        dx::XMVECTOR A2 = dx::XMLoadFloat3(&A.axisZ);
+        dx::XMVECTOR B0 = dx::XMLoadFloat3(&B.axisX);
+        dx::XMVECTOR B1 = dx::XMLoadFloat3(&B.axisY);
+        dx::XMVECTOR B2 = dx::XMLoadFloat3(&B.axisZ);
+        dx::XMVECTOR CA = dx::XMLoadFloat3(&A.center);
+        dx::XMVECTOR CB = dx::XMLoadFloat3(&B.center);
+        dx::XMVECTOR D = dx::XMVectorSubtract(CB, CA);
+
+        float t[3] = { Dot3(D, A0), Dot3(D, A1), Dot3(D, A2) };
+        float R[3][3] = {
+            { Dot3(A0, B0), Dot3(A0, B1), Dot3(A0, B2) },
+            { Dot3(A1, B0), Dot3(A1, B1), Dot3(A1, B2) },
+            { Dot3(A2, B0), Dot3(A2, B1), Dot3(A2, B2) }
+        };
+        float AbsR[3][3];
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+                AbsR[i][j] = Abs(R[i][j]) + EPS;
+
+        const float a[3] = { A.half.x, A.half.y, A.half.z };
+        const float b[3] = { B.half.x, B.half.y, B.half.z };
+
+        float minPen = FLT_MAX;
+        dx::XMVECTOR bestAxis = dx::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+        auto consider = [&](float dist, float ra, float rb, dx::FXMVECTOR axis)
+        {
+            const float overlap = (ra + rb) - Abs(dist);
+            if (overlap < 0.0f)
+            {
+                return false; // separated
+            }
+            if (overlap < minPen)
+            {
+                minPen = overlap;
+                // Push A away from B: opposite to D projected on axis.
+                bestAxis = (dist >= 0.0f) ? dx::XMVectorNegate(axis) : axis;
+            }
+            return true;
+        };
+
+        if (!consider(t[0], a[0], b[0] * AbsR[0][0] + b[1] * AbsR[0][1] + b[2] * AbsR[0][2], A0)) return false;
+        if (!consider(t[1], a[1], b[0] * AbsR[1][0] + b[1] * AbsR[1][1] + b[2] * AbsR[1][2], A1)) return false;
+        if (!consider(t[2], a[2], b[0] * AbsR[2][0] + b[1] * AbsR[2][1] + b[2] * AbsR[2][2], A2)) return false;
+
+        float tB[3] = {
+            t[0] * R[0][0] + t[1] * R[1][0] + t[2] * R[2][0],
+            t[0] * R[0][1] + t[1] * R[1][1] + t[2] * R[2][1],
+            t[0] * R[0][2] + t[1] * R[1][2] + t[2] * R[2][2]
+        };
+        if (!consider(tB[0], a[0] * AbsR[0][0] + a[1] * AbsR[1][0] + a[2] * AbsR[2][0], b[0], B0)) return false;
+        if (!consider(tB[1], a[0] * AbsR[0][1] + a[1] * AbsR[1][1] + a[2] * AbsR[2][1], b[1], B1)) return false;
+        if (!consider(tB[2], a[0] * AbsR[0][2] + a[1] * AbsR[1][2] + a[2] * AbsR[2][2], b[2], B2)) return false;
+
+        auto crossAxis = [](dx::FXMVECTOR u, dx::FXMVECTOR v) -> dx::XMVECTOR
+        {
+            dx::XMVECTOR c = dx::XMVector3Cross(u, v);
+            if (LengthSq3(c) < 1e-12f)
+            {
+                return dx::XMVectorZero();
+            }
+            return dx::XMVector3Normalize(c);
+        };
+
+        auto considerCross = [&](float dist, float ra, float rb, dx::FXMVECTOR axis) -> bool
+        {
+            if (LengthSq3(axis) < 1e-12f)
+            {
+                return true; // parallel axes, skip
+            }
+            return consider(dist, ra, rb, axis);
+        };
+
+        if (!considerCross(t[2] * R[1][0] - t[1] * R[2][0],
+            a[1] * AbsR[2][0] + a[2] * AbsR[1][0],
+            b[1] * AbsR[0][2] + b[2] * AbsR[0][1], crossAxis(A0, B0))) return false;
+        if (!considerCross(t[2] * R[1][1] - t[1] * R[2][1],
+            a[1] * AbsR[2][1] + a[2] * AbsR[1][1],
+            b[0] * AbsR[0][2] + b[2] * AbsR[0][0], crossAxis(A0, B1))) return false;
+        if (!considerCross(t[2] * R[1][2] - t[1] * R[2][2],
+            a[1] * AbsR[2][2] + a[2] * AbsR[1][2],
+            b[0] * AbsR[0][1] + b[1] * AbsR[0][0], crossAxis(A0, B2))) return false;
+        if (!considerCross(t[0] * R[2][0] - t[2] * R[0][0],
+            a[0] * AbsR[2][0] + a[2] * AbsR[0][0],
+            b[1] * AbsR[1][2] + b[2] * AbsR[1][1], crossAxis(A1, B0))) return false;
+        if (!considerCross(t[0] * R[2][1] - t[2] * R[0][1],
+            a[0] * AbsR[2][1] + a[2] * AbsR[0][1],
+            b[0] * AbsR[1][2] + b[2] * AbsR[1][0], crossAxis(A1, B1))) return false;
+        if (!considerCross(t[0] * R[2][2] - t[2] * R[0][2],
+            a[0] * AbsR[2][2] + a[2] * AbsR[0][2],
+            b[0] * AbsR[1][1] + b[1] * AbsR[1][0], crossAxis(A1, B2))) return false;
+        if (!considerCross(t[1] * R[0][0] - t[0] * R[1][0],
+            a[0] * AbsR[1][0] + a[1] * AbsR[0][0],
+            b[1] * AbsR[2][2] + b[2] * AbsR[2][1], crossAxis(A2, B0))) return false;
+        if (!considerCross(t[1] * R[0][1] - t[0] * R[1][1],
+            a[0] * AbsR[1][1] + a[1] * AbsR[0][1],
+            b[0] * AbsR[2][2] + b[2] * AbsR[2][0], crossAxis(A2, B1))) return false;
+        if (!considerCross(t[1] * R[0][2] - t[0] * R[1][2],
+            a[0] * AbsR[1][2] + a[1] * AbsR[0][2],
+            b[0] * AbsR[2][1] + b[1] * AbsR[2][0], crossAxis(A2, B2))) return false;
+
+        if (minPen == FLT_MAX)
+        {
+            return false;
+        }
+        dx::XMStoreFloat3(&outNormal, dx::XMVector3Normalize(bestAxis));
+        outDepth = minPen;
+        return true;
+    }
+
     // Box vs Box: fast path AABB-AABB when both are axisAligned, otherwise SAT.
     bool Intersect(const BoxCollider& a, const BoxCollider& b)
     {
@@ -414,6 +538,144 @@ namespace Collider3D
         return q;
     }
 
+    /** @brief Closest point on box surface/volume to P (AABB or OBB). */
+    static dx::XMVECTOR ClosestPointOnBox(dx::FXMVECTOR p, const BoxCollider& box)
+    {
+        if (box.aabbKind != BoxAABBKind::OBB)
+        {
+            dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
+            return ClosestPointOnAABB(p, c, box.half.x, box.half.y, box.half.z);
+        }
+        return ClosestPointOnOBB(p, box);
+    }
+
+    /**
+     * @brief True when P is strictly inside the box (all local |coords| < half).
+     */
+    static bool IsPointInsideBox(dx::FXMVECTOR p, const BoxCollider& box)
+    {
+        dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
+        dx::XMVECTOR d = dx::XMVectorSubtract(p, c);
+        if (box.aabbKind != BoxAABBKind::OBB)
+        {
+            return std::fabs(dx::XMVectorGetX(d)) < box.half.x &&
+                   std::fabs(dx::XMVectorGetY(d)) < box.half.y &&
+                   std::fabs(dx::XMVectorGetZ(d)) < box.half.z;
+        }
+        float lx = Dot3(d, dx::XMLoadFloat3(&box.axisX));
+        float ly = Dot3(d, dx::XMLoadFloat3(&box.axisY));
+        float lz = Dot3(d, dx::XMLoadFloat3(&box.axisZ));
+        return std::fabs(lx) < box.half.x &&
+               std::fabs(ly) < box.half.y &&
+               std::fabs(lz) < box.half.z;
+    }
+
+    /**
+     * @brief Minimum translation to push P to the box surface (P assumed inside or on surface).
+     * @return Unit outward normal (from box interior toward exterior) and distance to surface.
+     */
+    static void MinExitFromBox(
+        dx::FXMVECTOR p,
+        const BoxCollider& box,
+        dx::XMVECTOR& outNormal,
+        float& outExitDepth)
+    {
+        dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
+        dx::XMVECTOR d = dx::XMVectorSubtract(p, c);
+
+        auto consider = [&](float local, float half, dx::FXMVECTOR axis)
+        {
+            const float toPos = half - local;
+            const float toNeg = half + local;
+            if (toPos <= toNeg)
+            {
+                if (toPos < outExitDepth)
+                {
+                    outExitDepth = toPos;
+                    outNormal = axis;
+                }
+            }
+            else if (toNeg < outExitDepth)
+            {
+                outExitDepth = toNeg;
+                outNormal = dx::XMVectorNegate(axis);
+            }
+        };
+
+        outExitDepth = FLT_MAX;
+        outNormal = dx::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+        if (box.aabbKind != BoxAABBKind::OBB)
+        {
+            consider(dx::XMVectorGetX(d), box.half.x, dx::XMVectorSet(1, 0, 0, 0));
+            consider(dx::XMVectorGetY(d), box.half.y, dx::XMVectorSet(0, 1, 0, 0));
+            consider(dx::XMVectorGetZ(d), box.half.z, dx::XMVectorSet(0, 0, 1, 0));
+        }
+        else
+        {
+            consider(Dot3(d, dx::XMLoadFloat3(&box.axisX)), box.half.x, dx::XMLoadFloat3(&box.axisX));
+            consider(Dot3(d, dx::XMLoadFloat3(&box.axisY)), box.half.y, dx::XMLoadFloat3(&box.axisY));
+            consider(Dot3(d, dx::XMLoadFloat3(&box.axisZ)), box.half.z, dx::XMLoadFloat3(&box.axisZ));
+        }
+
+        if (outExitDepth == FLT_MAX || outExitDepth < 0.0f)
+        {
+            outExitDepth = 0.0f;
+            outNormal = dx::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        }
+        else
+        {
+            outNormal = dx::XMVector3Normalize(outNormal);
+        }
+    }
+
+    /**
+     * @brief Sample closest approach between capsule segment and box (matches Intersect heuristic).
+     */
+    static void ClosestCapsuleSegmentToBox(
+        const CapsuleCollider& cap,
+        const BoxCollider& box,
+        dx::XMVECTOR& outPSeg,
+        dx::XMVECTOR& outQBox,
+        float& outDistSq)
+    {
+        dx::XMVECTOR a = dx::XMLoadFloat3(&cap.pointA);
+        dx::XMVECTOR b = dx::XMLoadFloat3(&cap.pointB);
+        dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
+
+        auto consider = [&](dx::FXMVECTOR pSeg)
+        {
+            dx::XMVECTOR q = ClosestPointOnBox(pSeg, box);
+            float distSq = LengthSq3(dx::XMVectorSubtract(pSeg, q));
+            if (distSq < outDistSq)
+            {
+                outDistSq = distSq;
+                outPSeg = pSeg;
+                outQBox = q;
+            }
+        };
+
+        outDistSq = FLT_MAX;
+        outPSeg = a;
+        outQBox = ClosestPointOnBox(a, box);
+
+        consider(ClosestPointOnSegment(a, b, c));
+        consider(a);
+        consider(b);
+        for (int i = 1; i <= 4; ++i)
+        {
+            float t = static_cast<float>(i) / 5.0f;
+            dx::XMVECTOR p = dx::XMVectorAdd(a, dx::XMVectorScale(dx::XMVectorSubtract(b, a), t));
+            consider(p);
+        }
+        {
+            dx::XMVECTOR qa = ClosestPointOnBox(a, box);
+            dx::XMVECTOR qb = ClosestPointOnBox(b, box);
+            consider(ClosestPointOnSegment(a, b, qa));
+            consider(ClosestPointOnSegment(a, b, qb));
+        }
+    }
+
     bool Intersect(const CapsuleCollider& a, const CapsuleCollider& b)
     {
         dx::XMVECTOR a0 = dx::XMLoadFloat3(&a.pointA);
@@ -456,62 +718,426 @@ namespace Collider3D
 
     bool Intersect(const CapsuleCollider& cap, const BoxCollider& box)
     {
-        // Sample closest approach: closest point on capsule segment to box surface (via closest point on box to each endpoint + segment mid heuristic).
-        // Robust approach: treat as sphere of radius r whose center is constrained to the segment —
-        // find point on segment minimizing distance to box (iterative / analytic for AABB).
-        dx::XMVECTOR a = dx::XMLoadFloat3(&cap.pointA);
-        dx::XMVECTOR b = dx::XMLoadFloat3(&cap.pointB);
-        dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
-
-        // For AABB: closest point on segment to AABB = ClosestPointOnSegment(a,b, ClosestPointOnAABB(segmentPoint...))
-        // Use: q = ClosestPointOnBox(a); then clamp segment; also q from b; take min distance among samples + analytic for AABB.
-        auto distSqSegmentToBox = [&](dx::FXMVECTOR pSeg) -> float
-        {
-            dx::XMVECTOR q;
-            if (box.aabbKind != BoxAABBKind::OBB)
-            {
-                q = ClosestPointOnAABB(pSeg, c, box.half.x, box.half.y, box.half.z);
-            }
-            else
-            {
-                q = ClosestPointOnOBB(pSeg, box);
-            }
-            return LengthSq3(dx::XMVectorSubtract(pSeg, q));
-        };
-
-        // Closest point on segment to box: for AABB, project closest-on-AABB of endpoints and of the point on segment nearest box center.
-        dx::XMVECTOR nearestOnSeg = ClosestPointOnSegment(a, b, c);
-        float best = distSqSegmentToBox(nearestOnSeg);
-        best = (std::min)(best, distSqSegmentToBox(a));
-        best = (std::min)(best, distSqSegmentToBox(b));
-
-        // Extra samples along segment for OBB robustness
-        for (int i = 1; i <= 4; ++i)
-        {
-            float t = static_cast<float>(i) / 5.0f;
-            dx::XMVECTOR p = dx::XMVectorAdd(a, dx::XMVectorScale(dx::XMVectorSubtract(b, a), t));
-            best = (std::min)(best, distSqSegmentToBox(p));
-        }
-
-        // Also: closest point on box to segment endpoints pulled back onto segment
-        {
-            dx::XMVECTOR qa = (box.aabbKind != BoxAABBKind::OBB)
-                ? ClosestPointOnAABB(a, c, box.half.x, box.half.y, box.half.z)
-                : ClosestPointOnOBB(a, box);
-            dx::XMVECTOR qb = (box.aabbKind != BoxAABBKind::OBB)
-                ? ClosestPointOnAABB(b, c, box.half.x, box.half.y, box.half.z)
-                : ClosestPointOnOBB(b, box);
-            dx::XMVECTOR pa = ClosestPointOnSegment(a, b, qa);
-            dx::XMVECTOR pb = ClosestPointOnSegment(a, b, qb);
-            best = (std::min)(best, distSqSegmentToBox(pa));
-            best = (std::min)(best, distSqSegmentToBox(pb));
-        }
-
+        dx::XMVECTOR pSeg{};
+        dx::XMVECTOR qBox{};
+        float best = 0.0f;
+        ClosestCapsuleSegmentToBox(cap, box, pSeg, qBox, best);
         return best <= cap.radius * cap.radius;
     }
     bool Intersect(const BoxCollider& b, const CapsuleCollider& c)
     {
         return Intersect(c, b);
+    }
+
+    bool ComputeSeparation(
+        const CapsuleCollider& capsule,
+        const BoxCollider& box,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        constexpr float kEps = 1e-8f;
+        const float radius = (std::max)(capsule.radius, 0.0f);
+
+        dx::XMVECTOR pSeg{};
+        dx::XMVECTOR qBox{};
+        float distSq = 0.0f;
+        ClosestCapsuleSegmentToBox(capsule, box, pSeg, qBox, distSq);
+
+        if (distSq > radius * radius + 1e-6f)
+        {
+            outNormal = { 0.0f, 0.0f, 0.0f };
+            outDepth = 0.0f;
+            return false;
+        }
+
+        // Outside or on surface: contact normal = from boxClosest → segment point (toward capsule axis).
+        // Capsule surface contact is along this axis at distance `radius` from pSeg.
+        if (distSq > kEps && !IsPointInsideBox(pSeg, box))
+        {
+            const float dist = std::sqrt(distSq);
+            dx::XMVECTOR n = dx::XMVectorScale(dx::XMVectorSubtract(pSeg, qBox), 1.0f / dist);
+            dx::XMStoreFloat3(&outNormal, n);
+            // depth 0 == exact surface contact (lowest hemisphere point touching the box).
+            outDepth = (std::max)(0.0f, radius - dist);
+            return true;
+        }
+
+        // Segment sample inside box (or coincident): exit to nearest face, then clear radius.
+        dx::XMVECTOR n{};
+        float exitDepth = 0.0f;
+        MinExitFromBox(pSeg, box, n, exitDepth);
+        dx::XMStoreFloat3(&outNormal, n);
+        outDepth = exitDepth + radius;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const BoxCollider& box,
+        const CapsuleCollider& capsule,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!ComputeSeparation(capsule, box, outNormal, outDepth))
+        {
+            return false;
+        }
+        outNormal.x = -outNormal.x;
+        outNormal.y = -outNormal.y;
+        outNormal.z = -outNormal.z;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const CapsuleCollider& a,
+        const CapsuleCollider& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        constexpr float kEps = 1e-8f;
+        const float rSum = (std::max)(a.radius, 0.0f) + (std::max)(b.radius, 0.0f);
+
+        dx::XMVECTOR a0 = dx::XMLoadFloat3(&a.pointA);
+        dx::XMVECTOR a1 = dx::XMLoadFloat3(&a.pointB);
+        dx::XMVECTOR b0 = dx::XMLoadFloat3(&b.pointA);
+        dx::XMVECTOR b1 = dx::XMLoadFloat3(&b.pointB);
+        dx::XMVECTOR p{};
+        dx::XMVECTOR q{};
+        const float distSq = ClosestPointsSegmentSegment(a0, a1, b0, b1, p, q);
+
+        if (distSq > rSum * rSum + 1e-6f)
+        {
+            outNormal = { 0.0f, 0.0f, 0.0f };
+            outDepth = 0.0f;
+            return false;
+        }
+
+        if (distSq > kEps)
+        {
+            const float dist = std::sqrt(distSq);
+            dx::XMVECTOR n = dx::XMVectorScale(dx::XMVectorSubtract(p, q), 1.0f / dist);
+            dx::XMStoreFloat3(&outNormal, n);
+            outDepth = rSum - dist;
+            if (outDepth < 0.0f)
+            {
+                outDepth = 0.0f;
+            }
+            return true;
+        }
+
+        // Coincident closest points: push along a stable axis (prefer A's segment, else +Y).
+        dx::XMVECTOR axis = dx::XMVectorSubtract(a1, a0);
+        if (LengthSq3(axis) < kEps)
+        {
+            axis = dx::XMVectorSubtract(b1, b0);
+        }
+        if (LengthSq3(axis) < kEps)
+        {
+            axis = dx::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        }
+        else
+        {
+            // Prefer a perpendicular to the shared axis for lateral separation.
+            dx::XMVECTOR ref = (std::fabs(dx::XMVectorGetY(dx::XMVector3Normalize(axis))) > 0.9f)
+                ? dx::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f)
+                : dx::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+            axis = dx::XMVector3Normalize(dx::XMVector3Cross(axis, ref));
+            if (LengthSq3(axis) < kEps)
+            {
+                axis = dx::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+            }
+        }
+        dx::XMStoreFloat3(&outNormal, dx::XMVector3Normalize(axis));
+        outDepth = rSum;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const CapsuleCollider& capsule,
+        const SphereCollider& sphere,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        constexpr float kEps = 1e-8f;
+        const float rSum = (std::max)(capsule.radius, 0.0f) + (std::max)(sphere.radius, 0.0f);
+
+        dx::XMVECTOR a = dx::XMLoadFloat3(&capsule.pointA);
+        dx::XMVECTOR b = dx::XMLoadFloat3(&capsule.pointB);
+        dx::XMVECTOR sc = dx::XMLoadFloat3(&sphere.center);
+        dx::XMVECTOR closest = ClosestPointOnSegment(a, b, sc);
+        dx::XMVECTOR delta = dx::XMVectorSubtract(closest, sc);
+        const float distSq = LengthSq3(delta);
+
+        if (distSq > rSum * rSum + 1e-6f)
+        {
+            outNormal = { 0.0f, 0.0f, 0.0f };
+            outDepth = 0.0f;
+            return false;
+        }
+
+        if (distSq > kEps)
+        {
+            const float dist = std::sqrt(distSq);
+            dx::XMVECTOR n = dx::XMVectorScale(delta, 1.0f / dist);
+            dx::XMStoreFloat3(&outNormal, n);
+            outDepth = rSum - dist;
+            if (outDepth < 0.0f)
+            {
+                outDepth = 0.0f;
+            }
+            return true;
+        }
+
+        // Sphere center on capsule axis: push along perpendicular to segment (or +X).
+        dx::XMVECTOR axis = dx::XMVectorSubtract(b, a);
+        if (LengthSq3(axis) < kEps)
+        {
+            axis = dx::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+        }
+        else
+        {
+            dx::XMVECTOR ref = (std::fabs(dx::XMVectorGetY(dx::XMVector3Normalize(axis))) > 0.9f)
+                ? dx::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f)
+                : dx::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+            axis = dx::XMVector3Normalize(dx::XMVector3Cross(axis, ref));
+            if (LengthSq3(axis) < kEps)
+            {
+                axis = dx::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+            }
+        }
+        dx::XMStoreFloat3(&outNormal, dx::XMVector3Normalize(axis));
+        outDepth = rSum;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const SphereCollider& sphere,
+        const CapsuleCollider& capsule,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!ComputeSeparation(capsule, sphere, outNormal, outDepth))
+        {
+            return false;
+        }
+        outNormal.x = -outNormal.x;
+        outNormal.y = -outNormal.y;
+        outNormal.z = -outNormal.z;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const CapsuleCollider& c,
+        const PointCollider& p,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        SphereCollider s{};
+        s.center = p.position;
+        s.radius = 0.0f;
+        return ComputeSeparation(c, s, outNormal, outDepth);
+    }
+
+    bool ComputeSeparation(
+        const PointCollider& p,
+        const CapsuleCollider& c,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!ComputeSeparation(c, p, outNormal, outDepth))
+        {
+            return false;
+        }
+        outNormal.x = -outNormal.x;
+        outNormal.y = -outNormal.y;
+        outNormal.z = -outNormal.z;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const SphereCollider& a,
+        const SphereCollider& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        constexpr float kEps = 1e-8f;
+        const float rSum = (std::max)(a.radius, 0.0f) + (std::max)(b.radius, 0.0f);
+        dx::XMVECTOR ca = dx::XMLoadFloat3(&a.center);
+        dx::XMVECTOR cb = dx::XMLoadFloat3(&b.center);
+        dx::XMVECTOR d = dx::XMVectorSubtract(ca, cb);
+        const float distSq = LengthSq3(d);
+        if (distSq > rSum * rSum + 1e-6f)
+        {
+            outNormal = {};
+            outDepth = 0.0f;
+            return false;
+        }
+        if (distSq > kEps)
+        {
+            const float dist = std::sqrt(distSq);
+            dx::XMStoreFloat3(&outNormal, dx::XMVectorScale(d, 1.0f / dist));
+            outDepth = rSum - dist;
+            return true;
+        }
+        outNormal = { 0.0f, 1.0f, 0.0f };
+        outDepth = rSum;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const SphereCollider& s,
+        const PointCollider& p,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        SphereCollider pointAsSphere{};
+        pointAsSphere.center = p.position;
+        pointAsSphere.radius = 0.0f;
+        return ComputeSeparation(s, pointAsSphere, outNormal, outDepth);
+    }
+
+    bool ComputeSeparation(
+        const PointCollider& p,
+        const SphereCollider& s,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!ComputeSeparation(s, p, outNormal, outDepth))
+        {
+            return false;
+        }
+        outNormal.x = -outNormal.x;
+        outNormal.y = -outNormal.y;
+        outNormal.z = -outNormal.z;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const PointCollider& p,
+        const BoxCollider& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!Intersect(p, b))
+        {
+            outNormal = {};
+            outDepth = 0.0f;
+            return false;
+        }
+        dx::XMVECTOR pt = dx::XMLoadFloat3(&p.position);
+        dx::XMVECTOR n{};
+        float exitDepth = 0.0f;
+        MinExitFromBox(pt, b, n, exitDepth);
+        dx::XMStoreFloat3(&outNormal, n);
+        outDepth = exitDepth;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const BoxCollider& b,
+        const PointCollider& p,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!ComputeSeparation(p, b, outNormal, outDepth))
+        {
+            return false;
+        }
+        outNormal.x = -outNormal.x;
+        outNormal.y = -outNormal.y;
+        outNormal.z = -outNormal.z;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const SphereCollider& s,
+        const BoxCollider& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        constexpr float kEps = 1e-8f;
+        const float radius = (std::max)(s.radius, 0.0f);
+        dx::XMVECTOR sc = dx::XMLoadFloat3(&s.center);
+        dx::XMVECTOR q = ClosestPointOnBox(sc, b);
+        dx::XMVECTOR delta = dx::XMVectorSubtract(sc, q);
+        const float distSq = LengthSq3(delta);
+
+        if (distSq > radius * radius + 1e-6f)
+        {
+            outNormal = {};
+            outDepth = 0.0f;
+            return false;
+        }
+
+        if (distSq > kEps && !IsPointInsideBox(sc, b))
+        {
+            const float dist = std::sqrt(distSq);
+            dx::XMStoreFloat3(&outNormal, dx::XMVectorScale(delta, 1.0f / dist));
+            outDepth = radius - dist;
+            if (outDepth < 0.0f)
+            {
+                outDepth = 0.0f;
+            }
+            return true;
+        }
+
+        dx::XMVECTOR n{};
+        float exitDepth = 0.0f;
+        MinExitFromBox(sc, b, n, exitDepth);
+        dx::XMStoreFloat3(&outNormal, n);
+        outDepth = exitDepth + radius;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const BoxCollider& b,
+        const SphereCollider& s,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (!ComputeSeparation(s, b, outNormal, outDepth))
+        {
+            return false;
+        }
+        outNormal.x = -outNormal.x;
+        outNormal.y = -outNormal.y;
+        outNormal.z = -outNormal.z;
+        return true;
+    }
+
+    bool ComputeSeparation(
+        const BoxCollider& a,
+        const BoxCollider& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        if (a.aabbKind != BoxAABBKind::OBB && b.aabbKind != BoxAABBKind::OBB)
+        {
+            const float dx = (a.half.x + b.half.x) - std::fabs(a.center.x - b.center.x);
+            const float dy = (a.half.y + b.half.y) - std::fabs(a.center.y - b.center.y);
+            const float dz = (a.half.z + b.half.z) - std::fabs(a.center.z - b.center.z);
+            if (dx < 0.0f || dy < 0.0f || dz < 0.0f)
+            {
+                outNormal = {};
+                outDepth = 0.0f;
+                return false;
+            }
+
+            outDepth = dx;
+            outNormal = { (a.center.x >= b.center.x) ? 1.0f : -1.0f, 0.0f, 0.0f };
+            if (dy < outDepth)
+            {
+                outDepth = dy;
+                outNormal = { 0.0f, (a.center.y >= b.center.y) ? 1.0f : -1.0f, 0.0f };
+            }
+            if (dz < outDepth)
+            {
+                outDepth = dz;
+                outNormal = { 0.0f, 0.0f, (a.center.z >= b.center.z) ? 1.0f : -1.0f };
+            }
+            return true;
+        }
+
+        return SeparateOBB_OBB_SAT(a, b, outNormal, outDepth);
     }
 
     
@@ -520,6 +1146,16 @@ namespace Collider3D
     static bool Dispatch(const Collision3D& a, const Collision3D& b)
     {
         return Intersect(static_cast<const A&>(a), static_cast<const B&>(b));
+    }
+
+    template<class A, class B>
+    static bool DispatchSeparate(
+        const Collision3D& a,
+        const Collision3D& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        return ComputeSeparation(static_cast<const A&>(a), static_cast<const B&>(b), outNormal, outDepth);
     }
 
     const std::array<std::array<CollideFn, (size_t)CollideType::Count>, (size_t)CollideType::Count>& CollisionSystem::Table()
@@ -550,12 +1186,58 @@ namespace Collider3D
         return tbl;
     }
 
+    const std::array<std::array<SeparateFn, (size_t)CollideType::Count>, (size_t)CollideType::Count>& CollisionSystem::SeparateTable()
+    {
+        static std::array<std::array<SeparateFn, (size_t)CollideType::Count>, (size_t)CollideType::Count> tbl = [] {
+            decltype(tbl) t{};
+            for (auto& row : t) row.fill(nullptr);
+
+            auto set = [&](CollideType A, CollideType B, SeparateFn fnAB, SeparateFn fnBA = nullptr)
+            {
+                t[(size_t)A][(size_t)B] = fnAB;
+                t[(size_t)B][(size_t)A] = fnBA ? fnBA : fnAB;
+            };
+
+            set(CollideType::Sphere, CollideType::Sphere, &DispatchSeparate<SphereCollider, SphereCollider>);
+            set(CollideType::Sphere, CollideType::Point,  &DispatchSeparate<SphereCollider, PointCollider>, &DispatchSeparate<PointCollider, SphereCollider>);
+            set(CollideType::Point,  CollideType::Box,    &DispatchSeparate<PointCollider, BoxCollider>,    &DispatchSeparate<BoxCollider, PointCollider>);
+            set(CollideType::Sphere, CollideType::Box,    &DispatchSeparate<SphereCollider, BoxCollider>,   &DispatchSeparate<BoxCollider, SphereCollider>);
+            set(CollideType::Box,    CollideType::Box,    &DispatchSeparate<BoxCollider, BoxCollider>);
+
+            set(CollideType::Capsule, CollideType::Capsule, &DispatchSeparate<CapsuleCollider, CapsuleCollider>);
+            set(CollideType::Capsule, CollideType::Sphere,  &DispatchSeparate<CapsuleCollider, SphereCollider>, &DispatchSeparate<SphereCollider, CapsuleCollider>);
+            set(CollideType::Capsule, CollideType::Point,   &DispatchSeparate<CapsuleCollider, PointCollider>,  &DispatchSeparate<PointCollider, CapsuleCollider>);
+            set(CollideType::Capsule, CollideType::Box,     &DispatchSeparate<CapsuleCollider, BoxCollider>,    &DispatchSeparate<BoxCollider, CapsuleCollider>);
+
+            return t;
+            }();
+        return tbl;
+    }
+
     bool CollisionSystem::IsOverlap(const Collision3D& a, const Collision3D& b)
     {
         const auto ta = (size_t)a.GetType();
         const auto tb = (size_t)b.GetType();
         auto fn = Table()[ta][tb];
         return fn ? fn(a, b) : false;
+    }
+
+    bool CollisionSystem::TrySeparate(
+        const Collision3D& a,
+        const Collision3D& b,
+        DirectX::XMFLOAT3& outNormal,
+        float& outDepth)
+    {
+        const auto ta = (size_t)a.GetType();
+        const auto tb = (size_t)b.GetType();
+        auto fn = SeparateTable()[ta][tb];
+        if (!fn)
+        {
+            outNormal = {};
+            outDepth = 0.0f;
+            return false;
+        }
+        return fn(a, b, outNormal, outDepth);
     }
 
 }

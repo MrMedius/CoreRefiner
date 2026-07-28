@@ -1,5 +1,9 @@
 #include "Player.h"
 #include "Enemy.h"
+#include "Environment.h"
+#include "ObjectCodex.h"
+#include "Collision.h"
+#include "ColliderComponent.h"
 
 #include "InputCodex.h"
 #include "SoundCodex.h"
@@ -47,6 +51,181 @@ void Player::Update(float dt)
 	MapItemCollide();
 
 	ObjectBase::Update(dt);
+}
+
+/**
+ * @brief Capsule resolve via contact normal from TrySeparate (floor stick + skin).
+ */
+void Player::MapItemCollide(void)
+{
+	auto* selfCol = pCollider_ != nullptr ? pCollider_ : GetComponent<ColliderComponent>();
+	if (selfCol == nullptr || !selfCol->IsEnabled())
+	{
+		return;
+	}
+
+	constexpr float kFloorNormalY = 0.5f;
+	constexpr float kSkin = 0.02f;
+	constexpr float kFloorProbe = 0.08f;
+
+	/**
+	 * @brief Apply depenetration along contact normal; floor contacts clear downward speed.
+	 * @param n Unit contact normal (points out of the other body toward this capsule).
+	 * @param depth Penetration along n (>= 0). Exact touch (0) still gets skin.
+	 * @return true when this contact is a floor (supports OnFloor).
+	 */
+	auto applyContact = [this, selfCol](DirectX::XMFLOAT3 n, float depth) -> bool
+	{
+		const bool isFloor = n.y > kFloorNormalY;
+		// Contact-based: always keep a skin gap along the contact normal (including depth == 0).
+		const float push = (std::max)(depth, 0.0f) + kSkin;
+
+		auto p = GetPosition();
+		p.x += n.x * push;
+		p.y += n.y * push;
+		p.z += n.z * push;
+		SetPosition(p);
+		selfCol->SyncFromOwner();
+
+		if (isFloor)
+		{
+			if (MoveVelocity.y < 0.0f)
+			{
+				MoveVelocity.y = 0.0f;
+			}
+		}
+		else
+		{
+			const float vn =
+				MoveVelocity.x * n.x +
+				MoveVelocity.y * n.y +
+				MoveVelocity.z * n.z;
+			if (vn < 0.0f)
+			{
+				MoveVelocity.x -= vn * n.x;
+				MoveVelocity.y -= vn * n.y;
+				MoveVelocity.z -= vn * n.z;
+			}
+		}
+		return isFloor;
+	};
+
+	bool grounded = false;
+
+	/*------------------------------------------------------------------------------
+	   MapEnvironment — contact normal from Capsule↔Box separation
+	------------------------------------------------------------------------------*/
+	std::vector<Environment*> mapEnvironment;
+	for (auto tag : { environment_Field })
+	{
+		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
+		mapEnvironment.reserve(mapEnvironment.size() + found.size());
+		mapEnvironment.insert(mapEnvironment.end(), found.begin(), found.end());
+	}
+
+	for (auto* e : mapEnvironment)
+	{
+		auto* eCol = e->GetComponent<ColliderComponent>();
+		if (eCol == nullptr || !eCol->IsEnabled())
+		{
+			continue;
+		}
+		if (!CollisionSystem::IsOverlap(selfCol->GetVolume(), eCol->GetVolume()))
+		{
+			continue;
+		}
+
+		e->OnCollide(this);
+
+		DirectX::XMFLOAT3 n{};
+		float depth = 0.0f;
+		if (CollisionSystem::TrySeparate(selfCol->GetVolume(), eCol->GetVolume(), n, depth))
+		{
+			if (applyContact(n, depth))
+			{
+				grounded = true;
+			}
+		}
+	}
+
+	// Floor probe: after skin we may leave overlap; step down to re-acquire floor contact.
+	if (!grounded)
+	{
+		auto p = GetPosition();
+		const float yRestore = p.y;
+		p.y -= kFloorProbe;
+		SetPosition(p);
+		selfCol->SyncFromOwner();
+
+		bool probeHit = false;
+		for (auto* e : mapEnvironment)
+		{
+			auto* eCol = e->GetComponent<ColliderComponent>();
+			if (eCol == nullptr || !eCol->IsEnabled())
+			{
+				continue;
+			}
+			if (!CollisionSystem::IsOverlap(selfCol->GetVolume(), eCol->GetVolume()))
+			{
+				continue;
+			}
+
+			DirectX::XMFLOAT3 n{};
+			float depth = 0.0f;
+			if (CollisionSystem::TrySeparate(selfCol->GetVolume(), eCol->GetVolume(), n, depth) &&
+				n.y > kFloorNormalY)
+			{
+				applyContact(n, depth);
+				grounded = true;
+				probeHit = true;
+				break;
+			}
+		}
+
+		if (!probeHit)
+		{
+			p.y = yRestore;
+			SetPosition(p);
+			selfCol->SyncFromOwner();
+		}
+	}
+
+	OnFloor = grounded;
+
+	/*------------------------------------------------------------------------------
+	   MapCharacter
+	------------------------------------------------------------------------------*/
+	std::vector<Character*> mapCharacters;
+	for (auto tag : { character_Player, character_Enemy_T })
+	{
+		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);
+		mapCharacters.reserve(mapCharacters.size() + found.size());
+		mapCharacters.insert(mapCharacters.end(), found.begin(), found.end());
+	}
+
+	for (auto* c : mapCharacters)
+	{
+		auto* cCol = c->GetComponent<ColliderComponent>();
+		if (this == c || this->GetIsDeath() || c->GetIsDeath() ||
+			cCol == nullptr || !cCol->IsEnabled())
+		{
+			continue;
+		}
+		if (!CollisionSystem::IsOverlap(selfCol->GetVolume(), cCol->GetVolume()))
+		{
+			continue;
+		}
+
+		DirectX::XMFLOAT3 n{};
+		float depth = 0.0f;
+		if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
+		{
+			if (applyContact(n, depth))
+			{
+				OnFloor = true;
+			}
+		}
+	}
 }
 
 void Player::Submit(void)

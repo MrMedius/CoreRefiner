@@ -28,6 +28,7 @@ void Enemy_T::Update(float dt)
 	{
 		pCollider_->SyncFromOwner();
 	}
+	// Enemy intentionally keeps Character::MapItemCollide (Box AABB env + character push).
 	MapItemCollide();
 
 	// host-driven: sync Visual/Collider to post-collision transform

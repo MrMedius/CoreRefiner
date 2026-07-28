@@ -82,7 +82,7 @@ public:
 		}
 		if (!AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath())
 		{
-			bool isHit = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), targetCol->GetBoxCollider());
+			bool isHit = CollisionSystem::IsOverlap(selfCol->GetVolume(), targetCol->GetVolume());
 
 			if (isHit)
 			{
@@ -125,7 +125,7 @@ protected:
 		{
 			return IsInArea = false;
 		}
-		return IsInArea = CollisionSystem::IsOverlap(searchCollider, targetCol->GetBoxCollider());
+		return IsInArea = CollisionSystem::IsOverlap(searchCollider, targetCol->GetVolume());
 	}
 private:
 	void SetupTransitions(void) override = 0;
