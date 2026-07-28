@@ -114,6 +114,7 @@ namespace Collider3D
         Point = 0,
         Sphere,
         Box,
+        Capsule,
         Count
     };
 
@@ -170,6 +171,25 @@ namespace Collider3D
         const dx::XMFLOAT3 GetSize() { return dx::XMFLOAT3(half.x * 2.0f, half.y * 2.0f, half.z * 2.0f); }
     };
 
+    /**
+     * @brief Capsule = segment (pointA?pointB) thickened by radius (Unity-style).
+     * @note pointA/pointB are hemisphere centers; total height = |B-A| + 2*radius.
+     */
+    class CapsuleCollider final : public Collision3D
+    {
+    public:
+        CapsuleCollider() = default;
+        CapsuleCollider(const dx::XMFLOAT3& a, const dx::XMFLOAT3& b, float r)
+            :
+            pointA(a), pointB(b), radius(r)
+        {}
+        CollideType GetType() const override { return CollideType::Capsule; }
+
+        dx::XMFLOAT3 pointA{};
+        dx::XMFLOAT3 pointB{};
+        float radius{};
+    };
+
 	// Real Collision System
     using CollideFn = bool(*)(const Collision3D&, const Collision3D&);
     class CollisionSystem
@@ -189,4 +209,12 @@ namespace Collider3D
     bool Intersect(const SphereCollider& s, const BoxCollider& b);
     bool Intersect(const BoxCollider& b, const SphereCollider& s);
     bool Intersect(const BoxCollider& a, const BoxCollider& b);
+
+    bool Intersect(const CapsuleCollider& a, const CapsuleCollider& b);
+    bool Intersect(const CapsuleCollider& c, const SphereCollider& s);
+    bool Intersect(const SphereCollider& s, const CapsuleCollider& c);
+    bool Intersect(const CapsuleCollider& c, const PointCollider& p);
+    bool Intersect(const PointCollider& p, const CapsuleCollider& c);
+    bool Intersect(const CapsuleCollider& c, const BoxCollider& b);
+    bool Intersect(const BoxCollider& b, const CapsuleCollider& c);
 }

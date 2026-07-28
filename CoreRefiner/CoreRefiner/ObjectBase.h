@@ -19,7 +19,8 @@ enum Object_Type_Tag
 	character_Player	= 0x999,
 	character_Enemy_T	= 0x011,
 	// Environment				  
-	environment_Field	= 0x100,
+	environment_Field			= 0x100,
+	environment_CapsuleProbe	= 0x102,
 	// Effect
 };
 

@@ -218,6 +218,8 @@
     <ClCompile Include="VisualComponent.cpp" />
     <ClCompile Include="ColliderComponent.cpp" />
     <ClCompile Include="CubeWireframe.cpp" />
+    <ClCompile Include="SphereWireframe.cpp" />
+    <ClCompile Include="CapsuleWireframe.cpp" />
     <ClCompile Include="DynamicTexture.cpp" />
     <ClCompile Include="DynamicTexture.h" />
     <ClCompile Include="EnemyManager.cpp" />
@@ -377,6 +379,9 @@
     <ClInclude Include="DynamicVertexBuffer.h" />
     <ClInclude Include="Enemy_T.h" />
     <ClInclude Include="CubeWireframe.h" />
+    <ClInclude Include="SphereWireframe.h" />
+    <ClInclude Include="CapsuleWireframe.h" />
+    <ClInclude Include="CapsuleProbe.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyManager.h" />

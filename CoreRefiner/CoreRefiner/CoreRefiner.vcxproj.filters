@@ -298,6 +298,12 @@
     <ClCompile Include="CubeWireframe.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClCompile>
+    <ClCompile Include="SphereWireframe.cpp">
+      <Filter>Framework\Graphics\Drawable</Filter>
+    </ClCompile>
+    <ClCompile Include="CapsuleWireframe.cpp">
+      <Filter>Framework\Graphics\Drawable</Filter>
+    </ClCompile>
     <ClCompile Include="Drawable.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClCompile>
@@ -821,6 +827,15 @@
     </ClInclude>
     <ClInclude Include="CubeWireframe.h">
       <Filter>Framework\Graphics\Drawable</Filter>
+    </ClInclude>
+    <ClInclude Include="SphereWireframe.h">
+      <Filter>Framework\Graphics\Drawable</Filter>
+    </ClInclude>
+    <ClInclude Include="CapsuleWireframe.h">
+      <Filter>Framework\Graphics\Drawable</Filter>
+    </ClInclude>
+    <ClInclude Include="CapsuleProbe.h">
+      <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="Enemy.h">
       <Filter>Object\Character\Enemy</Filter>

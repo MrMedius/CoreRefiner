@@ -297,6 +297,223 @@ namespace Collider3D
         return IntersectOBB_OBB_SAT(a, b);
     }
 
+    // --- Capsule helpers / intersections ---
+
+    /** @brief Closest point on segment AB to point P. */
+    static dx::XMVECTOR ClosestPointOnSegment(dx::FXMVECTOR a, dx::FXMVECTOR b, dx::FXMVECTOR p)
+    {
+        dx::XMVECTOR ab = dx::XMVectorSubtract(b, a);
+        float abLenSq = LengthSq3(ab);
+        if (abLenSq < 1e-12f)
+        {
+            return a;
+        }
+        float t = Dot3(dx::XMVectorSubtract(p, a), ab) / abLenSq;
+        t = Clamp(t, 0.0f, 1.0f);
+        return dx::XMVectorAdd(a, dx::XMVectorScale(ab, t));
+    }
+
+    /**
+     * @brief Closest points between segments AB and CD; returns squared distance.
+     */
+    static float ClosestPointsSegmentSegment(
+        dx::FXMVECTOR a, dx::FXMVECTOR b,
+        dx::FXMVECTOR c, dx::FXMVECTOR d,
+        dx::XMVECTOR& outP, dx::XMVECTOR& outQ)
+    {
+        constexpr float EPS = 1e-8f;
+        dx::XMVECTOR ab = dx::XMVectorSubtract(b, a);
+        dx::XMVECTOR cd = dx::XMVectorSubtract(d, c);
+        dx::XMVECTOR ac = dx::XMVectorSubtract(a, c);
+
+        float abLenSq = LengthSq3(ab);
+        float cdLenSq = LengthSq3(cd);
+        float abDotCd = Dot3(ab, cd);
+        float acDotAb = Dot3(ac, ab);
+        float acDotCd = Dot3(ac, cd);
+
+        float s = 0.0f;
+        float t = 0.0f;
+
+        if (abLenSq < EPS && cdLenSq < EPS)
+        {
+            outP = a;
+            outQ = c;
+            return LengthSq3(dx::XMVectorSubtract(outP, outQ));
+        }
+        if (abLenSq < EPS)
+        {
+            s = 0.0f;
+            t = Clamp(acDotCd / cdLenSq, 0.0f, 1.0f);
+        }
+        else if (cdLenSq < EPS)
+        {
+            t = 0.0f;
+            s = Clamp(-acDotAb / abLenSq, 0.0f, 1.0f);
+        }
+        else
+        {
+            float denom = abLenSq * cdLenSq - abDotCd * abDotCd;
+            if (denom > EPS)
+            {
+                s = Clamp((abDotCd * acDotCd - cdLenSq * acDotAb) / denom, 0.0f, 1.0f);
+            }
+            else
+            {
+                s = 0.0f;
+            }
+            t = (abDotCd * s + acDotCd) / cdLenSq;
+            if (t < 0.0f)
+            {
+                t = 0.0f;
+                s = Clamp(-acDotAb / abLenSq, 0.0f, 1.0f);
+            }
+            else if (t > 1.0f)
+            {
+                t = 1.0f;
+                s = Clamp((abDotCd - acDotAb) / abLenSq, 0.0f, 1.0f);
+            }
+        }
+
+        outP = dx::XMVectorAdd(a, dx::XMVectorScale(ab, s));
+        outQ = dx::XMVectorAdd(c, dx::XMVectorScale(cd, t));
+        return LengthSq3(dx::XMVectorSubtract(outP, outQ));
+    }
+
+    /** @brief Closest point on AABB (axis-aligned box) to point P. */
+    static dx::XMVECTOR ClosestPointOnAABB(dx::FXMVECTOR p, dx::FXMVECTOR center, float hx, float hy, float hz)
+    {
+        float px = dx::XMVectorGetX(p);
+        float py = dx::XMVectorGetY(p);
+        float pz = dx::XMVectorGetZ(p);
+        float cx = dx::XMVectorGetX(center);
+        float cy = dx::XMVectorGetY(center);
+        float cz = dx::XMVectorGetZ(center);
+        return dx::XMVectorSet(
+            Clamp(px, cx - hx, cx + hx),
+            Clamp(py, cy - hy, cy + hy),
+            Clamp(pz, cz - hz, cz + hz),
+            0.0f);
+    }
+
+    /** @brief Closest point on OBB to point P (box local clamp). */
+    static dx::XMVECTOR ClosestPointOnOBB(dx::FXMVECTOR p, const BoxCollider& b)
+    {
+        dx::XMVECTOR c = dx::XMLoadFloat3(&b.center);
+        dx::XMVECTOR d = dx::XMVectorSubtract(p, c);
+        dx::XMVECTOR ax = dx::XMLoadFloat3(&b.axisX);
+        dx::XMVECTOR ay = dx::XMLoadFloat3(&b.axisY);
+        dx::XMVECTOR az = dx::XMLoadFloat3(&b.axisZ);
+        float lx = Clamp(Dot3(d, ax), -b.half.x, b.half.x);
+        float ly = Clamp(Dot3(d, ay), -b.half.y, b.half.y);
+        float lz = Clamp(Dot3(d, az), -b.half.z, b.half.z);
+        dx::XMVECTOR q = c;
+        q = dx::XMVectorAdd(q, dx::XMVectorScale(ax, lx));
+        q = dx::XMVectorAdd(q, dx::XMVectorScale(ay, ly));
+        q = dx::XMVectorAdd(q, dx::XMVectorScale(az, lz));
+        return q;
+    }
+
+    bool Intersect(const CapsuleCollider& a, const CapsuleCollider& b)
+    {
+        dx::XMVECTOR a0 = dx::XMLoadFloat3(&a.pointA);
+        dx::XMVECTOR a1 = dx::XMLoadFloat3(&a.pointB);
+        dx::XMVECTOR b0 = dx::XMLoadFloat3(&b.pointA);
+        dx::XMVECTOR b1 = dx::XMLoadFloat3(&b.pointB);
+        dx::XMVECTOR p{};
+        dx::XMVECTOR q{};
+        float distSq = ClosestPointsSegmentSegment(a0, a1, b0, b1, p, q);
+        float r = a.radius + b.radius;
+        return distSq <= r * r;
+    }
+
+    bool Intersect(const CapsuleCollider& c, const SphereCollider& s)
+    {
+        dx::XMVECTOR a = dx::XMLoadFloat3(&c.pointA);
+        dx::XMVECTOR b = dx::XMLoadFloat3(&c.pointB);
+        dx::XMVECTOR sc = dx::XMLoadFloat3(&s.center);
+        dx::XMVECTOR closest = ClosestPointOnSegment(a, b, sc);
+        float r = c.radius + s.radius;
+        return LengthSq3(dx::XMVectorSubtract(sc, closest)) <= r * r;
+    }
+    bool Intersect(const SphereCollider& s, const CapsuleCollider& c)
+    {
+        return Intersect(c, s);
+    }
+
+    bool Intersect(const CapsuleCollider& c, const PointCollider& p)
+    {
+        dx::XMVECTOR a = dx::XMLoadFloat3(&c.pointA);
+        dx::XMVECTOR b = dx::XMLoadFloat3(&c.pointB);
+        dx::XMVECTOR pt = dx::XMLoadFloat3(&p.position);
+        dx::XMVECTOR closest = ClosestPointOnSegment(a, b, pt);
+        return LengthSq3(dx::XMVectorSubtract(pt, closest)) <= c.radius * c.radius;
+    }
+    bool Intersect(const PointCollider& p, const CapsuleCollider& c)
+    {
+        return Intersect(c, p);
+    }
+
+    bool Intersect(const CapsuleCollider& cap, const BoxCollider& box)
+    {
+        // Sample closest approach: closest point on capsule segment to box surface (via closest point on box to each endpoint + segment mid heuristic).
+        // Robust approach: treat as sphere of radius r whose center is constrained to the segment —
+        // find point on segment minimizing distance to box (iterative / analytic for AABB).
+        dx::XMVECTOR a = dx::XMLoadFloat3(&cap.pointA);
+        dx::XMVECTOR b = dx::XMLoadFloat3(&cap.pointB);
+        dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
+
+        // For AABB: closest point on segment to AABB = ClosestPointOnSegment(a,b, ClosestPointOnAABB(segmentPoint...))
+        // Use: q = ClosestPointOnBox(a); then clamp segment; also q from b; take min distance among samples + analytic for AABB.
+        auto distSqSegmentToBox = [&](dx::FXMVECTOR pSeg) -> float
+        {
+            dx::XMVECTOR q;
+            if (box.aabbKind != BoxAABBKind::OBB)
+            {
+                q = ClosestPointOnAABB(pSeg, c, box.half.x, box.half.y, box.half.z);
+            }
+            else
+            {
+                q = ClosestPointOnOBB(pSeg, box);
+            }
+            return LengthSq3(dx::XMVectorSubtract(pSeg, q));
+        };
+
+        // Closest point on segment to box: for AABB, project closest-on-AABB of endpoints and of the point on segment nearest box center.
+        dx::XMVECTOR nearestOnSeg = ClosestPointOnSegment(a, b, c);
+        float best = distSqSegmentToBox(nearestOnSeg);
+        best = (std::min)(best, distSqSegmentToBox(a));
+        best = (std::min)(best, distSqSegmentToBox(b));
+
+        // Extra samples along segment for OBB robustness
+        for (int i = 1; i <= 4; ++i)
+        {
+            float t = static_cast<float>(i) / 5.0f;
+            dx::XMVECTOR p = dx::XMVectorAdd(a, dx::XMVectorScale(dx::XMVectorSubtract(b, a), t));
+            best = (std::min)(best, distSqSegmentToBox(p));
+        }
+
+        // Also: closest point on box to segment endpoints pulled back onto segment
+        {
+            dx::XMVECTOR qa = (box.aabbKind != BoxAABBKind::OBB)
+                ? ClosestPointOnAABB(a, c, box.half.x, box.half.y, box.half.z)
+                : ClosestPointOnOBB(a, box);
+            dx::XMVECTOR qb = (box.aabbKind != BoxAABBKind::OBB)
+                ? ClosestPointOnAABB(b, c, box.half.x, box.half.y, box.half.z)
+                : ClosestPointOnOBB(b, box);
+            dx::XMVECTOR pa = ClosestPointOnSegment(a, b, qa);
+            dx::XMVECTOR pb = ClosestPointOnSegment(a, b, qb);
+            best = (std::min)(best, distSqSegmentToBox(pa));
+            best = (std::min)(best, distSqSegmentToBox(pb));
+        }
+
+        return best <= cap.radius * cap.radius;
+    }
+    bool Intersect(const BoxCollider& b, const CapsuleCollider& c)
+    {
+        return Intersect(c, b);
+    }
+
     
     // Dispatch Table
     template<class A, class B>
@@ -322,6 +539,11 @@ namespace Collider3D
             set(CollideType::Point,  CollideType::Box,    &Dispatch<PointCollider, BoxCollider>,    &Dispatch<BoxCollider, PointCollider>);
             set(CollideType::Sphere, CollideType::Box,    &Dispatch<SphereCollider, BoxCollider>,   &Dispatch<BoxCollider, SphereCollider>);
             set(CollideType::Box,    CollideType::Box,    &Dispatch<BoxCollider, BoxCollider>);
+
+            set(CollideType::Capsule, CollideType::Capsule, &Dispatch<CapsuleCollider, CapsuleCollider>);
+            set(CollideType::Capsule, CollideType::Sphere,  &Dispatch<CapsuleCollider, SphereCollider>, &Dispatch<SphereCollider, CapsuleCollider>);
+            set(CollideType::Capsule, CollideType::Point,   &Dispatch<CapsuleCollider, PointCollider>,  &Dispatch<PointCollider, CapsuleCollider>);
+            set(CollideType::Capsule, CollideType::Box,     &Dispatch<CapsuleCollider, BoxCollider>,    &Dispatch<BoxCollider, CapsuleCollider>);
 
             return t;
             }();

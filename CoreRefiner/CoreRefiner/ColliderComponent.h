@@ -11,6 +11,8 @@ namespace Rgph { class RenderGraph; }
 
 #ifdef _DEBUG
 #include "CubeWireframe.h"
+#include "SphereWireframe.h"
+#include "CapsuleWireframe.h"
 #endif
 
 /**
@@ -79,6 +81,10 @@ public:
 	[[nodiscard]] Collider3D::SphereCollider* TryGetSphere() noexcept;
 	[[nodiscard]] const Collider3D::SphereCollider* TryGetSphere() const noexcept;
 
+	/** @brief Capsule accessor; returns nullptr if registered type is not Capsule. */
+	[[nodiscard]] Collider3D::CapsuleCollider* TryGetCapsule() noexcept;
+	[[nodiscard]] const Collider3D::CapsuleCollider* TryGetCapsule() const noexcept;
+
 	/**
 	 * @brief Copy of box volume; asserts if type is not Box.
 	 */
@@ -91,15 +97,29 @@ public:
 
 	/**
 	 * @brief Set full size into the registered volume.
-	 * @note Box: half = size/2. Sphere: radius = max(size)/2. Point: no-op.
+	 * @note Box: half = size/2. Sphere: radius = max(size)/2.
+	 *       Capsule: diameter = max(x,z), totalHeight = y (axis = world Y).
+	 *       Point: no-op.
 	 * @warning Do not call under FromWorldMatrix sync (overwrites matrix half).
 	 */
 	void SetCollisionSize(DirectX::XMFLOAT3 size) noexcept;
 
 	/**
-	 * @brief Create and link a debug wireframe for the box volume.
+	 * @brief Set sphere radius directly (no-op if type is not Sphere).
 	 */
-	void LinkDebugWire(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 color, const char* name = "wireBox");
+	void SetSphereRadius(float radius) noexcept;
+
+	/**
+	 * @brief Set capsule radius + total height (axis world Y; no-op if not Capsule).
+	 * @note totalHeight includes both hemispheres; segment = max(0, totalHeight - 2*radius).
+	 */
+	void SetCapsule(float radius, float totalHeight) noexcept;
+
+	/**
+	 * @brief Create and link a debug wireframe matching the registered volume type.
+	 * @note Box → CubeWireframe, Sphere → SphereWireframe, Capsule → CapsuleWireframe.
+	 */
+	void LinkDebugWire(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 color, const char* name = "wireCollider");
 
 	void SetDebugDraw(bool enabled) noexcept { debugDraw_ = enabled; }
 	[[nodiscard]] bool GetDebugDraw() const noexcept { return debugDraw_; }
@@ -116,9 +136,15 @@ private:
 	std::variant<
 		Collider3D::BoxCollider,
 		Collider3D::SphereCollider,
-		Collider3D::PointCollider> volume_;
+		Collider3D::PointCollider,
+		Collider3D::CapsuleCollider> volume_;
+
+	/** @brief Capsule total height (FollowCenter Y-up); used with radius in SyncFromOwner. */
+	float capsuleTotalHeight_{ 2.0f };
 
 #ifdef _DEBUG
-	std::unique_ptr<CubeWireframe> debugWire_;
+	std::unique_ptr<CubeWireframe> debugBoxWire_;
+	std::unique_ptr<SphereWireframe> debugSphereWire_;
+	std::unique_ptr<CapsuleWireframe> debugCapsuleWire_;
 #endif
 };

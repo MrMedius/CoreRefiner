@@ -54,7 +54,8 @@ void Character::MapItemCollide(void)
 
 	std::vector<Environment*> mapEnvironment;
 	for (auto tag : {
-		environment_Field
+		environment_Field,
+		environment_CapsuleProbe
 		}) {
 		// 全てのマップオブジェクトを探す
 		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
@@ -69,10 +70,21 @@ void Character::MapItemCollide(void)
 		auto* eCol = e->GetComponent<ColliderComponent>();
 		if (eCol == nullptr || !eCol->IsEnabled()) continue;
 
-		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), eCol->GetBoxCollider());
+		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetVolume(), eCol->GetVolume());
 
 		if (isCollide)
 		{
+			// 環境要素の当たり処理を呼び出す
+			e->OnCollide(this);
+
+			// AABB push resolution is Box-only (Capsule/Sphere skip displacement)
+			if (selfCol->GetCollideType() != Collider3D::CollideType::Box ||
+				eCol->GetCollideType() != Collider3D::CollideType::Box)
+			{
+				SetPosition({ 0, 5, 0 });
+				continue;
+			}
+
 			auto ItemPosition = e->GetPosition();
 			auto ItemCollHalf = eCol->GetCollisionSize();
 			ItemTop =	 ItemPosition.y + ItemCollHalf.y;	// ブロックの上端
@@ -81,9 +93,6 @@ void Character::MapItemCollide(void)
 			ItemLeft =	 ItemPosition.x - ItemCollHalf.x;	// ブロックの左端
 			ItemBack =	 ItemPosition.z + ItemCollHalf.z;	// ブロックの後端
 			ItemFront =	 ItemPosition.z - ItemCollHalf.z;	// ブロックの前端
-
-			// 環境要素の当たり処理を呼び出す
-			e->OnCollide(this);
 
 			// 上から下に当たった(乗った)
 			if (OwnerOldBottom >= ItemTop && OwnerBottom <= ItemTop)
@@ -266,7 +275,7 @@ void Character::MapItemCollide(void)
 			auto* aCol = a->GetComponent<ColliderComponent>();
 			if (aCol == nullptr || !aCol->IsEnabled()) continue;
 
-			bool isCollide = CollisionSystem::IsOverlap(selfCol->GetBoxCollider(), aCol->GetBoxCollider());
+			bool isCollide = CollisionSystem::IsOverlap(selfCol->GetVolume(), aCol->GetVolume());
 
 			if (isCollide)
 			{

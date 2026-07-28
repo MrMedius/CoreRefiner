@@ -1,6 +1,8 @@
 #include "ColliderComponent.h"
 #include "ObjectBase.h"
 #include "CubeWireframe.h"
+#include "SphereWireframe.h"
+#include "CapsuleWireframe.h"
 #include "RenderGraph.h"
 #include "Graphics.h"
 
@@ -12,6 +14,19 @@ namespace
 	float Max3(DirectX::XMFLOAT3 v) noexcept
 	{
 		return (std::max)(v.x, (std::max)(v.y, v.z));
+	}
+
+	/**
+	 * @brief Rebuild Y-up capsule endpoints from center, radius, and total height.
+	 */
+	void SyncCapsuleYUp(Collider3D::CapsuleCollider& cap, DirectX::XMFLOAT3 center, float totalHeight) noexcept
+	{
+		const float r = (std::max)(cap.radius, 0.0f);
+		const float h = (std::max)(totalHeight, 2.0f * r);
+		const float halfSeg = (h * 0.5f) - r;
+		cap.pointA = { center.x, center.y + halfSeg, center.z };
+		cap.pointB = { center.x, center.y - halfSeg, center.z };
+		cap.radius = r;
 	}
 }
 
@@ -51,6 +66,9 @@ void ColliderComponent::RegisterVolume(ObjectBase* owner)
 	case Collider3D::CollideType::Point:
 		volume_ = Collider3D::PointCollider{};
 		break;
+	case Collider3D::CollideType::Capsule:
+		volume_ = Collider3D::CapsuleCollider{};
+		break;
 	default:
 		volume_ = Collider3D::BoxCollider{};
 		type_ = Collider3D::CollideType::Box;
@@ -72,28 +90,51 @@ void ColliderComponent::Update(float dt)
 void ColliderComponent::Submit()
 {
 #ifdef _DEBUG
-	if (!debugDraw_ || debugWire_ == nullptr)
+	if (!debugDraw_)
 	{
 		return;
 	}
 	ObjectBase* owner = GetOwner();
-	const Collider3D::BoxCollider* box = TryGetBox();
-	if (owner == nullptr || box == nullptr)
+	if (owner == nullptr)
 	{
 		return;
 	}
-	if (syncMode_ == ColliderSyncMode::FollowCenterAxisYFromRotation)
+
+	if (const Collider3D::BoxCollider* box = TryGetBox())
 	{
-		debugWire_->DoSubmit(
-			owner->GetPosition(),
-			owner->GetRotation(),
-			{ box->half.x * 2.0f, box->half.y * 2.0f, box->half.z * 2.0f });
+		if (debugBoxWire_ == nullptr)
+		{
+			return;
+		}
+		const DirectX::XMFLOAT3 size{ box->half.x * 2.0f, box->half.y * 2.0f, box->half.z * 2.0f };
+		if (syncMode_ == ColliderSyncMode::FollowCenterAxisYFromRotation)
+		{
+			debugBoxWire_->DoSubmit(owner->GetPosition(), owner->GetRotation(), size);
+		}
+		else
+		{
+			debugBoxWire_->DoSubmit(owner->GetPosition(), size);
+		}
+		return;
 	}
-	else
+
+	if (const Collider3D::SphereCollider* sphere = TryGetSphere())
 	{
-		debugWire_->DoSubmit(
-			owner->GetPosition(),
-			{ box->half.x * 2.0f, box->half.y * 2.0f, box->half.z * 2.0f });
+		if (debugSphereWire_ == nullptr)
+		{
+			return;
+		}
+		debugSphereWire_->DoSubmit(owner->GetPosition(), sphere->radius * 2.0f);
+		return;
+	}
+
+	if (const Collider3D::CapsuleCollider* capsule = TryGetCapsule())
+	{
+		if (debugCapsuleWire_ == nullptr)
+		{
+			return;
+		}
+		debugCapsuleWire_->DoSubmit(capsule->pointA, capsule->pointB, capsule->radius);
 	}
 #endif
 }
@@ -140,6 +181,12 @@ void ColliderComponent::SyncFromOwner()
 		point.position = owner->GetPosition();
 		break;
 	}
+	case Collider3D::CollideType::Capsule:
+	{
+		auto& capsule = std::get<Collider3D::CapsuleCollider>(volume_);
+		SyncCapsuleYUp(capsule, owner->GetPosition(), capsuleTotalHeight_);
+		break;
+	}
 	default:
 		break;
 	}
@@ -179,6 +226,16 @@ const Collider3D::SphereCollider* ColliderComponent::TryGetSphere() const noexce
 	return std::get_if<Collider3D::SphereCollider>(&volume_);
 }
 
+Collider3D::CapsuleCollider* ColliderComponent::TryGetCapsule() noexcept
+{
+	return std::get_if<Collider3D::CapsuleCollider>(&volume_);
+}
+
+const Collider3D::CapsuleCollider* ColliderComponent::TryGetCapsule() const noexcept
+{
+	return std::get_if<Collider3D::CapsuleCollider>(&volume_);
+}
+
 Collider3D::BoxCollider ColliderComponent::GetBoxCollider() const
 {
 	const Collider3D::BoxCollider* box = TryGetBox();
@@ -215,17 +272,61 @@ void ColliderComponent::SetCollisionSize(DirectX::XMFLOAT3 size) noexcept
 			sphere->radius = Max3(size) * 0.5f;
 		}
 		break;
+	case Collider3D::CollideType::Capsule:
+		SetCapsule((std::max)(size.x, size.z) * 0.5f, size.y);
+		break;
 	case Collider3D::CollideType::Point:
 	default:
 		break;
 	}
 }
 
+void ColliderComponent::SetSphereRadius(float radius) noexcept
+{
+	if (auto* sphere = TryGetSphere())
+	{
+		sphere->radius = radius;
+	}
+}
+
+void ColliderComponent::SetCapsule(float radius, float totalHeight) noexcept
+{
+	if (auto* capsule = TryGetCapsule())
+	{
+		capsule->radius = (std::max)(radius, 0.0f);
+		capsuleTotalHeight_ = (std::max)(totalHeight, 2.0f * capsule->radius);
+		if (ObjectBase* owner = GetOwner())
+		{
+			SyncCapsuleYUp(*capsule, owner->GetPosition(), capsuleTotalHeight_);
+		}
+	}
+}
+
 void ColliderComponent::LinkDebugWire(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 color, const char* name)
 {
 #ifdef _DEBUG
-	debugWire_ = std::make_unique<CubeWireframe>(gfx, color, name != nullptr ? name : "wireBox");
-	debugWire_->LinkTechniques(rg);
+	const char* wireName = name != nullptr ? name : "wireCollider";
+	debugBoxWire_.reset();
+	debugSphereWire_.reset();
+	debugCapsuleWire_.reset();
+	switch (type_)
+	{
+	case Collider3D::CollideType::Box:
+		debugBoxWire_ = std::make_unique<CubeWireframe>(gfx, color, wireName);
+		debugBoxWire_->LinkTechniques(rg);
+		break;
+	case Collider3D::CollideType::Sphere:
+		debugSphereWire_ = std::make_unique<SphereWireframe>(gfx, color, wireName);
+		debugSphereWire_->LinkTechniques(rg);
+		break;
+	case Collider3D::CollideType::Capsule:
+		debugCapsuleWire_ = std::make_unique<CapsuleWireframe>(gfx, color, wireName);
+		debugCapsuleWire_->LinkTechniques(rg);
+		break;
+	case Collider3D::CollideType::Point:
+	default:
+		break;
+	}
 #else
 	(void)gfx;
 	(void)rg;

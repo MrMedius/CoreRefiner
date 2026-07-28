@@ -27,11 +27,12 @@ class Ball : public Attack
 		}
 
 		pCollider_ = AddComponent<ColliderComponent>(
-			Collider3D::CollideType::Box,
+			Collider3D::CollideType::Sphere,
 			ColliderSyncMode::FollowCenter);
-		pCollider_->SetCollisionSize({ 2.0f,2.0f,2.0f });
+		// diameter 2 → radius 1 (previous box full size was 2)
+		pCollider_->SetCollisionSize({ 2.0f, 2.0f, 2.0f });
 		pCollider_->SetEnabled(true);
-		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(0.0f, 0.0f, 1.0f));
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(0.0f, 1.0f, 0.0f), "wireSphere");
 	}
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
