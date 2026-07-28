@@ -23,14 +23,15 @@ void Enemy_T::Update(float dt)
 	// 移動
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 
-	// collider must be current before MapItemCollide queries ColliderComponent
+	// collider must be current before MapItemCollide (full component drive runs after resolve)
 	if (pCollider_ != nullptr)
 	{
 		pCollider_->SyncFromOwner();
 	}
 	MapItemCollide();
 
-	UpdateComponents(dt);
+	// host-driven: sync Visual/Collider to post-collision transform
+	ObjectBase::Update(dt);
 }
 
 void Enemy_T::Submit(void)
@@ -39,7 +40,7 @@ void Enemy_T::Submit(void)
 	{
 		pCollider_->SetDebugDraw(!IsDeath);
 	}
-	SubmitComponents();
+	ObjectBase::Submit();
 }
 
 void Enemy_T::SetupTransitions(void)
@@ -160,6 +161,6 @@ void Enemy_T_DeathState::Update(Enemy_T* owner, float dt)
 		visual->Update(dt);
 	}
 
-	// 終わったら使用終わるをセットする
-	owner->Deactivate();
+	// 終わったら使用終わるをセットする（帧末 Flush 再 Deactivate）
+	owner->RequestDisable();
 }

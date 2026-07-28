@@ -400,6 +400,9 @@
     <ClCompile Include="Character.cpp">
       <Filter>Object\Character</Filter>
     </ClCompile>
+    <ClCompile Include="DeferredDisableQueue.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
     <ClCompile Include="EnemyManager.cpp">
       <Filter>Object\Managers</Filter>
     </ClCompile>
@@ -799,6 +802,9 @@
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="IComponent.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredDisableQueue.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="VisualComponent.h">

@@ -62,7 +62,7 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	for (int i = 0;i < 30;i++)
 	{
-		ObjectCodex::Acquire<Ball>(attack_Ball, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
+		ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
 	}
 	for (int i = 0;i < 30;i++)
 	{
@@ -87,7 +87,7 @@ void AttackManager::Update(float dt)
 			Normalize3(dirNorm);
 			
 			// 生成子弹，设置位置和速度方向
-			Ball* pBall = ObjectCodex::Acquire<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
+			Ball* pBall = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
 			if (pBall)
 			{
 				attacks.push_back(pBall);

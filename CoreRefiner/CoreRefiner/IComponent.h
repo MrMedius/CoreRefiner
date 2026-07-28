@@ -17,6 +17,10 @@ public:
 	virtual ~IComponent() = default;
 
 	virtual void OnEnable() {}
+	/**
+	 * @brief Called when host Deactivate runs.
+	 * @note Stop logic / clear transient state only — do not free pooled GPU resources (Drawable etc.).
+	 */
 	virtual void OnDisable() {}
 	virtual void Update(float dt) { (void)dt; }
 	virtual void Submit() {}

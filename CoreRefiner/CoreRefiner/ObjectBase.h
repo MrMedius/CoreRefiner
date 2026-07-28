@@ -6,6 +6,7 @@
 #include <vector>
 #include "Transformation.h"
 #include "IComponent.h"
+#include "DeferredDisableQueue.h"
 
 using namespace DirectX;
 
@@ -30,20 +31,61 @@ public:
 		Tag(tag)
 	{}
 	virtual void OnEnable(void) = 0;
-	virtual void Update(float dt) = 0;
-	virtual void Submit(void) = 0;
+	/**
+	 * @brief Host-driven update: derived gameplay should call ObjectBase::Update at the end.
+	 * @note Default drives attached components (Visual/Collider sync, etc.).
+	 */
+	virtual void Update(float dt)
+	{
+		UpdateComponents(dt);
+	}
+	/**
+	 * @brief Host-driven submit: derived should call ObjectBase::Submit at the end.
+	 * @note Default submits attached components (Drawable / debug wire).
+	 */
+	virtual void Submit(void)
+	{
+		SubmitComponents();
+	}
 	Object_Type_Tag GetTag(void) const		{ return Tag; }
-	bool IsActive(void) const				{ return IsUse; }
+	/**
+	 * @brief True when in use and not marked for deferred disable.
+	 */
+	bool IsActive(void) const				{ return IsUse && !pendingDisable_; }
 	void Activate()
 	{
+		DeferredDisableQueue::Get().Remove(this);
+		pendingDisable_ = false;
 		IsUse = true;
 		OnEnable();
 		EnableComponents();
 	}
+	/**
+	 * @brief Immediate disable: OnDisable components, clear active flags, drop from defer queue.
+	 * @note Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
+	 */
 	void Deactivate()
 	{
+		DeferredDisableQueue::Get().Remove(this);
+		if (!IsUse && !pendingDisable_)
+		{
+			return;
+		}
 		DisableComponents();
 		IsUse = false;
+		pendingDisable_ = false;
+	}
+	/**
+	 * @brief Mark inactive for queries and queue Deactivate at frame end (SetDestroy equivalent).
+	 */
+	void RequestDisable()
+	{
+		if (!IsUse || pendingDisable_)
+		{
+			return;
+		}
+		pendingDisable_ = true;
+		DeferredDisableQueue::Get().Enqueue(this);
 	}
 	XMFLOAT3 GetPosition(void) const		{ return transform_.GetPosition(); }
 	/** @brief Raw stored rotation (gameplay may keep degrees). */
@@ -65,7 +107,7 @@ public:
 		auto component = std::make_unique<T>(this, std::forward<Args>(args)...);
 		T* raw = component.get();
 		components_.push_back(std::move(component));
-		if (IsUse)
+		if (IsUse && !pendingDisable_)
 		{
 			raw->OnEnable();
 		}
@@ -101,6 +143,14 @@ public:
 		}
 		return nullptr;
 	}
+	/**
+	 * @brief Whether a component of type T is attached.
+	 */
+	template <typename T>
+	bool HasComponent() const noexcept
+	{
+		return GetComponent<T>() != nullptr;
+	}
 protected:
 	void Transform(float X, float Y, float Z)	{ transform_.Translate(X, Y, Z); }
 	void SetPosition(XMFLOAT3 position)			{ transform_.SetPosition(position); }
@@ -109,7 +159,10 @@ protected:
 	void Scale(float X, float Y, float Z)		{ transform_.AddScale(X, Y, Z); }
 	void SetSize(XMFLOAT3 size)					{ transform_.SetScale(size); }
 
-	/** @brief Drive attached components (not auto-called from Update yet). */
+	/**
+	 * @brief Drive attached component Update (used by ObjectBase::Update).
+	 * @note Prefer ending derived Update with ObjectBase::Update(dt) rather than calling this directly.
+	 */
 	void UpdateComponents(float dt)
 	{
 		for (auto& c : components_)
@@ -117,7 +170,10 @@ protected:
 			c->Update(dt);
 		}
 	}
-	/** @brief Drive attached component submit (not auto-called from Submit yet). */
+	/**
+	 * @brief Drive attached component Submit (used by ObjectBase::Submit).
+	 * @note Prefer ending derived Submit with ObjectBase::Submit() rather than calling this directly.
+	 */
 	void SubmitComponents()
 	{
 		for (auto& c : components_)
@@ -141,6 +197,8 @@ protected:
 	}
 protected:
 	bool IsUse{ true };
+	/** @brief Queued for frame-end Deactivate; IsActive is false while set. */
+	bool pendingDisable_{ false };
 	
 	Object_Type_Tag Tag{ Item_Type_None };
 

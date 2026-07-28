@@ -25,6 +25,7 @@ private:
 		SCENE_TITLE,
 		SCENE_GAME,
 		SCENE_RESULT,
+		SCENE_COUNT
 	}Scene{ SCENE_GAME };
 public:
 	Game(const std::string& commandLine = "");
@@ -33,7 +34,12 @@ public:
 private:
 	void Update(float dt);
 	void Draw(void);
-	void SetScene(SCENE scene) { Scene = scene; }
+	/**
+	 * @brief Switch scene with leave/enter discipline (does nothing if same scene).
+	 */
+	void SetScene(SCENE scene);
+	void LeaveScene(SCENE scene);
+	void EnterScene(SCENE scene);
 	/********************************/
 	/*         Game Related         */
 	/********************************/

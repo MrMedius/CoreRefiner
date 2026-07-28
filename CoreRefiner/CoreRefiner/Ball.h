@@ -46,22 +46,22 @@ class Ball : public Attack
 		lastTime = 0.0f;
 
 		// sync pooled visual + collider without re-adding components
-		UpdateComponents(0.0f);
+		ObjectBase::Update(0.0f);
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override
 	{
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
-		UpdateComponents(dt);
+		ObjectBase::Update(dt);
 	}
 	void Submit(void) override
 	{
-		SubmitComponents();
+		ObjectBase::Submit();
 	}
 	void OnCollide(Character* other) override
 	{
-		Deactivate();
+		RequestDisable();
 
 		SetMoveAccel({0.0f, 0.0f, 0.0f});
 		MoveVelocity = { 0.0f,0.0f,0.0f };

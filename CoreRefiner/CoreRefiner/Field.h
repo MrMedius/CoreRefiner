@@ -36,11 +36,11 @@ public:
 	void OnEnable(void) override {}
 	void Update(float dt) override
 	{
-		UpdateComponents(dt);
+		ObjectBase::Update(dt);
 	}
 	void Submit(void) override
 	{
-		SubmitComponents();
+		ObjectBase::Submit();
 	}
 	void OnCollide(Character* other) override {}
 private:

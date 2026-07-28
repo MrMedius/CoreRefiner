@@ -30,6 +30,10 @@ public:
 	~VisualComponent() override;
 
 	void OnEnable() override;
+	/**
+	 * @brief No-op: Drawable stays owned for pool reuse.
+	 */
+	void OnDisable() override {}
 	void Update(float dt) override;
 	void Submit() override;
 

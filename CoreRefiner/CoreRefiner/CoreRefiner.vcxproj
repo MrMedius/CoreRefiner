@@ -207,6 +207,7 @@
     <ClCompile Include="Canvas3D.cpp" />
     <ClCompile Include="CanvasTexture.cpp" />
     <ClCompile Include="Character.cpp" />
+    <ClCompile Include="DeferredDisableQueue.cpp" />
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="ComRuntime.cpp" />
     <ClCompile Include="DWriteCustomFontCollection.cpp" />
@@ -424,6 +425,7 @@
     <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="IComponent.h" />
+    <ClInclude Include="DeferredDisableQueue.h" />
     <ClInclude Include="VisualComponent.h" />
     <ClInclude Include="ColliderComponent.h" />
     <ClInclude Include="ObjectBase.h" />

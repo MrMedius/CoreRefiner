@@ -46,7 +46,7 @@ void Player::Update(float dt)
 	}
 	MapItemCollide();
 
-	UpdateComponents(dt);
+	ObjectBase::Update(dt);
 }
 
 void Player::Submit(void)
@@ -55,7 +55,7 @@ void Player::Submit(void)
 	{
 		pCollider_->SetDebugDraw(!IsDeath);
 	}
-	SubmitComponents();
+	ObjectBase::Submit();
 }
 
 void Player::DoMove(float ratio)

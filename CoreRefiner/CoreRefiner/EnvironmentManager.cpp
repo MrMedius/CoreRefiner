@@ -14,7 +14,7 @@ EnvironmentManager::EnvironmentManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	// Environments Game
 	{
 		// Field
-		eG.push_back(ObjectCodex::Acquire<Field>(environment_Field, gfx, rg, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 100.0f, 4.0f, 100.0f }, true));
+		eG.push_back(ObjectCodex::AcquirePersistent<Field>(environment_Field, gfx, rg, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 100.0f, 4.0f, 100.0f }, true));
 	}
 	for (int i = 0;i < eG.size();i++) 
 		eG[i]->Activate();
@@ -41,4 +41,15 @@ void EnvironmentManager::Reset(void)
 	for (int i = 0;i < eG.size();i++) eG[i]->Deactivate();
 	isLearnt = false;
 	isTutorial = true;
+}
+
+void EnvironmentManager::EnterGame(void)
+{
+	for (int i = 0; i < eG.size(); i++)
+	{
+		if (eG[i] != nullptr)
+		{
+			eG[i]->Activate();
+		}
+	}
 }

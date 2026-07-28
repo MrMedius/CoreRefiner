@@ -17,7 +17,7 @@ EnemyManager::EnemyManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	for (int i = 0;i < 10;i++)
 	{
-		ObjectCodex::Acquire<Enemy_T>(character_Enemy_T, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
+		ObjectCodex::SpawnPooled<Enemy_T>(character_Enemy_T, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
 	}
 	for (int i = 0;i < 10;i++)
 	{
@@ -45,7 +45,7 @@ void EnemyManager::Update(float dt)
 
 
 	// 新しEnemyTestを生成する
-	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::Acquire<Enemy_T>(character_Enemy_T, gfx, rg, pos));	  Created = true; }
+	if (InputCodex::Get().KeyTriggered(KK_NUMPAD1) || type == 1) { enemies.push_back(ObjectCodex::SpawnPooled<Enemy_T>(character_Enemy_T, gfx, rg, pos));	  Created = true; }
 	if (Created)
 	{
 		Created = false;

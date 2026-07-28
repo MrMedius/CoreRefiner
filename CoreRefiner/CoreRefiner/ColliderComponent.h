@@ -51,6 +51,10 @@ public:
 	~ColliderComponent() override;
 
 	void OnEnable() override;
+	/**
+	 * @brief No-op: volume + debug wire stay owned for pool reuse.
+	 */
+	void OnDisable() override {}
 	void Update(float dt) override;
 	void Submit() override;
 
