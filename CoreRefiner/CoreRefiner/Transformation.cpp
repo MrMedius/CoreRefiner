@@ -105,6 +105,11 @@ dx::XMMATRIX Transformation::GetTransformXM() const noexcept
 		dx::XMMatrixTranslation(position.x, position.y, position.z);
 }
 
+dx::XMMATRIX Transformation::GetLocalMatrix() const noexcept
+{
+	return GetTransformXM();
+}
+
 dx::XMFLOAT3 Transformation::GetPosition() const noexcept
 {
 	return info.position;

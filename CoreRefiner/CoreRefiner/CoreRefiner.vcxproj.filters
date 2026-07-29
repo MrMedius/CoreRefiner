@@ -565,6 +565,9 @@
     <ClCompile Include="Transformation.cpp">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClCompile>
+    <ClCompile Include="ObjectBase.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
     <ClCompile Include="Collision.cpp">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClCompile>
@@ -825,6 +828,9 @@
     <ClInclude Include="ObjectCodex.h">
       <Filter>Object</Filter>
     </ClInclude>
+    <ClInclude Include="HierarchySpawn.h">
+      <Filter>Object</Filter>
+    </ClInclude>
     <ClInclude Include="Character.h">
       <Filter>Object\Character</Filter>
     </ClInclude>
@@ -1003,6 +1009,12 @@
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="Ball.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="OrbitCore.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="Orbiter.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
     <ClInclude Include="Player_Shape.h">

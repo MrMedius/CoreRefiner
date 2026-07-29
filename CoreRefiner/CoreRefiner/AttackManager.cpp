@@ -1,11 +1,26 @@
 #include "AttackManager.h"
 #include "ObjectCodex.h"
+#include "HierarchySpawn.h"
 
 #include "InputCodex.h"
 #include "Math.h"
 
 #include "Ball.h"
+#include "OrbitCore.h"
+#include "Orbiter.h"
 
+#include <cstddef>
+#include <tuple>
+
+namespace
+{
+	constexpr int kBallWarmup = 30;
+	constexpr int kOrbitCoreWarmup = 8;
+	constexpr int kOrbiterWarmup = 32;
+	constexpr std::size_t kOrbitChildCount = 4;
+	constexpr float kOrbitRadius = 2.0f;
+	constexpr float kOrbitAngularSpeed = 3.5f;
+}
 
 bool ScreenToWorldXZ(Graphics& gfx, float sx, float sy, float targetY,	XMFLOAT3& outWorld)
 {
@@ -60,14 +75,12 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	pPlayer = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
 
-	for (int i = 0;i < 30;i++)
-	{
-		ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
-	}
-	for (int i = 0;i < 30;i++)
-	{
-		ObjectCodex::FindFirstActiveObjectByTag<Ball>(attack_Ball)->Deactivate();
-	}
+	HierarchySpawn::WarmupPool<Ball>(
+		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
+	HierarchySpawn::WarmupPool<OrbitCore>(
+		attack_OrbitCore, kOrbitCoreWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
+	HierarchySpawn::WarmupPool<Orbiter>(
+		attack_Orbiter, kOrbiterWarmup, gfx, rg);
 }
 
 void AttackManager::Update(float dt)
@@ -78,21 +91,45 @@ void AttackManager::Update(float dt)
 		auto pos = pPlayer->GetPosition();
 		auto mouse = InputCodex::Get().MousePos();
 		XMFLOAT3 worldXZ;
-		
+
 		// 获取鼠标指向的世界坐标（在玩家Y高度的平面上）
 		if (ScreenToWorldXZ(gfx, (float)mouse.first, (float)mouse.second, pos.y, worldXZ))
 		{
 			// 计算方向向量（从玩家到鼠标指向点）
 			XMFLOAT3 dirNorm = { worldXZ.x - pos.x, 0.0f, worldXZ.z - pos.z };
 			Normalize3(dirNorm);
-			
-			// 生成子弹，设置位置和速度方向
-			Ball* pBall = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
-			if (pBall)
+			const XMFLOAT3 vel{ dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
+
+			// Ctrl + attack：池化 OrbitCore + Orbiter 薄演示；否则普通 Ball
+			if (InputCodex::Get().KeyPressed(VK_CONTROL))
 			{
-				attacks.push_back(pBall);
-				pBall->SpawnAt(pos, { dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f });
-				playerRemote++;
+				auto bundle = HierarchySpawn::AssembleParentChildren<OrbitCore, Orbiter>(
+					attack_OrbitCore,
+					attack_Orbiter,
+					kOrbitChildCount,
+					[](Orbiter* child, std::size_t index)
+					{
+						child->ConfigureOrbit(index, kOrbitChildCount, kOrbitRadius, kOrbitAngularSpeed);
+					},
+					std::forward_as_tuple(gfx, rg),
+					gfx, rg, pos, worldXZ);
+
+				if (bundle.parent != nullptr)
+				{
+					attacks.push_back(bundle.parent);
+					bundle.parent->SpawnAt(pos, vel);
+					playerRemote++;
+				}
+			}
+			else
+			{
+				Ball* pBall = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
+				if (pBall)
+				{
+					attacks.push_back(pBall);
+					pBall->SpawnAt(pos, vel);
+					playerRemote++;
+				}
 			}
 		}
 	}

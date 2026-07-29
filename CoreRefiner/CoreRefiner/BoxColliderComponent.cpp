@@ -74,11 +74,15 @@ void BoxColliderComponent::SyncFromOwner()
 		box_.axisY = owner->GetRotation();
 		break;
 	case ColliderSyncMode::FromWorldMatrix:
+	{
+		DirectX::XMFLOAT4X4 world{};
+		DirectX::XMStoreFloat4x4(&world, owner->GetWorldMatrix());
 		box_ = Collider3D::BoxCollider::BuildFromWorldMatrix(
-			owner->GetTransform().GetInfo().GetWorldMatrix(),
+			world,
 			worldMatrixLocalHalf_);
 		box_.center = Add3(box_.center, centerOffset_);
 		break;
+	}
 	}
 }
 

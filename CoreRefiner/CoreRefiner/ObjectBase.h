@@ -15,6 +15,8 @@ enum Object_Type_Tag
 	Item_Type_None		= 0x000,
 	// Attack
 	attack_Ball			= 0x101,
+	attack_OrbitCore	= 0x102,
+	attack_Orbiter		= 0x103,
 	// Character
 	character_Player	= 0x999,
 	character_Enemy_T	= 0x011,
@@ -23,6 +25,11 @@ enum Object_Type_Tag
 	// Effect
 };
 
+/**
+ * @brief Gameplay host with local Transform and optional Unity-style parent hierarchy.
+ * @note transform_ stores Local TRS. With no parent, Local ≡ World.
+ *       GetPosition/GetRotation/GetSize read local storage; use GetWorld* for rendered/collision space.
+ */
 class ObjectBase
 {
 public:
@@ -30,6 +37,8 @@ public:
 		:
 		Tag(tag)
 	{}
+	virtual ~ObjectBase();
+
 	virtual void OnEnable(void) = 0;
 	/**
 	 * @brief Host-driven update: derived gameplay should call ObjectBase::Update at the end.
@@ -52,48 +61,51 @@ public:
 	 * @brief True when in use and not marked for deferred disable.
 	 */
 	bool IsActive(void) const				{ return IsUse && !pendingDisable_; }
-	void Activate()
-	{
-		DeferredDisableQueue::Get().Remove(this);
-		pendingDisable_ = false;
-		IsUse = true;
-		OnEnable();
-		EnableComponents();
-	}
+	void Activate();
 	/**
-	 * @brief Immediate disable: OnDisable components, clear active flags, drop from defer queue.
+	 * @brief Immediate disable: cascade children, detach hierarchy, OnDisable components.
 	 * @note Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
 	 */
-	void Deactivate()
-	{
-		DeferredDisableQueue::Get().Remove(this);
-		if (!IsUse && !pendingDisable_)
-		{
-			return;
-		}
-		DisableComponents();
-		IsUse = false;
-		pendingDisable_ = false;
-	}
+	void Deactivate();
 	/**
-	 * @brief Mark inactive for queries and queue Deactivate at frame end (SetDestroy equivalent).
+	 * @brief Mark inactive for queries, cascade RequestDisable to children, queue Deactivate at frame end.
 	 */
-	void RequestDisable()
-	{
-		if (!IsUse || pendingDisable_)
-		{
-			return;
-		}
-		pendingDisable_ = true;
-		DeferredDisableQueue::Get().Enqueue(this);
-	}
+	void RequestDisable();
+
+	/**
+	 * @brief Local position (≈ Unity localPosition; ≡ world when unparented).
+	 */
 	XMFLOAT3 GetPosition(void) const		{ return transform_.GetPosition(); }
-	/** @brief Raw stored rotation (gameplay may keep degrees). */
+	/** @brief Raw stored local rotation (gameplay may keep degrees). */
 	XMFLOAT3 GetRotation(void) const		{ return transform_.GetRotationRaw(); }
 	XMFLOAT3 GetSize(void) const			{ return transform_.GetScale(); }
-	/** @brief Host transform (single source of truth). */
+	/** @brief Host local transform (single source of truth for local TRS). */
 	Transformation& GetTransform() noexcept { return transform_; }
 	const Transformation& GetTransform() const noexcept { return transform_; }
+
+	/**
+	 * @brief Local S*R*T matrix.
+	 */
+	[[nodiscard]] DirectX::XMMATRIX GetLocalMatrix() const noexcept;
+	/**
+	 * @brief World matrix: local * parent->GetWorldMatrix() (row-vector, GM31/Unity-style).
+	 */
+	[[nodiscard]] DirectX::XMMATRIX GetWorldMatrix() const noexcept;
+	/**
+	 * @brief World-space translation extracted from GetWorldMatrix().
+	 */
+	[[nodiscard]] DirectX::XMFLOAT3 GetWorldPosition() const noexcept;
+
+	/**
+	 * @brief Attach to parent; keeps local TRS (no worldPositionStays).
+	 * @param parent New parent, or nullptr to clear.
+	 */
+	void SetParent(ObjectBase* parent);
+	/** @brief Detach from current parent (safe if already root). */
+	void ClearParent();
+	[[nodiscard]] ObjectBase* GetParent() const noexcept { return parent_; }
+	[[nodiscard]] size_t GetChildCount() const noexcept { return children_.size(); }
+	[[nodiscard]] ObjectBase* GetChild(size_t index) const noexcept;
 
 	/**
 	 * @brief Attach a component owned by this host.
@@ -202,9 +214,21 @@ protected:
 	
 	Object_Type_Tag Tag{ Item_Type_None };
 
-	/** @brief Owned transform storage (single source of truth for gameplay). */
+	/** @brief Local TRS (≡ world when parent_ is null). */
 	Transformation transform_;
 
 	/** @brief Owned gameplay components. */
 	std::vector<std::unique_ptr<IComponent>> components_;
+
+private:
+	/**
+	 * @brief True if `ancestor` appears on the parent chain starting at `node` (inclusive).
+	 */
+	[[nodiscard]] static bool IsAncestorOf(const ObjectBase* ancestor, const ObjectBase* node) noexcept;
+	void DetachFromParentOnly_() noexcept;
+	void DetachAllChildren_() noexcept;
+
+	ObjectBase* parent_{ nullptr };
+	/** @brief Non-owning; instances remain owned by ObjectCodex. */
+	std::vector<ObjectBase*> children_;
 };

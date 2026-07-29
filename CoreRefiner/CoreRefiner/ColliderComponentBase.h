@@ -78,7 +78,7 @@ public:
 	[[nodiscard]] bool IsEnabled() const noexcept { return enabled_; }
 
 	/**
-	 * @brief World-space offset added to host position when syncing the volume center.
+	 * @brief Offset added to GetWorldPosition() when syncing the volume center.
 	 */
 	void SetCenterOffset(DirectX::XMFLOAT3 offset) noexcept;
 	[[nodiscard]] DirectX::XMFLOAT3 GetCenterOffset() const noexcept { return centerOffset_; }
@@ -87,7 +87,7 @@ public:
 	[[nodiscard]] bool GetDebugDraw() const noexcept { return debugDraw_; }
 
 protected:
-	/** @brief Host position + centerOffset_ (world space). */
+	/** @brief GetWorldPosition() + centerOffset_. */
 	[[nodiscard]] DirectX::XMFLOAT3 ResolveSyncCenter(const ObjectBase& owner) const noexcept;
 
 	ColliderSyncMode syncMode_{ ColliderSyncMode::FollowCenter };

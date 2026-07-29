@@ -68,7 +68,7 @@ public:
 
 		// parameters init
 		SetPosition(position);
-		SetSize({ 5.0f, 5.0f, 0.0f });
+		SetSize({ 3.0f, 3.0f, 3.0f });
 		SetHpMax(30.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.035f);
@@ -76,12 +76,12 @@ public:
 
 		// graphics init — VisualComponent owns each Drawable (shape scale independent; syncScale=false)
 		{
-			auto head = std::make_unique<Player_Head>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
+			auto head = std::make_unique<Player_Head>(gfx, GetSize());
 			head->LinkTechniques(rg);
 			AddComponent<VisualComponent>(std::move(head), Chan::main, false, false);
 		}
 		{
-			auto body = std::make_unique<Player_Body>(gfx, XMFLOAT3{ 3.0f, 3.0f, 3.0f });
+			auto body = std::make_unique<Player_Body>(gfx, GetSize());
 			body->LinkTechniques(rg);
 			AddComponent<VisualComponent>(std::move(body), Chan::main, false, false);
 		}

@@ -10,8 +10,9 @@ struct TransInfo
 	DirectX::XMFLOAT3 scale{ 1,1,1 };
 
 	/**
-	 * @brief Build S*R*T world matrix.
+	 * @brief Build S*R*T matrix from stored TRS (local space when used under a parent).
 	 * @note `rotation` is interpreted as radians by XMMatrixRotationRollPitchYaw.
+	 * @note Name kept for callers; hierarchical world is ObjectBase::GetWorldMatrix().
 	 */
 	inline DirectX::XMFLOAT4X4 GetWorldMatrix() const
 	{
@@ -58,6 +59,10 @@ public:
 	void AddScale(float x, float y, float z) noexcept;
 
 	DirectX::XMMATRIX GetTransformXM() const noexcept;
+	/**
+	 * @brief Local S*R*T matrix (same as GetTransformXM; name clarifies hierarchy use).
+	 */
+	DirectX::XMMATRIX GetLocalMatrix() const noexcept;
 	DirectX::XMFLOAT3 GetPosition() const noexcept;
 	/** @brief Wrapped radian-oriented read (render helpers). */
 	DirectX::XMFLOAT3 GetRotation() const noexcept;

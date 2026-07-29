@@ -268,6 +268,7 @@
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Transform2DCbuf.cpp" />
     <ClCompile Include="Transformation.cpp" />
+    <ClCompile Include="ObjectBase.cpp" />
     <ClCompile Include="UiButton.cpp" />
     <ClCompile Include="UiTextField.cpp" />
     <ClCompile Include="TextFieldCanvasComponent.cpp" />
@@ -341,6 +342,8 @@
     <ClInclude Include="Attack.h" />
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
+    <ClInclude Include="OrbitCore.h" />
+    <ClInclude Include="Orbiter.h" />
     <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
@@ -440,6 +443,7 @@
     <ClInclude Include="CapsuleColliderComponent.h" />
     <ClInclude Include="ObjectBase.h" />
     <ClInclude Include="ObjectCodex.h" />
+    <ClInclude Include="HierarchySpawn.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Pyramid.h" />
     <ClInclude Include="RichText.h" />

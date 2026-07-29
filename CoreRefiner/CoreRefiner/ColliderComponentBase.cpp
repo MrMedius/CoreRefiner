@@ -33,7 +33,8 @@ void ColliderComponentBase::Update(float dt)
 
 DirectX::XMFLOAT3 ColliderComponentBase::ResolveSyncCenter(const ObjectBase& owner) const noexcept
 {
-	return Add3(owner.GetPosition(), centerOffset_);
+	// World center so parented volumes follow the hierarchy (Local ≡ World when unparented).
+	return Add3(owner.GetWorldPosition(), centerOffset_);
 }
 
 void ColliderComponentBase::SetCenterOffset(DirectX::XMFLOAT3 offset) noexcept
