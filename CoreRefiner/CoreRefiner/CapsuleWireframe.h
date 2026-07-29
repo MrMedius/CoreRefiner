@@ -1,13 +1,12 @@
 #pragma once
 #include "Drawable.h"
-#include "SphereWireframe.h"
 #include <DirectXMath.h>
 #include <memory>
 #include <string>
 
 /**
- * @brief Debug capsule gizmo: sphere ends (uniform scale) + cylinder rails (non-uniform).
- * @note Ends cannot share one non-uniform matrix with the cylinder or hemispheres stretch.
+ * @brief Debug capsule gizmo: outer hemispheres (uniform scale) + cylinder rails (non-uniform).
+ * @note Only the collision surface is drawn — no inner half-sphere inside the capsule.
  */
 class CapsuleWireframe
 {
@@ -19,6 +18,32 @@ public:
 	void DoSubmit(DirectX::XMFLOAT3 pointA, DirectX::XMFLOAT3 pointB, float radius);
 
 private:
+	/**
+	 * @brief Outer hemisphere wire: unit mesh radius 0.5, dome toward local +Y.
+	 * @note Uniform scale only — avoids stretching that a shared non-uniform matrix would cause.
+	 */
+	class HemisphereWire : public Drawable
+	{
+	public:
+		HemisphereWire(Graphics& gfx, DirectX::XMFLOAT3 color, std::string tag);
+		/**
+		 * @brief Place hemisphere at center; local +Y aligns with outwardAxis (away from other end).
+		 */
+		void DoSubmit(DirectX::XMFLOAT3 center, DirectX::XMFLOAT3 outwardAxis, float radius);
+		DirectX::XMMATRIX GetTransformXM() const noexcept override;
+	private:
+		struct PSColorConstant
+		{
+			DirectX::XMFLOAT3 color;
+			float padding;
+		};
+		DirectX::XMFLOAT3 center_{};
+		DirectX::XMFLOAT3 axisX_{ 1, 0, 0 };
+		DirectX::XMFLOAT3 axisY_{ 0, 1, 0 };
+		DirectX::XMFLOAT3 axisZ_{ 0, 0, 1 };
+		float scale_{ 1.0f };
+	};
+
 	/** @brief Two end rings + four rails; unit mesh radius 0.5, segment length 1. */
 	class CylinderWire : public Drawable
 	{
@@ -40,7 +65,7 @@ private:
 		float scaleY_{ 1.0f };
 	};
 
-	SphereWireframe endA_;
-	SphereWireframe endB_;
+	std::unique_ptr<HemisphereWire> endA_;
+	std::unique_ptr<HemisphereWire> endB_;
 	std::unique_ptr<CylinderWire> cylinder_;
 };

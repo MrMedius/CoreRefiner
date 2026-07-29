@@ -2,7 +2,7 @@
 #include "Enemy.h"
 #include "Enemy_T_Shape.h"
 #include "VisualComponent.h"
-#include "ColliderComponent.h"
+#include "BoxColliderComponent.h"
 #include "Channels.h"
 
 class Enemy_T_ChaseState;
@@ -33,9 +33,8 @@ public:
 				std::move(shape), Chan::main | Chan::shadow, true);
 		}
 
-		// collision: register Box then write size
-		pCollider_ = AddComponent<ColliderComponent>(
-			Collider3D::CollideType::Box,
+		// collision: Box + yaw axis sync
+		pCollider_ = AddComponent<BoxColliderComponent>(
 			ColliderSyncMode::FollowCenterAxisYFromRotation);
 		pCollider_->SetCollisionSize(GetSize());
 		pCollider_->SetEnabled(true);
@@ -74,7 +73,7 @@ private:
 private:
 	std::unique_ptr<StateMachine<Enemy_T>> FSM;
 	VisualComponent* pVisual_{ nullptr };
-	ColliderComponent* pCollider_{ nullptr };
+	BoxColliderComponent* pCollider_{ nullptr };
 };
 
 

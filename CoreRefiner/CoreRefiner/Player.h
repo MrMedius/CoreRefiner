@@ -5,7 +5,7 @@
 #include "CameraContainer.h"
 #include "Player_Shape.h"
 #include "VisualComponent.h"
-#include "ColliderComponent.h"
+#include "CapsuleColliderComponent.h"
 #include "Channels.h"
 
 // プレイヤー状態のID
@@ -86,10 +86,10 @@ public:
 			AddComponent<VisualComponent>(std::move(body), Chan::main, false, false);
 		}
 
-		pCollider_ = AddComponent<ColliderComponent>(
-			Collider3D::CollideType::Capsule,
+		pCollider_ = AddComponent<CapsuleColliderComponent>(
+			PlayerCapsuleTuning::kRadius,
+			PlayerCapsuleTuning::kTotalHeight,
 			ColliderSyncMode::FollowCenter);
-		pCollider_->SetCapsule(PlayerCapsuleTuning::kRadius, PlayerCapsuleTuning::kTotalHeight);
 		pCollider_->SetCenterOffset({ 0.0f, PlayerCapsuleTuning::kCenterOffsetY, 0.0f });
 		pCollider_->SetEnabled(true);
 		pCollider_->LinkDebugWire(
@@ -145,7 +145,7 @@ protected:
 private:
 	void SetupTransitions(void) override;
 private:
-	ColliderComponent* pCollider_{ nullptr };
+	CapsuleColliderComponent* pCollider_{ nullptr };
 	Graphics& Gfx;
 	Rgph::RenderGraph& Rg;
 	CameraContainer* pCamera;

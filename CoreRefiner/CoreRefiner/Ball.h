@@ -5,7 +5,7 @@
 #include "Channels.h"
 #include "Ball_Shape.h"
 #include "VisualComponent.h"
-#include "ColliderComponent.h"
+#include "SphereColliderComponent.h"
 
 class Ball : public Attack
 {
@@ -26,11 +26,8 @@ class Ball : public Attack
 			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
 		}
 
-		pCollider_ = AddComponent<ColliderComponent>(
-			Collider3D::CollideType::Sphere,
-			ColliderSyncMode::FollowCenter);
 		// diameter 2 → radius 1 (previous box full size was 2)
-		pCollider_->SetCollisionSize({ 2.0f, 2.0f, 2.0f });
+		pCollider_ = AddComponent<SphereColliderComponent>(1.0f, ColliderSyncMode::FollowCenter);
 		pCollider_->SetEnabled(true);
 		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(0.0f, 1.0f, 0.0f), "wireSphere");
 	}
@@ -89,5 +86,5 @@ class Ball : public Attack
 		}
 	}
 private:
-	ColliderComponent* pCollider_{ nullptr };
+	SphereColliderComponent* pCollider_{ nullptr };
 };

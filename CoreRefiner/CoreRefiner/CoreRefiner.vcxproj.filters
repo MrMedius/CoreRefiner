@@ -182,6 +182,12 @@
     <Filter Include="Framework\UI\Widget\Others">
       <UniqueIdentifier>{e0698ace-a554-443f-8951-2f52e74921f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Object\Components">
+      <UniqueIdentifier>{714e1ce1-894b-4f0f-bc90-0392b8a11860}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Components\Colliders">
+      <UniqueIdentifier>{6c2da7f2-683b-4c97-8015-4d74cc3ead6d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -418,15 +424,6 @@
     <ClCompile Include="Enemy_T.cpp">
       <Filter>Object\Character\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="VisualComponent.cpp">
-      <Filter>Object</Filter>
-    </ClCompile>
-    <ClCompile Include="ColliderComponent.cpp">
-      <Filter>Object</Filter>
-    </ClCompile>
-    <ClCompile Include="Ball.cpp">
-      <Filter>Object\Attack</Filter>
-    </ClCompile>
     <ClCompile Include="Player_Shape.cpp">
       <Filter>Object\Shapes</Filter>
     </ClCompile>
@@ -622,6 +619,21 @@
     <ClCompile Include="UiUtf8EditBuffer.cpp">
       <Filter>Framework\UI\Widget\Others</Filter>
     </ClCompile>
+    <ClCompile Include="VisualComponent.cpp">
+      <Filter>Object\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="BoxColliderComponent.cpp">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="CapsuleColliderComponent.cpp">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="ColliderComponentBase.cpp">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="SphereColliderComponent.cpp">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -807,16 +819,7 @@
     <ClInclude Include="ObjectBase.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="IComponent.h">
-      <Filter>Object</Filter>
-    </ClInclude>
     <ClInclude Include="DeferredDisableQueue.h">
-      <Filter>Object</Filter>
-    </ClInclude>
-    <ClInclude Include="VisualComponent.h">
-      <Filter>Object</Filter>
-    </ClInclude>
-    <ClInclude Include="ColliderComponent.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="ObjectCodex.h">
@@ -1268,6 +1271,24 @@
     </ClInclude>
     <ClInclude Include="UiUtf8EditBuffer.h">
       <Filter>Framework\UI\Widget\Others</Filter>
+    </ClInclude>
+    <ClInclude Include="IComponent.h">
+      <Filter>Object\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualComponent.h">
+      <Filter>Object\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="BoxColliderComponent.h">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="CapsuleColliderComponent.h">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="ColliderComponentBase.h">
+      <Filter>Object\Components\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="SphereColliderComponent.h">
+      <Filter>Object\Components\Colliders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

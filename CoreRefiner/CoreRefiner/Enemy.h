@@ -1,7 +1,7 @@
 #pragma once
 #include "Character.h"
 #include "Player.h"
-#include "ColliderComponent.h"
+#include "ColliderComponentBase.h"
 #ifdef _DEBUG
 #include "CubeWireframe.h"
 #endif
@@ -77,8 +77,8 @@ public:
 	 */
 	bool AttackCollide(float damage, XMFLOAT3 repel) override
 	{
-		auto* selfCol = GetComponent<ColliderComponent>();
-		auto* targetCol = AttackTarget->GetComponent<ColliderComponent>();
+		auto* selfCol = GetComponent<ColliderComponentBase>();
+		auto* targetCol = AttackTarget->GetComponent<ColliderComponentBase>();
 		if (selfCol == nullptr || targetCol == nullptr || !targetCol->IsEnabled())
 		{
 			return false;
@@ -127,7 +127,7 @@ protected:
 	 */
 	bool CheckIsInArea(void)
 	{
-		auto* targetCol = AttackTarget->GetComponent<ColliderComponent>();
+		auto* targetCol = AttackTarget->GetComponent<ColliderComponentBase>();
 		if (targetCol == nullptr)
 		{
 			return IsInArea = false;

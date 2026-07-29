@@ -216,7 +216,10 @@
     <ClCompile Include="DynamicVertexBuffer.cpp" />
     <ClCompile Include="Enemy_T.cpp" />
     <ClCompile Include="VisualComponent.cpp" />
-    <ClCompile Include="ColliderComponent.cpp" />
+    <ClCompile Include="ColliderComponentBase.cpp" />
+    <ClCompile Include="BoxColliderComponent.cpp" />
+    <ClCompile Include="SphereColliderComponent.cpp" />
+    <ClCompile Include="CapsuleColliderComponent.cpp" />
     <ClCompile Include="CubeWireframe.cpp" />
     <ClCompile Include="SphereWireframe.cpp" />
     <ClCompile Include="CapsuleWireframe.cpp" />
@@ -431,7 +434,10 @@
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="DeferredDisableQueue.h" />
     <ClInclude Include="VisualComponent.h" />
-    <ClInclude Include="ColliderComponent.h" />
+    <ClInclude Include="ColliderComponentBase.h" />
+    <ClInclude Include="BoxColliderComponent.h" />
+    <ClInclude Include="SphereColliderComponent.h" />
+    <ClInclude Include="CapsuleColliderComponent.h" />
     <ClInclude Include="ObjectBase.h" />
     <ClInclude Include="ObjectCodex.h" />
     <ClInclude Include="Player.h" />

@@ -6,7 +6,7 @@
 #include "Attack.h"
 #include "ObjectCodex.h"
 #include "Collision.h"
-#include "ColliderComponent.h"
+#include "ColliderComponentBase.h"
 
 /**
  * @brief Default Box AABB resolve for Environment / Character / Attack queries.
@@ -14,7 +14,7 @@
  */
 void Character::MapItemCollide(void)
 {
-	auto* selfCol = GetComponent<ColliderComponent>();
+	auto* selfCol = GetComponent<ColliderComponentBase>();
 	if (selfCol == nullptr || !selfCol->IsEnabled())
 	{
 		return;
@@ -78,7 +78,7 @@ void Character::MapItemCollide(void)
 	// ループでコリジョン判断
 	for (auto e : mapEnvironment)
 	{
-		auto* eCol = e->GetComponent<ColliderComponent>();
+		auto* eCol = e->GetComponent<ColliderComponentBase>();
 		if (eCol == nullptr || !eCol->IsEnabled()) continue;
 
 		bool isCollide = CollisionSystem::IsOverlap(selfCol->GetVolume(), eCol->GetVolume());
@@ -170,7 +170,7 @@ void Character::MapItemCollide(void)
 	// ループでコリジョン判断
 	for (auto c : mapCharacters)
 	{
-		auto* cCol = c->GetComponent<ColliderComponent>();
+		auto* cCol = c->GetComponent<ColliderComponentBase>();
 		if (this == c || this->IsDeath || c->IsDeath ||
 			cCol == nullptr || !cCol->IsEnabled()) continue;
 
@@ -312,7 +312,7 @@ void Character::MapItemCollide(void)
 		// ループでコリジョン判断
 		for (auto a : mapAttack_P)
 		{
-			auto* aCol = a->GetComponent<ColliderComponent>();
+			auto* aCol = a->GetComponent<ColliderComponentBase>();
 			if (aCol == nullptr || !aCol->IsEnabled()) continue;
 
 			bool isCollide = CollisionSystem::IsOverlap(selfCol->GetVolume(), aCol->GetVolume());

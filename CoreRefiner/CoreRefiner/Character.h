@@ -16,8 +16,8 @@ public:
 		:
 		ObjectBase(tag)
 	{
-		(void)collisionSize; // set via ColliderComponent::SetCollisionSize after AddComponent
-		(void)onCollision;   // set via ColliderComponent::SetEnabled after AddComponent
+		(void)collisionSize; // set via shape collider SetCollisionSize / SetCapsule after AddComponent
+		(void)onCollision;   // set via ColliderComponentBase::SetEnabled after AddComponent
 		SetPosition(position);
 		SetSize(size);
 	}

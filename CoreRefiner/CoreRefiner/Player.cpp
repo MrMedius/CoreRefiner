@@ -3,7 +3,8 @@
 #include "Environment.h"
 #include "ObjectCodex.h"
 #include "Collision.h"
-#include "ColliderComponent.h"
+#include "ColliderComponentBase.h"
+#include "CapsuleColliderComponent.h"
 
 #include "InputCodex.h"
 #include "SoundCodex.h"
@@ -58,7 +59,7 @@ void Player::Update(float dt)
  */
 void Player::MapItemCollide(void)
 {
-	auto* selfCol = pCollider_ != nullptr ? pCollider_ : GetComponent<ColliderComponent>();
+	auto* selfCol = pCollider_ != nullptr ? pCollider_ : GetComponent<ColliderComponentBase>();
 	if (selfCol == nullptr || !selfCol->IsEnabled())
 	{
 		return;
@@ -123,7 +124,7 @@ void Player::MapItemCollide(void)
 
 	for (auto* e : mapEnvironment)
 	{
-		auto* eCol = e->GetComponent<ColliderComponent>();
+		auto* eCol = e->GetComponent<ColliderComponentBase>();
 		if (eCol == nullptr || !eCol->IsEnabled())
 		{
 			continue;
@@ -158,7 +159,7 @@ void Player::MapItemCollide(void)
 		bool probeHit = false;
 		for (auto* e : mapEnvironment)
 		{
-			auto* eCol = e->GetComponent<ColliderComponent>();
+			auto* eCol = e->GetComponent<ColliderComponentBase>();
 			if (eCol == nullptr || !eCol->IsEnabled())
 			{
 				continue;
@@ -203,7 +204,7 @@ void Player::MapItemCollide(void)
 
 	for (auto* c : mapCharacters)
 	{
-		auto* cCol = c->GetComponent<ColliderComponent>();
+		auto* cCol = c->GetComponent<ColliderComponentBase>();
 		if (this == c || this->GetIsDeath() || c->GetIsDeath() ||
 			cCol == nullptr || !cCol->IsEnabled())
 		{
@@ -421,7 +422,7 @@ void Player_AttackState::Update(Player* owner, float dt)
 void Player_HurtState::OnEnter(Player* owner)
 {
 	// anime set
-	if (auto* col = owner->GetComponent<ColliderComponent>())
+	if (auto* col = owner->GetComponent<ColliderComponentBase>())
 	{
 		col->SetEnabled(false); // コリジュンを閉じる
 	}
@@ -433,7 +434,7 @@ void Player_HurtState::OnEnter(Player* owner)
 void Player_HurtState::OnExit(Player* owner)
 {
 	owner->SetIsHurt(false); // DeathStateに遷移するかも、も一回IsHurtをリセットする
-	if (auto* col = owner->GetComponent<ColliderComponent>())
+	if (auto* col = owner->GetComponent<ColliderComponentBase>())
 	{
 		col->SetEnabled(true); // コリジュンを開ける
 	}

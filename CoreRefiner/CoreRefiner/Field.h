@@ -4,7 +4,7 @@
 #include "Field_Shape.h"
 #include "Channels.h"
 #include "VisualComponent.h"
-#include "ColliderComponent.h"
+#include "BoxColliderComponent.h"
 
 class Field : public Environment
 {
@@ -24,14 +24,13 @@ public:
 			AddComponent<VisualComponent>(std::move(shape), Chan::main | Chan::shadow, false, false);
 		}
 
-		// register Box rebuilt from world matrix each sync (do not SetCollisionSize — it would overwrite matrix half)
+		// BoxColliderComponent + FromWorldMatrix (do not SetCollisionSize — it would overwrite matrix half)
 		DirectX::XMFLOAT3 localHalf{ 0.5f, 0.5f, 0.5f };
-		pCollider_ = AddComponent<ColliderComponent>(
-			Collider3D::CollideType::Box,
+		pCollider_ = AddComponent<BoxColliderComponent>(
 			ColliderSyncMode::FromWorldMatrix,
 			localHalf);
 		pCollider_->SetEnabled(onCollision);
-		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(1.0f, 0.0f, 0.0f));
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(1.0f, 0.0f, 0.0f), "wireFieldBox");
 	}
 	void OnEnable(void) override {}
 	void Update(float dt) override
@@ -44,5 +43,5 @@ public:
 	}
 	void OnCollide(Character* other) override {}
 private:
-	ColliderComponent* pCollider_{ nullptr };
+	BoxColliderComponent* pCollider_{ nullptr };
 };
