@@ -39,7 +39,8 @@ public:
 			ColliderSyncMode::FollowCenterAxisYFromRotation);
 		pCollider_->SetCollisionSize(GetSize());
 		pCollider_->SetEnabled(true);
-		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 1.0f, 0.0f, 0.0f });
+		// Red Box wire — contrasts Player cyan Capsule / Ball green Sphere
+		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 1.0f, 0.0f, 0.0f }, "wireEnemyBox");
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Enemy_T>>(this);

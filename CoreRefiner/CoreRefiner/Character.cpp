@@ -1,5 +1,6 @@
 #include <math.h>
 #include <cassert>
+#include <algorithm>
 #include "Character.h"
 #include "Environment.h"
 #include "Attack.h"
@@ -177,18 +178,19 @@ void Character::MapItemCollide(void)
 
 		if (isCollide)
 		{
-			// Non-Box peers (e.g. Capsule Player): separate this Box host via MTV.
+			// Non-Box peers (e.g. Capsule Player): separate this Box host via MTV + skin.
 			if (cCol->GetCollideType() != Collider3D::CollideType::Box)
 			{
+				constexpr float kSkinVsNonBox = 0.02f;
 				DirectX::XMFLOAT3 n{};
 				float depth = 0.0f;
-				if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth) &&
-					depth > 0.0f)
+				if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
 				{
+					const float push = (std::max)(depth, 0.0f) + kSkinVsNonBox;
 					auto p = GetPosition();
-					p.x += n.x * depth;
-					p.y += n.y * depth;
-					p.z += n.z * depth;
+					p.x += n.x * push;
+					p.y += n.y * push;
+					p.z += n.z * push;
 					SetPosition(p);
 					selfCol->SyncFromOwner();
 					const float vn =

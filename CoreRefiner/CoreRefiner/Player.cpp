@@ -64,9 +64,7 @@ void Player::MapItemCollide(void)
 		return;
 	}
 
-	constexpr float kFloorNormalY = 0.5f;
-	constexpr float kSkin = 0.02f;
-	constexpr float kFloorProbe = 0.08f;
+	using namespace PlayerCapsuleTuning;
 
 	/**
 	 * @brief Apply depenetration along contact normal; floor contacts clear downward speed.

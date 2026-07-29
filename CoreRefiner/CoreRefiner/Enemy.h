@@ -72,6 +72,9 @@ public:
 		if (IsInAttackArea && AttackCountDown == 0) SetIsAttack(true);
 		return IsAttack;
 	}
+	/**
+	 * @brief Melee hit test against AttackTarget via shape-agnostic GetVolume (Player may be Capsule).
+	 */
 	bool AttackCollide(float damage, XMFLOAT3 repel) override
 	{
 		auto* selfCol = GetComponent<ColliderComponent>();
@@ -82,6 +85,7 @@ public:
 		}
 		if (!AttackTarget->GetIsHurt() && !AttackTarget->GetIsDeath())
 		{
+			// Do not use GetBoxCollider — target may be Capsule (Player).
 			bool isHit = CollisionSystem::IsOverlap(selfCol->GetVolume(), targetCol->GetVolume());
 
 			if (isHit)
@@ -118,6 +122,9 @@ protected:
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = { area.x / 2,area.y / 2 ,area.z / 2 }; }
 	XMFLOAT3 GetSearchArea(void) const	  { return searchCollider.half; }
+	/**
+	 * @brief Search-volume vs target GetVolume (searchCollider stays Box; target may be Capsule).
+	 */
 	bool CheckIsInArea(void)
 	{
 		auto* targetCol = AttackTarget->GetComponent<ColliderComponent>();

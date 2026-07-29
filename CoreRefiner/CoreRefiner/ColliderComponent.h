@@ -69,7 +69,7 @@ public:
 	void SetEnabled(bool enabled) noexcept { enabled_ = enabled; }
 	[[nodiscard]] bool IsEnabled() const noexcept { return enabled_; }
 
-	/** @brief Polymorphic volume for CollisionSystem::IsOverlap. */
+	/** @brief Polymorphic volume for IsOverlap / TrySeparate (preferred over GetBoxCollider). */
 	[[nodiscard]] Collider3D::Collision3D& GetVolume();
 	[[nodiscard]] const Collider3D::Collision3D& GetVolume() const;
 
@@ -87,11 +87,13 @@ public:
 
 	/**
 	 * @brief Copy of box volume; asserts if type is not Box.
+	 * @warning Box-only. For Player (Capsule) or mixed shapes, use GetVolume() with IsOverlap/TrySeparate.
 	 */
 	[[nodiscard]] Collider3D::BoxCollider GetBoxCollider() const;
 
 	/**
-	 * @brief Box half extents (or empty if not Box).
+	 * @brief Box half extents; returns {0,0,0} if type is not Box.
+	 * @warning Box AABB helpers only — do not use for Capsule/Sphere sizing queries.
 	 */
 	[[nodiscard]] DirectX::XMFLOAT3 GetCollisionSize() const noexcept;
 

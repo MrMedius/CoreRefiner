@@ -30,6 +30,29 @@ class Player_AttackState;
 class Player_HurtState;
 class Player_DeathState;
 
+/**
+ * @brief Player Capsule feel / debug knobs (tune here only; MapItemCollide reads the same values).
+ * @note Mapped from legacy Box full size {1.5, 5, 2}: radius = max(1.5,2)/2, height = 5.
+ */
+namespace PlayerCapsuleTuning
+{
+	constexpr float kRadius = 1.0f;
+	constexpr float kTotalHeight = 5.0f;
+	/** @brief World Y offset from Player::GetPosition() to capsule center. */
+	constexpr float kCenterOffsetY = 1.0f;
+	/** @brief Extra separation along contact normal (incl. exact touch) to reduce jitter. */
+	constexpr float kSkin = 0.02f;
+	/** @brief Contact normal.y above this counts as floor support. */
+	constexpr float kFloorNormalY = 0.5f;
+	/** @brief Downward probe distance to re-acquire floor after skin push. */
+	constexpr float kFloorProbe = 0.08f;
+	/** @brief Cyan debug wire — contrasts Enemy Box red / Ball Sphere green. */
+	inline constexpr float kDebugWireR = 0.0f;
+	inline constexpr float kDebugWireG = 1.0f;
+	inline constexpr float kDebugWireB = 1.0f;
+	inline constexpr const char* kDebugWireName = "wirePlayerCapsule";
+}
+
 class Player : public Character
 {
 public:
@@ -66,12 +89,17 @@ public:
 		pCollider_ = AddComponent<ColliderComponent>(
 			Collider3D::CollideType::Capsule,
 			ColliderSyncMode::FollowCenter);
-		// Was Box full size {1.5, 5, 2} → radius 1, total height 5
-		pCollider_->SetCapsule(1.0f, 5.0f);
-		// World-space offset from Player::GetPosition() to capsule center (tune Y if pivot ≠ waist)
-		pCollider_->SetCenterOffset({ 0.0f, 1.0f, 0.0f });
+		pCollider_->SetCapsule(PlayerCapsuleTuning::kRadius, PlayerCapsuleTuning::kTotalHeight);
+		pCollider_->SetCenterOffset({ 0.0f, PlayerCapsuleTuning::kCenterOffsetY, 0.0f });
 		pCollider_->SetEnabled(true);
-		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3{ 0.0f, 1.0f, 1.0f }, "wirePlayerCapsule");
+		pCollider_->LinkDebugWire(
+			gfx,
+			rg,
+			XMFLOAT3{
+				PlayerCapsuleTuning::kDebugWireR,
+				PlayerCapsuleTuning::kDebugWireG,
+				PlayerCapsuleTuning::kDebugWireB },
+			PlayerCapsuleTuning::kDebugWireName);
 
 		// FSM state init
 		FSM = std::make_unique<StateMachine<Player>>(this);
