@@ -15,8 +15,6 @@ enum Object_Type_Tag
 	Item_Type_None		= 0x000,
 	// Attack
 	attack_Ball			= 0x101,
-	attack_OrbitCore	= 0x102,
-	attack_Orbiter		= 0x103,
 	// Character
 	character_Player	= 0x999,
 	character_Enemy_T	= 0x011,
@@ -65,8 +63,9 @@ public:
 	/**
 	 * @brief Immediate disable: cascade children, detach hierarchy, OnDisable components.
 	 * @note Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
+	 *       Attack overrides to ClearModules after the base cascade.
 	 */
-	void Deactivate();
+	virtual void Deactivate();
 	/**
 	 * @brief Mark inactive for queries, cascade RequestDisable to children, queue Deactivate at frame end.
 	 */

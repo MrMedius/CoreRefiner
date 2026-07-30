@@ -14,51 +14,76 @@ class Ball : public Attack
 		:
 		Attack(tag)
 	{
-		// parameters init
 		SetPosition(position);
-		SetSize({ 1.0f,1.0f,1.0f });
 		SetMoveAccel(direction);
 
-		// graphics init — VisualComponent owns the Drawable
 		{
 			auto shape = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ 1.0f,1.0f,1.0f });
 			shape->LinkTechniques(rg);
 			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
 		}
 
-		// diameter 2 → radius 1 (previous box full size was 2)
+		// Unit scale ⇒ radius 1 (legacy: diameter 2 box).
 		pCollider_ = AddComponent<SphereColliderComponent>(1.0f, ColliderSyncMode::FollowCenter);
-		pCollider_->SetEnabled(true);
 		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(0.0f, 1.0f, 0.0f), "wireSphere");
+		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 	}
-	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
+
+	/**
+	 * @brief Sync host scale and sphere radius (pool-safe; unit scale ⇒ radius 1).
+	 * @param scale Local visual scale (uniform intended; radius = max component).
+	 * @param enableCollider Whether the sphere collider is active after apply.
+	 */
+	void ApplyPresentation(XMFLOAT3 scale, bool enableCollider = true)
 	{
-		// reset parameters
-		SetPosition(pos);
+		SetSize(scale);
 		if (pCollider_ != nullptr)
 		{
-			pCollider_->SetEnabled(true);
+			const float radius = (scale.x > scale.y)
+				? ((scale.x > scale.z) ? scale.x : scale.z)
+				: ((scale.y > scale.z) ? scale.y : scale.z);
+			pCollider_->SetRadius(radius);
+			pCollider_->SetEnabled(enableCollider);
+			pCollider_->SyncFromOwner();
 		}
+	}
+
+	/**
+	 * @brief Reset pose/motion/presentation, run Spawn modules, sync self and children.
+	 */
+	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
+	{
+		SetPosition(pos);
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
 		lastTime = 0.0f;
+		// Always restore default size/collider — pooled instances may have been orbit children.
+		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 
-		// sync pooled visual + collider without re-adding components
+		DispatchOnSpawn();
+
 		ObjectBase::Update(0.0f);
+		UpdateChildren(0.0f);
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override
 	{
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
+
+		DispatchOnUpdate(dt);
+		UpdateChildren(dt);
 		ObjectBase::Update(dt);
 	}
 	void Submit(void) override
 	{
 		ObjectBase::Submit();
+		SubmitChildren();
 	}
 	void OnCollide(Character* other) override
 	{
+		DispatchOnHit(other);
+
 		RequestDisable();
 
 		SetMoveAccel({0.0f, 0.0f, 0.0f});

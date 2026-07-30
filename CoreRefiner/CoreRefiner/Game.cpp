@@ -241,8 +241,6 @@ void Game::Draw()
 		pEnvironmentManager->Submit();
 		pPlayer->Submit();
 
-		//pTestCanvasWorld->Submit(Chan::main | Chan::shadow);
-
 		gameRG.Execute(wnd.Gfx());
 
 #ifdef _DEBUG

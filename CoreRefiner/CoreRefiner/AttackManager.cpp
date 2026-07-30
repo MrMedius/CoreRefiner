@@ -6,20 +6,19 @@
 #include "Math.h"
 
 #include "Ball.h"
-#include "OrbitCore.h"
-#include "Orbiter.h"
+#include "SpawnChildModule.h"
+#include "LifetimeModule.h"
 
 #include <cstddef>
-#include <tuple>
 
 namespace
 {
-	constexpr int kBallWarmup = 30;
-	constexpr int kOrbitCoreWarmup = 8;
-	constexpr int kOrbiterWarmup = 32;
+	/** @brief Shared attack_Ball pool (parents + orbit children). */
+	constexpr int kBallWarmup = 48;
 	constexpr std::size_t kOrbitChildCount = 4;
 	constexpr float kOrbitRadius = 2.0f;
 	constexpr float kOrbitAngularSpeed = 3.5f;
+	constexpr float kOrbitParentLife = 2.0f;
 }
 
 bool ScreenToWorldXZ(Graphics& gfx, float sx, float sy, float targetY,	XMFLOAT3& outWorld)
@@ -77,10 +76,6 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	HierarchySpawn::WarmupPool<Ball>(
 		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
-	HierarchySpawn::WarmupPool<OrbitCore>(
-		attack_OrbitCore, kOrbitCoreWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
-	HierarchySpawn::WarmupPool<Orbiter>(
-		attack_Orbiter, kOrbiterWarmup, gfx, rg);
 }
 
 void AttackManager::Update(float dt)
@@ -100,24 +95,25 @@ void AttackManager::Update(float dt)
 			Normalize3(dirNorm);
 			const XMFLOAT3 vel{ dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
 
-			// Ctrl + attack：池化 OrbitCore + Orbiter 薄演示；否则普通 Ball
+			// Ctrl + attack：Ball + 4×SpawnChild + Lifetime（可视化语义：四个子节点）
 			if (InputCodex::Get().KeyPressed(VK_CONTROL))
 			{
-				auto bundle = HierarchySpawn::AssembleParentChildren<OrbitCore, Orbiter>(
-					attack_OrbitCore,
-					attack_Orbiter,
-					kOrbitChildCount,
-					[](Orbiter* child, std::size_t index)
-					{
-						child->ConfigureOrbit(index, kOrbitChildCount, kOrbitRadius, kOrbitAngularSpeed);
-					},
-					std::forward_as_tuple(gfx, rg),
-					gfx, rg, pos, worldXZ);
-
-				if (bundle.parent != nullptr)
+				Ball* parent = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
+				if (parent != nullptr)
 				{
-					attacks.push_back(bundle.parent);
-					bundle.parent->SpawnAt(pos, vel);
+					parent->ClearModules();
+					for (std::size_t i = 0; i < kOrbitChildCount; ++i)
+					{
+						const float phase = DirectX::XM_2PI * static_cast<float>(i)
+							/ static_cast<float>(kOrbitChildCount);
+						parent->AddModule<SpawnChildModule>(
+							gfx, rg,
+							kOrbitRadius, kOrbitAngularSpeed, phase);
+					}
+					parent->AddModule<LifetimeModule>(kOrbitParentLife);
+
+					attacks.push_back(parent);
+					parent->SpawnAt(pos, vel);
 					playerRemote++;
 				}
 			}
@@ -126,6 +122,7 @@ void AttackManager::Update(float dt)
 				Ball* pBall = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
 				if (pBall)
 				{
+					pBall->ClearModules();
 					attacks.push_back(pBall);
 					pBall->SpawnAt(pos, vel);
 					playerRemote++;

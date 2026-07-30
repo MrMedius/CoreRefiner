@@ -187,6 +187,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Attack.cpp" />
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
@@ -342,9 +343,11 @@
     <ClInclude Include="Attack.h" />
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
-    <ClInclude Include="OrbitCore.h" />
-    <ClInclude Include="Orbiter.h" />
     <ClInclude Include="Ball_Shape.h" />
+    <ClInclude Include="IProjectileModule.h" />
+    <ClInclude Include="LifetimeModule.h" />
+    <ClInclude Include="OrbitLocalModule.h" />
+    <ClInclude Include="SpawnChildModule.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />

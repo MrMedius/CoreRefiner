@@ -436,6 +436,9 @@
     <ClCompile Include="AttackManager.cpp">
       <Filter>Object\Managers</Filter>
     </ClCompile>
+    <ClCompile Include="Attack.cpp">
+      <Filter>Object\Attack</Filter>
+    </ClCompile>
     <ClCompile Include="Enemy_T_Shape.cpp">
       <Filter>Object\Shapes</Filter>
     </ClCompile>
@@ -1011,10 +1014,16 @@
     <ClInclude Include="Ball.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
-    <ClInclude Include="OrbitCore.h">
+    <ClInclude Include="IProjectileModule.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
-    <ClInclude Include="Orbiter.h">
+    <ClInclude Include="OrbitLocalModule.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="LifetimeModule.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="SpawnChildModule.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
     <ClInclude Include="Player_Shape.h">

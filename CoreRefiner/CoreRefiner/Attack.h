@@ -1,6 +1,12 @@
 #pragma once
 #include "ObjectBase.h"
 #include "Character.h"
+#include "IProjectileModule.h"
+
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 class Attack : public ObjectBase
 {
@@ -14,6 +20,44 @@ public:
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
 	virtual void OnCollide(Character* other) = 0;
+
+	/**
+	 * @brief Immediate disable: cascade hierarchy, then recycle projectile modules.
+	 */
+	void Deactivate() override;
+
+	/**
+	 * @brief Attach a projectile module owned by this Attack.
+	 * @tparam T Must derive from IProjectileModule; first ctor arg is always this owner.
+	 * @return Non-owning pointer to the created module.
+	 */
+	template <typename T, typename... Args>
+	T* AddModule(Args&&... args)
+	{
+		static_assert(std::is_base_of_v<IProjectileModule, T>, "T must inherit from IProjectileModule");
+		auto module = std::make_unique<T>(this, std::forward<Args>(args)...);
+		T* raw = module.get();
+		modules_.push_back(std::move(module));
+		return raw;
+	}
+
+	/**
+	 * @brief Call OnRecycle on each module then destroy them (pool-safe rebind).
+	 */
+	void ClearModules()
+	{
+		for (auto& module : modules_)
+		{
+			if (module != nullptr)
+			{
+				module->OnRecycle();
+			}
+		}
+		modules_.clear();
+	}
+
+	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
+
 public:
 	void CalculateMoveVelocity(float X, float Y, float Z) { MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }
 	void CalculateMoveVelocity(XMFLOAT3 offset) { CalculateMoveVelocity(offset.x, offset.y, offset.z); }
@@ -21,9 +65,101 @@ public:
 	XMFLOAT3 GetMoveVelocity(void) const { return MoveVelocity; }
 	void SetMoveAccel(XMFLOAT3 accel) { MoveAccel = accel; }
 	XMFLOAT3 GetMoveAccel(void) const { return MoveAccel; }
+
+	/**
+	 * @brief Write local position for modules (≈ Unity localPosition).
+	 */
+	void SetLocalPosition(XMFLOAT3 position) { SetPosition(position); }
+	/**
+	 * @brief Write local scale for modules (host SetSize).
+	 */
+	void SetLocalScale(XMFLOAT3 scale) { SetSize(scale); }
+
+	/**
+	 * @brief Shot lifetime seconds (LifetimeModule / recipes).
+	 */
+	void SetLifeTime(float seconds) { lifeTime = seconds; }
+	[[nodiscard]] float GetLifeTime() const noexcept { return lifeTime; }
+	/** @brief Reset elapsed life clock (call from SpawnAt / LifetimeModule::OnSpawn). */
+	void ResetLifeTimer() { lastTime = 0.0f; }
+	/**
+	 * @brief Advance life clock; returns true when expired.
+	 */
+	[[nodiscard]] bool TickLifeTimer(float dt)
+	{
+		lastTime += dt;
+		return lastTime >= lifeTime;
+	}
+
+protected:
+	/** @brief Run OnSpawn on all bound modules (call from SpawnAt after pose reset). */
+	void DispatchOnSpawn()
+	{
+		for (auto& module : modules_)
+		{
+			if (module != nullptr)
+			{
+				module->OnSpawn();
+			}
+		}
+	}
+	/** @brief Run OnUpdate on all bound modules. */
+	void DispatchOnUpdate(float dt)
+	{
+		for (auto& module : modules_)
+		{
+			if (module != nullptr)
+			{
+				module->OnUpdate(dt);
+			}
+		}
+	}
+	/** @brief Run OnHit on all bound modules. */
+	void DispatchOnHit(Character* other)
+	{
+		for (auto& module : modules_)
+		{
+			if (module != nullptr)
+			{
+				module->OnHit(other);
+			}
+		}
+	}
+
+	/**
+	 * @brief Update active hierarchy children (ObjectBase::Update is virtual).
+	 */
+	void UpdateChildren(float dt)
+	{
+		for (std::size_t i = 0; i < GetChildCount(); ++i)
+		{
+			if (ObjectBase* child = GetChild(i); child != nullptr && child->IsActive())
+			{
+				child->Update(dt);
+			}
+		}
+	}
+	/**
+	 * @brief Submit active hierarchy children.
+	 */
+	void SubmitChildren()
+	{
+		for (std::size_t i = 0; i < GetChildCount(); ++i)
+		{
+			if (ObjectBase* child = GetChild(i); child != nullptr && child->IsActive())
+			{
+				child->Submit();
+			}
+		}
+	}
+
 protected:
 	XMFLOAT3 MoveAccel{ 0.0f,0.0f,0.0f };
 	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };
 	float lastTime{ 0.0f };
 	float lifeTime{ 0.5f };
+
+private:
+	/** @brief Gameplay modules; independent from ObjectBase IComponent list. */
+	std::vector<std::unique_ptr<IProjectileModule>> modules_;
 };
