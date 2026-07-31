@@ -1026,6 +1026,9 @@
     <ClInclude Include="SpawnChildModule.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
+    <ClInclude Include="ModuleDeployer.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
     <ClInclude Include="Player_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>

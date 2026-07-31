@@ -348,6 +348,7 @@
     <ClInclude Include="LifetimeModule.h" />
     <ClInclude Include="OrbitLocalModule.h" />
     <ClInclude Include="SpawnChildModule.h" />
+    <ClInclude Include="ModuleDeployer.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />

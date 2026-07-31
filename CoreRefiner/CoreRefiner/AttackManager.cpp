@@ -6,8 +6,7 @@
 #include "Math.h"
 
 #include "Ball.h"
-#include "SpawnChildModule.h"
-#include "LifetimeModule.h"
+#include "ModuleDeployer.h"
 
 #include <cstddef>
 
@@ -19,6 +18,36 @@ namespace
 	constexpr float kOrbitRadius = 2.0f;
 	constexpr float kOrbitAngularSpeed = 3.5f;
 	constexpr float kOrbitParentLife = 2.0f;
+
+	/**
+	 * @brief Plain shot: empty recipe (root Ball only).
+	 */
+	ModuleRecipe MakeBasicRecipe()
+	{
+		ModuleRecipe recipe{};
+		recipe.parentRootToPlayer = false;
+		return recipe;
+	}
+
+	/**
+	 * @brief Ctrl demo recipe input: Child,Orbit,Child,Orbit,... then Lifetime on root.
+	 * @note ModuleDeployer walks KindDesc (SpawnChild on 主体 → cursor=子 → Orbit on 子).
+	 */
+	ModuleRecipe MakeOrbitFanRecipe()
+	{
+		ModuleRecipe recipe{};
+		recipe.parentRootToPlayer = false;
+		recipe.steps.reserve(kOrbitChildCount * 2 + 2);
+		for (std::size_t i = 0; i < kOrbitChildCount; ++i)
+		{
+			const float phase = DirectX::XM_2PI * static_cast<float>(i)
+				/ static_cast<float>(kOrbitChildCount);
+			recipe.steps.push_back(ModuleStepFactory::Child());
+			recipe.steps.push_back(ModuleStepFactory::Orbit(kOrbitRadius, kOrbitAngularSpeed, phase));
+		}
+		recipe.steps.push_back(ModuleStepFactory::Lifetime(kOrbitParentLife));
+		return recipe;
+	}
 }
 
 bool ScreenToWorldXZ(Graphics& gfx, float sx, float sy, float targetY,	XMFLOAT3& outWorld)
@@ -95,38 +124,16 @@ void AttackManager::Update(float dt)
 			Normalize3(dirNorm);
 			const XMFLOAT3 vel{ dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
 
-			// Ctrl + attack：Ball + 4×SpawnChild + Lifetime（可视化语义：四个子节点）
-			if (InputCodex::Get().KeyPressed(VK_CONTROL))
-			{
-				Ball* parent = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
-				if (parent != nullptr)
-				{
-					parent->ClearModules();
-					for (std::size_t i = 0; i < kOrbitChildCount; ++i)
-					{
-						const float phase = DirectX::XM_2PI * static_cast<float>(i)
-							/ static_cast<float>(kOrbitChildCount);
-						parent->AddModule<SpawnChildModule>(
-							gfx, rg,
-							kOrbitRadius, kOrbitAngularSpeed, phase);
-					}
-					parent->AddModule<LifetimeModule>(kOrbitParentLife);
+			const ModuleRecipe recipe = InputCodex::Get().KeyPressed(VK_CONTROL)
+				? MakeOrbitFanRecipe()
+				: MakeBasicRecipe();
 
-					attacks.push_back(parent);
-					parent->SpawnAt(pos, vel);
-					playerRemote++;
-				}
-			}
-			else
+			Ball* root = ModuleDeployer::Deploy(recipe, gfx, rg, pos, pPlayer);
+			if (root != nullptr)
 			{
-				Ball* pBall = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
-				if (pBall)
-				{
-					pBall->ClearModules();
-					attacks.push_back(pBall);
-					pBall->SpawnAt(pos, vel);
-					playerRemote++;
-				}
+				attacks.push_back(root);
+				root->SpawnAt(pos, vel);
+				playerRemote++;
 			}
 		}
 	}

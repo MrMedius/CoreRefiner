@@ -60,10 +60,17 @@ class Ball : public Attack
 		// Always restore default size/collider — pooled instances may have been orbit children.
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 
-		DispatchOnSpawn();
+		ArmModules();
 
-		ObjectBase::Update(0.0f);
-		UpdateChildren(0.0f);
+		// Flat children were module-bound by ModuleDeployer before root SpawnAt.
+		for (std::size_t i = 0; i < GetChildCount(); ++i)
+		{
+			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));
+				childAtk != nullptr && childAtk->IsActive())
+			{
+				childAtk->ArmModules();
+			}
+		}
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override
