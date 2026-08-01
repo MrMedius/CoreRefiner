@@ -127,6 +127,16 @@ public:
 		return lastTime >= lifeTime;
 	}
 
+	/**
+	 * @brief DispatchOnSpawn + component sync (no motion).
+	 * @note ModuleDeployer binds modules first; root SpawnAt arms root and flat children.
+	 */
+	void ArmModules()
+	{
+		DispatchOnSpawn();
+		ObjectBase::Update(0.0f);
+	}
+
 protected:
 	/** @brief Run OnSpawn on all bound modules (call from SpawnAt after pose reset). */
 	void DispatchOnSpawn()
