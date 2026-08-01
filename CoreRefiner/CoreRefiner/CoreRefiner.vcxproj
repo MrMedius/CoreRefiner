@@ -347,7 +347,8 @@
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="LifetimeModule.h" />
     <ClInclude Include="OrbitLocalModule.h" />
-    <ClInclude Include="SpawnChildModule.h" />
+    <ClInclude Include="RecipeCore.h" />
+    <ClInclude Include="RecipeModules.h" />
     <ClInclude Include="ModuleDeployer.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />

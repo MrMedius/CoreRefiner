@@ -49,7 +49,7 @@ class Ball : public Attack
 	}
 
 	/**
-	 * @brief Reset pose/motion/presentation, run Spawn modules, sync self and children.
+	 * @brief Reset pose/motion, arm modules; keep Materialize presentation (do not force unit scale).
 	 */
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
@@ -57,12 +57,15 @@ class Ball : public Attack
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
 		lastTime = 0.0f;
-		// Always restore default size/collider — pooled instances may have been orbit children.
-		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
+
+		// Re-sync collider center after pose write; keep scale/radius from Materialize/ApplyPresentation.
+		if (pCollider_ != nullptr)
+		{
+			pCollider_->SyncFromOwner();
+		}
 
 		ArmModules();
 
-		// Flat children were module-bound by ModuleDeployer before root SpawnAt.
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
 		{
 			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));

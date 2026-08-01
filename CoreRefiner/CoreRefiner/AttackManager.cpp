@@ -12,40 +12,67 @@
 
 namespace
 {
-	/** @brief Shared attack_Ball pool (parents + orbit children). */
 	constexpr int kBallWarmup = 48;
 	constexpr std::size_t kOrbitChildCount = 4;
 	constexpr float kOrbitRadius = 2.0f;
 	constexpr float kOrbitAngularSpeed = 3.5f;
 	constexpr float kOrbitParentLife = 2.0f;
+	constexpr DirectX::XMFLOAT3 kChildScale{ 0.35f, 0.35f, 0.35f };
 
 	/**
-	 * @brief Plain shot: empty recipe (root Ball only).
+	 * @brief Append N flat children under subject: Child → AttackBall → Orbit(even phase).
 	 */
+	void AppendEvenOrbitChildren(
+		ModuleRecipe& recipe,
+		std::size_t count,
+		float radius,
+		float angularSpeed,
+		DirectX::XMFLOAT3 childScale)
+	{
+		for (std::size_t i = 0; i < count; ++i)
+		{
+			const float phase = (count > 0)
+				? (DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(count))
+				: 0.0f;
+			recipe.modules.push_back(ChildRecipeModule::Make());
+			recipe.modules.push_back(AttackBallRecipeModule::Make(childScale, true));
+			recipe.modules.push_back(OrbitRecipeModule::Make(radius, angularSpeed, phase));
+		}
+	}
+
+	/** @brief Plain shot: AttackBall only. */
 	ModuleRecipe MakeBasicRecipe()
 	{
 		ModuleRecipe recipe{};
-		recipe.parentRootToPlayer = false;
+		recipe.modules.push_back(AttackBallRecipeModule::Make());
 		return recipe;
 	}
 
 	/**
-	 * @brief Ctrl demo recipe input: Child,Orbit,Child,Orbit,... then Lifetime on root.
-	 * @note ModuleDeployer walks KindDesc (SpawnChild on 主体 → cursor=子 → Orbit on 子).
+	 * @brief Ctrl: AttackBall + even Child/AttackBall/Orbit×N + Lifetime.
 	 */
 	ModuleRecipe MakeOrbitFanRecipe()
 	{
 		ModuleRecipe recipe{};
-		recipe.parentRootToPlayer = false;
-		recipe.steps.reserve(kOrbitChildCount * 2 + 2);
-		for (std::size_t i = 0; i < kOrbitChildCount; ++i)
-		{
-			const float phase = DirectX::XM_2PI * static_cast<float>(i)
-				/ static_cast<float>(kOrbitChildCount);
-			recipe.steps.push_back(ModuleStepFactory::Child());
-			recipe.steps.push_back(ModuleStepFactory::Orbit(kOrbitRadius, kOrbitAngularSpeed, phase));
-		}
-		recipe.steps.push_back(ModuleStepFactory::Lifetime(kOrbitParentLife));
+		recipe.modules.push_back(AttackBallRecipeModule::Make());
+		AppendEvenOrbitChildren(
+			recipe, kOrbitChildCount, kOrbitRadius, kOrbitAngularSpeed, kChildScale);
+		recipe.modules.push_back(LifetimeRecipeModule::Make(kOrbitParentLife));
+		return recipe;
+	}
+
+	/**
+	 * @brief Ctrl+Alt demo multi-shot: AttackBall, AttackBall, Child, Orbit, Lifetime
+	 *        → fires bare first ball, then second ball+Lifetime (empty child dropped).
+	 */
+	ModuleRecipe MakeDualShotRecipe()
+	{
+		ModuleRecipe recipe{};
+		recipe.modules.push_back(AttackBallRecipeModule::Make());
+		recipe.modules.push_back(AttackBallRecipeModule::Make());
+		recipe.modules.push_back(ChildRecipeModule::Make());
+		recipe.modules.push_back(OrbitRecipeModule::Make(kOrbitRadius, kOrbitAngularSpeed, 0.0f));
+		recipe.modules.push_back(LifetimeRecipeModule::Make(kOrbitParentLife));
 		return recipe;
 	}
 }
@@ -54,39 +81,28 @@ bool ScreenToWorldXZ(Graphics& gfx, float sx, float sy, float targetY,	XMFLOAT3&
 {
 	using namespace DirectX;
 
-	// 1. 屏幕像素 → NDC
-	//    正变换: sx = (ndc.x + 1) * 0.5 * W  =>  ndc.x = sx*2/W - 1
-	//           sy = (1 - ndc.y) * 0.5 * H  =>  ndc.y = 1 - sy*2/H
 	float ndcX = sx * 2.0f / (float)SCREEN_WIDTH - 1.0f;
 	float ndcY = 1.0f - sy * 2.0f / (float)SCREEN_HEIGHT;
 
-	// 2. 构造两个 NDC 点（near/far），反投影到世界空间
-	//    用 ndc.z=0 和 ndc.z=1 分别代表近/远平面上的点
 	XMVECTOR nearNDC = XMVectorSet(ndcX, ndcY, 0.0f, 1.0f);
 	XMVECTOR farNDC = XMVectorSet(ndcX, ndcY, 1.0f, 1.0f);
 
-	// 3. 求 ViewProjection 的逆矩阵
 	XMMATRIX viewProj = gfx.GetCamera() * gfx.GetProjection();
 	XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
 
-	// 4. NDC → 世界空间（XMVector3TransformCoord 会做透视除法）
 	XMVECTOR nearWorld = XMVector3TransformCoord(nearNDC, invViewProj);
 	XMVECTOR farWorld = XMVector3TransformCoord(farNDC, invViewProj);
 
-	// 5. 构造射线：原点 + 方向
 	XMFLOAT3 rayOrigin, rayDir3;
 	XMStoreFloat3(&rayOrigin, nearWorld);
 	XMStoreFloat3(&rayDir3, XMVector3Normalize(farWorld - nearWorld));
 
-	// 6. 射线与 Y = targetY 平面求交
-	//    P(t) = rayOrigin + t * rayDir
-	//    P.y = targetY  =>  t = (targetY - rayOrigin.y) / rayDir.y
 	if (fabsf(rayDir3.y) < 1e-6f)
-		return false;   // 射线平行于水平面，无交点
+		return false;
 
 	float t = (targetY - rayOrigin.y) / rayDir3.y;
 	if (t < 0.0f)
-		return false;   // 交点在相机后方
+		return false;
 
 	outWorld.x = rayOrigin.x + t * rayDir3.x;
 	outWorld.y = targetY;
@@ -109,28 +125,39 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 void AttackManager::Update(float dt)
 {
-	// create player's remote attack effect
 	if (pPlayer->GetIsAttack())
 	{
 		auto pos = pPlayer->GetPosition();
 		auto mouse = InputCodex::Get().MousePos();
 		XMFLOAT3 worldXZ;
 
-		// 获取鼠标指向的世界坐标（在玩家Y高度的平面上）
 		if (ScreenToWorldXZ(gfx, (float)mouse.first, (float)mouse.second, pos.y, worldXZ))
 		{
-			// 计算方向向量（从玩家到鼠标指向点）
 			XMFLOAT3 dirNorm = { worldXZ.x - pos.x, 0.0f, worldXZ.z - pos.z };
 			Normalize3(dirNorm);
 			const XMFLOAT3 vel{ dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
 
-			const ModuleRecipe recipe = InputCodex::Get().KeyPressed(VK_CONTROL)
-				? MakeOrbitFanRecipe()
-				: MakeBasicRecipe();
-
-			Ball* root = ModuleDeployer::Deploy(recipe, gfx, rg, pos, pPlayer);
-			if (root != nullptr)
+			ModuleRecipe recipe{};
+			if (InputCodex::Get().KeyPressed(VK_CONTROL) && InputCodex::Get().KeyPressed(VK_MENU))
 			{
+				recipe = MakeDualShotRecipe();
+			}
+			else if (InputCodex::Get().KeyPressed(VK_CONTROL))
+			{
+				recipe = MakeOrbitFanRecipe();
+			}
+			else
+			{
+				recipe = MakeBasicRecipe();
+			}
+
+			const std::vector<Ball*> roots = ModuleDeployer::Deploy(recipe, gfx, rg, pos, pPlayer);
+			for (Ball* root : roots)
+			{
+				if (root == nullptr)
+				{
+					continue;
+				}
 				attacks.push_back(root);
 				root->SpawnAt(pos, vel);
 				playerRemote++;
@@ -138,7 +165,6 @@ void AttackManager::Update(float dt)
 		}
 	}
 
-	// update all effects
 	for (int i = 0; i < attacks.size(); i++)
 	{
 		if (attacks[i]->IsActive())
@@ -146,7 +172,7 @@ void AttackManager::Update(float dt)
 		else
 		{
 			attacks.erase(attacks.begin() + i);
-			i--; // 重要：删除后要回退索引，防止跳过下一个元素
+			i--;
 		}
 	}
 }
