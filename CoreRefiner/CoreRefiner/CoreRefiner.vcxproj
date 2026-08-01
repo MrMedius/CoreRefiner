@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -346,10 +346,9 @@
     <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="LifetimeModule.h" />
+    <ClInclude Include="AttackDeployer.h" />
     <ClInclude Include="OrbitLocalModule.h" />
-    <ClInclude Include="RecipeCore.h" />
-    <ClInclude Include="RecipeModules.h" />
-    <ClInclude Include="ModuleDeployer.h" />
+    <ClInclude Include="SpeedRateModule.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />

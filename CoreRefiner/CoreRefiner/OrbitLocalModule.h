@@ -42,8 +42,21 @@ public:
 		angle_ = phase0_;
 	}
 
+	void SetRadius(float radius) noexcept
+	{
+		radius_ = radius;
+		ApplyLocalPose_();
+	}
+
+	void SetPhase0(float phase0) noexcept
+	{
+		phase0_ = phase0;
+		angle_ = phase0;
+		ApplyLocalPose_();
+	}
+
+
 private:
-	/** @brief Write owner local XZ from angle_/radius_. */
 	void ApplyLocalPose_()
 	{
 		Attack* owner = GetOwner();

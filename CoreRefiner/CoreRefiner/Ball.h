@@ -49,7 +49,7 @@ class Ball : public Attack
 	}
 
 	/**
-	 * @brief Reset pose/motion, arm modules; keep Materialize presentation (do not force unit scale).
+	 * @brief Reset pose/motion; keep Deployer presentation; arm self and flat children.
 	 */
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
@@ -58,7 +58,6 @@ class Ball : public Attack
 		ResetMoveVelocity();
 		lastTime = 0.0f;
 
-		// Re-sync collider center after pose write; keep scale/radius from Materialize/ApplyPresentation.
 		if (pCollider_ != nullptr)
 		{
 			pCollider_->SyncFromOwner();

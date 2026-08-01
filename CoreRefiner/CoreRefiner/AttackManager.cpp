@@ -6,7 +6,7 @@
 #include "Math.h"
 
 #include "Ball.h"
-#include "ModuleDeployer.h"
+#include "AttackDeployer.h"
 
 #include <cstddef>
 
@@ -16,63 +16,53 @@ namespace
 	constexpr std::size_t kOrbitChildCount = 4;
 	constexpr float kOrbitRadius = 2.0f;
 	constexpr float kOrbitAngularSpeed = 3.5f;
-	constexpr float kOrbitParentLife = 2.0f;
-	constexpr DirectX::XMFLOAT3 kChildScale{ 0.35f, 0.35f, 0.35f };
+	constexpr DirectX::XMFLOAT3 kChildScale{ 0.5f, 0.5f, 0.5f };
 
-	/**
-	 * @brief Append N flat children under subject: Child → AttackBall → Orbit(even phase).
-	 */
-	void AppendEvenOrbitChildren(
-		ModuleRecipe& recipe,
-		std::size_t count,
-		float radius,
-		float angularSpeed,
-		DirectX::XMFLOAT3 childScale)
+	// Case1: { Spawn_Ball }
+	AttackRecipe MakeBasicRecipe()
 	{
-		for (std::size_t i = 0; i < count; ++i)
+		AttackRecipe recipe{};
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		return recipe;
+	}
+
+	// Case2: subject + 4 orbiting children.
+	// Token stream is Child→Spawn_Ball→Orbit ×4 (Child alone does not create a Ball).
+	AttackRecipe MakeOrbitFanRecipe()
+	{
+		AttackRecipe recipe{};
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		for (std::size_t i = 0; i < kOrbitChildCount; ++i)
 		{
-			const float phase = (count > 0)
-				? (DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(count))
-				: 0.0f;
-			recipe.modules.push_back(ChildRecipeModule::Make());
-			recipe.modules.push_back(AttackBallRecipeModule::Make(childScale, true));
-			recipe.modules.push_back(OrbitRecipeModule::Make(radius, angularSpeed, phase));
+			recipe.steps.push_back(DeployStep_Other_Child::Make());
+			recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+			recipe.steps.push_back(DeployStep_Rule_Orbit::Make(kOrbitRadius, kOrbitAngularSpeed));
 		}
-	}
-
-	/** @brief Plain shot: AttackBall only. */
-	ModuleRecipe MakeBasicRecipe()
-	{
-		ModuleRecipe recipe{};
-		recipe.modules.push_back(AttackBallRecipeModule::Make());
 		return recipe;
 	}
 
-	/**
-	 * @brief Ctrl: AttackBall + even Child/AttackBall/Orbit×N + Lifetime.
-	 */
-	ModuleRecipe MakeOrbitFanRecipe()
+	// Case3: fire bare ball, then a second ball with one non-orbiting child.
+	// Second Spawn_Ball flushes the first shot; Child→Spawn fills the child pit.
+	AttackRecipe MakeDualChildRecipe()
 	{
-		ModuleRecipe recipe{};
-		recipe.modules.push_back(AttackBallRecipeModule::Make());
-		AppendEvenOrbitChildren(
-			recipe, kOrbitChildCount, kOrbitRadius, kOrbitAngularSpeed, kChildScale);
-		recipe.modules.push_back(LifetimeRecipeModule::Make(kOrbitParentLife));
-		return recipe;
-	}
+		AttackRecipe recipe{};
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		recipe.steps.push_back(DeployStep_Rule_Orbit::Make(2.0f, 1.0f));
 
-	/**
-	 * @brief Ctrl+Alt demo multi-shot: AttackBall, AttackBall, Child, Orbit, Lifetime
-	 *        → fires bare first ball, then second ball+Lifetime (empty child dropped).
-	 */
-	ModuleRecipe MakeDualShotRecipe()
-	{
-		ModuleRecipe recipe{};
-		recipe.modules.push_back(AttackBallRecipeModule::Make());
-		recipe.modules.push_back(AttackBallRecipeModule::Make());
-		recipe.modules.push_back(ChildRecipeModule::Make());
-		recipe.modules.push_back(OrbitRecipeModule::Make(kOrbitRadius, kOrbitAngularSpeed, 0.0f));
-		recipe.modules.push_back(LifetimeRecipeModule::Make(kOrbitParentLife));
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		recipe.steps.push_back(DeployStep_Other_Child::Make());
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+		recipe.steps.push_back(DeployStep_Attribute_SpeedRate::Make(0.7f));
+		recipe.steps.push_back(DeployStep_Rule_Orbit::Make(2.0f, 1.0f));
+
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+		recipe.steps.push_back(DeployStep_Attribute_SpeedRate::Make(0.4f));
+
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		recipe.steps.push_back(DeployStep_Other_Child::Make());
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+		recipe.steps.push_back(DeployStep_Attribute_SpeedRate::Make(0.1f));
+
 		return recipe;
 	}
 }
@@ -137,10 +127,10 @@ void AttackManager::Update(float dt)
 			Normalize3(dirNorm);
 			const XMFLOAT3 vel{ dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
 
-			ModuleRecipe recipe{};
+			AttackRecipe recipe{};
 			if (InputCodex::Get().KeyPressed(VK_CONTROL) && InputCodex::Get().KeyPressed(VK_MENU))
 			{
-				recipe = MakeDualShotRecipe();
+				recipe = MakeDualChildRecipe();
 			}
 			else if (InputCodex::Get().KeyPressed(VK_CONTROL))
 			{
@@ -151,8 +141,8 @@ void AttackManager::Update(float dt)
 				recipe = MakeBasicRecipe();
 			}
 
-			const std::vector<Ball*> roots = ModuleDeployer::Deploy(recipe, gfx, rg, pos, pPlayer);
-			for (Ball* root : roots)
+			const std::vector<Attack*> roots = AttackDeployer::Deploy(recipe, gfx, rg, pos, pPlayer);
+			for (Attack* root : roots)
 			{
 				if (root == nullptr)
 				{

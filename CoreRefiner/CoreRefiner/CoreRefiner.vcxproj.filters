@@ -1023,15 +1023,6 @@
     <ClInclude Include="LifetimeModule.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
-    <ClInclude Include="RecipeCore.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="RecipeModules.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleDeployer.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
     <ClInclude Include="Player_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
@@ -1316,6 +1307,9 @@
     </ClInclude>
     <ClInclude Include="SphereColliderComponent.h">
       <Filter>Object\Components\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackDeployer.h">
+      <Filter>Object\Attack</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
