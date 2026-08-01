@@ -58,6 +58,42 @@ public:
 
 	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
 
+	template <typename T>
+	T* GetModule() noexcept
+	{
+		static_assert(std::is_base_of_v<IProjectileModule, T>, "T must inherit from IProjectileModule");
+		for (auto& module : modules_)
+		{
+			if (T* typed = dynamic_cast<T*>(module.get()))
+			{
+				return typed;
+			}
+		}
+		return nullptr;
+	}
+	template <typename T>
+	const T* GetModule() const noexcept
+	{
+		static_assert(std::is_base_of_v<IProjectileModule, T>, "T must inherit from IProjectileModule");
+		for (const auto& module : modules_)
+		{
+			if (const T* typed = dynamic_cast<const T*>(module.get()))
+			{
+				return typed;
+			}
+		}
+		return nullptr;
+	}
+	/**
+	 * @brief DispatchOnSpawn + component sync (no motion).
+	 * @note AttackDeployer binds modules first; root SpawnAt arms root and flat children.
+	 */
+	void ArmModules()
+	{
+		DispatchOnSpawn();
+		ObjectBase::Update(0.0f);
+	}
+
 public:
 	void CalculateMoveVelocity(float X, float Y, float Z) { MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }
 	void CalculateMoveVelocity(XMFLOAT3 offset) { CalculateMoveVelocity(offset.x, offset.y, offset.z); }

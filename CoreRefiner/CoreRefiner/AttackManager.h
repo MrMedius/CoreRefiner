@@ -21,4 +21,3 @@ private:
 
 	Player* pPlayer;
 };
-

@@ -49,7 +49,7 @@ class Ball : public Attack
 	}
 
 	/**
-	 * @brief Reset pose/motion/presentation, run Spawn modules, sync self and children.
+	 * @brief Reset pose/motion; keep Deployer presentation; arm self and flat children.
 	 */
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
@@ -57,13 +57,22 @@ class Ball : public Attack
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
 		lastTime = 0.0f;
-		// Always restore default size/collider — pooled instances may have been orbit children.
-		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 
-		DispatchOnSpawn();
+		if (pCollider_ != nullptr)
+		{
+			pCollider_->SyncFromOwner();
+		}
 
-		ObjectBase::Update(0.0f);
-		UpdateChildren(0.0f);
+		ArmModules();
+
+		for (std::size_t i = 0; i < GetChildCount(); ++i)
+		{
+			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));
+				childAtk != nullptr && childAtk->IsActive())
+			{
+				childAtk->ArmModules();
+			}
+		}
 	}
 	void OnEnable(void) override {};
 	void Update(float dt) override

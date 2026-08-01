@@ -6,19 +6,65 @@
 #include "Math.h"
 
 #include "Ball.h"
-#include "SpawnChildModule.h"
-#include "LifetimeModule.h"
+#include "AttackDeployer.h"
 
 #include <cstddef>
 
 namespace
 {
-	/** @brief Shared attack_Ball pool (parents + orbit children). */
 	constexpr int kBallWarmup = 48;
 	constexpr std::size_t kOrbitChildCount = 4;
 	constexpr float kOrbitRadius = 2.0f;
 	constexpr float kOrbitAngularSpeed = 3.5f;
-	constexpr float kOrbitParentLife = 2.0f;
+	constexpr DirectX::XMFLOAT3 kChildScale{ 0.5f, 0.5f, 0.5f };
+
+	// Case1: { Spawn_Ball }
+	AttackRecipe MakeBasicRecipe()
+	{
+		AttackRecipe recipe{};
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		return recipe;
+	}
+
+	// Case2: subject + 4 orbiting children.
+	// Token stream is Child→Spawn_Ball→Orbit ×4 (Child alone does not create a Ball).
+	AttackRecipe MakeOrbitFanRecipe()
+	{
+		AttackRecipe recipe{};
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		for (std::size_t i = 0; i < kOrbitChildCount; ++i)
+		{
+			recipe.steps.push_back(DeployStep_Other_Child::Make());
+			recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+			recipe.steps.push_back(DeployStep_Rule_Orbit::Make(kOrbitRadius, kOrbitAngularSpeed));
+		}
+		return recipe;
+	}
+
+	// Case3: fire bare ball, then a second ball with one non-orbiting child.
+	// Second Spawn_Ball flushes the first shot; Child→Spawn fills the child pit.
+	AttackRecipe MakeDualChildRecipe()
+	{
+		AttackRecipe recipe{};
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		recipe.steps.push_back(DeployStep_Rule_Orbit::Make(2.0f, 1.0f));
+
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		recipe.steps.push_back(DeployStep_Other_Child::Make());
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+		recipe.steps.push_back(DeployStep_Attribute_SpeedRate::Make(0.7f));
+		recipe.steps.push_back(DeployStep_Rule_Orbit::Make(2.0f, 1.0f));
+
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+		recipe.steps.push_back(DeployStep_Attribute_SpeedRate::Make(0.4f));
+
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make());
+		recipe.steps.push_back(DeployStep_Other_Child::Make());
+		recipe.steps.push_back(DeployStep_Spawn_Ball::Make(kChildScale, true));
+		recipe.steps.push_back(DeployStep_Attribute_SpeedRate::Make(0.1f));
+
+		return recipe;
+	}
 }
 
 bool ScreenToWorldXZ(Graphics& gfx, float sx, float sy, float targetY,	XMFLOAT3& outWorld)
@@ -95,43 +141,34 @@ void AttackManager::Update(float dt)
 			Normalize3(dirNorm);
 			const XMFLOAT3 vel{ dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
 
-			// Ctrl + attack：Ball + 4×SpawnChild + Lifetime（可视化语义：四个子节点）
-			if (InputCodex::Get().KeyPressed(VK_CONTROL))
+			AttackRecipe recipe{};
+			if (InputCodex::Get().KeyPressed(VK_CONTROL) && InputCodex::Get().KeyPressed(VK_MENU))
 			{
-				Ball* parent = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
-				if (parent != nullptr)
-				{
-					parent->ClearModules();
-					for (std::size_t i = 0; i < kOrbitChildCount; ++i)
-					{
-						const float phase = DirectX::XM_2PI * static_cast<float>(i)
-							/ static_cast<float>(kOrbitChildCount);
-						parent->AddModule<SpawnChildModule>(
-							gfx, rg,
-							kOrbitRadius, kOrbitAngularSpeed, phase);
-					}
-					parent->AddModule<LifetimeModule>(kOrbitParentLife);
-
-					attacks.push_back(parent);
-					parent->SpawnAt(pos, vel);
-					playerRemote++;
-				}
+				recipe = MakeDualChildRecipe();
+			}
+			else if (InputCodex::Get().KeyPressed(VK_CONTROL))
+			{
+				recipe = MakeOrbitFanRecipe();
 			}
 			else
 			{
-				Ball* pBall = ObjectCodex::SpawnPooled<Ball>(attack_Ball, gfx, rg, pos, worldXZ);
-				if (pBall)
+				recipe = MakeBasicRecipe();
+			}
+
+			const std::vector<Attack*> roots = AttackDeployer::Deploy(recipe, gfx, rg, pos, pPlayer);
+			for (Attack* root : roots)
+			{
+				if (root == nullptr)
 				{
-					pBall->ClearModules();
-					attacks.push_back(pBall);
-					pBall->SpawnAt(pos, vel);
-					playerRemote++;
+					continue;
 				}
+				attacks.push_back(root);
+				root->SpawnAt(pos, vel);
+				playerRemote++;
 			}
 		}
 	}
 
-	// update all effects
 	for (int i = 0; i < attacks.size(); i++)
 	{
 		if (attacks[i]->IsActive())
@@ -139,7 +176,7 @@ void AttackManager::Update(float dt)
 		else
 		{
 			attacks.erase(attacks.begin() + i);
-			i--; // 重要：删除后要回退索引，防止跳过下一个元素
+			i--;
 		}
 	}
 }
