@@ -643,6 +643,9 @@
     <ClCompile Include="SphereColliderComponent.cpp">
       <Filter>Object\Components\Colliders</Filter>
     </ClCompile>
+    <ClCompile Include="UI_Game.h">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1321,6 +1324,18 @@
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="ModuleField.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanAssembler.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="FieldNodes.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleFieldDraw.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeedRateModule.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,6 +4,8 @@
 #include "Player.h"
 #include "Attack.h"
 
+#include <vector>
+
 class AttackManager
 {
 public:
@@ -12,6 +14,22 @@ public:
 	void Update(float dt);
 	void Submit(void);
 	void Reset(void);
+
+	/**
+	 * @brief Spawn assembled roots into the live attack list.
+	 */
+	void FireRoots(
+		const std::vector<Attack*>& roots,
+		DirectX::XMFLOAT3 pos,
+		DirectX::XMFLOAT3 vel);
+
+	/**
+	 * @brief Mouse aim on player Y plane → horizontal shot velocity.
+	 */
+	[[nodiscard]] bool TryGetAimVelocity(
+		DirectX::XMFLOAT3 playerPos,
+		DirectX::XMFLOAT3& outVel) const;
+
 private:
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;

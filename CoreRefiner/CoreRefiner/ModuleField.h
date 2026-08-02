@@ -99,16 +99,23 @@ public:
 				n->GetLocalPos().x, n->GetLocalPos().y, cw, ch, px, py);
 
 			const int r = static_cast<int>(std::lround(n->GetHitRadius()));
-			Color fill(180u, 200u, 220u, 255u);
 			if (n->IsCore())
 			{
-				fill = Color(240u, 200u, 80u, 255u);
+				const Color fill = n->IsReady()
+					? Color(255u, 210u, 60u, 255u)
+					: Color(120u, 100u, 40u, 255u);
+				ModuleFieldDraw::DrawDisk(bg, px, py, r, fill);
+				ModuleFieldDraw::DrawRing(bg, px, py, r + 2, 2, Color(255u, 240u, 160u, 255u));
 			}
-			else if (!n->IsReady())
+			else if (n->IsReady())
 			{
-				fill = Color(90u, 90u, 90u, 255u);
+				ModuleFieldDraw::DrawDisk(bg, px, py, r, Color(120u, 200u, 255u, 255u));
 			}
-			ModuleFieldDraw::DrawDisk(bg, px, py, r, fill);
+			else
+			{
+				ModuleFieldDraw::DrawDisk(bg, px, py, r, Color(55u, 55u, 60u, 255u));
+				ModuleFieldDraw::DrawRing(bg, px, py, r, 2, Color(100u, 100u, 110u, 200u));
+			}
 		}
 
 		bg.NotifyPixelsChanged();

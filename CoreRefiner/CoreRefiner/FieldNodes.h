@@ -19,7 +19,7 @@ public:
 		isCore_ = true;
 		localPos_ = localPos;
 		hitRadius_ = 22.0f;
-		cooldownDuration_ = 1.5f;
+		cooldownDuration_ = 0.5f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -47,6 +47,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 16.0f;
+		cooldownDuration_ = 0.75f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -68,6 +69,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
+		cooldownDuration_ = 0.75f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -87,6 +89,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
+		cooldownDuration_ = 0.75f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -109,6 +112,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
+		cooldownDuration_ = 0.75f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -137,6 +141,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
+		cooldownDuration_ = 0.75f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override

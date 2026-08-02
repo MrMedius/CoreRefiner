@@ -351,6 +351,7 @@
     <ClInclude Include="AttackDeployer.h" />
     <ClInclude Include="FieldModuleNode.h" />
     <ClInclude Include="ModuleFieldDraw.h" />
+    <ClInclude Include="ScanAssembler.h" />
     <ClInclude Include="ScanWave.h" />
     <ClInclude Include="ModuleField.h" />
     <ClInclude Include="OrbitLocalModule.h" />

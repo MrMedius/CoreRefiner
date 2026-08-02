@@ -59,6 +59,6 @@ protected:
 	float hitRadius_{ 16.0f };
 	ModuleReadyState state_{ ModuleReadyState::Ready };
 	float cooldownRemaining_{ 0.0f };
-	float cooldownDuration_{ 1.0f };
+	float cooldownDuration_{ 3.0f };
 	bool isCore_{ false };
 };

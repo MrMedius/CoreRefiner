@@ -1,15 +1,27 @@
 #pragma once
 #include "Graphics.h"
+#include "RenderGraph.h"
 #include "Canvas2D.h"
 #include "ModuleField.h"
+#include "ModuleFieldDraw.h"
 #include "FieldNodes.h"
+#include "ScanAssembler.h"
+#include "ObjectCodex.h"
+#include "Player.h"
+#include "Colors.h"
+#include "AttackManager.h"
 
 #include "Channels.h"
+
+#include <cmath>
 
 class UI_Game
 {
 public:
 	UI_Game(Graphics& gfx, Rgph::RenderGraph& rg)
+		:
+		gfx_(gfx),
+		rg_(rg)
 	{
 		{
 			float side = 300.0f;
@@ -26,12 +38,46 @@ public:
 	}
 	~UI_Game() = default;
 
+	void SetAttackManager(AttackManager* manager) noexcept { attackManager_ = manager; }
+
 	void Update(float dt)
 	{
 		field_.TickAllCooldowns(dt);
+
+		Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
+		if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
+		{
+			const DirectX::XMFLOAT3 spawnPos = player->GetPosition();
+			assembler_.Begin(field_, gfx_, rg_, spawnPos);
+		}
+
+		assembler_.Update(dt, field_);
+
+		if (assembler_.HasPendingFire() && attackManager_ != nullptr && player != nullptr)
+		{
+			DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.0f };
+			const DirectX::XMFLOAT3 pos = player->GetPosition();
+			if (!attackManager_->TryGetAimVelocity(pos, vel))
+			{
+				vel = { 0.0f, 0.0f, 0.05f };
+			}
+			attackManager_->FireRoots(assembler_.TakeShots(), pos, vel);
+		}
+		else if (assembler_.HasPendingFire())
+		{
+			for (Attack* root : assembler_.TakeShots())
+			{
+				if (root != nullptr)
+				{
+					root->Deactivate();
+				}
+			}
+		}
+
 		if (bgCanvas != nullptr)
 		{
 			field_.Redraw(*bgCanvas);
+			DrawWaveOverlay_(*bgCanvas);
 		}
 	}
 
@@ -42,9 +88,9 @@ public:
 
 	[[nodiscard]] ModuleField& GetField() noexcept { return field_; }
 	[[nodiscard]] const ModuleField& GetField() const noexcept { return field_; }
+	[[nodiscard]] ScanAssembler& GetAssembler() noexcept { return assembler_; }
 
 private:
-	/** @brief Demo layout: 1 core + 1~2 of each satellite token. */
 	void PlaceDemoField_()
 	{
 		field_.AddNode<CoreSpawnNode>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
@@ -65,6 +111,31 @@ private:
 		field_.AddNode<SpeedRateNode>(DirectX::XMFLOAT2{ -50.0f, 90.0f }, 0.2f);
 	}
 
+	void DrawWaveOverlay_(Canvas2D& bg) const
+	{
+		const ScanWave& wave = assembler_.GetWave();
+		if (!wave.alive || wave.radius <= 0.0f)
+		{
+			return;
+		}
+
+		int cx = 0;
+		int cy = 0;
+		ModuleFieldDraw::LocalToPixel(
+			wave.center.x, wave.center.y,
+			bg.GetCanvasWidth(), bg.GetCanvasHeight(),
+			cx, cy);
+
+		const int r = static_cast<int>(std::lround(wave.radius));
+		ModuleFieldDraw::DrawRing(bg, cx, cy, r, 3, Color(255u, 255u, 80u, 255u));
+		ModuleFieldDraw::DrawRing(bg, cx, cy, r + 2, 1, Color(255u, 255u, 200u, 180u));
+		bg.NotifyPixelsChanged();
+	}
+
+	Graphics& gfx_;
+	Rgph::RenderGraph& rg_;
+	AttackManager* attackManager_{ nullptr };
 	std::unique_ptr<Canvas2D> bgCanvas;
 	ModuleField field_;
+	ScanAssembler assembler_;
 };

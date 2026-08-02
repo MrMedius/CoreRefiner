@@ -37,6 +37,7 @@ Game::Game(const std::string& commandLine)
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
 	uiGame = std::make_unique<UI_Game>(wnd.Gfx(), gameRG);
+	uiGame->SetAttackManager(pAttackManager.get());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
 	// Sound Base Setting
