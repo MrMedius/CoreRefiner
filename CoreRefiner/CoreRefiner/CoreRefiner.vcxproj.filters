@@ -152,6 +152,9 @@
     <Filter Include="UI">
       <UniqueIdentifier>{8308996a-329a-4be0-b591-b911c2d837e6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UI\ModuleField">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Framework\Graphics\Bindable\ConstantBuffers\Provides">
       <UniqueIdentifier>{e25ee930-2deb-4743-91b2-e243cfb6df91}</UniqueIdentifier>
     </Filter>
@@ -1310,6 +1313,15 @@
     </ClInclude>
     <ClInclude Include="AttackDeployer.h">
       <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="FieldModuleNode.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanWave.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleField.h">
+      <Filter>UI\ModuleField</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

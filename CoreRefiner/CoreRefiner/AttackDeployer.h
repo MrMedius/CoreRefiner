@@ -25,7 +25,6 @@ enum class DeployStepKind : unsigned char
 	Other_Child,
 };
 
-/** @brief Which pit a module-bearing step attaches to. */
 enum class DeployTarget : unsigned char
 {
 	Focus,

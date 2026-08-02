@@ -216,6 +216,7 @@
     <ClCompile Include="DynamicCubeTexture.cpp" />
     <ClCompile Include="DynamicVertexBuffer.cpp" />
     <ClCompile Include="Enemy_T.cpp" />
+    <ClCompile Include="UI_Game.h" />
     <ClCompile Include="VisualComponent.cpp" />
     <ClCompile Include="ColliderComponentBase.cpp" />
     <ClCompile Include="BoxColliderComponent.cpp" />
@@ -344,9 +345,14 @@
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
+    <ClInclude Include="FieldNodes.h" />
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="LifetimeModule.h" />
     <ClInclude Include="AttackDeployer.h" />
+    <ClInclude Include="FieldModuleNode.h" />
+    <ClInclude Include="ModuleFieldDraw.h" />
+    <ClInclude Include="ScanWave.h" />
+    <ClInclude Include="ModuleField.h" />
     <ClInclude Include="OrbitLocalModule.h" />
     <ClInclude Include="SpeedRateModule.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />

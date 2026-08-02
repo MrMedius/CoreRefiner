@@ -84,15 +84,6 @@ public:
 		}
 		return nullptr;
 	}
-	/**
-	 * @brief DispatchOnSpawn + component sync (no motion).
-	 * @note AttackDeployer binds modules first; root SpawnAt arms root and flat children.
-	 */
-	void ArmModules()
-	{
-		DispatchOnSpawn();
-		ObjectBase::Update(0.0f);
-	}
 
 public:
 	void CalculateMoveVelocity(float X, float Y, float Z) { MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }

@@ -12,28 +12,6 @@
 
 namespace dx = DirectX;
 
-/*
- * Scene leave / enter checklist (Phase 6.1)
- *
- * Leave SCENE_GAME:
- *   - AttackManager::Reset  — Deactivate active balls, clear manager list (pool keeps instances)
- *   - EnemyManager::Reset   — Deactivate active enemies, clear manager list
- *   - EnvironmentManager::Reset — Deactivate Field (persistent tag; no ClearTag)
- *   - Flush DeferredDisableQueue
- *   - Player: DO NOT Deactivate / ClearTag (AcquirePersistent)
- *   - Camera / Light: keep; reset on Enter
- *
- * Enter SCENE_GAME:
- *   - EnvironmentManager::EnterGame — Activate Field
- *   - Player::Activate — runs OnEnable reset (spawn pose / HP / FSM)
- *   - CameraContainer::Reset
- *
- * Leave/Enter TITLE / RESULT:
- *   - UI only for now; no Codex ClearAll
- *
- * Never use ObjectCodex::ClearAll / ClearTag for normal scene switches.
- */
-
 Game::Game(const std::string& commandLine)
 	:
 	commandLine(commandLine),
@@ -58,7 +36,7 @@ Game::Game(const std::string& commandLine)
 	// UI
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
-
+	uiGame = std::make_unique<UI_Game>(wnd.Gfx(), gameRG);
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
 	// Sound Base Setting
@@ -183,8 +161,7 @@ void Game::Update(float dt)
 	switch (Scene)
 	{
 	case SCENE_TITLE:
-		//uiTitle->Update(dt);
-		uiSample->Update(dt);
+		uiTitle->Update(dt);
 		break;
 	case SCENE_GAME:
 		if (!Pause)
@@ -204,8 +181,11 @@ void Game::Update(float dt)
 			gameRG.Update(dt);
 			SoundCodex::Get().SetListenerPosition(playerPos);
 		}
+
+		uiGame->Update(dt);
 		break;
 	case SCENE_RESULT:
+		uiSample->Update(dt);
 		break;
 	}
 
@@ -221,8 +201,7 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-		//uiTitle->Submit();
-		uiSample->Submit();
+		uiTitle->Submit();
 
 		UIRG.Execute(wnd.Gfx());
 		break;
@@ -240,6 +219,7 @@ void Game::Draw()
 		pEnemyManager->Submit();
 		pEnvironmentManager->Submit();
 		pPlayer->Submit();
+		uiGame->Submit();
 
 		gameRG.Execute(wnd.Gfx());
 
@@ -255,6 +235,8 @@ void Game::Draw()
 	}
 	case SCENE_RESULT:
 	{
+		uiSample->Submit();
+
 		UIRG.Execute(wnd.Gfx());
 		break;
 	}
