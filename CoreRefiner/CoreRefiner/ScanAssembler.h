@@ -9,24 +9,74 @@
 #include <vector>
 
 /**
- * @brief Visual scan session: Apply field nodes into DeployContext via expanding waves.
- * @note Visual scan session driving DeployContext; FireRoots is owned by UI_Game.
+ * @brief One independent scan/assemble run with its own DeployContext and wave.
+ */
+struct ScanSession
+{
+	DeployContext ctx{};
+	ScanWave wave{};
+	bool active{ false };
+	bool pendingFire{ false };
+	FieldModuleNode* lastSource{ nullptr };
+	std::vector<Attack*> committedShots;
+	std::size_t appliedTokenCount{ 0 };
+	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 aimVel{ 0.0f, 0.0f, 0.0f };
+};
+
+/**
+ * @brief One FireRoots submission produced by a finished scan session.
+ */
+struct FireBatch
+{
+	std::vector<Attack*> roots;
+	DirectX::XMFLOAT3 pos{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.0f };
+};
+
+/**
+ * @brief Parallel scan sessions driving independent DeployContexts.
+ * @note FireRoots ownership remains with UI_Game via TakeAllPendingFires().
+ * @note Session mutation during Update uses indices so Detach push_back cannot dangle refs.
  */
 class ScanAssembler
 {
 public:
 	static constexpr float kDefaultMaxRadius = 140.0f;
 	static constexpr float kDefaultExpandSpeed = 100.0f;
+	static constexpr std::size_t kMaxSessions = 8;
+	static constexpr std::size_t kMaxAppliedTokens = 10;
 
-	[[nodiscard]] bool IsSessionActive() const noexcept { return sessionActive_; }
+	[[nodiscard]] bool IsSessionActive() const noexcept
+	{
+		for (const ScanSession& session : sessions_)
+		{
+			if (session.active)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
-	[[nodiscard]] bool HasPendingFire() const noexcept { return pendingFire_; }
-
-	[[nodiscard]] const ScanWave& GetWave() const noexcept { return wave_; }
+	/**
+	 * @brief Invoke @p fn for every alive scan wave (multi-ring draw).
+	 */
+	template<typename Fn>
+	void ForEachAliveWave(Fn&& fn) const
+	{
+		for (const ScanSession& session : sessions_)
+		{
+			if (session.wave.alive)
+			{
+				fn(session.wave);
+			}
+		}
+	}
 
 	[[nodiscard]] bool CanStart(const ModuleField& field) const noexcept
 	{
-		if (sessionActive_)
+		if (sessions_.size() >= kMaxSessions)
 		{
 			return false;
 		}
@@ -34,14 +84,12 @@ public:
 		return core != nullptr && core->IsReady();
 	}
 
-	/**
-	 * @brief Start session: reset ctx, Apply core Spawn, cool core, open first wave.
-	 */
 	void Begin(
 		ModuleField& field,
 		Graphics& gfx,
 		Rgph::RenderGraph& rg,
-		DirectX::XMFLOAT3 spawnPos)
+		DirectX::XMFLOAT3 spawnPos,
+		DirectX::XMFLOAT3 aimVel)
 	{
 		if (!CanStart(field))
 		{
@@ -54,138 +102,280 @@ public:
 			return;
 		}
 
-		ctx_ = {};
-		ctx_.standby.gfx = &gfx;
-		ctx_.standby.rg = &rg;
-		ctx_.standby.spawnPos = spawnPos;
-		pendingFire_ = false;
-		committedShots_.clear();
+		EnsureSessionCapacity_();
 
-		const std::size_t shotsBefore = ctx_.shots.size();
-		core->ApplyTo(ctx_);
+		ScanSession session{};
+		session.ctx.standby.gfx = &gfx;
+		session.ctx.standby.rg = &rg;
+		session.ctx.standby.spawnPos = spawnPos;
+		session.spawnPos = spawnPos;
+		session.aimVel = aimVel;
+		session.pendingFire = false;
+		session.committedShots.clear();
+		session.appliedTokenCount = 0;
+
+		const std::size_t shotsBefore = session.ctx.shots.size();
+		core->ApplyTo(session.ctx);
+		++session.appliedTokenCount;
 		core->StartCooldown();
-		lastSource_ = core;
+		session.lastSource = core;
 
-		if (ctx_.shots.size() > shotsBefore)
+		sessions_.push_back(std::move(session));
+		const std::size_t index = sessions_.size() - 1;
+
+		if (sessions_[index].ctx.shots.size() > shotsBefore
+			|| sessions_[index].appliedTokenCount >= kMaxAppliedTokens)
 		{
-			EndSessionWithShots_();
+			EndSessionWithShots_(index);
 			return;
 		}
 
-		wave_.Start(core, core->GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
-		sessionActive_ = true;
+		sessions_[index].wave.Start(
+			core, core->GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+		sessions_[index].active = true;
 	}
 
 	/**
-	 * @brief Expand wave; on hit Apply+swap source; on exhaust or Spawn-flush end session.
+	 * @brief Advance active waves only. Does not erase; TakeAllPendingFires owns erase.
 	 */
 	void Update(float dt, ModuleField& field)
 	{
-		if (!sessionActive_ || !wave_.alive)
+		const std::size_t count = sessions_.size();
+		for (std::size_t i = 0; i < count; ++i)
 		{
-			return;
-		}
-
-		const float radiusBefore = wave_.radius;
-		const bool exhausted = wave_.Expand(dt);
-		const float radiusAfter = wave_.radius;
-
-		if (TryHitAndChain_(field, radiusBefore, radiusAfter))
-		{
-			return;
-		}
-
-		if (exhausted)
-		{
-			ForceCommit();
-		}
-	}
-
-	/**
-	 * @brief Wave exhausted or external stop: FlushStandby and mark pending fire.
-	 */
-	void ForceCommit()
-	{
-		if (!sessionActive_)
-		{
-			return;
-		}
-		wave_.Stop();
-		ctx_.FlushStandby();
-		EndSessionWithShots_();
-	}
-
-	/**
-	 * @brief Take ownership of committed roots (clears pending flag).
-	 */
-	std::vector<Attack*> TakeShots()
-	{
-		pendingFire_ = false;
-		std::vector<Attack*> out;
-		out.reserve(committedShots_.size());
-		for (Attack* root : committedShots_)
-		{
-			if (root != nullptr)
+			if (!sessions_[i].active || !sessions_[i].wave.alive)
 			{
-				out.push_back(root);
+				continue;
+			}
+
+			const float radiusBefore = sessions_[i].wave.radius;
+			const bool exhausted = sessions_[i].wave.Expand(dt);
+			const float radiusAfter = sessions_[i].wave.radius;
+
+			if (TryHitAndChain_(i, field, radiusBefore, radiusAfter))
+			{
+				continue;
+			}
+
+			if (exhausted)
+			{
+				ForceCommit_(i);
 			}
 		}
-		committedShots_.clear();
-		return out;
+	}
+
+	void ForceCommit()
+	{
+		const std::size_t count = sessions_.size();
+		for (std::size_t i = 0; i < count; ++i)
+		{
+			ForceCommit_(i);
+		}
+	}
+
+	/**
+	 * @brief Take every pendingFire session as a FireBatch and erase those sessions.
+	 * @note Also drops finished sessions with no pending fire (!active && !pendingFire).
+	 */
+	[[nodiscard]] std::vector<FireBatch> TakeAllPendingFires()
+	{
+		std::vector<FireBatch> batches;
+		std::vector<ScanSession> keep;
+		keep.reserve(sessions_.size());
+
+		for (ScanSession& session : sessions_)
+		{
+			if (session.pendingFire)
+			{
+				FireBatch batch{};
+				batch.pos = session.spawnPos;
+				batch.vel = session.aimVel;
+				batch.roots.reserve(session.committedShots.size());
+				for (Attack* root : session.committedShots)
+				{
+					if (root != nullptr)
+					{
+						batch.roots.push_back(root);
+					}
+				}
+				session.committedShots.clear();
+				session.pendingFire = false;
+				if (!batch.roots.empty())
+				{
+					batches.push_back(std::move(batch));
+				}
+				continue;
+			}
+
+			if (!session.active)
+			{
+				continue;
+			}
+
+			keep.push_back(std::move(session));
+		}
+
+		sessions_ = std::move(keep);
+		return batches;
 	}
 
 private:
-	void EndSessionWithShots_()
+	void EnsureSessionCapacity_()
 	{
-		wave_.Stop();
-		sessionActive_ = false;
-		lastSource_ = nullptr;
+		const std::size_t want = kMaxSessions + kMaxSessions;
+		if (sessions_.capacity() < want)
+		{
+			sessions_.reserve(want);
+		}
+	}
 
-		committedShots_.clear();
-		for (Attack* root : ctx_.shots)
+	void ForceCommit_(std::size_t sessionIndex)
+	{
+		if (sessionIndex >= sessions_.size())
+		{
+			return;
+		}
+		if (!sessions_[sessionIndex].active)
+		{
+			return;
+		}
+		EndSessionWithShots_(sessionIndex);
+	}
+
+	void EndSessionWithShots_(std::size_t sessionIndex)
+	{
+		if (sessionIndex >= sessions_.size())
+		{
+			return;
+		}
+
+		ScanSession& session = sessions_[sessionIndex];
+		session.wave.Stop();
+		session.active = false;
+		session.lastSource = nullptr;
+		session.ctx.FlushStandby();
+
+		session.committedShots.clear();
+		for (Attack* root : session.ctx.shots)
 		{
 			if (root != nullptr)
 			{
-				committedShots_.push_back(root);
+				session.committedShots.push_back(root);
 			}
 		}
-		ctx_.shots.clear();
-		pendingFire_ = !committedShots_.empty();
+		session.ctx.shots.clear();
+		session.pendingFire = !session.committedShots.empty();
 	}
 
-	/**
-	 * @brief Apply node; if shots grew (Spawn flush), end session; else cool+new wave.
-	 * @return true if session ended or chain restarted (caller should skip exhaust).
-	 */
-	bool ApplyHit_(FieldModuleNode& node)
+	bool ApplyHit_(std::size_t sessionIndex, FieldModuleNode& node)
 	{
-		const std::size_t shotsBefore = ctx_.shots.size();
-		node.ApplyTo(ctx_);
-
-		wave_.Stop();
-		node.StartCooldown();
-		lastSource_ = &node;
-
-		if (ctx_.shots.size() > shotsBefore)
+		if (sessionIndex >= sessions_.size())
 		{
-			EndSessionWithShots_();
-			return true;
+			return false;
 		}
 
-		wave_.Start(&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
-		return true;
+		{
+			ScanSession& session = sessions_[sessionIndex];
+			const std::size_t shotsBefore = session.ctx.shots.size();
+			node.ApplyTo(session.ctx);
+			++session.appliedTokenCount;
+
+			session.wave.Stop();
+			node.StartCooldown();
+			session.lastSource = &node;
+
+			const bool flushedShots = session.ctx.shots.size() > shotsBefore;
+			const bool tokenCap = session.appliedTokenCount >= kMaxAppliedTokens;
+
+			/**
+			 * Core + Flush: fire previous assembly only, keep new parent, restart token count + scan.
+			 * Token cap must not EndSession the brand-new parent created by this Apply.
+			 */
+			if (node.IsCore())
+			{
+				if (flushedShots)
+				{
+					DetachFlushedShotsAsPending_(sessionIndex);
+					sessions_[sessionIndex].appliedTokenCount = 1;
+				}
+
+				ScanSession& after = sessions_[sessionIndex];
+				if (after.appliedTokenCount >= kMaxAppliedTokens)
+				{
+					EndSessionWithShots_(sessionIndex);
+					return true;
+				}
+
+				after.wave.Start(
+					&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+				after.active = true;
+				after.pendingFire = false;
+				return true;
+			}
+
+			if (flushedShots || tokenCap)
+			{
+				EndSessionWithShots_(sessionIndex);
+				return true;
+			}
+
+			session.wave.Start(
+				&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+			return true;
+		}
 	}
 
 	/**
-	 * @brief First Ready node whose disk is crossed by the ring this frame.
+	 * @brief Park ctx.shots on a pendingFire sibling; leave standby on sessions_[index].
 	 */
-	bool TryHitAndChain_(ModuleField& field, float radiusBefore, float radiusAfter)
+	void DetachFlushedShotsAsPending_(std::size_t sessionIndex)
 	{
+		if (sessionIndex >= sessions_.size())
+		{
+			return;
+		}
+
+		EnsureSessionCapacity_();
+
+		ScanSession& session = sessions_[sessionIndex];
+		ScanSession fireOnly{};
+		fireOnly.spawnPos = session.spawnPos;
+		fireOnly.aimVel = session.aimVel;
+		fireOnly.active = false;
+		fireOnly.committedShots.clear();
+		for (Attack* root : session.ctx.shots)
+		{
+			if (root != nullptr)
+			{
+				fireOnly.committedShots.push_back(root);
+			}
+		}
+		session.ctx.shots.clear();
+		fireOnly.pendingFire = !fireOnly.committedShots.empty();
+		if (fireOnly.pendingFire)
+		{
+			sessions_.push_back(std::move(fireOnly));
+		}
+	}
+
+	bool TryHitAndChain_(
+		std::size_t sessionIndex,
+		ModuleField& field,
+		float radiusBefore,
+		float radiusAfter)
+	{
+		if (sessionIndex >= sessions_.size())
+		{
+			return false;
+		}
+
 		FieldModuleNode* best = nullptr;
 		float bestAbs = 1.0e9f;
 
-		const float cx = wave_.center.x;
-		const float cy = wave_.center.y;
+		const ScanWave& wave = sessions_[sessionIndex].wave;
+		const float cx = wave.center.x;
+		const float cy = wave.center.y;
+		FieldModuleNode* const source = wave.source;
 
 		field.ForEach([&](FieldModuleNode& node)
 		{
@@ -193,7 +383,7 @@ private:
 			{
 				return;
 			}
-			if (&node == wave_.source)
+			if (&node == source)
 			{
 				return;
 			}
@@ -223,14 +413,9 @@ private:
 			return false;
 		}
 
-		ApplyHit_(*best);
+		ApplyHit_(sessionIndex, *best);
 		return true;
 	}
 
-	DeployContext ctx_{};
-	ScanWave wave_{};
-	bool sessionActive_{ false };
-	bool pendingFire_{ false };
-	FieldModuleNode* lastSource_{ nullptr };
-	std::vector<Attack*> committedShots_;
+	std::vector<ScanSession> sessions_;
 };

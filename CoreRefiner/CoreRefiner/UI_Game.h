@@ -48,28 +48,34 @@ public:
 		if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
 		{
 			const DirectX::XMFLOAT3 spawnPos = player->GetPosition();
-			assembler_.Begin(field_, gfx_, rg_, spawnPos);
+			DirectX::XMFLOAT3 aimVel{ 0.0f, 0.0f, 0.05f };
+			if (attackManager_ != nullptr)
+			{
+				attackManager_->TryGetAimVelocity(spawnPos, aimVel);
+			}
+			assembler_.Begin(field_, gfx_, rg_, spawnPos, aimVel);
 		}
 
 		assembler_.Update(dt, field_);
 
-		if (assembler_.HasPendingFire() && attackManager_ != nullptr && player != nullptr)
+		// Only TakeAllPendingFires erases sessions; keep Update → Take → Redraw order.
+		for (FireBatch& batch : assembler_.TakeAllPendingFires())
 		{
-			DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.0f };
-			const DirectX::XMFLOAT3 pos = player->GetPosition();
-			if (!attackManager_->TryGetAimVelocity(pos, vel))
+			if (attackManager_ != nullptr && player != nullptr)
 			{
-				vel = { 0.0f, 0.0f, 0.05f };
+				const DirectX::XMFLOAT3 pos = player->GetPosition();
+				DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
+				attackManager_->TryGetAimVelocity(pos, vel);
+				attackManager_->FireRoots(std::move(batch.roots), pos, vel);
 			}
-			attackManager_->FireRoots(assembler_.TakeShots(), pos, vel);
-		}
-		else if (assembler_.HasPendingFire())
-		{
-			for (Attack* root : assembler_.TakeShots())
+			else
 			{
-				if (root != nullptr)
+				for (Attack* root : batch.roots)
 				{
-					root->Deactivate();
+					if (root != nullptr)
+					{
+						root->Deactivate();
+					}
 				}
 			}
 		}
@@ -95,7 +101,7 @@ private:
 	{
 		field_.AddNode<CoreSpawnNode>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
 
-		field_.AddNode<ChildPitNode>(DirectX::XMFLOAT2{ -70.0f, 40.0f });
+		field_.AddNode<ChildPitNode>(DirectX::XMFLOAT2{ -50.0f, 40.0f });
 		field_.AddNode<ChildPitNode>(DirectX::XMFLOAT2{ 70.0f, 40.0f });
 
 		field_.AddNode<SpawnBallNode>(DirectX::XMFLOAT2{ -70.0f, -40.0f });
@@ -113,23 +119,31 @@ private:
 
 	void DrawWaveOverlay_(Canvas2D& bg) const
 	{
-		const ScanWave& wave = assembler_.GetWave();
-		if (!wave.alive || wave.radius <= 0.0f)
+		bool any = false;
+		assembler_.ForEachAliveWave([&](const ScanWave& wave)
 		{
-			return;
+			if (wave.radius <= 0.0f)
+			{
+				return;
+			}
+
+			int cx = 0;
+			int cy = 0;
+			ModuleFieldDraw::LocalToPixel(
+				wave.center.x, wave.center.y,
+				bg.GetCanvasWidth(), bg.GetCanvasHeight(),
+				cx, cy);
+
+			const int r = static_cast<int>(std::lround(wave.radius));
+			ModuleFieldDraw::DrawRing(bg, cx, cy, r, 3, Color(255u, 255u, 80u, 255u));
+			ModuleFieldDraw::DrawRing(bg, cx, cy, r + 2, 1, Color(255u, 255u, 200u, 180u));
+			any = true;
+		});
+
+		if (any)
+		{
+			bg.NotifyPixelsChanged();
 		}
-
-		int cx = 0;
-		int cy = 0;
-		ModuleFieldDraw::LocalToPixel(
-			wave.center.x, wave.center.y,
-			bg.GetCanvasWidth(), bg.GetCanvasHeight(),
-			cx, cy);
-
-		const int r = static_cast<int>(std::lround(wave.radius));
-		ModuleFieldDraw::DrawRing(bg, cx, cy, r, 3, Color(255u, 255u, 80u, 255u));
-		ModuleFieldDraw::DrawRing(bg, cx, cy, r + 2, 1, Color(255u, 255u, 200u, 180u));
-		bg.NotifyPixelsChanged();
 	}
 
 	Graphics& gfx_;

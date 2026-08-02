@@ -5,41 +5,15 @@
 
 #include <DirectXMath.h>
 
-class CoreSpawnNode final : public FieldModuleNode
-{
-public:
-	explicit CoreSpawnNode(
-		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
-		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
-		bool enableCollider = true) noexcept
-		:
-		scale_(scale),
-		enableCollider_(enableCollider)
-	{
-		isCore_ = true;
-		localPos_ = localPos;
-		hitRadius_ = 22.0f;
-		cooldownDuration_ = 0.5f;
-	}
-
-	void ApplyTo(DeployContext& ctx) override
-	{
-		DeployStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
-	}
-
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Core/Spawn_Ball"; }
-
-private:
-	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
-	bool enableCollider_{ true };
-};
-
-class SpawnBallNode final : public FieldModuleNode
+/**
+ * @brief Field Spawn_Ball token. Scan hits Apply this the same as any other module node.
+ */
+class SpawnBallNode : public FieldModuleNode
 {
 public:
 	explicit SpawnBallNode(
 		DirectX::XMFLOAT2 localPos,
-		DirectX::XMFLOAT3 scale = { 0.35f, 0.35f, 0.35f },
+		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
 		:
 		scale_(scale),
@@ -47,7 +21,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 16.0f;
-		cooldownDuration_ = 0.75f;
+		cooldownDuration_ = 1.5f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -57,9 +31,28 @@ public:
 
 	[[nodiscard]] const char* GetLabel() const noexcept override { return "Spawn_Ball"; }
 
-private:
-	DirectX::XMFLOAT3 scale_{ 0.35f, 0.35f, 0.35f };
+protected:
+	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
 	bool enableCollider_{ true };
+};
+
+/**
+ * @brief Same token as SpawnBallNode; only difference is player attack Begin when Ready.
+ */
+class CoreSpawnNode final : public SpawnBallNode
+{
+public:
+	explicit CoreSpawnNode(
+		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
+		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
+		bool enableCollider = true) noexcept
+		:
+		SpawnBallNode(localPos, scale, enableCollider)
+	{
+		isCore_ = true;
+	}
+
+	[[nodiscard]] const char* GetLabel() const noexcept override { return "Core/Spawn_Ball"; }
 };
 
 class ChildPitNode final : public FieldModuleNode
@@ -69,7 +62,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
-		cooldownDuration_ = 0.75f;
+		cooldownDuration_ = 1.5f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -89,7 +82,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
-		cooldownDuration_ = 0.75f;
+		cooldownDuration_ = 1.5f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -112,7 +105,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
-		cooldownDuration_ = 0.75f;
+		cooldownDuration_ = 1.5f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -141,7 +134,7 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
-		cooldownDuration_ = 0.75f;
+		cooldownDuration_ = 1.5f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
