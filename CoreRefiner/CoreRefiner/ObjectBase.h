@@ -102,6 +102,10 @@ public:
 	void SetParent(ObjectBase* parent);
 	/** @brief Detach from current parent (safe if already root). */
 	void ClearParent();
+	/**
+	 * @brief Detach from parent and drop all child links (pool-safe reuse).
+	 */
+	void ResetHierarchy();
 	[[nodiscard]] ObjectBase* GetParent() const noexcept { return parent_; }
 	[[nodiscard]] size_t GetChildCount() const noexcept { return children_.size(); }
 	[[nodiscard]] ObjectBase* GetChild(size_t index) const noexcept;

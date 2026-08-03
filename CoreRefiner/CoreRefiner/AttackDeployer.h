@@ -149,13 +149,13 @@ public:
 			return;
 		}
 
-		ball->ClearParent();
+		ball->ResetHierarchy();
 		ball->ClearModules();
 		ball->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
 		ball->ResetMoveVelocity();
 		ball->ApplyPresentation(scale_, enableCollider_);
 
-		if (s.parent == nullptr)
+		if (s.parent == nullptr || ball == s.parent)
 		{
 			s.parent = ball;
 			s.host = ball;

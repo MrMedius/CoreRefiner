@@ -121,6 +121,12 @@ void ObjectBase::ClearParent()
 	DetachFromParentOnly_();
 }
 
+void ObjectBase::ResetHierarchy()
+{
+	DetachAllChildren_();
+	DetachFromParentOnly_();
+}
+
 ObjectBase* ObjectBase::GetChild(size_t index) const noexcept
 {
 	if (index >= children_.size())

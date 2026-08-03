@@ -274,55 +274,39 @@ private:
 			return false;
 		}
 
+		ScanSession& session = sessions_[sessionIndex];
+		const std::size_t shotsBefore = session.ctx.shots.size();
+		node.ApplyTo(session.ctx);
+		++session.appliedTokenCount;
+
+		session.wave.Stop();
+		node.StartCooldown();
+		session.lastSource = &node;
+
+		const bool flushedShots = session.ctx.shots.size() > shotsBefore;
+
+		/**
+		 * Spawn_Ball Flush (core or SpawnBallNode): park previous roots, keep new parent,
+		 * reset token count, continue scan from this node. Fill-only hits just chain.
+		 */
+		if (flushedShots)
 		{
-			ScanSession& session = sessions_[sessionIndex];
-			const std::size_t shotsBefore = session.ctx.shots.size();
-			node.ApplyTo(session.ctx);
-			++session.appliedTokenCount;
+			DetachFlushedShotsAsPending_(sessionIndex);
+			sessions_[sessionIndex].appliedTokenCount = 1;
+		}
 
-			session.wave.Stop();
-			node.StartCooldown();
-			session.lastSource = &node;
-
-			const bool flushedShots = session.ctx.shots.size() > shotsBefore;
-			const bool tokenCap = session.appliedTokenCount >= kMaxAppliedTokens;
-
-			/**
-			 * Core + Flush: fire previous assembly only, keep new parent, restart token count + scan.
-			 * Token cap must not EndSession the brand-new parent created by this Apply.
-			 */
-			if (node.IsCore())
-			{
-				if (flushedShots)
-				{
-					DetachFlushedShotsAsPending_(sessionIndex);
-					sessions_[sessionIndex].appliedTokenCount = 1;
-				}
-
-				ScanSession& after = sessions_[sessionIndex];
-				if (after.appliedTokenCount >= kMaxAppliedTokens)
-				{
-					EndSessionWithShots_(sessionIndex);
-					return true;
-				}
-
-				after.wave.Start(
-					&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
-				after.active = true;
-				after.pendingFire = false;
-				return true;
-			}
-
-			if (flushedShots || tokenCap)
-			{
-				EndSessionWithShots_(sessionIndex);
-				return true;
-			}
-
-			session.wave.Start(
-				&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+		ScanSession& after = sessions_[sessionIndex];
+		if (after.appliedTokenCount >= kMaxAppliedTokens)
+		{
+			EndSessionWithShots_(sessionIndex);
 			return true;
 		}
+
+		after.wave.Start(
+			&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+		after.active = true;
+		after.pendingFire = false;
+		return true;
 	}
 
 	/**
