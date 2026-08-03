@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FieldModuleNode.h"
+#include "IFieldNode.h"
 #include "AttackDeployer.h"
 
 #include <DirectXMath.h>
@@ -8,7 +8,7 @@
 /**
  * @brief Field Spawn_Ball token. Scan hits Apply this the same as any other module node.
  */
-class SpawnBallNode : public FieldModuleNode
+class SpawnBallNode : public IFieldNode
 {
 public:
 	explicit SpawnBallNode(
@@ -55,7 +55,7 @@ public:
 	[[nodiscard]] const char* GetLabel() const noexcept override { return "Core/Spawn_Ball"; }
 };
 
-class ChildPitNode final : public FieldModuleNode
+class ChildPitNode final : public IFieldNode
 {
 public:
 	explicit ChildPitNode(DirectX::XMFLOAT2 localPos) noexcept
@@ -73,7 +73,7 @@ public:
 	[[nodiscard]] const char* GetLabel() const noexcept override { return "Other_Child"; }
 };
 
-class LifetimeNode final : public FieldModuleNode
+class LifetimeNode final : public IFieldNode
 {
 public:
 	LifetimeNode(DirectX::XMFLOAT2 localPos, float durationSeconds = 2.0f) noexcept
@@ -96,7 +96,7 @@ private:
 	float durationSeconds_{ 2.0f };
 };
 
-class SpeedRateNode final : public FieldModuleNode
+class SpeedRateNode final : public IFieldNode
 {
 public:
 	SpeedRateNode(DirectX::XMFLOAT2 localPos, float speedRate = 1.0f) noexcept
@@ -119,7 +119,7 @@ private:
 	float speedRate_{ 1.0f };
 };
 
-class OrbitNode final : public FieldModuleNode
+class OrbitNode final : public IFieldNode
 {
 public:
 	OrbitNode(

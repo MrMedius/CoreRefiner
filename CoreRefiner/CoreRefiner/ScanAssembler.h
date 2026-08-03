@@ -17,7 +17,7 @@ struct ScanSession
 	ScanWave wave{};
 	bool active{ false };
 	bool pendingFire{ false };
-	FieldModuleNode* lastSource{ nullptr };
+	IFieldNode* lastSource{ nullptr };
 	std::vector<Attack*> committedShots;
 	std::size_t appliedTokenCount{ 0 };
 	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
@@ -80,7 +80,7 @@ public:
 		{
 			return false;
 		}
-		const FieldModuleNode* core = field.GetCore();
+		const IFieldNode* core = field.GetCore();
 		return core != nullptr && core->IsReady();
 	}
 
@@ -96,7 +96,7 @@ public:
 			return;
 		}
 
-		FieldModuleNode* core = field.GetCore();
+		IFieldNode* core = field.GetCore();
 		if (core == nullptr)
 		{
 			return;
@@ -267,7 +267,7 @@ private:
 		session.pendingFire = !session.committedShots.empty();
 	}
 
-	bool ApplyHit_(std::size_t sessionIndex, FieldModuleNode& node)
+	bool ApplyHit_(std::size_t sessionIndex, IFieldNode& node)
 	{
 		if (sessionIndex >= sessions_.size())
 		{
@@ -353,15 +353,15 @@ private:
 			return false;
 		}
 
-		FieldModuleNode* best = nullptr;
+		IFieldNode* best = nullptr;
 		float bestAbs = 1.0e9f;
 
 		const ScanWave& wave = sessions_[sessionIndex].wave;
 		const float cx = wave.center.x;
 		const float cy = wave.center.y;
-		FieldModuleNode* const source = wave.source;
+		IFieldNode* const source = wave.source;
 
-		field.ForEach([&](FieldModuleNode& node)
+		field.ForEach([&](IFieldNode& node)
 		{
 			if (!node.IsReady())
 			{

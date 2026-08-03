@@ -439,6 +439,9 @@
     <ClCompile Include="AttackManager.cpp">
       <Filter>Object\Managers</Filter>
     </ClCompile>
+    <ClCompile Include="IFieldNode.cpp">
+      <Filter>UI\ModuleField</Filter>
+    </ClCompile>
     <ClCompile Include="Attack.cpp">
       <Filter>Object\Attack</Filter>
     </ClCompile>
@@ -473,6 +476,9 @@
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClCompile>
     <ClCompile Include="Canvas2D.cpp">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="Canvas2DSpriteUV.cpp">
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClCompile>
     <ClCompile Include="Canvas3D.cpp">
@@ -1077,6 +1083,9 @@
     <ClInclude Include="Canvas2D.h">
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClInclude>
+    <ClInclude Include="Canvas2DSpriteUV.h">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClInclude>
     <ClInclude Include="DWriteCustomFontCollection.h">
       <Filter>Framework\Helpers\Text</Filter>
     </ClInclude>
@@ -1317,7 +1326,7 @@
     <ClInclude Include="AttackDeployer.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
-    <ClInclude Include="FieldModuleNode.h">
+    <ClInclude Include="IFieldNode.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="ScanWave.h">
@@ -1504,6 +1513,12 @@
       <Filter>Shader\2D</Filter>
     </FxCompile>
     <FxCompile Include="Canvas2D_PS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="Canvas2DSpriteUV_VS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="Canvas2DSpriteUV_PS.hlsl">
       <Filter>Shader\2D</Filter>
     </FxCompile>
     <FxCompile Include="Canvas3D_PS.hlsl">

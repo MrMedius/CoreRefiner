@@ -23,18 +23,20 @@ public:
 		gfx_(gfx),
 		rg_(rg)
 	{
+		fieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
+
 		{
-			float side = 300.0f;
-			bgCanvas = std::make_unique<Canvas2D>(gfx, 300.0f, 300.0f);
-			bgCanvas->SetPosition(DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f });
-			bgCanvas->SetScale(DirectX::XMFLOAT3{ 300.0f, 300.0f, 1.0f });
-			for (float i = 0; i < side; i++)
-				for (float j = 0; j < side; j++)
-					bgCanvas->PutPixel(i, j, Color(100u, 150u, 50u, 150u));
+			constexpr float side = 300.0f;
+			bgCanvas = std::make_unique<Canvas2D>(gfx, 300u, 300u);
+			bgCanvas->SetPosition(fieldOrigin_);
+			bgCanvas->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
+			bgCanvas->Clear(Color(100u, 150u, 50u, 150u));
+			bgCanvas->NotifyPixelsChanged();
 			bgCanvas->LinkTechniques(rg);
 		}
 
 		PlaceDemoField_();
+		field_.InitAllVisuals(gfx_, rg_, fieldOrigin_);
 	}
 	~UI_Game() = default;
 
@@ -43,6 +45,7 @@ public:
 	void Update(float dt)
 	{
 		field_.TickAllCooldowns(dt);
+		field_.SyncAllVisuals();
 
 		Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
 		if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
@@ -58,7 +61,7 @@ public:
 
 		assembler_.Update(dt, field_);
 
-		// Only TakeAllPendingFires erases sessions; keep Update → Take → Redraw order.
+		// Only TakeAllPendingFires erases sessions; keep Update → Take → draw order.
 		for (FireBatch& batch : assembler_.TakeAllPendingFires())
 		{
 			if (attackManager_ != nullptr && player != nullptr)
@@ -82,14 +85,19 @@ public:
 
 		if (bgCanvas != nullptr)
 		{
-			field_.Redraw(*bgCanvas);
+			// Clear trails from pixel rings until ModuleFieldCanvas (phase B).
+			bgCanvas->Clear(Color(100u, 150u, 50u, 150u));
 			DrawWaveOverlay_(*bgCanvas);
 		}
 	}
 
 	void Submit(void)
 	{
-		bgCanvas->Submit(Chan::ui);
+		if (bgCanvas != nullptr)
+		{
+			bgCanvas->Submit(Chan::ui);
+		}
+		field_.SubmitAllVisuals();
 	}
 
 	[[nodiscard]] ModuleField& GetField() noexcept { return field_; }
@@ -106,13 +114,13 @@ private:
 
 		field_.AddNode<SpawnBallNode>(DirectX::XMFLOAT2{ -50.0f, -40.0f });
 		field_.AddNode<SpawnBallNode>(DirectX::XMFLOAT2{ 40.0f, -40.0f });
-		
+
 		field_.AddNode<OrbitNode>(DirectX::XMFLOAT2{ 0.0f, 75.0f });
 		field_.AddNode<OrbitNode>(DirectX::XMFLOAT2{ 0.0f, -95.0f });
-		
+
 		field_.AddNode<LifetimeNode>(DirectX::XMFLOAT2{ 80.0f, 0.0f }, 2.0f);
 		field_.AddNode<LifetimeNode>(DirectX::XMFLOAT2{ -110.0f, 0.0f }, 2.0f);
-		
+
 		field_.AddNode<SpeedRateNode>(DirectX::XMFLOAT2{ 30.0f, 90.0f }, 0.5f);
 		field_.AddNode<SpeedRateNode>(DirectX::XMFLOAT2{ -50.0f, 90.0f }, 0.2f);
 	}
@@ -140,15 +148,14 @@ private:
 			any = true;
 		});
 
-		if (any)
-		{
-			bg.NotifyPixelsChanged();
-		}
+		bg.NotifyPixelsChanged();
+		(void)any;
 	}
 
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
 	AttackManager* attackManager_{ nullptr };
+	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	std::unique_ptr<Canvas2D> bgCanvas;
 	ModuleField field_;
 	ScanAssembler assembler_;

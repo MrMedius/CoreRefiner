@@ -1,14 +1,18 @@
 #pragma once
 
-#include "FieldModuleNode.h"
-#include "ModuleFieldDraw.h"
-#include "Canvas2D.h"
-#include "Colors.h"
+#include "IFieldNode.h"
 
-#include <cmath>
+#include <DirectXMath.h>
 #include <memory>
 #include <utility>
 #include <vector>
+
+class Graphics;
+
+namespace Rgph
+{
+	class RenderGraph;
+}
 
 class ModuleField
 {
@@ -24,7 +28,7 @@ public:
 		return raw;
 	}
 
-	[[nodiscard]] FieldModuleNode* GetCore() const noexcept
+	[[nodiscard]] IFieldNode* GetCore() const noexcept
 	{
 		for (const auto& n : nodes_)
 		{
@@ -38,7 +42,7 @@ public:
 
 	[[nodiscard]] std::size_t GetNodeCount() const noexcept { return nodes_.size(); }
 
-	[[nodiscard]] FieldModuleNode* GetNode(std::size_t index) const noexcept
+	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
 	}
@@ -78,49 +82,42 @@ public:
 		}
 	}
 
-	void Redraw(Canvas2D& bg) const
+	/**
+	 * @brief Init each node's self-owned canvases (call once after placing nodes).
+	 */
+	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin)
 	{
-		const Color bgColor(100u, 150u, 50u, 150u);
-		bg.Clear(bgColor);
-
-		const unsigned cw = bg.GetCanvasWidth();
-		const unsigned ch = bg.GetCanvasHeight();
-
-		for (const auto& n : nodes_)
+		for (auto& n : nodes_)
 		{
-			if (n == nullptr)
+			if (n != nullptr)
 			{
-				continue;
-			}
-
-			int px = 0;
-			int py = 0;
-			ModuleFieldDraw::LocalToPixel(
-				n->GetLocalPos().x, n->GetLocalPos().y, cw, ch, px, py);
-
-			const int r = static_cast<int>(std::lround(n->GetHitRadius()));
-			if (n->IsCore())
-			{
-				const Color fill = n->IsReady()
-					? Color(255u, 210u, 60u, 255u)
-					: Color(120u, 100u, 40u, 255u);
-				ModuleFieldDraw::DrawDisk(bg, px, py, r, fill);
-				ModuleFieldDraw::DrawRing(bg, px, py, r + 2, 2, Color(255u, 240u, 160u, 255u));
-			}
-			else if (n->IsReady())
-			{
-				ModuleFieldDraw::DrawDisk(bg, px, py, r, Color(120u, 200u, 255u, 255u));
-			}
-			else
-			{
-				ModuleFieldDraw::DrawDisk(bg, px, py, r, Color(55u, 55u, 60u, 255u));
-				ModuleFieldDraw::DrawRing(bg, px, py, r, 2, Color(100u, 100u, 110u, 200u));
+				n->InitVisual(gfx, rg, fieldOrigin);
 			}
 		}
+	}
 
-		bg.NotifyPixelsChanged();
+	void SyncAllVisuals()
+	{
+		for (auto& n : nodes_)
+		{
+			if (n != nullptr)
+			{
+				n->SyncVisual();
+			}
+		}
+	}
+
+	void SubmitAllVisuals()
+	{
+		for (auto& n : nodes_)
+		{
+			if (n != nullptr)
+			{
+				n->SubmitVisual();
+			}
+		}
 	}
 
 private:
-	std::vector<std::unique_ptr<FieldModuleNode>> nodes_;
+	std::vector<std::unique_ptr<IFieldNode>> nodes_;
 };
