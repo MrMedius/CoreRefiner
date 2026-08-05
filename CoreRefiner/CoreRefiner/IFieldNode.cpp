@@ -1,7 +1,6 @@
 #include "IFieldNode.h"
 #include "Channels.h"
 #include "Colors.h"
-#include "ModuleFieldDraw.h"
 #include "RenderGraph.h"
 
 #include <algorithm>
@@ -55,7 +54,6 @@ void IFieldNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLO
 
 	visualReady_ = true;
 
-	PaintIcon_();
 	SyncMaskUV_();
 	ApplyVisualTransform_();
 }
@@ -109,21 +107,6 @@ void IFieldNode::ApplyVisualTransform_()
 	icon_->SetScale(scale);
 	mask_->SetPosition(pos);
 	mask_->SetScale(scale);
-}
-
-void IFieldNode::PaintIcon_()
-{
-	if (icon_ == nullptr || !isCore_)
-	{
-		return;
-	}
-
-	const int cx = static_cast<int>(kVisualSize / 2u);
-	const int cy = cx;
-	const int radius = static_cast<int>(kVisualSize / 2u) - 1;
-	ModuleFieldDraw::DrawRing(
-		*icon_, cx, cy, radius, 1, Color(255u, 240u, 160u, 255u));
-	icon_->NotifyPixelsChanged();
 }
 
 float IFieldNode::GetRemainRatio_() const noexcept

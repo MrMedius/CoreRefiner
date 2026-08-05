@@ -1,9 +1,8 @@
 #pragma once
 #include "Graphics.h"
 #include "RenderGraph.h"
-#include "Canvas2D.h"
 #include "ModuleField.h"
-#include "ModuleFieldDraw.h"
+#include "ModuleFieldCanvas.h"
 #include "FieldNodes.h"
 #include "ScanAssembler.h"
 #include "ObjectCodex.h"
@@ -12,8 +11,6 @@
 #include "AttackManager.h"
 
 #include "Channels.h"
-
-#include <cmath>
 
 class UI_Game
 {
@@ -26,13 +23,11 @@ public:
 		fieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
 
 		{
-			constexpr float side = 300.0f;
-			bgCanvas = std::make_unique<Canvas2D>(gfx, 300u, 300u);
-			bgCanvas->SetPosition(fieldOrigin_);
-			bgCanvas->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
-			bgCanvas->Clear(Color(100u, 150u, 50u, 150u));
-			bgCanvas->NotifyPixelsChanged();
-			bgCanvas->LinkTechniques(rg);
+			constexpr float side = ModuleFieldCanvas::kDefaultFieldSide;
+			fieldCanvas_ = std::make_unique<ModuleFieldCanvas>(gfx, 300u, 300u);
+			fieldCanvas_->SetPosition(fieldOrigin_);
+			fieldCanvas_->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
+			fieldCanvas_->LinkTechniques(rg);
 		}
 
 		PlaceDemoField_();
@@ -83,19 +78,14 @@ public:
 			}
 		}
 
-		if (bgCanvas != nullptr)
-		{
-			// Clear trails from pixel rings until ModuleFieldCanvas (phase B).
-			bgCanvas->Clear(Color(100u, 150u, 50u, 150u));
-			DrawWaveOverlay_(*bgCanvas);
-		}
+		SyncFieldWaves_();
 	}
 
 	void Submit(void)
 	{
-		if (bgCanvas != nullptr)
+		if (fieldCanvas_ != nullptr)
 		{
-			bgCanvas->Submit(Chan::ui);
+			fieldCanvas_->Submit(Chan::ui);
 		}
 		field_.SubmitAllVisuals();
 	}
@@ -125,38 +115,37 @@ private:
 		field_.AddNode<SpeedRateNode>(DirectX::XMFLOAT2{ -50.0f, 90.0f }, 0.2f);
 	}
 
-	void DrawWaveOverlay_(Canvas2D& bg) const
+	void SyncFieldWaves_()
 	{
-		bool any = false;
+		if (fieldCanvas_ == nullptr)
+		{
+			return;
+		}
+
+		DirectX::XMFLOAT2 centers[ModuleFieldCanvas::kMaxRings]{};
+		float radii[ModuleFieldCanvas::kMaxRings]{};
+		unsigned count = 0u;
+
 		assembler_.ForEachAliveWave([&](const ScanWave& wave)
 		{
-			if (wave.radius <= 0.0f)
+			if (count >= ModuleFieldCanvas::kMaxRings || wave.radius <= 0.0f)
 			{
 				return;
 			}
-
-			int cx = 0;
-			int cy = 0;
-			ModuleFieldDraw::LocalToPixel(
-				wave.center.x, wave.center.y,
-				bg.GetCanvasWidth(), bg.GetCanvasHeight(),
-				cx, cy);
-
-			const int r = static_cast<int>(std::lround(wave.radius));
-			ModuleFieldDraw::DrawRing(bg, cx, cy, r, 3, Color(255u, 255u, 80u, 255u));
-			ModuleFieldDraw::DrawRing(bg, cx, cy, r + 2, 1, Color(255u, 255u, 200u, 180u));
-			any = true;
+			centers[count] = wave.center;
+			radii[count] = wave.radius;
+			++count;
 		});
 
-		bg.NotifyPixelsChanged();
-		(void)any;
+		fieldCanvas_->SetWavesLocal(
+			centers, radii, count, ModuleFieldCanvas::kDefaultFieldSide);
 	}
 
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
 	AttackManager* attackManager_{ nullptr };
 	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
-	std::unique_ptr<Canvas2D> bgCanvas;
+	std::unique_ptr<ModuleFieldCanvas> fieldCanvas_;
 	ModuleField field_;
 	ScanAssembler assembler_;
 };

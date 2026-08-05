@@ -586,6 +586,9 @@
     <ClCompile Include="Canvas2DRipples.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="ModuleFieldCanvas.cpp">
+      <Filter>UI\ModuleField</Filter>
+    </ClCompile>
     <ClCompile Include="SliderCanvasFill.cpp">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClCompile>
@@ -1335,13 +1338,13 @@
     <ClInclude Include="ModuleField.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
+    <ClInclude Include="ModuleFieldCanvas.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
     <ClInclude Include="ScanAssembler.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="FieldNodes.h">
-      <Filter>UI\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleFieldDraw.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="SpeedRateModule.h">
@@ -1534,6 +1537,12 @@
       <Filter>Shader\2D</Filter>
     </FxCompile>
     <FxCompile Include="Canvas2DRipples_VS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="ScanWaveField_PS.hlsl">
+      <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="ScanWaveField_VS.hlsl">
       <Filter>Shader\2D</Filter>
     </FxCompile>
   </ItemGroup>

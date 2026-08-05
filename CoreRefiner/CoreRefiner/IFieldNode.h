@@ -78,8 +78,6 @@ protected:
 	[[nodiscard]] virtual Color GetReadyFillColor() const noexcept;
 
 	void ApplyVisualTransform_();
-	/** @brief 仅核心节点在 Ellipse 底色上叠加外环；非核心不改像素。 */
-	void PaintIcon_();
 	void SyncMaskUV_();
 	[[nodiscard]] float GetRemainRatio_() const noexcept;
 
