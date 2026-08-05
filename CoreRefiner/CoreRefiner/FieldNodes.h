@@ -22,6 +22,8 @@ public:
 		localPos_ = localPos;
 		hitRadius_ = 16.0f;
 		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -50,6 +52,8 @@ public:
 		SpawnBallNode(localPos, scale, enableCollider)
 	{
 		isCore_ = true;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
 	}
 
 	[[nodiscard]] const char* GetLabel() const noexcept override { return "Core/Spawn_Ball"; }
@@ -63,6 +67,8 @@ public:
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
 		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -83,6 +89,8 @@ public:
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
 		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -106,6 +114,8 @@ public:
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
 		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -135,6 +145,8 @@ public:
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
 		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override

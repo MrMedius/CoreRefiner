@@ -42,8 +42,6 @@ struct FireBatch
 class ScanAssembler
 {
 public:
-	static constexpr float kDefaultMaxRadius = 140.0f;
-	static constexpr float kDefaultExpandSpeed = 100.0f;
 	static constexpr std::size_t kMaxSessions = 8;
 	static constexpr std::size_t kMaxAppliedTokens = 10;
 
@@ -131,7 +129,10 @@ public:
 		}
 
 		sessions_[index].wave.Start(
-			core, core->GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+			core,
+			core->GetLocalPos(),
+			core->GetScanMaxRadius(),
+			core->GetScanExpandSpeed());
 		sessions_[index].active = true;
 	}
 
@@ -303,7 +304,10 @@ private:
 		}
 
 		after.wave.Start(
-			&node, node.GetLocalPos(), kDefaultMaxRadius, kDefaultExpandSpeed);
+			&node,
+			node.GetLocalPos(),
+			node.GetScanMaxRadius(),
+			node.GetScanExpandSpeed());
 		after.active = true;
 		after.pendingFire = false;
 		return true;

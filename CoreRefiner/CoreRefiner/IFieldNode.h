@@ -43,6 +43,12 @@ public:
 	[[nodiscard]] float GetCooldownDuration() const noexcept { return cooldownDuration_; }
 	void SetCooldownDuration(float seconds) noexcept { cooldownDuration_ = seconds; }
 
+	[[nodiscard]] float GetScanMaxRadius() const noexcept { return scanMaxRadius_; }
+	void SetScanMaxRadius(float radius) noexcept { scanMaxRadius_ = radius; }
+
+	[[nodiscard]] float GetScanExpandSpeed() const noexcept { return scanExpandSpeed_; }
+	void SetScanExpandSpeed(float speed) noexcept { scanExpandSpeed_ = speed; }
+
 	void StartCooldown()
 	{
 		state_ = ModuleReadyState::Cooling;
@@ -86,6 +92,8 @@ protected:
 	ModuleReadyState state_{ ModuleReadyState::Ready };
 	float cooldownRemaining_{ 0.0f };
 	float cooldownDuration_{ 3.0f };
+	float scanMaxRadius_{ 140.0f };
+	float scanExpandSpeed_{ 100.0f };
 	bool isCore_{ false };
 
 	std::unique_ptr<Canvas2D> icon_;
