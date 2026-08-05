@@ -137,6 +137,18 @@ public:
 	}
 
 	/**
+	 * @brief Drop all sessions without firing; Deactivate any held Attack* back to pool.
+	 */
+	void Reset()
+	{
+		for (ScanSession& session : sessions_)
+		{
+			DiscardSessionAttacks_(session);
+		}
+		sessions_.clear();
+	}
+
+	/**
 	 * @brief Advance active waves only. Does not erase; TakeAllPendingFires owns erase.
 	 */
 	void Update(float dt, ModuleField& field)
@@ -406,4 +418,46 @@ private:
 	}
 
 	std::vector<ScanSession> sessions_;
+
+	/**
+	 * @brief Deactivate roots held by a session (committed, shots, standby parent).
+	 * @note Children under parent are cascaded by Attack::Deactivate.
+	 */
+	static void DiscardSessionAttacks_(ScanSession& session)
+	{
+		auto deactivate = [](Attack* attack)
+		{
+			if (attack != nullptr && attack->IsActive())
+			{
+				attack->Deactivate();
+			}
+		};
+
+		for (Attack* root : session.committedShots)
+		{
+			deactivate(root);
+		}
+		session.committedShots.clear();
+
+		for (Attack* root : session.ctx.shots)
+		{
+			deactivate(root);
+		}
+		session.ctx.shots.clear();
+
+		deactivate(session.ctx.standby.parent);
+		for (Attack* child : session.ctx.standby.children)
+		{
+			deactivate(child);
+		}
+		session.ctx.standby.parent = nullptr;
+		session.ctx.standby.children.clear();
+		session.ctx.standby.host = nullptr;
+
+		session.wave.Stop();
+		session.active = false;
+		session.pendingFire = false;
+		session.lastSource = nullptr;
+		session.appliedTokenCount = 0;
+	}
 };

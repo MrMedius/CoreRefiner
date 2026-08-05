@@ -55,6 +55,13 @@ public:
 		cooldownRemaining_ = cooldownDuration_;
 	}
 
+	/** @brief Clear cooling state (scene leave / soft restart). */
+	void ResetCooldown() noexcept
+	{
+		state_ = ModuleReadyState::Ready;
+		cooldownRemaining_ = 0.0f;
+	}
+
 	void TickCooldown(float dt)
 	{
 		if (state_ != ModuleReadyState::Cooling)

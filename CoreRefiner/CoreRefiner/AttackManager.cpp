@@ -118,4 +118,5 @@ void AttackManager::Reset(void)
 			attacks[i]->Deactivate();
 
 	attacks.clear();
+	playerRemote = 0;
 }

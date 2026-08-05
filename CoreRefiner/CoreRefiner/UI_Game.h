@@ -37,6 +37,20 @@ public:
 
 	void SetAttackManager(AttackManager* manager) noexcept { attackManager_ = manager; }
 
+	/**
+	 * @brief Clear scan sessions, node cooldowns, and field ring draw (scene leave).
+	 */
+	void Reset()
+	{
+		assembler_.Reset();
+		field_.ResetAllCooldowns();
+		field_.SyncAllVisuals();
+		if (fieldCanvas_ != nullptr)
+		{
+			fieldCanvas_->ClearWaves();
+		}
+	}
+
 	void Update(float dt)
 	{
 		field_.TickAllCooldowns(dt);

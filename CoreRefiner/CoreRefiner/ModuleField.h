@@ -58,6 +58,18 @@ public:
 		}
 	}
 
+	/** @brief Ready all nodes and clear remaining cooldown (scene leave). */
+	void ResetAllCooldowns() noexcept
+	{
+		for (auto& n : nodes_)
+		{
+			if (n != nullptr)
+			{
+				n->ResetCooldown();
+			}
+		}
+	}
+
 	template <typename Fn>
 	void ForEach(Fn&& fn)
 	{

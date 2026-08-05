@@ -111,6 +111,11 @@ void Game::LeaveScene(SCENE scene)
 	switch (scene)
 	{
 	case SCENE_GAME:
+		// Discard in-progress assemble (standby/pending) before live attack list.
+		if (uiGame != nullptr)
+		{
+			uiGame->Reset();
+		}
 		pAttackManager->Reset();
 		pEnemyManager->Reset();
 		pEnvironmentManager->Reset();
