@@ -103,11 +103,11 @@ public:
 	void SetLocalScale(XMFLOAT3 scale) { SetSize(scale); }
 
 	/**
-	 * @brief Shot lifetime seconds (LifetimeModule / recipes).
+	 * @brief Shot lifetime seconds (Attribute_Lifetime_Module / recipes).
 	 */
 	void SetLifeTime(float seconds) { lifeTime = seconds; }
 	[[nodiscard]] float GetLifeTime() const noexcept { return lifeTime; }
-	/** @brief Reset elapsed life clock (call from SpawnAt / LifetimeModule::OnSpawn). */
+	/** @brief Reset elapsed life clock (call from SpawnAt / Attribute_Lifetime_Module::OnSpawn). */
 	void ResetLifeTimer() { lastTime = 0.0f; }
 	/**
 	 * @brief Advance life clock; returns true when expired.

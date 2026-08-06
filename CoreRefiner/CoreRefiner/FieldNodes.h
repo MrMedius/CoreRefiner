@@ -5,13 +5,10 @@
 
 #include <DirectXMath.h>
 
-/**
- * @brief Field Spawn_Ball token. Scan hits Apply this the same as any other module node.
- */
-class SpawnBallNode : public IFieldNode
+class FieldNode_Spawn_Ball : public IFieldNode
 {
 public:
-	explicit SpawnBallNode(
+	explicit FieldNode_Spawn_Ball(
 		DirectX::XMFLOAT2 localPos,
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
@@ -28,41 +25,39 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		DeployStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
+		AttackNodeStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
 	}
 
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Spawn_Ball"; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Spawn_Ball;
+	}
 
 protected:
 	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
 	bool enableCollider_{ true };
 };
 
-/**
- * @brief Same token as SpawnBallNode; only difference is player attack Begin when Ready.
- */
-class CoreSpawnNode final : public SpawnBallNode
+class FieldNode_Spawn_Ball_Core final : public FieldNode_Spawn_Ball
 {
 public:
-	explicit CoreSpawnNode(
+	explicit FieldNode_Spawn_Ball_Core(
 		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
 		:
-		SpawnBallNode(localPos, scale, enableCollider)
+		FieldNode_Spawn_Ball(localPos, scale, enableCollider)
 	{
 		isCore_ = true;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
 	}
-
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Core/Spawn_Ball"; }
 };
 
-class ChildPitNode final : public IFieldNode
+class FieldNode_Other_Child final : public IFieldNode
 {
 public:
-	explicit ChildPitNode(DirectX::XMFLOAT2 localPos) noexcept
+	explicit FieldNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
@@ -73,16 +68,19 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		DeployStep_Other_Child::Make()->Apply(ctx);
+		AttackNodeStep_Other_Child::Make()->Apply(ctx);
 	}
 
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Other_Child"; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Other_Child;
+	}
 };
 
-class LifetimeNode final : public IFieldNode
+class FieldNode_Attribute_Lifetime final : public IFieldNode
 {
 public:
-	LifetimeNode(DirectX::XMFLOAT2 localPos, float durationSeconds = 2.0f) noexcept
+	FieldNode_Attribute_Lifetime(DirectX::XMFLOAT2 localPos, float durationSeconds = 2.0f) noexcept
 		:
 		durationSeconds_(durationSeconds)
 	{
@@ -95,19 +93,22 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		DeployStep_Attribute_Lifetime::Make(durationSeconds_)->Apply(ctx);
+		AttackNodeStep_Attribute_Lifetime::Make(durationSeconds_)->Apply(ctx);
 	}
 
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Attribute_Lifetime"; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Attribute_Lifetime;
+	}
 
 private:
 	float durationSeconds_{ 2.0f };
 };
 
-class SpeedRateNode final : public IFieldNode
+class FieldNode_Attribute_SpeedRate final : public IFieldNode
 {
 public:
-	SpeedRateNode(DirectX::XMFLOAT2 localPos, float speedRate = 1.0f) noexcept
+	FieldNode_Attribute_SpeedRate(DirectX::XMFLOAT2 localPos, float speedRate = 1.0f) noexcept
 		:
 		speedRate_(speedRate)
 	{
@@ -120,19 +121,22 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		DeployStep_Attribute_SpeedRate::Make(speedRate_)->Apply(ctx);
+		AttackNodeStep_Attribute_SpeedRate::Make(speedRate_)->Apply(ctx);
 	}
 
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Attribute_SpeedRate"; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Attribute_SpeedRate;
+	}
 
 private:
 	float speedRate_{ 1.0f };
 };
 
-class OrbitNode final : public IFieldNode
+class FieldNode_Rule_Orbit final : public IFieldNode
 {
 public:
-	OrbitNode(
+	FieldNode_Rule_Orbit(
 		DirectX::XMFLOAT2 localPos,
 		float radius = 2.0f,
 		float angularSpeed = 3.5f,
@@ -151,10 +155,13 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		DeployStep_Rule_Orbit::Make(orbitRadius_, orbitAngularSpeed_, orbitPhase_)->Apply(ctx);
+		AttackNodeStep_Rule_Orbit::Make(orbitRadius_, orbitAngularSpeed_, orbitPhase_)->Apply(ctx);
 	}
 
-	[[nodiscard]] const char* GetLabel() const noexcept override { return "Rule_Orbit"; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Rule_Orbit;
+	}
 
 private:
 	float orbitRadius_{ 2.0f };

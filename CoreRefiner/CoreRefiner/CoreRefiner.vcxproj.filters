@@ -1038,6 +1038,15 @@
     <ClInclude Include="LifetimeModule.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
+    <ClInclude Include="Attribute_Lifetime_Module.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="Attribute_SpeedRate_Module.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="Rule_Orbit_Module.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
     <ClInclude Include="Player_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
@@ -1329,6 +1338,9 @@
     <ClInclude Include="AttackDeployer.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
+    <ClInclude Include="AttackNodeLabel.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
     <ClInclude Include="IFieldNode.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
@@ -1339,6 +1351,9 @@
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="ModuleFieldCanvas.h">
+      <Filter>UI\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="FieldIconAtlas.h">
       <Filter>UI\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="ScanAssembler.h">

@@ -1,7 +1,7 @@
 #pragma once
 #include "Ball.h"
-#include "OrbitLocalModule.h"
-#include "LifetimeModule.h"
+#include "Rule_Orbit_Module.h"
+#include "Attribute_Lifetime_Module.h"
 #include "ObjectCodex.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
@@ -128,11 +128,11 @@ struct BuildContext
 
 		for (const PendingOrbit& o : slot.pendingOrbits)
 		{
-			ball->AddModule<OrbitLocalModule>(o.radius, o.angularSpeed, o.phase);
+			ball->AddModule<Rule_Orbit_Module>(o.radius, o.angularSpeed, o.phase);
 		}
 		for (const PendingLifetime& life : slot.pendingLifetimes)
 		{
-			ball->AddModule<LifetimeModule>(life.durationSeconds);
+			ball->AddModule<Attribute_Lifetime_Module>(life.durationSeconds);
 		}
 
 		slot.entity = ball;

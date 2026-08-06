@@ -299,7 +299,7 @@ private:
 		const bool flushedShots = session.ctx.shots.size() > shotsBefore;
 
 		/**
-		 * Spawn_Ball Flush (core or SpawnBallNode): park previous roots, keep new parent,
+		 * Spawn_Ball Flush (core or FieldNode_Spawn_Ball): park previous roots, keep new parent,
 		 * reset token count, continue scan from this node. Fill-only hits just chain.
 		 */
 		if (flushedShots)

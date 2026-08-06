@@ -7,7 +7,7 @@
 /**
  * @brief Update(+Spawn) module: orbit owner in local XZ about parent origin.
  */
-class OrbitLocalModule : public IProjectileModule
+class Rule_Orbit_Module : public IProjectileModule
 {
 public:
 	/**
@@ -16,7 +16,7 @@ public:
 	 * @param angularSpeed Radians per second about parent Y.
 	 * @param phase0 Initial angle in radians.
 	 */
-	OrbitLocalModule(Attack* owner, float radius, float angularSpeed, float phase0) noexcept
+	Rule_Orbit_Module(Attack* owner, float radius, float angularSpeed, float phase0) noexcept
 		:
 		IProjectileModule(owner),
 		radius_(radius),
@@ -24,6 +24,12 @@ public:
 		phase0_(phase0),
 		angle_(phase0)
 	{}
+
+	[[nodiscard]] bool HasAttackNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Rule_Orbit;
+	}
 
 	void OnSpawn() override
 	{
@@ -54,7 +60,6 @@ public:
 		angle_ = phase0;
 		ApplyLocalPose_();
 	}
-
 
 private:
 	void ApplyLocalPose_()

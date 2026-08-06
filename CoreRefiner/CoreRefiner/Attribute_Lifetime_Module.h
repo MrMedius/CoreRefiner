@@ -6,14 +6,14 @@
  * @brief Update module: RequestDisable when owner life timer exceeds SetLifeTime.
  * @note Uses Attack::TickLifeTimer / ResetLifeTimer (same fields as legacy Attack::lifeTime).
  */
-class LifetimeModule : public IProjectileModule
+class Attribute_Lifetime_Module : public IProjectileModule
 {
 public:
 	/**
 	 * @param owner Injected by Attack::AddModule.
 	 * @param durationSeconds If &gt; 0, writes owner SetLifeTime; otherwise keeps owner's current lifeTime.
 	 */
-	LifetimeModule(Attack* owner, float durationSeconds = -1.0f) noexcept
+	Attribute_Lifetime_Module(Attack* owner, float durationSeconds = -1.0f) noexcept
 		:
 		IProjectileModule(owner)
 	{
@@ -21,6 +21,12 @@ public:
 		{
 			owner->SetLifeTime(durationSeconds);
 		}
+	}
+
+	[[nodiscard]] bool HasAttackNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Attribute_Lifetime;
 	}
 
 	void OnSpawn() override

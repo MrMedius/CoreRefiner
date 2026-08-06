@@ -2,6 +2,7 @@
 
 #include "Canvas2D.h"
 #include "Canvas2DSpriteUV.h"
+#include "AttackNodeLabel.h"
 #include "Colors.h"
 
 #include <DirectXMath.h>
@@ -83,7 +84,7 @@ public:
 	void SubmitVisual();
 
 	virtual void ApplyTo(DeployContext& ctx) = 0;
-	[[nodiscard]] virtual const char* GetLabel() const noexcept = 0;
+	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept = 0;
 
 protected:
 	IFieldNode() = default;

@@ -1,10 +1,11 @@
 #pragma once
 #include "Attack.h"
 #include "Ball.h"
+#include "AttackNodeLabel.h"
 
-#include "OrbitLocalModule.h"
-#include "LifetimeModule.h"
-#include "SpeedRateModule.h"
+#include "Rule_Orbit_Module.h"
+#include "Attribute_Lifetime_Module.h"
+#include "Attribute_SpeedRate_Module.h"
 
 #include "ObjectCodex.h"
 #include "Graphics.h"
@@ -15,15 +16,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-
-enum class DeployStepKind : unsigned char
-{
-	Spawn_Ball,
-	Attribute_Lifetime,
-	Attribute_SpeedRate,
-	Rule_Orbit,
-	Other_Child,
-};
 
 enum class DeployTarget : unsigned char
 {
@@ -60,23 +52,23 @@ struct DeployContext
 	}
 };
 
-class IDeployStep
+class IAttackNodeStep
 {
 public:
-	virtual ~IDeployStep() = default;
+	virtual ~IAttackNodeStep() = default;
 	virtual void Apply(DeployContext& ctx) = 0;
-	[[nodiscard]] virtual DeployStepKind GetKind() const noexcept = 0;
+	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept = 0;
 	[[nodiscard]] virtual const char* GetName() const noexcept = 0;
 	[[nodiscard]] virtual bool HasModule() const noexcept { return false; }
 	[[nodiscard]] virtual DeployTarget GetTarget() const noexcept { return DeployTarget::Focus; }
 
 protected:
-	IDeployStep() = default;
+	IAttackNodeStep() = default;
 };
 
 struct AttackRecipe
 {
-	std::vector<std::unique_ptr<IDeployStep>> steps;
+	std::vector<std::unique_ptr<IAttackNodeStep>> steps;
 	bool parentRootToPlayer{ false };
 };
 
@@ -104,17 +96,18 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 			radius * std::sin(phase)
 			});
 
-		if (OrbitLocalModule* orbit = child->GetModule<OrbitLocalModule>())
+		if (Rule_Orbit_Module* orbit = child->GetModule<Rule_Orbit_Module>())
 		{
 			orbit->SetRadius(radius);
 			orbit->SetPhase0(phase);
 		}
 	}
 }
-class DeployStep_Spawn_Ball final : public IDeployStep
+
+class AttackNodeStep_Spawn_Ball final : public IAttackNodeStep
 {
 public:
-	explicit DeployStep_Spawn_Ball(
+	explicit AttackNodeStep_Spawn_Ball(
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
 		:
@@ -122,7 +115,10 @@ public:
 		enableCollider_(enableCollider)
 	{}
 
-	[[nodiscard]] DeployStepKind GetKind() const noexcept override { return DeployStepKind::Spawn_Ball; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Spawn_Ball;
+	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Spawn_Ball"; }
 
 	void Apply(DeployContext& ctx) override
@@ -168,11 +164,11 @@ public:
 		RedistributeChildrenEvenly(s);
 	}
 
-	static std::unique_ptr<DeployStep_Spawn_Ball> Make(
+	static std::unique_ptr<AttackNodeStep_Spawn_Ball> Make(
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true)
 	{
-		return std::make_unique<DeployStep_Spawn_Ball>(scale, enableCollider);
+		return std::make_unique<AttackNodeStep_Spawn_Ball>(scale, enableCollider);
 	}
 
 private:
@@ -180,10 +176,13 @@ private:
 	bool enableCollider_{ true };
 };
 
-class DeployStep_Other_Child final : public IDeployStep
+class AttackNodeStep_Other_Child final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] DeployStepKind GetKind() const noexcept override { return DeployStepKind::Other_Child; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Other_Child;
+	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Child"; }
 
 	void Apply(DeployContext& ctx) override
@@ -200,21 +199,24 @@ public:
 		s.host = nullptr;
 	}
 
-	static std::unique_ptr<DeployStep_Other_Child> Make()
+	static std::unique_ptr<AttackNodeStep_Other_Child> Make()
 	{
-		return std::make_unique<DeployStep_Other_Child>();
+		return std::make_unique<AttackNodeStep_Other_Child>();
 	}
 };
 
-class DeployStep_Attribute_Lifetime final : public IDeployStep
+class AttackNodeStep_Attribute_Lifetime final : public IAttackNodeStep
 {
 public:
-	explicit DeployStep_Attribute_Lifetime(float durationSeconds) noexcept
+	explicit AttackNodeStep_Attribute_Lifetime(float durationSeconds) noexcept
 		:
 		durationSeconds_(durationSeconds)
 	{}
 
-	[[nodiscard]] DeployStepKind GetKind() const noexcept override { return DeployStepKind::Attribute_Lifetime; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Attribute_Lifetime;
+	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_Lifetime"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
 	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
@@ -223,27 +225,30 @@ public:
 	{
 		if (ctx.standby.parent != nullptr)
 		{
-			ctx.standby.parent->AddModule<LifetimeModule>(durationSeconds_);
+			ctx.standby.parent->AddModule<Attribute_Lifetime_Module>(durationSeconds_);
 		}
 	}
 
-	static std::unique_ptr<DeployStep_Attribute_Lifetime> Make(float durationSeconds)
+	static std::unique_ptr<AttackNodeStep_Attribute_Lifetime> Make(float durationSeconds)
 	{
-		return std::make_unique<DeployStep_Attribute_Lifetime>(durationSeconds);
+		return std::make_unique<AttackNodeStep_Attribute_Lifetime>(durationSeconds);
 	}
 
 private:
 	float durationSeconds_{ 2.0f };
 };
 
-class DeployStep_Attribute_SpeedRate final : public IDeployStep
+class AttackNodeStep_Attribute_SpeedRate final : public IAttackNodeStep
 {
 public:
-	explicit DeployStep_Attribute_SpeedRate(float speedRate) noexcept 
+	explicit AttackNodeStep_Attribute_SpeedRate(float speedRate) noexcept
 		: speedRate_{ speedRate }
 	{}
 
-	[[nodiscard]] DeployStepKind GetKind() const noexcept override { return DeployStepKind::Attribute_SpeedRate; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Attribute_SpeedRate;
+	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SpeedRate"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
 	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
@@ -252,31 +257,33 @@ public:
 	{
 		if (ctx.standby.parent != nullptr)
 		{
-			ctx.standby.parent->AddModule<SpeedRateModule>(speedRate_);
+			ctx.standby.parent->AddModule<Attribute_SpeedRate_Module>(speedRate_);
 		}
 	}
 
-	static std::unique_ptr<DeployStep_Attribute_SpeedRate> Make(float speedRate)
+	static std::unique_ptr<AttackNodeStep_Attribute_SpeedRate> Make(float speedRate)
 	{
-		return std::make_unique<DeployStep_Attribute_SpeedRate>(speedRate);
+		return std::make_unique<AttackNodeStep_Attribute_SpeedRate>(speedRate);
 	}
 
 private:
 	float speedRate_{ 1.0f };
 };
 
-
-class DeployStep_Rule_Orbit final : public IDeployStep
+class AttackNodeStep_Rule_Orbit final : public IAttackNodeStep
 {
 public:
-	DeployStep_Rule_Orbit(float radius, float angularSpeed, float phase = -1.0f) noexcept
+	AttackNodeStep_Rule_Orbit(float radius, float angularSpeed, float phase = -1.0f) noexcept
 		:
 		orbitRadius_(radius),
 		orbitAngularSpeed_(angularSpeed),
 		orbitPhase_(phase)
 	{}
 
-	[[nodiscard]] DeployStepKind GetKind() const noexcept override { return DeployStepKind::Rule_Orbit; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Rule_Orbit;
+	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Orbit"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
 
@@ -307,15 +314,15 @@ public:
 			}
 		}
 
-		s.host->AddModule<OrbitLocalModule>(orbitRadius_, orbitAngularSpeed_, phase);
+		s.host->AddModule<Rule_Orbit_Module>(orbitRadius_, orbitAngularSpeed_, phase);
 	}
 
-	static std::unique_ptr<DeployStep_Rule_Orbit> Make(
+	static std::unique_ptr<AttackNodeStep_Rule_Orbit> Make(
 		float radius,
 		float angularSpeed,
 		float phase = -1.0f)
 	{
-		return std::make_unique<DeployStep_Rule_Orbit>(radius, angularSpeed, phase);
+		return std::make_unique<AttackNodeStep_Rule_Orbit>(radius, angularSpeed, phase);
 	}
 
 private:

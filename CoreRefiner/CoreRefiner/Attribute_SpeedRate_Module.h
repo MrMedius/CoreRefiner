@@ -5,14 +5,20 @@
 /**
  * @brief Scales owner MoveAccel once when armed (after SpawnAt writes aim velocity).
  */
-class SpeedRateModule : public IProjectileModule
+class Attribute_SpeedRate_Module : public IProjectileModule
 {
 public:
-	SpeedRateModule(Attack* owner, float speedRate = 1.0f) noexcept
+	Attribute_SpeedRate_Module(Attack* owner, float speedRate = 1.0f) noexcept
 		:
 		IProjectileModule(owner),
 		speedRate_(speedRate)
 	{}
+
+	[[nodiscard]] bool HasAttackNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	{
+		return AttackNodeLabel::Attribute_SpeedRate;
+	}
 
 	void OnSpawn() override
 	{
