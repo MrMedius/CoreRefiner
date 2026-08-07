@@ -11,6 +11,7 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "Player.h"
+#include "XMath.h"
 
 #include <cmath>
 #include <memory>
@@ -90,11 +91,11 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 		}
 
 		const float phase = DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
-		child->SetLocalPosition({
+		child->SetLocalPosition(Vec3{
 			radius * std::cos(phase),
 			0.0f,
 			radius * std::sin(phase)
-			});
+		});
 
 		if (Rule_Orbit_Module* orbit = child->GetModule<Rule_Orbit_Module>())
 		{

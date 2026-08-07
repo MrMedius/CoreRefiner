@@ -26,8 +26,8 @@ public:
 	virtual void Submit(void) override = 0;
 	void CalculateHpCurrent(float offset)	{ HpCurrent += offset; HpCurrent = std::clamp(HpCurrent, 0.0f, HpMax); } // 今の体力の計算
 	float GetHpCurrent(void) const			{ return HpCurrent; }													 // 今の体力をゲット
-	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }	// 移動値をセット
-	void CalculateMoveVelocity(XMFLOAT3 offset)				{ CalculateMoveVelocity(offset.x, offset.y, offset.z); }			// 移動値をセット
+	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity = (V(MoveVelocity) + Vec3{ X, Y, Z }).ToFloat3(); }	// 移動値をセット
+	void CalculateMoveVelocity(XMFLOAT3 offset)				{ MoveVelocity = (V(MoveVelocity) + V(offset)).ToFloat3(); }			// 移動値をセット
 	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }											// 移動値をゲット
 	void SetMoveAccel(float accel)							{ MoveAccel = accel; }	// 移動加速値をセット
 	float GetMoveAccel(void) const							{ return MoveAccel; }	// 移動加速値をゲット

@@ -22,8 +22,8 @@ public:
 	void Submit(void) override = 0;
 	virtual void OnCollide(Character* other) = 0;
 public:
-	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity.x += X; MoveVelocity.y += Y; MoveVelocity.z += Z; }
-	void CalculateMoveVelocity(XMFLOAT3 offset)				{ CalculateMoveVelocity(offset.x, offset.y, offset.z); }
+	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity = (V(MoveVelocity) + Vec3{ X, Y, Z }).ToFloat3(); }
+	void CalculateMoveVelocity(XMFLOAT3 offset)				{ MoveVelocity = (V(MoveVelocity) + V(offset)).ToFloat3(); }
 	void ResetMoveVelocity(void)							{ MoveVelocity = { 0.0f,0.0f,0.0f }; }
 	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }											
 	void SetMoveAccel(float accel)							{ MoveAccel = accel; }

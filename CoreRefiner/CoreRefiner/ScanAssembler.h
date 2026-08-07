@@ -3,6 +3,7 @@
 #include "AttackDeployer.h"
 #include "ModuleField.h"
 #include "ScanWave.h"
+#include "XMath.h"
 
 #include <cmath>
 #include <utility>
@@ -373,8 +374,6 @@ private:
 		float bestAbs = 1.0e9f;
 
 		const ScanWave& wave = sessions_[sessionIndex].wave;
-		const float cx = wave.center.x;
-		const float cy = wave.center.y;
 		IFieldNode* const source = wave.source;
 
 		field.ForEach([&](IFieldNode& node)
@@ -388,9 +387,7 @@ private:
 				return;
 			}
 
-			const float dx = node.GetLocalPos().x - cx;
-			const float dy = node.GetLocalPos().y - cy;
-			const float dist = std::sqrt(dx * dx + dy * dy);
+			const float dist = (V(node.GetLocalPos()) - V(wave.center)).Length();
 			const float hitR = node.GetHitRadius();
 
 			const float inner = radiusBefore - hitR;

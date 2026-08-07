@@ -6,6 +6,7 @@
 #include "Ball_Shape.h"
 #include "VisualComponent.h"
 #include "SphereColliderComponent.h"
+#include "XMath.h"
 
 class Ball : public Attack
 {
@@ -112,9 +113,8 @@ class Ball : public Attack
 			e->CalculateHpCurrent(-1.0f);
 
 			const auto selfPos = GetPosition();
-			float dx = e->GetPosition().x - selfPos.x;
-			float dz = e->GetPosition().z - selfPos.z;
-			float angle = atan2f(dx, dz);
+			const Vec3 d = V(e->GetPosition()) - V(selfPos);
+			float angle = atan2f(d.x, d.z);
 			XMFLOAT3 repel{ 0.3f,0.1f,0.1f };
 			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
 		}

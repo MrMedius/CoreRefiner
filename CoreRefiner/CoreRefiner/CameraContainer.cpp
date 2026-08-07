@@ -4,6 +4,7 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "InputCodex.h"
+#include "XMath.h"
 
 namespace dx = DirectX;
 
@@ -34,21 +35,20 @@ CameraContainer::~CameraContainer()
 void CameraContainer::Update(float dt, DirectX::XMFLOAT3 pos,Window* wnd) noexcept
 {
 	// Main Camera Follow
-	FollowTarget.x += (pos.x - FollowTarget.x) * FollowLerp;
-	FollowTarget.y += (pos.y - FollowTarget.y) * FollowLerp;
-	FollowTarget.z += (pos.z - FollowTarget.z) * FollowLerp;
+	FollowTarget = Lerp(V(FollowTarget), V(pos), FollowLerp).ToFloat3();
 	constexpr float yaw = 0.0f;
 	const float sx = sinf(FollowPitch);
 	const float cx = cosf(FollowPitch);
 	const float sy = sinf(yaw);
 	const float cy = cosf(yaw);
 
-	dx::XMFLOAT3 camPos;
-	camPos.x = FollowTarget.x + sy * cx * FollowRadius;
-	camPos.y = FollowTarget.y + sx * FollowRadius;
-	camPos.z = FollowTarget.z - cy * cx * FollowRadius;
+	const Vec3 camPos = V(FollowTarget) + Vec3{
+		sy * cx * FollowRadius,
+		sx * FollowRadius,
+		-cy * cx * FollowRadius
+	};
 	const dx::XMFLOAT3 camRot = { FollowPitch, yaw, 0.0f };
-	cameras[0]->SetPos(camPos);
+	cameras[0]->SetPos(camPos.ToFloat3());
 	cameras[0]->SetRot(camRot);
 
 	// Screen Effects
@@ -203,7 +203,7 @@ void CameraContainer::ScreenShake(void)
 	float shake_x = shake_range * sinf(shake_rad * PI / 180);
 	float shake_y = shake_range * cosf(shake_rad * PI / 180);
 
-	FollowTarget = { FollowTarget.x + shake_x ,FollowTarget.y + shake_y, FollowTarget.z };
+	FollowTarget = (V(FollowTarget) + Vec3{ shake_x, shake_y, 0.0f }).ToFloat3();
 
 	ShakeFrames--;
 }

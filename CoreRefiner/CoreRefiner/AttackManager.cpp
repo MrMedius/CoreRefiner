@@ -3,7 +3,7 @@
 #include "HierarchySpawn.h"
 
 #include "InputCodex.h"
-#include "Math.h"
+#include "XMath.h"
 
 #include "Ball.h"
 
@@ -67,9 +67,7 @@ bool AttackManager::TryGetAimVelocity(XMFLOAT3 playerPos, XMFLOAT3& outVel) cons
 		return false;
 	}
 
-	XMFLOAT3 dirNorm{ worldXZ.x - playerPos.x, 0.0f, worldXZ.z - playerPos.z };
-	Normalize3(dirNorm);
-	outVel = { dirNorm.x * 0.05f, 0.0f, dirNorm.z * 0.05f };
+	outVel = ((V(worldXZ) - V(playerPos)).NormalizedXZ() * 0.05f).ToFloat3();
 	return true;
 }
 

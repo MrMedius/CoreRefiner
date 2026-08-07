@@ -3,6 +3,7 @@
 #include "BindableCommon.h"
 #include "CanvasTexture.h"
 #include "Channels.h"
+#include "XMath.h"
 
 #include <algorithm>
 #include <cassert>
@@ -123,9 +124,10 @@ void ModuleFieldCanvas::SetWavesLocal(
 	const float invSide = 1.0f / fieldSide;
 	for (unsigned i = 0u; i < n; ++i)
 	{
+		const Vec2 uv = V(centers[i]) * invSide;
 		params_.rings[i] = DirectX::XMFLOAT4{
-			centers[i].x * invSide,
-			centers[i].y * invSide,
+			uv.x,
+			uv.y,
 			radii[i] * invSide,
 			0.0f
 		};

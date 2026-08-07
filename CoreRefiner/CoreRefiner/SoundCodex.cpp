@@ -4,6 +4,7 @@
 #include <cmath>
 #include "Util.h"
 #include "imgui/imgui.h"
+#include "XMath.h"
 
 static inline float clamp01(float v)
 {
@@ -20,14 +21,14 @@ bool SoundCodex::Init(HWND hWnd)
         hr = XAudio2Create(XAudio2.GetAddressOf(), 0);
         if (FAILED(hr))
         {
-            MessageBox(hWnd, "Failed to create XAudio2 object!", "WARNINGI", MB_ICONWARNING);
+            MessageBox(hWnd, "Failed to create XAudio2 object!", "WARNINGï¿½I", MB_ICONWARNING);
             return false;
         }
 
         hr = XAudio2->CreateMasteringVoice(&masterVoice);
         if (FAILED(hr))
         {
-            MessageBox(hWnd, "Master voice generation failed!", "WARNINGI", MB_ICONWARNING);
+            MessageBox(hWnd, "Master voice generation failed!", "WARNINGï¿½I", MB_ICONWARNING);
             XAudio2.Reset();
             return false;
         }
@@ -338,7 +339,6 @@ SoundCodex::SeHandle SoundCodex::PlaySE3D(const std::string& path, int loopCount
 
     slot->voice->SubmitSourceBuffer(&buf);
 
-    // 3D compatible ¨ Volume compatible ¨ Start
     Apply3D_(*slot);
     slot->voice->Start(0);
     return slot->handle;
@@ -641,10 +641,17 @@ void SoundCodex::Apply3D_(SeVoiceSlot& slot)
     float atten = 1.0f;
     if (slot.enableDistanceAtten)
     {
-        const float dx = slot.emitter.Position.x - listener_.Position.x;
-        const float dy = slot.emitter.Position.y - listener_.Position.y;
-        const float dz = slot.emitter.Position.z - listener_.Position.z;
-        const float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+        const Vec3 emitterPos{
+            slot.emitter.Position.x,
+            slot.emitter.Position.y,
+            slot.emitter.Position.z
+        };
+        const Vec3 listenerPos{
+            listener_.Position.x,
+            listener_.Position.y,
+            listener_.Position.z
+        };
+        const float d = (emitterPos - listenerPos).Length();
         atten = ComputeDistanceAtten_(d, slot.minDistance, slot.maxDistance, slot.rolloff);
     }
 

@@ -8,6 +8,7 @@
 
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
+#include "XMath.h"
 
 // 敵状態のID
 enum ENEMY_STATE_ID {
@@ -56,11 +57,10 @@ public:
 		if (!IsInAttackArea)
 		{
 			const auto selfPos = GetPosition();
-			float dx = AttackTarget->GetPosition().x - selfPos.x;
-			float dz = AttackTarget->GetPosition().z - selfPos.z;
+			const Vec3 d = V(AttackTarget->GetPosition()) - V(selfPos);
 
 			// ターゲットの方向を向く
-			float angle = atan2f(dx, dz);
+			float angle = atan2f(d.x, d.z);
 			SetRotation({ 0.0f, XMConvertToDegrees(angle), 0.0f });
 
 			// ターゲットに向かって移動
@@ -95,9 +95,8 @@ public:
 				GameStatsCodex::AddInputDamage(-damage);
 
 				const auto selfPos = GetPosition();
-				float dx = AttackTarget->GetPosition().x - selfPos.x;
-				float dz = AttackTarget->GetPosition().z - selfPos.z;
-				float angle = atan2f(dx, dz);
+				const Vec3 d = V(AttackTarget->GetPosition()) - V(selfPos);
+				float angle = atan2f(d.x, d.z);
 				AttackTarget->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
 				return true;
 			}
@@ -120,7 +119,7 @@ public:
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
 protected:
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
-	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = { area.x / 2,area.y / 2 ,area.z / 2 }; }
+	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = (V(area) * 0.5f).ToFloat3(); }
 	XMFLOAT3 GetSearchArea(void) const	  { return searchCollider.half; }
 	/**
 	 * @brief Search-volume vs target GetVolume (searchCollider stays Box; target may be Capsule).

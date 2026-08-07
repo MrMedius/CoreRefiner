@@ -3,16 +3,9 @@
 #include "CubeWireframe.h"
 #include "RenderGraph.h"
 #include "Graphics.h"
+#include "XMath.h"
 
 #include <cassert>
-
-namespace
-{
-	DirectX::XMFLOAT3 Add3(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b) noexcept
-	{
-		return { a.x + b.x, a.y + b.y, a.z + b.z };
-	}
-}
 
 BoxColliderComponent::BoxColliderComponent(
 	ObjectBase* owner,
@@ -43,7 +36,7 @@ void BoxColliderComponent::Submit()
 		return;
 	}
 
-	const DirectX::XMFLOAT3 size{ box_.half.x * 2.0f, box_.half.y * 2.0f, box_.half.z * 2.0f };
+	const DirectX::XMFLOAT3 size = (V(box_.half) * 2.0f).ToFloat3();
 	if (syncMode_ == ColliderSyncMode::FollowCenterAxisYFromRotation)
 	{
 		debugBoxWire_->DoSubmit(box_.center, owner->GetRotation(), size);
@@ -80,7 +73,7 @@ void BoxColliderComponent::SyncFromOwner()
 		box_ = Collider3D::BoxCollider::BuildFromWorldMatrix(
 			world,
 			worldMatrixLocalHalf_);
-		box_.center = Add3(box_.center, centerOffset_);
+		box_.center = (V(box_.center) + V(centerOffset_)).ToFloat3();
 		break;
 	}
 	}
@@ -103,7 +96,7 @@ DirectX::XMFLOAT3 BoxColliderComponent::GetCollisionSize() const noexcept
 
 void BoxColliderComponent::SetCollisionSize(DirectX::XMFLOAT3 size) noexcept
 {
-	box_.half = { size.x / 2.0f, size.y / 2.0f, size.z / 2.0f };
+	box_.half = (V(size) * 0.5f).ToFloat3();
 }
 
 void BoxColliderComponent::LinkDebugWire(

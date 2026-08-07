@@ -7,6 +7,7 @@
 #include "ObjectCodex.h"
 #include "Collision.h"
 #include "ColliderComponentBase.h"
+#include "XMath.h"
 
 /**
  * @brief Default Box AABB resolve for Environment / Character / Attack queries.
@@ -187,19 +188,12 @@ void Character::MapItemCollide(void)
 				if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
 				{
 					const float push = (std::max)(depth, 0.0f) + kSkinVsNonBox;
-					auto p = GetPosition();
-					p.x += n.x * push;
-					p.y += n.y * push;
-					p.z += n.z * push;
-					SetPosition(p);
+					SetPosition(V(GetPosition()) + V(n) * push);
 					selfCol->SyncFromOwner();
-					const float vn =
-						MoveVelocity.x * n.x + MoveVelocity.y * n.y + MoveVelocity.z * n.z;
+					const float vn = Dot(V(MoveVelocity), V(n));
 					if (vn < 0.0f)
 					{
-						MoveVelocity.x -= vn * n.x;
-						MoveVelocity.y -= vn * n.y;
-						MoveVelocity.z -= vn * n.z;
+						MoveVelocity = (V(MoveVelocity) - V(n) * vn).ToFloat3();
 					}
 					if (n.y > 0.5f)
 					{

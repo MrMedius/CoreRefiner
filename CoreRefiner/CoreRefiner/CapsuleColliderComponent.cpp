@@ -3,6 +3,7 @@
 #include "CapsuleWireframe.h"
 #include "RenderGraph.h"
 #include "Graphics.h"
+#include "XMath.h"
 
 #include <algorithm>
 #include <cassert>
@@ -26,8 +27,10 @@ void CapsuleColliderComponent::SyncCapsuleYUp(DirectX::XMFLOAT3 center) noexcept
 	const float r = (std::max)(capsule_.radius, 0.0f);
 	const float h = (std::max)(totalHeight_, 2.0f * r);
 	const float halfSeg = (h * 0.5f) - r;
-	capsule_.pointA = { center.x, center.y + halfSeg, center.z };
-	capsule_.pointB = { center.x, center.y - halfSeg, center.z };
+	const Vec3 c{ center };
+	const Vec3 yOff{ 0.0f, halfSeg, 0.0f };
+	capsule_.pointA = (c + yOff).ToFloat3();
+	capsule_.pointB = (c - yOff).ToFloat3();
 	capsule_.radius = r;
 }
 

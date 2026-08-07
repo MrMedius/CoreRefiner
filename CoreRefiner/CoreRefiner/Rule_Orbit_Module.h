@@ -1,6 +1,7 @@
 #pragma once
 #include "IProjectileModule.h"
 #include "Attack.h"
+#include "XMath.h"
 
 #include <cmath>
 
@@ -69,7 +70,7 @@ private:
 		{
 			return;
 		}
-		owner->SetLocalPosition({
+		owner->SetLocalPosition(Vec3{
 			radius_ * std::cos(angle_),
 			0.0f,
 			radius_ * std::sin(angle_)

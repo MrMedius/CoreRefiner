@@ -1,6 +1,7 @@
 #pragma once
 #include "IProjectileModule.h"
 #include "Attack.h"
+#include "XMath.h"
 
 /**
  * @brief Scales owner MoveAccel once when armed (after SpawnAt writes aim velocity).
@@ -28,11 +29,7 @@ public:
 			return;
 		}
 		const XMFLOAT3 acc = owner->GetMoveAccel();
-		owner->SetMoveAccel({
-			acc.x * speedRate_,
-			acc.y * speedRate_,
-			acc.z * speedRate_
-		});
+		owner->SetMoveAccel(V(acc) * speedRate_);
 	}
 
 	void OnRecycle() override {}

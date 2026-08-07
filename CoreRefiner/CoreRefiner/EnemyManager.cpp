@@ -7,6 +7,7 @@
 #include "GameStatsCodex.h"
 
 #include "Enemy_T.h"
+#include "XMath.h"
 
 EnemyManager::EnemyManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
@@ -41,7 +42,7 @@ void EnemyManager::Update(float dt)
 	int type = 0;
 	std::mt19937 rng(std::random_device{}());
 	std::uniform_real_distribution<float> d(-30.0f, 30.0f);
-	XMFLOAT3 pos = { position.x + d(rng),10.0f,position.z + d(rng) };
+	XMFLOAT3 pos = (V(position) + Vec3{ d(rng), 10.0f - position.y, d(rng) }).ToFloat3();
 
 
 	// 新しEnemyTestを生成する

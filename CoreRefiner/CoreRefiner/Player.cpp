@@ -9,6 +9,7 @@
 #include "InputCodex.h"
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
+#include "XMath.h"
 
 static void Normalize2D(float& x, float& z) noexcept
 {
@@ -79,11 +80,7 @@ void Player::MapItemCollide(void)
 		// Contact-based: always keep a skin gap along the contact normal (including depth == 0).
 		const float push = (std::max)(depth, 0.0f) + kSkin;
 
-		auto p = GetPosition();
-		p.x += n.x * push;
-		p.y += n.y * push;
-		p.z += n.z * push;
-		SetPosition(p);
+		SetPosition(V(GetPosition()) + V(n) * push);
 		selfCol->SyncFromOwner();
 
 		if (isFloor)
@@ -95,15 +92,10 @@ void Player::MapItemCollide(void)
 		}
 		else
 		{
-			const float vn =
-				MoveVelocity.x * n.x +
-				MoveVelocity.y * n.y +
-				MoveVelocity.z * n.z;
+			const float vn = Dot(V(MoveVelocity), V(n));
 			if (vn < 0.0f)
 			{
-				MoveVelocity.x -= vn * n.x;
-				MoveVelocity.y -= vn * n.y;
-				MoveVelocity.z -= vn * n.z;
+				MoveVelocity = (V(MoveVelocity) - V(n) * vn).ToFloat3();
 			}
 		}
 		return isFloor;

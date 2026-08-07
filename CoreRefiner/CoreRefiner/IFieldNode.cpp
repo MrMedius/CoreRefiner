@@ -3,6 +3,7 @@
 #include "Colors.h"
 #include "FieldIconAtlas.h"
 #include "RenderGraph.h"
+#include "XMath.h"
 
 #include <algorithm>
 
@@ -103,11 +104,9 @@ void IFieldNode::ApplyVisualTransform_()
 		return;
 	}
 
-	const DirectX::XMFLOAT3 pos{
-		fieldOrigin_.x + localPos_.x,
-		fieldOrigin_.y + localPos_.y,
-		fieldOrigin_.z
-	};
+	const DirectX::XMFLOAT3 pos = (
+		V(fieldOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
+	).ToFloat3();
 	const float side = hitRadius_ * 2.0f;
 	const DirectX::XMFLOAT3 scale{ side, side, 1.0f };
 
