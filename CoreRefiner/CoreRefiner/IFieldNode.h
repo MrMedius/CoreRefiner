@@ -79,6 +79,8 @@ public:
 
 	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin);
 
+	void SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept;
+
 	void SyncVisual();
 
 	void SubmitVisual();

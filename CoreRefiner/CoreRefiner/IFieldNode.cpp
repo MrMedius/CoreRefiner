@@ -67,6 +67,15 @@ void IFieldNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLO
 	ApplyVisualTransform_();
 }
 
+void IFieldNode::SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
+{
+	fieldOrigin_ = fieldOrigin;
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
 void IFieldNode::SyncVisual()
 {
 	if (!visualReady_)

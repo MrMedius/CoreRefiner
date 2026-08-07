@@ -95,6 +95,33 @@ public:
 		SyncFieldWaves_();
 	}
 
+	
+	// Enter pause layout-edit: drop scan sessions (full editor in later steps).
+	void BeginLayoutEdit()
+	{
+		assembler_.Reset();
+		if (fieldCanvas_ != nullptr)
+		{
+			fieldCanvas_->ClearWaves();
+		}
+		field_.SyncAllVisuals();
+	}
+
+	
+	// Leave layout-edit and keep current node positions.
+	void EndLayoutEdit()
+	{
+		field_.SyncAllVisuals();
+	}
+
+	
+	// Pause-only tick: no cooldown / scan / fire (layout editor wired later).
+	void UpdateLayoutEdit(float dt)
+	{
+		(void)dt;
+		field_.SyncAllVisuals();
+	}
+
 	void Submit(void)
 	{
 		if (fieldCanvas_ != nullptr)

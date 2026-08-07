@@ -108,6 +108,17 @@ public:
 		}
 	}
 
+	void SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
+	{
+		for (auto& n : nodes_)
+		{
+			if (n != nullptr)
+			{
+				n->SetFieldOrigin(fieldOrigin);
+			}
+		}
+	}
+
 	void SyncAllVisuals()
 	{
 		for (auto& n : nodes_)

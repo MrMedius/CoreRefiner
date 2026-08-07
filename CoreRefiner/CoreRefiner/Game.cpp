@@ -170,6 +170,21 @@ void Game::Update(float dt)
 		uiTitle->Update(dt);
 		break;
 	case SCENE_GAME:
+		if (InputCodex::Get().KeyTriggered(KK_P))
+		{
+			if (!Pause)
+			{
+				Pause = true;
+				wnd.EnableCursor();
+				uiGame->BeginLayoutEdit();
+			}
+			else
+			{
+				uiGame->EndLayoutEdit();
+				Pause = false;
+			}
+		}
+
 		if (!Pause)
 		{
 			// Game Loop
@@ -186,9 +201,13 @@ void Game::Update(float dt)
 			}
 			gameRG.Update(dt);
 			SoundCodex::Get().SetListenerPosition(playerPos);
-		}
 
-		uiGame->Update(dt);
+			uiGame->Update(dt);
+		}
+		else
+		{
+			uiGame->UpdateLayoutEdit(dt);
+		}
 		break;
 	case SCENE_RESULT:
 		uiSample->Update(dt);

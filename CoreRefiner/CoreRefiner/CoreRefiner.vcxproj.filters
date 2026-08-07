@@ -152,9 +152,6 @@
     <Filter Include="UI">
       <UniqueIdentifier>{8308996a-329a-4be0-b591-b911c2d837e6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\ModuleField">
-      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Framework\Graphics\Bindable\ConstantBuffers\Provides">
       <UniqueIdentifier>{e25ee930-2deb-4743-91b2-e243cfb6df91}</UniqueIdentifier>
     </Filter>
@@ -190,6 +187,15 @@
     </Filter>
     <Filter Include="Object\Components\Colliders">
       <UniqueIdentifier>{6c2da7f2-683b-4c97-8015-4d74cc3ead6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Attack\ModuleSystem">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Attack\ModuleSystem\ModuleField">
+      <UniqueIdentifier>{2c8ddd78-41cc-44dc-ac39-305fd102b427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Attack\ModuleSystem\Module">
+      <UniqueIdentifier>{921d0296-bdea-4ba1-b1bf-0766eca9dcab}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -439,9 +445,6 @@
     <ClCompile Include="AttackManager.cpp">
       <Filter>Object\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="IFieldNode.cpp">
-      <Filter>UI\ModuleField</Filter>
-    </ClCompile>
     <ClCompile Include="Attack.cpp">
       <Filter>Object\Attack</Filter>
     </ClCompile>
@@ -583,12 +586,6 @@
     <ClCompile Include="Collision.cpp">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClCompile>
-    <ClCompile Include="Canvas2DRipples.cpp">
-      <Filter>UI</Filter>
-    </ClCompile>
-    <ClCompile Include="ModuleFieldCanvas.cpp">
-      <Filter>UI\ModuleField</Filter>
-    </ClCompile>
     <ClCompile Include="SliderCanvasFill.cpp">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClCompile>
@@ -654,6 +651,15 @@
     </ClCompile>
     <ClCompile Include="UI_Game.h">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Canvas2DRipples.cpp">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="IFieldNode.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClCompile>
+    <ClCompile Include="ModuleFieldCanvas.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1026,27 +1032,6 @@
     <ClInclude Include="Pyramid.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="Ball.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="IProjectileModule.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="OrbitLocalModule.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="LifetimeModule.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="Attribute_Lifetime_Module.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="Attribute_SpeedRate_Module.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="Rule_Orbit_Module.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
     <ClInclude Include="Player_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
@@ -1236,9 +1221,6 @@
     <ClInclude Include="Collision.h">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClInclude>
-    <ClInclude Include="Canvas2DRipples.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="SliderCanvasFill.h">
       <Filter>Framework\UI\Widget\Slider</Filter>
     </ClInclude>
@@ -1335,35 +1317,50 @@
     <ClInclude Include="SphereColliderComponent.h">
       <Filter>Object\Components\Colliders</Filter>
     </ClInclude>
-    <ClInclude Include="AttackDeployer.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="AttackNodeLabel.h">
-      <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="IFieldNode.h">
-      <Filter>UI\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ScanWave.h">
-      <Filter>UI\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleField.h">
-      <Filter>UI\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleFieldCanvas.h">
-      <Filter>UI\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="FieldIconAtlas.h">
-      <Filter>UI\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ScanAssembler.h">
-      <Filter>UI\ModuleField</Filter>
+    <ClInclude Include="Canvas2DRipples.h">
+      <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClInclude>
     <ClInclude Include="FieldNodes.h">
-      <Filter>UI\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClInclude>
-    <ClInclude Include="SpeedRateModule.h">
-      <Filter>UI\ModuleField</Filter>
+    <ClInclude Include="IFieldNode.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="FieldIconAtlas.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleField.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleFieldCanvas.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanAssembler.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanWave.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="Attribute_Lifetime_Module.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Attribute_SpeedRate_Module.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="IProjectileModule.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Rule_Orbit_Module.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackDeployer.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackNodeLabel.h">
+      <Filter>Object\Attack\ModuleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Ball.h">
+      <Filter>Object\Attack</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
