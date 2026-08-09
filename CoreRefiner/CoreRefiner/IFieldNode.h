@@ -56,7 +56,6 @@ public:
 		cooldownRemaining_ = cooldownDuration_;
 	}
 
-	/** @brief Clear cooling state (scene leave / soft restart). */
 	void ResetCooldown() noexcept
 	{
 		state_ = ModuleReadyState::Ready;
@@ -85,6 +84,12 @@ public:
 
 	void SubmitVisual();
 
+	void BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept;
+
+	void EndLayoutGhost() noexcept;
+
+	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
+
 	virtual void ApplyTo(DeployContext& ctx) = 0;
 	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept = 0;
 
@@ -110,4 +115,6 @@ protected:
 	std::unique_ptr<Canvas2DSpriteUV> mask_;
 	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	bool visualReady_{ false };
+	bool layoutGhostActive_{ false };
+	DirectX::XMFLOAT2 layoutGhostLocalPos_{ 0.0f, 0.0f };
 };

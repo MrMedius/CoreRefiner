@@ -35,6 +35,8 @@ void FieldLayoutEditor::Begin(
 	hover_ = nullptr;
 	dragged_ = nullptr;
 	active_ = true;
+	dragStartLocalPos_ = {};
+	ringKind_ = RingKind_::Hover;
 
 	ApplyFieldOrigin_(field, canvas, editOrigin_);
 	field.SyncAllVisuals();
@@ -47,9 +49,16 @@ void FieldLayoutEditor::End(ModuleField& field, ModuleFieldCanvas& canvas)
 		return;
 	}
 
+	if (dragged_ != nullptr)
+	{
+		dragged_->EndLayoutGhost();
+	}
+	ClearAllLayoutGhosts_(field);
+
 	hover_ = nullptr;
 	dragged_ = nullptr;
 	active_ = false;
+	dragStartLocalPos_ = {};
 
 	ApplyFieldOrigin_(field, canvas, combatOrigin_);
 	field.SyncAllVisuals();
@@ -62,9 +71,16 @@ void FieldLayoutEditor::CancelRestore(ModuleField& field)
 		return;
 	}
 
+	if (dragged_ != nullptr)
+	{
+		dragged_->EndLayoutGhost();
+	}
+	ClearAllLayoutGhosts_(field);
+
 	// Drop drag first so a held LMB cannot keep a stale dragged_ pointer.
 	hover_ = nullptr;
 	dragged_ = nullptr;
+	dragStartLocalPos_ = {};
 
 	const std::size_t n = (std::min)(field.GetNodeCount(), snapshotLocalPos_.size());
 	for (std::size_t i = 0; i < n; ++i)
@@ -101,12 +117,14 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 	{
 		if (input.MouseLeftPressed())
 		{
-			TrySetLocalPos_(field, *dragged_, mouseLocal);
+			SetPreviewLocalPos_(*dragged_, mouseLocal);
 			hover_ = dragged_;
 		}
 		if (input.MouseLeftReleased())
 		{
-			TrySetLocalPos_(field, *dragged_, mouseLocal);
+			SetPreviewLocalPos_(*dragged_, mouseLocal);
+			CommitOrRevertDrag_(field, *dragged_);
+			dragged_->EndLayoutGhost();
 			dragged_ = nullptr;
 		}
 	}
@@ -116,16 +134,28 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 		if (input.MouseLeftTriggered() && hover_ != nullptr)
 		{
 			dragged_ = hover_;
+			dragStartLocalPos_ = dragged_->GetLocalPos();
+			dragged_->BeginLayoutGhost(dragStartLocalPos_);
 			if (hostWindow != nullptr)
 			{
 				SnapCursorToNode_(*dragged_, *hostWindow);
 			}
 			// Keep pose at grab; do not jump to pre-snap mouse offset this frame.
-			TrySetLocalPos_(field, *dragged_, dragged_->GetLocalPos());
+			SetPreviewLocalPos_(*dragged_, dragged_->GetLocalPos());
 		}
 	}
 
 	IFieldNode* ringTarget = (dragged_ != nullptr) ? dragged_ : hover_;
+	if (dragged_ != nullptr)
+	{
+		ringKind_ = WouldOverlapOthers_(field, *dragged_, dragged_->GetLocalPos())
+			? RingKind_::Overlap
+			: RingKind_::Valid;
+	}
+	else
+	{
+		ringKind_ = RingKind_::Hover;
+	}
 	if (ringTarget != nullptr)
 	{
 		SyncRingTransform_(*ringTarget);
@@ -134,7 +164,7 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 
 void FieldLayoutEditor::SubmitOverlay()
 {
-	if (!active_ || ring_ == nullptr)
+	if (!active_)
 	{
 		return;
 	}
@@ -142,25 +172,27 @@ void FieldLayoutEditor::SubmitOverlay()
 	{
 		return;
 	}
-	ring_->Submit(Chan::ui);
-}
-
-void FieldLayoutEditor::EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	if (ring_ != nullptr)
+	Canvas2D* ring = ActiveRing_();
+	if (ring == nullptr)
 	{
 		return;
 	}
+	ring->Submit(Chan::ui);
+}
 
+std::unique_ptr<Canvas2D> FieldLayoutEditor::MakeRingCanvas_(
+	Graphics& gfx,
+	Rgph::RenderGraph& rg,
+	Color ringColor)
+{
 	constexpr unsigned kSize = 64u;
-	ring_ = std::make_unique<Canvas2D>(gfx, kSize, kSize);
-	ring_->Clear(Colors::None);
+	auto ring = std::make_unique<Canvas2D>(gfx, kSize, kSize);
+	ring->Clear(Colors::None);
 
 	const float cx = (static_cast<float>(kSize) - 1.0f) * 0.5f;
 	const float cy = cx;
 	const float rOuter = static_cast<float>(kSize) * 0.48f;
 	const float rInner = rOuter - 3.5f;
-	const Color ringColor{ 255u, 230u, 80u, 230u };
 
 	for (unsigned y = 0u; y < kSize; ++y)
 	{
@@ -171,12 +203,26 @@ void FieldLayoutEditor::EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 			const float d = std::sqrt(dx * dx + dy * dy);
 			if (d <= rOuter && d >= rInner)
 			{
-				ring_->PutPixel(x, y, ringColor);
+				ring->PutPixel(x, y, ringColor);
 			}
 		}
 	}
-	ring_->NotifyPixelsChanged();
-	ring_->LinkTechniques(rg);
+	ring->NotifyPixelsChanged();
+	ring->LinkTechniques(rg);
+	return ring;
+}
+
+void FieldLayoutEditor::EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	if (ringHover_ != nullptr)
+	{
+		return;
+	}
+
+	// Hover yellow (existing), valid green, overlap red — baked once, switch on Submit.
+	ringHover_ = MakeRingCanvas_(gfx, rg, Color{ 255u, 230u, 80u, 230u });
+	ringValid_ = MakeRingCanvas_(gfx, rg, Color{ 80u, 220u, 120u, 230u });
+	ringOverlap_ = MakeRingCanvas_(gfx, rg, Color{ 230u, 80u, 80u, 230u });
 }
 
 void FieldLayoutEditor::Snapshot_(const ModuleField& field)
@@ -199,6 +245,17 @@ void FieldLayoutEditor::ApplyFieldOrigin_(
 {
 	field.SetFieldOrigin(origin);
 	canvas.SetPosition(origin);
+}
+
+void FieldLayoutEditor::ClearAllLayoutGhosts_(ModuleField& field)
+{
+	field.ForEach([](IFieldNode& node)
+	{
+		if (node.IsLayoutGhostActive())
+		{
+			node.EndLayoutGhost();
+		}
+	});
 }
 
 DirectX::XMFLOAT2 FieldLayoutEditor::MouseToLocal_() const noexcept
@@ -242,19 +299,21 @@ bool FieldLayoutEditor::WouldOverlapOthers_(
 	return false;
 }
 
-bool FieldLayoutEditor::TrySetLocalPos_(
-	ModuleField& field,
-	IFieldNode& node,
-	DirectX::XMFLOAT2 candidate)
+void FieldLayoutEditor::SetPreviewLocalPos_(IFieldNode& node, DirectX::XMFLOAT2 candidate)
 {
 	candidate = ClampLocalForNode_(candidate, node.GetHitRadius());
-	if (WouldOverlapOthers_(field, node, candidate))
-	{
-		return false;
-	}
 	node.SetLocalPos(candidate);
 	node.SyncVisual();
-	return true;
+}
+
+void FieldLayoutEditor::CommitOrRevertDrag_(ModuleField& field, IFieldNode& node)
+{
+	const DirectX::XMFLOAT2 pose = node.GetLocalPos();
+	if (WouldOverlapOthers_(field, node, pose))
+	{
+		node.SetLocalPos(dragStartLocalPos_);
+		node.SyncVisual();
+	}
 }
 
 IFieldNode* FieldLayoutEditor::PickHover_(ModuleField& field, DirectX::XMFLOAT2 mouseLocal) const noexcept
@@ -309,17 +368,42 @@ void FieldLayoutEditor::SnapCursorToNode_(IFieldNode& node, Window& hostWindow) 
 
 void FieldLayoutEditor::SyncRingTransform_(IFieldNode& node)
 {
-	if (ring_ == nullptr)
+	if (ringHover_ != nullptr)
 	{
-		return;
+		SyncOneRingTransform_(*ringHover_, node);
 	}
+	if (ringValid_ != nullptr)
+	{
+		SyncOneRingTransform_(*ringValid_, node);
+	}
+	if (ringOverlap_ != nullptr)
+	{
+		SyncOneRingTransform_(*ringOverlap_, node);
+	}
+}
 
+void FieldLayoutEditor::SyncOneRingTransform_(Canvas2D& ring, IFieldNode& node) const
+{
 	const DirectX::XMFLOAT2 local = node.GetLocalPos();
 	const float side = node.GetHitRadius() * 2.0f + kRingPadding_;
-	ring_->SetPosition(DirectX::XMFLOAT3{
+	ring.SetPosition(DirectX::XMFLOAT3{
 		editOrigin_.x + local.x,
 		editOrigin_.y + local.y,
 		0.0f
 	});
-	ring_->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
+	ring.SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
+}
+
+Canvas2D* FieldLayoutEditor::ActiveRing_() const noexcept
+{
+	switch (ringKind_)
+	{
+	case RingKind_::Valid:
+		return ringValid_.get();
+	case RingKind_::Overlap:
+		return ringOverlap_.get();
+	case RingKind_::Hover:
+	default:
+		return ringHover_.get();
+	}
 }

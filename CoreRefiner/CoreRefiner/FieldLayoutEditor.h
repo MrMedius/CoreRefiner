@@ -4,6 +4,7 @@
 #include "ModuleField.h"
 #include "ModuleFieldCanvas.h"
 #include "ScanAssembler.h"
+#include "Colors.h"
 
 #include "Win.h"
 
@@ -31,9 +32,6 @@ public:
 	FieldLayoutEditor(const FieldLayoutEditor&) = delete;
 	FieldLayoutEditor& operator=(const FieldLayoutEditor&) = delete;
 
-	/**
-	 * @brief Enter edit: reset scans/cooldowns, snapshot poses, center field.
-	 */
 	void Begin(
 		ModuleField& field,
 		ScanAssembler& assembler,
@@ -44,9 +42,6 @@ public:
 
 	void End(ModuleField& field, ModuleFieldCanvas& canvas);
 
-	/**
-	 * @brief Restore snapshotted localPos; clear hover/drag; stay in edit origin.
-	 */
 	void CancelRestore(ModuleField& field);
 
 	void Update(float dt, ModuleField& field, Window* hostWindow);
@@ -57,34 +52,49 @@ public:
 
 private:
 	void EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
+	[[nodiscard]] static std::unique_ptr<Canvas2D> MakeRingCanvas_(Graphics& gfx, Rgph::RenderGraph& rg, Color ringColor);
+
 	void Snapshot_(const ModuleField& field);
 	void ApplyFieldOrigin_(ModuleField& field, ModuleFieldCanvas& canvas, DirectX::XMFLOAT3 origin);
+	void ClearAllLayoutGhosts_(ModuleField& field);
 	[[nodiscard]] DirectX::XMFLOAT2 MouseToLocal_() const noexcept;
 
-	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForNode_(
-		DirectX::XMFLOAT2 p,
-		float hitRadius) const noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForNode_(DirectX::XMFLOAT2 p, float hitRadius) const noexcept;
 
-	[[nodiscard]] bool WouldOverlapOthers_(
-		const ModuleField& field,
-		const IFieldNode& self,
-		DirectX::XMFLOAT2 candidate) const noexcept;
+	[[nodiscard]] bool WouldOverlapOthers_(const ModuleField& field, const IFieldNode& self, DirectX::XMFLOAT2 candidate) const noexcept;
 
-	bool TrySetLocalPos_(
-		ModuleField& field,
-		IFieldNode& node,
-		DirectX::XMFLOAT2 candidate);
+	void SetPreviewLocalPos_(IFieldNode& node, DirectX::XMFLOAT2 candidate);
+
+	void CommitOrRevertDrag_(ModuleField& field, IFieldNode& node);
 
 	[[nodiscard]] IFieldNode* PickHover_(ModuleField& field, DirectX::XMFLOAT2 mouseLocal) const noexcept;
 	void SnapCursorToNode_(IFieldNode& node, Window& hostWindow) const noexcept;
 	void SyncRingTransform_(IFieldNode& node);
+	void SyncOneRingTransform_(Canvas2D& ring, IFieldNode& node) const;
+	[[nodiscard]] Canvas2D* ActiveRing_() const noexcept;
 
+private:
 	bool active_{ false };
+
 	DirectX::XMFLOAT3 combatOrigin_{ 200.0f, 200.0f, 0.0f };
 	DirectX::XMFLOAT3 editOrigin_{ 0.0f, 0.0f, 0.0f };
+
 	std::vector<DirectX::XMFLOAT2> snapshotLocalPos_;
+	DirectX::XMFLOAT2 dragStartLocalPos_{ 0.0f, 0.0f };
+
 	IFieldNode* hover_{ nullptr };
 	IFieldNode* dragged_{ nullptr };
-	std::unique_ptr<Canvas2D> ring_;
+
+	enum class RingKind_
+	{
+		Hover,   ///< Idle hover — yellow
+		Valid,   ///< Dragging, no overlap — green
+		Overlap, ///< Dragging, overlaps another node — red
+	};
+	RingKind_ ringKind_{ RingKind_::Hover };
+	std::unique_ptr<Canvas2D> ringHover_;
+	std::unique_ptr<Canvas2D> ringValid_;
+	std::unique_ptr<Canvas2D> ringOverlap_;
+
 	static constexpr float kRingPadding_{ 12.0f };
 };

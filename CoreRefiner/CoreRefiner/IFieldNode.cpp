@@ -76,6 +76,39 @@ void IFieldNode::SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
 	}
 }
 
+void IFieldNode::BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept
+{
+	layoutGhostActive_ = true;
+	layoutGhostLocalPos_ = at;
+	if (mask_ != nullptr)
+	{
+		mask_->SetUVOffset(0.0f, 0.0f);
+		mask_->SetUVScale(1.0f, 1.0f);
+	}
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
+void IFieldNode::EndLayoutGhost() noexcept
+{
+	layoutGhostActive_ = false;
+	layoutGhostLocalPos_ = {};
+	if (mask_ != nullptr && state_ != ModuleReadyState::Cooling)
+	{
+		mask_->SetUVScale(1.0f, 0.0f);
+	}
+	else
+	{
+		SyncMaskUV_();
+	}
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
 void IFieldNode::SyncVisual()
 {
 	if (!visualReady_)
@@ -93,14 +126,21 @@ void IFieldNode::SubmitVisual()
 	{
 		return;
 	}
+	// Ghost mask under icon; cooldown mask over icon — mutually exclusive in normal flow.
+	if (layoutGhostActive_ && mask_ != nullptr)
+	{
+		mask_->Submit(Chan::ui);
+	}
 	if (icon_ != nullptr)
 	{
 		icon_->Submit(Chan::ui);
 	}
+	if (mask_ == nullptr)
+	{
+		return;
+	}
 	const float remainRatio = GetRemainRatio_();
-	if (mask_ != nullptr
-		&& state_ == ModuleReadyState::Cooling
-		&& remainRatio > 0.0f)
+	if (state_ == ModuleReadyState::Cooling && remainRatio > 0.0f)
 	{
 		mask_->Submit(Chan::ui);
 	}
@@ -113,15 +153,20 @@ void IFieldNode::ApplyVisualTransform_()
 		return;
 	}
 
-	const DirectX::XMFLOAT3 pos = (
-		V(fieldOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
-	).ToFloat3();
 	const float side = hitRadius_ * 2.0f;
 	const DirectX::XMFLOAT3 scale{ side, side, 1.0f };
 
-	icon_->SetPosition(pos);
+	const DirectX::XMFLOAT3 iconPos = (
+		V(fieldOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
+	).ToFloat3();
+	icon_->SetPosition(iconPos);
 	icon_->SetScale(scale);
-	mask_->SetPosition(pos);
+
+	const DirectX::XMFLOAT2 maskLocal = layoutGhostActive_ ? layoutGhostLocalPos_ : localPos_;
+	const DirectX::XMFLOAT3 maskPos = (
+		V(fieldOrigin_) + Vec3{ maskLocal.x, maskLocal.y, 0.0f }
+	).ToFloat3();
+	mask_->SetPosition(maskPos);
 	mask_->SetScale(scale);
 }
 
@@ -139,6 +184,12 @@ void IFieldNode::SyncMaskUV_()
 {
 	if (mask_ == nullptr)
 	{
+		return;
+	}
+	// Layout ghost owns full-reveal UV until EndLayoutGhost.
+	if (layoutGhostActive_)
+	{
+		mask_->SetUVScale(1.0f, 1.0f);
 		return;
 	}
 	mask_->SetUVScale(1.0f, GetRemainRatio_());
