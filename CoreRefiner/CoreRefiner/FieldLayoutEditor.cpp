@@ -1,9 +1,11 @@
 #include "FieldLayoutEditor.h"
+#include "Collision2D.h"
 #include "InputCodex.h"
 #include "XMath.h"
 #include "Colors.h"
 #include "Channels.h"
 #include "Graphics.h"
+#include "Window.h"
 
 #include <algorithm>
 #include <cmath>
@@ -25,6 +27,8 @@ void FieldLayoutEditor::Begin(
 
 	assembler.Reset();
 	canvas.ClearWaves();
+	// Ready all nodes so cooldown masks do not fight layout overlays.
+	field.ResetAllCooldowns();
 	Snapshot_(field);
 	EnsureRingVisual_(gfx, rg);
 
@@ -58,6 +62,10 @@ void FieldLayoutEditor::CancelRestore(ModuleField& field)
 		return;
 	}
 
+	// Drop drag first so a held LMB cannot keep a stale dragged_ pointer.
+	hover_ = nullptr;
+	dragged_ = nullptr;
+
 	const std::size_t n = (std::min)(field.GetNodeCount(), snapshotLocalPos_.size());
 	for (std::size_t i = 0; i < n; ++i)
 	{
@@ -65,15 +73,12 @@ void FieldLayoutEditor::CancelRestore(ModuleField& field)
 		if (node != nullptr)
 		{
 			node->SetLocalPos(snapshotLocalPos_[i]);
-			node->SyncVisual();
 		}
 	}
-
-	hover_ = nullptr;
-	dragged_ = nullptr;
+	field.SyncAllVisuals();
 }
 
-void FieldLayoutEditor::Update(float dt, ModuleField& field, HWND hostHwnd)
+void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 {
 	(void)dt;
 	if (!active_)
@@ -82,20 +87,26 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, HWND hostHwnd)
 	}
 
 	auto& input = InputCodex::Get();
+
+	// Esc cancels layout edits (keeps pause / edit origin); skip mouse this frame.
+	if (input.KeyTriggered(KK_ESCAPE))
+	{
+		CancelRestore(field);
+		return;
+	}
+
 	const DirectX::XMFLOAT2 mouseLocal = MouseToLocal_();
 
 	if (dragged_ != nullptr)
 	{
 		if (input.MouseLeftPressed())
 		{
-			dragged_->SetLocalPos(ClampLocal_(mouseLocal));
-			dragged_->SyncVisual();
+			TrySetLocalPos_(field, *dragged_, mouseLocal);
 			hover_ = dragged_;
 		}
 		if (input.MouseLeftReleased())
 		{
-			dragged_->SetLocalPos(ClampLocal_(mouseLocal));
-			dragged_->SyncVisual();
+			TrySetLocalPos_(field, *dragged_, mouseLocal);
 			dragged_ = nullptr;
 		}
 	}
@@ -105,9 +116,12 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, HWND hostHwnd)
 		if (input.MouseLeftTriggered() && hover_ != nullptr)
 		{
 			dragged_ = hover_;
-			SnapCursorToNode_(*dragged_, hostHwnd);
-			dragged_->SetLocalPos(ClampLocal_(dragged_->GetLocalPos()));
-			dragged_->SyncVisual();
+			if (hostWindow != nullptr)
+			{
+				SnapCursorToNode_(*dragged_, *hostWindow);
+			}
+			// Keep pose at grab; do not jump to pre-snap mouse offset this frame.
+			TrySetLocalPos_(field, *dragged_, dragged_->GetLocalPos());
 		}
 	}
 
@@ -145,8 +159,8 @@ void FieldLayoutEditor::EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 	const float cx = (static_cast<float>(kSize) - 1.0f) * 0.5f;
 	const float cy = cx;
 	const float rOuter = static_cast<float>(kSize) * 0.48f;
-	const float rInner = rOuter - 2.5f;
-	const Color ringColor{ 255u, 255u, 255u, 200u };
+	const float rInner = rOuter - 3.5f;
+	const Color ringColor{ 255u, 230u, 80u, 230u };
 
 	for (unsigned y = 0u; y < kSize; ++y)
 	{
@@ -196,19 +210,58 @@ DirectX::XMFLOAT2 FieldLayoutEditor::MouseToLocal_() const noexcept
 	};
 }
 
-DirectX::XMFLOAT2 FieldLayoutEditor::ClampLocal_(DirectX::XMFLOAT2 p) const noexcept
+DirectX::XMFLOAT2 FieldLayoutEditor::ClampLocalForNode_(
+	DirectX::XMFLOAT2 p,
+	float hitRadius) const noexcept
 {
-	const float e = ModuleField::kHalfExtent;
-	return DirectX::XMFLOAT2{
-		std::clamp(p.x, -e, e),
-		std::clamp(p.y, -e, e)
-	};
+	const float half = (std::max)(ModuleField::kHalfExtent - hitRadius, 0.0f);
+	const Collider2D::BoxCollider bounds = Collider2D::BoxCollider::MakeCenteredSquare(half);
+	return Collider2D::ClampPointToBox(p, bounds);
+}
+
+bool FieldLayoutEditor::WouldOverlapOthers_(
+	const ModuleField& field,
+	const IFieldNode& self,
+	DirectX::XMFLOAT2 candidate) const noexcept
+{
+	const Collider2D::CircleCollider moving{ candidate, self.GetHitRadius() };
+	const std::size_t n = field.GetNodeCount();
+	for (std::size_t i = 0; i < n; ++i)
+	{
+		const IFieldNode* other = field.GetNode(i);
+		if (other == nullptr || other == &self)
+		{
+			continue;
+		}
+		const Collider2D::CircleCollider solid{ other->GetLocalPos(), other->GetHitRadius() };
+		if (Collider2D::CollisionSystem::IsOverlap(moving, solid))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FieldLayoutEditor::TrySetLocalPos_(
+	ModuleField& field,
+	IFieldNode& node,
+	DirectX::XMFLOAT2 candidate)
+{
+	candidate = ClampLocalForNode_(candidate, node.GetHitRadius());
+	if (WouldOverlapOthers_(field, node, candidate))
+	{
+		return false;
+	}
+	node.SetLocalPos(candidate);
+	node.SyncVisual();
+	return true;
 }
 
 IFieldNode* FieldLayoutEditor::PickHover_(ModuleField& field, DirectX::XMFLOAT2 mouseLocal) const noexcept
 {
 	IFieldNode* best = nullptr;
 	float bestDistSq = 1.0e9f;
+	const Collider2D::PointCollider mousePt{ mouseLocal };
 
 	const std::size_t n = field.GetNodeCount();
 	for (std::size_t i = 0; i < n; ++i)
@@ -219,10 +272,15 @@ IFieldNode* FieldLayoutEditor::PickHover_(ModuleField& field, DirectX::XMFLOAT2 
 			continue;
 		}
 
+		const Collider2D::CircleCollider hit{ node->GetLocalPos(), node->GetHitRadius() };
+		if (!Collider2D::CollisionSystem::IsOverlap(hit, mousePt))
+		{
+			continue;
+		}
+
 		const Vec2 d = V(mouseLocal) - V(node->GetLocalPos());
 		const float distSq = d.LengthSq();
-		const float r = node->GetHitRadius();
-		if (distSq <= r * r && distSq < bestDistSq)
+		if (distSq < bestDistSq)
 		{
 			bestDistSq = distSq;
 			best = node;
@@ -231,19 +289,21 @@ IFieldNode* FieldLayoutEditor::PickHover_(ModuleField& field, DirectX::XMFLOAT2 
 	return best;
 }
 
-void FieldLayoutEditor::SnapCursorToNode_(IFieldNode& node, HWND hostHwnd) const noexcept
+void FieldLayoutEditor::SnapCursorToNode_(IFieldNode& node, Window& hostWindow) const noexcept
 {
-	if (hostHwnd == nullptr)
+	const DirectX::XMFLOAT2 local = node.GetLocalPos();
+	const int gameX = static_cast<int>(std::lround(editOrigin_.x + local.x));
+	const int gameY = static_cast<int>(std::lround(editOrigin_.y + local.y));
+
+	int clientX = 0;
+	int clientY = 0;
+	if (!hostWindow.MapGameToClient(gameX, gameY, clientX, clientY))
 	{
 		return;
 	}
 
-	const DirectX::XMFLOAT2 local = node.GetLocalPos();
-	POINT pt{
-		static_cast<LONG>(std::lround(editOrigin_.x + local.x)),
-		static_cast<LONG>(std::lround(editOrigin_.y + local.y))
-	};
-	::ClientToScreen(hostHwnd, &pt);
+	POINT pt{ clientX, clientY };
+	::ClientToScreen(hostWindow.GetHwnd(), &pt);
 	::SetCursorPos(pt.x, pt.y);
 }
 

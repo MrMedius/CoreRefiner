@@ -62,6 +62,7 @@ public:
 	void DisableCursor() noexcept;
 	bool CursorEnabled() const noexcept;
 	[[nodiscard]] HWND GetHwnd() const noexcept { return hWnd; }
+	[[nodiscard]] bool MapGameToClient(int gx, int gy, int& outX, int& outY) const noexcept;
 	static HCURSOR GetCursor() noexcept;
 	static void SetCursorHandle(HCURSOR cur) noexcept;
 	void TickCursorAutoHide() noexcept;

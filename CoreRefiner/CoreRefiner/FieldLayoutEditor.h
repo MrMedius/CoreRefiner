@@ -11,6 +11,17 @@
 #include <memory>
 #include <vector>
 
+class Window;
+class Graphics;
+
+namespace Rgph
+{
+	class RenderGraph;
+}
+
+/**
+ * @brief Pause-time ModuleField layout editor (same field instance, move localPos).
+ */
 class FieldLayoutEditor
 {
 public:
@@ -20,6 +31,9 @@ public:
 	FieldLayoutEditor(const FieldLayoutEditor&) = delete;
 	FieldLayoutEditor& operator=(const FieldLayoutEditor&) = delete;
 
+	/**
+	 * @brief Enter edit: reset scans/cooldowns, snapshot poses, center field.
+	 */
 	void Begin(
 		ModuleField& field,
 		ScanAssembler& assembler,
@@ -30,9 +44,12 @@ public:
 
 	void End(ModuleField& field, ModuleFieldCanvas& canvas);
 
+	/**
+	 * @brief Restore snapshotted localPos; clear hover/drag; stay in edit origin.
+	 */
 	void CancelRestore(ModuleField& field);
 
-	void Update(float dt, ModuleField& field, HWND hostHwnd);
+	void Update(float dt, ModuleField& field, Window* hostWindow);
 
 	void SubmitOverlay();
 
@@ -43,9 +60,23 @@ private:
 	void Snapshot_(const ModuleField& field);
 	void ApplyFieldOrigin_(ModuleField& field, ModuleFieldCanvas& canvas, DirectX::XMFLOAT3 origin);
 	[[nodiscard]] DirectX::XMFLOAT2 MouseToLocal_() const noexcept;
-	[[nodiscard]] DirectX::XMFLOAT2 ClampLocal_(DirectX::XMFLOAT2 p) const noexcept;
+
+	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForNode_(
+		DirectX::XMFLOAT2 p,
+		float hitRadius) const noexcept;
+
+	[[nodiscard]] bool WouldOverlapOthers_(
+		const ModuleField& field,
+		const IFieldNode& self,
+		DirectX::XMFLOAT2 candidate) const noexcept;
+
+	bool TrySetLocalPos_(
+		ModuleField& field,
+		IFieldNode& node,
+		DirectX::XMFLOAT2 candidate);
+
 	[[nodiscard]] IFieldNode* PickHover_(ModuleField& field, DirectX::XMFLOAT2 mouseLocal) const noexcept;
-	void SnapCursorToNode_(IFieldNode& node, HWND hostHwnd) const noexcept;
+	void SnapCursorToNode_(IFieldNode& node, Window& hostWindow) const noexcept;
 	void SyncRingTransform_(IFieldNode& node);
 
 	bool active_{ false };
@@ -55,5 +86,5 @@ private:
 	IFieldNode* hover_{ nullptr };
 	IFieldNode* dragged_{ nullptr };
 	std::unique_ptr<Canvas2D> ring_;
-	static constexpr float kRingPadding_{ 8.0f };
+	static constexpr float kRingPadding_{ 12.0f };
 };

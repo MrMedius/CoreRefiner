@@ -10,6 +10,7 @@
 #include "TextCodex.h"
 #include "Util.h"
 
+#include <cmath>
 #include <imm.h>
 #pragma comment(lib, "imm32.lib")
 
@@ -349,6 +350,28 @@ bool Window::MapClientToGame(int cx, int cy, int& outX, int& outY) noexcept
 
 	outX = (int)(nx * (float)Graphics::LogicalCanvasWidth());
 	outY = (int)(ny * (float)Graphics::LogicalCanvasHeight());
+	return true;
+}
+
+bool Window::MapGameToClient(int gx, int gy, int& outX, int& outY) const noexcept
+{
+	if (!pGfx)
+	{
+		return false;
+	}
+
+	const D3D11_VIEWPORT vp = pGfx->GetMainViewport();
+	const float lw = static_cast<float>(Graphics::LogicalCanvasWidth());
+	const float lh = static_cast<float>(Graphics::LogicalCanvasHeight());
+	if (lw <= 0.0f || lh <= 0.0f || vp.Width <= 0.0f || vp.Height <= 0.0f)
+	{
+		return false;
+	}
+
+	const float nx = static_cast<float>(gx) / lw;
+	const float ny = static_cast<float>(gy) / lh;
+	outX = static_cast<int>(std::lround(vp.TopLeftX + nx * vp.Width));
+	outY = static_cast<int>(std::lround(vp.TopLeftY + ny * vp.Height));
 	return true;
 }
 

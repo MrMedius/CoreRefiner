@@ -176,7 +176,7 @@ void Game::Update(float dt)
 			{
 				Pause = true;
 				wnd.EnableCursor();
-				uiGame->SetHostHwnd(wnd.GetHwnd());
+				uiGame->SetHostWindow(&wnd);
 				uiGame->BeginLayoutEdit();
 			}
 			else
@@ -207,7 +207,7 @@ void Game::Update(float dt)
 		}
 		else
 		{
-			uiGame->SetHostHwnd(wnd.GetHwnd());
+			uiGame->SetHostWindow(&wnd);
 			uiGame->UpdateLayoutEdit(dt);
 		}
 		break;

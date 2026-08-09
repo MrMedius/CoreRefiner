@@ -13,7 +13,8 @@
 #include "InputCodex.h"
 
 #include "Channels.h"
-#include "Win.h"
+
+class Window;
 
 class UI_Game
 {
@@ -42,9 +43,9 @@ public:
 	void SetAttackManager(AttackManager* manager) noexcept { attackManager_ = manager; }
 
 	/**
-	 * @brief Host HWND for layout-edit cursor snap (from Game::wnd).
+	 * @brief Host window for letterbox-aware cursor snap during layout edit.
 	 */
-	void SetHostHwnd(HWND hwnd) noexcept { hostHwnd_ = hwnd; }
+	void SetHostWindow(Window* window) noexcept { hostWindow_ = window; }
 
 	/**
 	 * @brief Clear scan sessions, node cooldowns, and field ring draw (scene leave).
@@ -105,7 +106,7 @@ public:
 	}
 
 	/**
-	 * @brief Enter pause layout-edit via FieldLayoutEditor.
+	 * @brief Enter pause layout-edit via FieldLayoutEditor (also Ready-all / clear masks).
 	 */
 	void BeginLayoutEdit()
 	{
@@ -142,14 +143,11 @@ public:
 
 	/**
 	 * @brief Pause-only tick: layout editor only (no cooldown / scan / fire).
+	 * @note Esc cancel is handled inside FieldLayoutEditor::Update.
 	 */
 	void UpdateLayoutEdit(float dt)
 	{
-		if (InputCodex::Get().KeyTriggered(KK_ESCAPE))
-		{
-			layoutEditor_.CancelRestore(field_);
-		}
-		layoutEditor_.Update(dt, field_, hostHwnd_);
+		layoutEditor_.Update(dt, field_, hostWindow_);
 	}
 
 	void Submit(void)
@@ -219,7 +217,7 @@ private:
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
 	AttackManager* attackManager_{ nullptr };
-	HWND hostHwnd_{ nullptr };
+	Window* hostWindow_{ nullptr };
 	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 combatFieldOrigin_{ 200.0f, 200.0f, 0.0f };
 	std::unique_ptr<ModuleFieldCanvas> fieldCanvas_;
