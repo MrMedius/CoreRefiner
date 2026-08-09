@@ -583,7 +583,10 @@
     <ClCompile Include="ObjectBase.cpp">
       <Filter>Object</Filter>
     </ClCompile>
-    <ClCompile Include="Collision.cpp">
+    <ClCompile Include="Collision3D.cpp">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClCompile>
+    <ClCompile Include="Collision2D.cpp">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClCompile>
     <ClCompile Include="SliderCanvasFill.cpp">
@@ -659,6 +662,9 @@
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClCompile>
     <ClCompile Include="ModuleFieldCanvas.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldLayoutEditor.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1218,7 +1224,10 @@
     <ClInclude Include="Transformation.h">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClInclude>
-    <ClInclude Include="Collision.h">
+    <ClInclude Include="Collision3D.h">
+      <Filter>Framework\Helpers\Mathematics</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision2D.h">
       <Filter>Framework\Helpers\Mathematics</Filter>
     </ClInclude>
     <ClInclude Include="SliderCanvasFill.h">
@@ -1330,6 +1339,9 @@
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="ModuleField.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
+    <ClInclude Include="FieldLayoutEditor.h">
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClInclude>
     <ClInclude Include="ModuleFieldCanvas.h">

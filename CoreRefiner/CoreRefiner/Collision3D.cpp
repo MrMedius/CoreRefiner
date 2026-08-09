@@ -1,4 +1,4 @@
-#include "Collision.h"
+#include "Collision3D.h"
 #include <cfloat>
 
 namespace Collider3D

@@ -1,6 +1,6 @@
 #pragma once
 #include "ObjectBase.h"
-#include "Collision.h"
+#include "Collision3D.h"
 #include "FSM.h"
 
 using namespace Collider3D;

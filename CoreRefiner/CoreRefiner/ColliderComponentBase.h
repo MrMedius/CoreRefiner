@@ -1,6 +1,6 @@
 #pragma once
 #include "IComponent.h"
-#include "Collision.h"
+#include "Collision3D.h"
 #include <DirectXMath.h>
 #include <cstdint>
 

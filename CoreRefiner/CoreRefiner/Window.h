@@ -61,6 +61,7 @@ public:
 	void EnableCursor() noexcept;
 	void DisableCursor() noexcept;
 	bool CursorEnabled() const noexcept;
+	[[nodiscard]] HWND GetHwnd() const noexcept { return hWnd; }
 	static HCURSOR GetCursor() noexcept;
 	static void SetCursorHandle(HCURSOR cur) noexcept;
 	void TickCursorAutoHide() noexcept;

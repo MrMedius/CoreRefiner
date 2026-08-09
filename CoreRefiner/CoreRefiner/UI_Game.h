@@ -5,12 +5,15 @@
 #include "ModuleFieldCanvas.h"
 #include "FieldNodes.h"
 #include "ScanAssembler.h"
+#include "FieldLayoutEditor.h"
 #include "ObjectCodex.h"
 #include "Player.h"
 #include "Colors.h"
 #include "AttackManager.h"
+#include "InputCodex.h"
 
 #include "Channels.h"
+#include "Win.h"
 
 class UI_Game
 {
@@ -21,6 +24,7 @@ public:
 		rg_(rg)
 	{
 		fieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
+		combatFieldOrigin_ = fieldOrigin_;
 
 		{
 			constexpr float side = ModuleFieldCanvas::kDefaultFieldSide;
@@ -36,6 +40,11 @@ public:
 	~UI_Game() = default;
 
 	void SetAttackManager(AttackManager* manager) noexcept { attackManager_ = manager; }
+
+	/**
+	 * @brief Host HWND for layout-edit cursor snap (from Game::wnd).
+	 */
+	void SetHostHwnd(HWND hwnd) noexcept { hostHwnd_ = hwnd; }
 
 	/**
 	 * @brief Clear scan sessions, node cooldowns, and field ring draw (scene leave).
@@ -95,31 +104,52 @@ public:
 		SyncFieldWaves_();
 	}
 
-	
-	// Enter pause layout-edit: drop scan sessions (full editor in later steps).
+	/**
+	 * @brief Enter pause layout-edit via FieldLayoutEditor.
+	 */
 	void BeginLayoutEdit()
 	{
-		assembler_.Reset();
-		if (fieldCanvas_ != nullptr)
+		if (fieldCanvas_ == nullptr)
 		{
-			fieldCanvas_->ClearWaves();
+			return;
 		}
-		field_.SyncAllVisuals();
+		layoutEditor_.Begin(
+			field_,
+			assembler_,
+			*fieldCanvas_,
+			gfx_,
+			rg_,
+			combatFieldOrigin_);
+		fieldOrigin_ = DirectX::XMFLOAT3{
+			static_cast<float>(SCREEN_WIDTH) * 0.5f,
+			static_cast<float>(SCREEN_HEIGHT) * 0.5f,
+			0.0f
+		};
 	}
 
-	
-	// Leave layout-edit and keep current node positions.
+	/**
+	 * @brief Leave layout-edit and keep current node positions.
+	 */
 	void EndLayoutEdit()
 	{
-		field_.SyncAllVisuals();
+		if (fieldCanvas_ == nullptr)
+		{
+			return;
+		}
+		layoutEditor_.End(field_, *fieldCanvas_);
+		fieldOrigin_ = combatFieldOrigin_;
 	}
 
-	
-	// Pause-only tick: no cooldown / scan / fire (layout editor wired later).
+	/**
+	 * @brief Pause-only tick: layout editor only (no cooldown / scan / fire).
+	 */
 	void UpdateLayoutEdit(float dt)
 	{
-		(void)dt;
-		field_.SyncAllVisuals();
+		if (InputCodex::Get().KeyTriggered(KK_ESCAPE))
+		{
+			layoutEditor_.CancelRestore(field_);
+		}
+		layoutEditor_.Update(dt, field_, hostHwnd_);
 	}
 
 	void Submit(void)
@@ -129,6 +159,10 @@ public:
 			fieldCanvas_->Submit(Chan::ui);
 		}
 		field_.SubmitAllVisuals();
+		if (layoutEditor_.IsActive())
+		{
+			layoutEditor_.SubmitOverlay();
+		}
 	}
 
 	[[nodiscard]] ModuleField& GetField() noexcept { return field_; }
@@ -185,8 +219,11 @@ private:
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
 	AttackManager* attackManager_{ nullptr };
+	HWND hostHwnd_{ nullptr };
 	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 combatFieldOrigin_{ 200.0f, 200.0f, 0.0f };
 	std::unique_ptr<ModuleFieldCanvas> fieldCanvas_;
 	ModuleField field_;
 	ScanAssembler assembler_;
+	FieldLayoutEditor layoutEditor_;
 };
