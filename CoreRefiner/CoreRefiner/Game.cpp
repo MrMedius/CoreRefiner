@@ -237,26 +237,32 @@ void Game::Draw()
 	{
 		light.Bind(wnd.Gfx(), cameras->GetMatrix());
 		gameRG.BindMainCamera(cameras.GetActiveCamera());
+
+		if (!Pause)
+		{
 #ifdef _DEBUG
-		light.Submit(Chan::main);
+			light.Submit(Chan::main);
 #endif
-		cameras.Submit(Chan::main);
-		// Objects
-		pAttackManager->Submit();
-		pEnemyManager->Submit();
-		pEnvironmentManager->Submit();
-		pPlayer->Submit();
+			cameras.Submit(Chan::main);
+			pAttackManager->Submit();
+			pEnemyManager->Submit();
+			pEnvironmentManager->Submit();
+			pPlayer->Submit();
+		}
+
+		// Pause: layout UI only (field / rings / overlays); no world Submit.
 		uiGame->Submit();
 
 		gameRG.Execute(wnd.Gfx());
 
 #ifdef _DEBUG
-		// imgui windows
-		cameras.SpawnWindow(wnd.Gfx());
-		light.SpawnControlWindow();
-		SoundCodex::Get().SpawnWindow();
-
-		gameRG.RenderWindows(wnd.Gfx());
+		if (!Pause)
+		{
+			cameras.SpawnWindow(wnd.Gfx());
+			light.SpawnControlWindow();
+			SoundCodex::Get().SpawnWindow();
+			gameRG.RenderWindows(wnd.Gfx());
+		}
 #endif
 		break;
 	}

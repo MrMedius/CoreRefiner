@@ -282,6 +282,8 @@
     <ClCompile Include="Canvas2DRipples.cpp" />
     <ClCompile Include="ModuleFieldCanvas.cpp" />
     <ClCompile Include="FieldLayoutEditor.cpp" />
+    <ClCompile Include="FieldNodeInfoCopy.cpp" />
+    <ClCompile Include="NodeInfoPanel.cpp" />
     <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="XMath.cpp" />
@@ -362,6 +364,8 @@
     <ClInclude Include="ScanWave.h" />
     <ClInclude Include="ModuleField.h" />
     <ClInclude Include="FieldLayoutEditor.h" />
+    <ClInclude Include="FieldNodeInfoCopy.h" />
+    <ClInclude Include="NodeInfoPanel.h" />
     <ClInclude Include="ModuleFieldCanvas.h" />
     <ClInclude Include="FieldIconAtlas.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
@@ -1418,6 +1422,9 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="FieldNodeInfoCopy.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="asset\Icon\WhiteArrow.cur" />
     <None Include="LightVectorData.hlsli" />
     <None Include="MathHelpers.hlsli" />

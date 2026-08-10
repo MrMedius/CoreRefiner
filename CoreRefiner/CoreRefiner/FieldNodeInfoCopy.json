@@ -1,0 +1,113 @@
+{
+  "zh": {
+    "Spawn_Ball": {
+      "title": "生成球",
+      "body": "扫描命中后生成（或刷新）弹道根节点，并可作为后续扫描的接力点。",
+      "spans": [
+        { "start": 0, "length": 3, "r": 255, "g": 230, "b": 80, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_Lifetime": {
+      "title": "存在时长",
+      "body": "影响子弹的存在时间。",
+      "spans": [
+        { "start": 0, "length": 2, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_SpeedRate": {
+      "title": "速度倍率",
+      "body": "乘算弹道速度，大于 1 加快，小于 1 减慢。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Rule_Orbit": {
+      "title": "环绕规则",
+      "body": "为弹道附加环绕运动规则，改变其相对父节点的运行轨迹。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Other_Child": {
+      "title": "子弹",
+      "body": "作为附加子节点挂接，扩展弹道树的结构与表现。",
+      "spans": [
+        { "start": 0, "length": 2, "r": 200, "g": 180, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    }
+  },
+  "ja": {
+    "Spawn_Ball": {
+      "title": "ボール生成",
+      "body": "スキャン命中後に弾のルートを生成（または更新）し、続けてスキャンを繋げる起点にもなる。",
+      "spans": [
+        { "start": 0, "length": 6, "r": 255, "g": 230, "b": 80, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_Lifetime": {
+      "title": "周波数",
+      "body": "弾に関する周波数パラメータを調整し、発射リズムや周期挙動に影響する。",
+      "spans": [
+        { "start": 0, "length": 3, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_SpeedRate": {
+      "title": "速度倍率",
+      "body": "弾速に乗算する。1より大きいと加速、小さいと減速。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Rule_Orbit": {
+      "title": "周回ルール",
+      "body": "弾に周回運動を付与し、親からの相対軌道を変える。",
+      "spans": [
+        { "start": 0, "length": 5, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Other_Child": {
+      "title": "子弾",
+      "body": "追加の子ノードとして接続し、弾ツリーの構造と見た目を拡張する。",
+      "spans": [
+        { "start": 0, "length": 2, "r": 200, "g": 180, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    }
+  },
+  "en": {
+    "Spawn_Ball": {
+      "title": "Spawn Ball",
+      "body": "On scan hit, creates (or refreshes) a projectile root and can continue the scan chain.",
+      "spans": [
+        { "start": 0, "length": 10, "r": 255, "g": 230, "b": 80, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_Lifetime": {
+      "title": "Lifetime",
+      "body": "Tweaks frequency-related projectile parameters that affect cadence or periodic behavior.",
+      "spans": [
+        { "start": 0, "length": 9, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_SpeedRate": {
+      "title": "Speed Rate",
+      "body": "Scales projectile speed. Values above 1 speed up; below 1 slow down.",
+      "spans": [
+        { "start": 0, "length": 10, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Rule_Orbit": {
+      "title": "Orbit Rule",
+      "body": "Attaches an orbit motion rule that changes the path relative to the parent.",
+      "spans": [
+        { "start": 0, "length": 10, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Other_Child": {
+      "title": "Child Shot",
+      "body": "Hooks on as an extra child node to extend the projectile tree.",
+      "spans": [
+        { "start": 0, "length": 10, "r": 200, "g": 180, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    }
+  }
+}

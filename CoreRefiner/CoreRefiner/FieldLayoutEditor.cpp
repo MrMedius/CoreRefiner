@@ -1,5 +1,6 @@
 #include "FieldLayoutEditor.h"
 #include "Collision2D.h"
+#include "FieldNodeInfoCopy.h"
 #include "InputCodex.h"
 #include "XMath.h"
 #include "Colors.h"
@@ -9,6 +10,26 @@
 
 #include <algorithm>
 #include <cmath>
+
+namespace
+{
+	void EnsureFieldNodeInfoCopyLoaded_()
+	{
+		if (IsFieldNodeInfoCopyLoaded())
+		{
+			return;
+		}
+		if (LoadFieldNodeInfoCopy("FieldNodeInfoCopy.json"))
+		{
+			return;
+		}
+		if (LoadFieldNodeInfoCopy("CoreRefiner/FieldNodeInfoCopy.json"))
+		{
+			return;
+		}
+		(void)LoadFieldNodeInfoCopy("CoreRefiner/CoreRefiner/FieldNodeInfoCopy.json");
+	}
+}
 
 void FieldLayoutEditor::Begin(
 	ModuleField& field,
@@ -31,6 +52,9 @@ void FieldLayoutEditor::Begin(
 	field.ResetAllCooldowns();
 	Snapshot_(field);
 	EnsureRingVisual_(gfx, rg);
+	EnsureFieldNodeInfoCopyLoaded_();
+	infoPanel_.Ensure(gfx, rg);
+	infoPanel_.Hide();
 
 	hover_ = nullptr;
 	dragged_ = nullptr;
@@ -54,6 +78,7 @@ void FieldLayoutEditor::End(ModuleField& field, ModuleFieldCanvas& canvas)
 		dragged_->EndLayoutGhost();
 	}
 	ClearAllLayoutGhosts_(field);
+	infoPanel_.Hide();
 
 	hover_ = nullptr;
 	dragged_ = nullptr;
@@ -76,6 +101,7 @@ void FieldLayoutEditor::CancelRestore(ModuleField& field)
 		dragged_->EndLayoutGhost();
 	}
 	ClearAllLayoutGhosts_(field);
+	infoPanel_.Hide();
 
 	// Drop drag first so a held LMB cannot keep a stale dragged_ pointer.
 	hover_ = nullptr;
@@ -160,6 +186,22 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 	{
 		SyncRingTransform_(*ringTarget);
 	}
+
+	// Info panel: hover only (hidden while dragging).
+	if (dragged_ != nullptr || hover_ == nullptr)
+	{
+		infoPanel_.Hide();
+	}
+	else
+	{
+		const DirectX::XMFLOAT2 local = hover_->GetLocalPos();
+		infoPanel_.ShowFor(
+			hover_->GetAttackNodeLabel(),
+			DirectX::XMFLOAT2{
+				editOrigin_.x + local.x,
+				editOrigin_.y + local.y
+			});
+	}
 }
 
 void FieldLayoutEditor::SubmitOverlay()
@@ -168,16 +210,14 @@ void FieldLayoutEditor::SubmitOverlay()
 	{
 		return;
 	}
-	if (dragged_ == nullptr && hover_ == nullptr)
+	if (dragged_ != nullptr || hover_ != nullptr)
 	{
-		return;
+		if (Canvas2D* ring = ActiveRing_())
+		{
+			ring->Submit(Chan::ui);
+		}
 	}
-	Canvas2D* ring = ActiveRing_();
-	if (ring == nullptr)
-	{
-		return;
-	}
-	ring->Submit(Chan::ui);
+	infoPanel_.Submit();
 }
 
 std::unique_ptr<Canvas2D> FieldLayoutEditor::MakeRingCanvas_(

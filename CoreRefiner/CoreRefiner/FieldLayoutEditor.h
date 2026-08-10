@@ -3,6 +3,7 @@
 #include "Canvas2D.h"
 #include "ModuleField.h"
 #include "ModuleFieldCanvas.h"
+#include "NodeInfoPanel.h"
 #include "ScanAssembler.h"
 #include "Colors.h"
 
@@ -95,6 +96,7 @@ private:
 	std::unique_ptr<Canvas2D> ringHover_;
 	std::unique_ptr<Canvas2D> ringValid_;
 	std::unique_ptr<Canvas2D> ringOverlap_;
+	NodeInfoPanel infoPanel_;
 
 	static constexpr float kRingPadding_{ 12.0f };
 };
