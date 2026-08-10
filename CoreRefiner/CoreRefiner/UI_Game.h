@@ -67,7 +67,14 @@ public:
 		field_.SyncAllVisuals();
 
 		Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
-		if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
+		auto& input = InputCodex::Get();
+
+		// RMB: force-finish scans and arm all pending shots (same-frame Take fires them).
+		if (input.MouseRightTriggered())
+		{
+			assembler_.ForceFinish(field_);
+		}
+		else if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
 		{
 			const DirectX::XMFLOAT3 spawnPos = player->GetPosition();
 			DirectX::XMFLOAT3 aimVel{ 0.0f, 0.0f, 0.05f };

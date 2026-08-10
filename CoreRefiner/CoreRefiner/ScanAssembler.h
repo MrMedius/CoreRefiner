@@ -188,6 +188,23 @@ public:
 	}
 
 	/**
+	 * @brief Abort all active scans: commit assembled shots for fire, cool down Ready nodes.
+	 * @note Does not discard Attack*; caller should TakeAllPendingFires → FireRoots.
+	 * @note Ready nodes enter cooldown so a Flush chain cannot resume the same frame.
+	 */
+	void ForceFinish(ModuleField& field)
+	{
+		ForceCommit();
+		field.ForEach([](IFieldNode& node)
+		{
+			//if (node.IsReady())
+			{
+				node.StartCooldown();
+			}
+		});
+	}
+
+	/**
 	 * @brief Take every pendingFire session as a FireBatch and erase those sessions.
 	 * @note Also drops finished sessions with no pending fire (!active && !pendingFire).
 	 */
