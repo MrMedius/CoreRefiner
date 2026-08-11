@@ -2,6 +2,7 @@
 
 #include "IFieldNode.h"
 
+#include <cstddef>
 #include <DirectXMath.h>
 #include <memory>
 #include <utility>
@@ -45,6 +46,44 @@ public:
 	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
+	}
+
+	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(std::size_t index)
+	{
+		if (index >= nodes_.size())
+		{
+			return nullptr;
+		}
+		std::unique_ptr<IFieldNode> out = std::move(nodes_[index]);
+		nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(index));
+		return out;
+	}
+
+	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node)
+	{
+		if (node == nullptr)
+		{
+			return nullptr;
+		}
+		for (std::size_t i = 0; i < nodes_.size(); ++i)
+		{
+			if (nodes_[i].get() == node)
+			{
+				return TakeNode(i);
+			}
+		}
+		return nullptr;
+	}
+
+	IFieldNode* AdoptNode(std::unique_ptr<IFieldNode> node)
+	{
+		if (node == nullptr)
+		{
+			return nullptr;
+		}
+		IFieldNode* raw = node.get();
+		nodes_.push_back(std::move(node));
+		return raw;
 	}
 
 	void TickAllCooldowns(float dt)

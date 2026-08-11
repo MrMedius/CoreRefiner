@@ -3,6 +3,7 @@
 #include "RenderGraph.h"
 #include "ModuleField.h"
 #include "ModuleFieldCanvas.h"
+#include "ModuleWarehouse.h"
 #include "FieldNodes.h"
 #include "ScanAssembler.h"
 #include "FieldLayoutEditor.h"
@@ -37,6 +38,15 @@ public:
 
 		PlaceDemoField_();
 		field_.InitAllVisuals(gfx_, rg_, fieldOrigin_);
+
+		// Pause layout: warehouse sits on the right (Field shifts left in layout Begin).
+		warehouseOrigin_ = DirectX::XMFLOAT3{
+			static_cast<float>(SCREEN_WIDTH) * 0.78f,
+			static_cast<float>(SCREEN_HEIGHT) * 0.5f,
+			0.0f
+		};
+		PlaceDemoWarehouse_();
+		warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
 	}
 	~UI_Game() = default;
 
@@ -123,13 +133,14 @@ public:
 		}
 		layoutEditor_.Begin(
 			field_,
+			warehouse_,
 			assembler_,
 			*fieldCanvas_,
 			gfx_,
 			rg_,
 			combatFieldOrigin_);
 		fieldOrigin_ = DirectX::XMFLOAT3{
-			static_cast<float>(SCREEN_WIDTH) * 0.5f,
+			static_cast<float>(SCREEN_WIDTH) * 0.32f,
 			static_cast<float>(SCREEN_HEIGHT) * 0.5f,
 			0.0f
 		};
@@ -166,12 +177,15 @@ public:
 		field_.SubmitAllVisuals();
 		if (layoutEditor_.IsActive())
 		{
+			warehouse_.SubmitAllVisuals();
 			layoutEditor_.SubmitOverlay();
 		}
 	}
 
 	[[nodiscard]] ModuleField& GetField() noexcept { return field_; }
 	[[nodiscard]] const ModuleField& GetField() const noexcept { return field_; }
+	[[nodiscard]] ModuleWarehouse& GetWarehouse() noexcept { return warehouse_; }
+	[[nodiscard]] const ModuleWarehouse& GetWarehouse() const noexcept { return warehouse_; }
 	[[nodiscard]] ScanAssembler& GetAssembler() noexcept { return assembler_; }
 
 private:
@@ -193,6 +207,22 @@ private:
 
 		field_.AddNode<FieldNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ 30.0f, 90.0f }, 0.5f);
 		field_.AddNode<FieldNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ -50.0f, 90.0f }, 0.2f);
+	}
+
+	/**
+	 * @brief Demo non-Core stock; RelayoutSlots assigns final grid localPos.
+	 */
+	void PlaceDemoWarehouse_()
+	{
+		const DirectX::XMFLOAT2 zero{ 0.0f, 0.0f };
+		warehouse_.AddNode<FieldNode_Spawn_Ball>(zero);
+		warehouse_.AddNode<FieldNode_Spawn_Ball>(zero);
+		warehouse_.AddNode<FieldNode_Other_Child>(zero);
+		warehouse_.AddNode<FieldNode_Other_Child>(zero);
+		warehouse_.AddNode<FieldNode_Rule_Orbit>(zero);
+		warehouse_.AddNode<FieldNode_Attribute_Lifetime>(zero, 2.0f);
+		warehouse_.AddNode<FieldNode_Attribute_SpeedRate>(zero, 0.5f);
+		warehouse_.AddNode<FieldNode_Attribute_SpeedRate>(zero, 0.2f);
 	}
 
 	void SyncFieldWaves_()
@@ -227,8 +257,10 @@ private:
 	Window* hostWindow_{ nullptr };
 	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 combatFieldOrigin_{ 200.0f, 200.0f, 0.0f };
+	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
 	std::unique_ptr<ModuleFieldCanvas> fieldCanvas_;
 	ModuleField field_;
+	ModuleWarehouse warehouse_;
 	ScanAssembler assembler_;
 	FieldLayoutEditor layoutEditor_;
 };

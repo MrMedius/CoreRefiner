@@ -191,6 +191,7 @@
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="IFieldNode.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
+    <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
     <ClCompile Include="UiToggle.cpp" />
@@ -356,6 +357,7 @@
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="Attribute_Lifetime_Module.h" />
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
+    <ClInclude Include="ModuleWarehouse.h" />
     <ClInclude Include="Rule_Orbit_Module.h" />
     <ClInclude Include="AttackDeployer.h" />
     <ClInclude Include="AttackNodeLabel.h" />

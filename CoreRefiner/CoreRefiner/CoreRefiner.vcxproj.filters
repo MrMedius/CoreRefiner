@@ -673,6 +673,9 @@
     <ClCompile Include="NodeInfoPanel.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClCompile>
+    <ClCompile Include="ModuleWarehouse.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1385,6 +1388,9 @@
     </ClInclude>
     <ClInclude Include="Ball.h">
       <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleWarehouse.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
