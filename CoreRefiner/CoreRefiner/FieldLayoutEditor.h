@@ -61,6 +61,19 @@ private:
 		Warehouse,
 	};
 
+	enum class DropTarget_ : unsigned char
+	{
+		None,
+		Field,
+		Warehouse,
+	};
+
+	struct DropEval_
+	{
+		bool placeable{ false };
+		DropTarget_ target{ DropTarget_::None };
+	};
+
 	void EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
 	[[nodiscard]] static std::unique_ptr<Canvas2D> MakeRingCanvas_(
 		Graphics& gfx,
@@ -72,6 +85,9 @@ private:
 	void ClearAllLayoutGhosts_(ModuleField& field);
 	[[nodiscard]] DirectX::XMFLOAT2 MouseGame_() const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT3 OriginForSource_(DragSource_ source) const noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 WorldPosOf_(const IFieldNode& node, DirectX::XMFLOAT3 origin) const noexcept;
+
+	[[nodiscard]] bool FieldContainsCircle_(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept;
 
 	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForNode_(
 		DirectX::XMFLOAT2 p,
@@ -80,18 +96,22 @@ private:
 	[[nodiscard]] bool WouldOverlapOthers_(
 		const ModuleField& field,
 		const IFieldNode& self,
-		DirectX::XMFLOAT2 candidate) const noexcept;
+		DirectX::XMFLOAT2 fieldLocal) const noexcept;
 
-	/**
-	 * @brief Free preview: local = mouseGame - dragOrigin_ (no field clamp).
-	 */
 	void SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mouseGame);
 
-	void CommitOrRevertDrag_(ModuleField& field, IFieldNode& node);
-
 	/**
-	 * @brief Pick nearest hit in Field or Warehouse (game-pixel circles).
+	 * @brief Green/red drop legality for the current dragged node pose.
 	 */
+	[[nodiscard]] DropEval_ EvalDrop_(const ModuleField& field, const IFieldNode& node) const noexcept;
+
+	void RevertDrag_(ModuleField& field);
+	void ResolveRelease_(ModuleField& field);
+	/**
+	 * @brief If a drag is active, revert like an illegal drop and clear drag pointers.
+	 */
+	void ClearActiveDrag_(ModuleField& field);
+
 	[[nodiscard]] IFieldNode* PickHover_(
 		ModuleField& field,
 		DirectX::XMFLOAT2 mouseGame,
@@ -124,8 +144,8 @@ private:
 	enum class RingKind_
 	{
 		Hover,   ///< Idle hover — yellow
-		Valid,   ///< Dragging, no overlap — green
-		Overlap, ///< Dragging, overlaps another node — red
+		Valid,   ///< Dragging, placeable — green
+		Overlap, ///< Dragging, not placeable — red
 	};
 	RingKind_ ringKind_{ RingKind_::Hover };
 	std::unique_ptr<Canvas2D> ringHover_;

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace
 {
@@ -42,7 +43,6 @@ void FieldLayoutEditor::Begin(
 {
 	combatOrigin_ = combatOrigin;
 	warehouse_ = &warehouse;
-	// Field left, warehouse right — room for pause layout interaction.
 	editOrigin_ = DirectX::XMFLOAT3{
 		static_cast<float>(SCREEN_WIDTH) * 0.32f,
 		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
@@ -86,21 +86,21 @@ void FieldLayoutEditor::End(ModuleField& field, ModuleFieldCanvas& canvas)
 		return;
 	}
 
-	if (dragged_ != nullptr)
-	{
-		dragged_->EndLayoutGhost();
-	}
+	ClearActiveDrag_(field);
 	ClearAllLayoutGhosts_(field);
 	infoPanel_.Hide();
 
 	hover_ = nullptr;
-	dragged_ = nullptr;
 	hoverSource_ = DragSource_::None;
-	dragSource_ = DragSource_::None;
+	ringKind_ = RingKind_::Hover;
+	dragStartLocalPos_ = {};
+
+	if (warehouse_ != nullptr)
+	{
+		warehouse_->RelayoutSlots();
+	}
 	warehouse_ = nullptr;
 	active_ = false;
-	dragStartLocalPos_ = {};
-	dragOrigin_ = {};
 
 	ApplyFieldOrigin_(field, canvas, combatOrigin_);
 	field.SyncAllVisuals();
@@ -113,28 +113,14 @@ void FieldLayoutEditor::CancelRestore(ModuleField& field)
 		return;
 	}
 
-	if (dragged_ != nullptr)
-	{
-		dragged_->EndLayoutGhost();
-		if (dragSource_ == DragSource_::Warehouse && warehouse_ != nullptr)
-		{
-			warehouse_->RelayoutSlots();
-		}
-		else if (dragSource_ == DragSource_::Field)
-		{
-			dragged_->SetLocalPos(dragStartLocalPos_);
-			dragged_->SyncVisual();
-		}
-	}
+	ClearActiveDrag_(field);
 	ClearAllLayoutGhosts_(field);
 	infoPanel_.Hide();
 
 	hover_ = nullptr;
-	dragged_ = nullptr;
 	hoverSource_ = DragSource_::None;
-	dragSource_ = DragSource_::None;
+	ringKind_ = RingKind_::Hover;
 	dragStartLocalPos_ = {};
-	dragOrigin_ = {};
 
 	const std::size_t n = (std::min)(field.GetNodeCount(), snapshotLocalPos_.size());
 	for (std::size_t i = 0; i < n; ++i)
@@ -181,16 +167,7 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 		if (input.MouseLeftReleased())
 		{
 			SetFreePreview_(*dragged_, mouseGame);
-			if (dragSource_ == DragSource_::Field)
-			{
-				CommitOrRevertDrag_(field, *dragged_);
-			}
-			else if (dragSource_ == DragSource_::Warehouse && warehouse_ != nullptr)
-			{
-				// Step 7: no cross-zone transfer yet — snap warehouse back to grid.
-				warehouse_->RelayoutSlots();
-			}
-			dragged_->EndLayoutGhost();
+			ResolveRelease_(field);
 			dragged_ = nullptr;
 			dragSource_ = DragSource_::None;
 			dragOrigin_ = {};
@@ -221,16 +198,8 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 	const DragSource_ ringSource = (dragged_ != nullptr) ? dragSource_ : hoverSource_;
 	if (dragged_ != nullptr)
 	{
-		if (dragSource_ == DragSource_::Field)
-		{
-			ringKind_ = WouldOverlapOthers_(field, *dragged_, dragged_->GetLocalPos())
-				? RingKind_::Overlap
-				: RingKind_::Valid;
-		}
-		else
-		{
-			ringKind_ = RingKind_::Valid;
-		}
+		const DropEval_ eval = EvalDrop_(field, *dragged_);
+		ringKind_ = eval.placeable ? RingKind_::Valid : RingKind_::Overlap;
 	}
 	else
 	{
@@ -376,6 +345,31 @@ DirectX::XMFLOAT3 FieldLayoutEditor::OriginForSource_(DragSource_ source) const 
 	return editOrigin_;
 }
 
+DirectX::XMFLOAT2 FieldLayoutEditor::WorldPosOf_(
+	const IFieldNode& node,
+	DirectX::XMFLOAT3 origin) const noexcept
+{
+	return DirectX::XMFLOAT2{
+		origin.x + node.GetLocalPos().x,
+		origin.y + node.GetLocalPos().y
+	};
+}
+
+bool FieldLayoutEditor::FieldContainsCircle_(
+	DirectX::XMFLOAT2 worldCenter,
+	float radius) const noexcept
+{
+	const float r = (std::max)(radius, 0.0f);
+	const float usable = ModuleField::kHalfExtent - r;
+	if (usable < 0.0f)
+	{
+		return false;
+	}
+	const float lx = worldCenter.x - editOrigin_.x;
+	const float ly = worldCenter.y - editOrigin_.y;
+	return std::fabs(lx) <= usable && std::fabs(ly) <= usable;
+}
+
 DirectX::XMFLOAT2 FieldLayoutEditor::ClampLocalForNode_(
 	DirectX::XMFLOAT2 p,
 	float hitRadius) const noexcept
@@ -388,9 +382,9 @@ DirectX::XMFLOAT2 FieldLayoutEditor::ClampLocalForNode_(
 bool FieldLayoutEditor::WouldOverlapOthers_(
 	const ModuleField& field,
 	const IFieldNode& self,
-	DirectX::XMFLOAT2 candidate) const noexcept
+	DirectX::XMFLOAT2 fieldLocal) const noexcept
 {
-	const Collider2D::CircleCollider moving{ candidate, self.GetHitRadius() };
+	const Collider2D::CircleCollider moving{ fieldLocal, self.GetHitRadius() };
 	const std::size_t n = field.GetNodeCount();
 	for (std::size_t i = 0; i < n; ++i)
 	{
@@ -417,13 +411,161 @@ void FieldLayoutEditor::SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mous
 	node.SyncVisual();
 }
 
-void FieldLayoutEditor::CommitOrRevertDrag_(ModuleField& field, IFieldNode& node)
+FieldLayoutEditor::DropEval_ FieldLayoutEditor::EvalDrop_(
+	const ModuleField& field,
+	const IFieldNode& node) const noexcept
 {
-	const DirectX::XMFLOAT2 pose = node.GetLocalPos();
-	if (WouldOverlapOthers_(field, node, pose))
+	DropEval_ eval{};
+	const DirectX::XMFLOAT2 world = WorldPosOf_(node, dragOrigin_);
+	const float radius = node.GetHitRadius();
+
+	const bool inField = FieldContainsCircle_(world, radius);
+	const bool inWarehouse = (warehouse_ != nullptr)
+		&& warehouse_->ContainsCircle(world, radius);
+
+	if (!inField && !inWarehouse)
 	{
-		node.SetLocalPos(dragStartLocalPos_);
-		node.SyncVisual();
+		return eval;
+	}
+
+	if (inField)
+	{
+		const DirectX::XMFLOAT2 fieldLocal{
+			world.x - editOrigin_.x,
+			world.y - editOrigin_.y
+		};
+		if (WouldOverlapOthers_(field, node, fieldLocal))
+		{
+			return eval;
+		}
+		eval.placeable = true;
+		eval.target = DropTarget_::Field;
+		return eval;
+	}
+
+	// Warehouse zone only.
+	if (dragSource_ == DragSource_::Warehouse)
+	{
+		eval.placeable = true;
+		eval.target = DropTarget_::Warehouse;
+		return eval;
+	}
+
+	// Field → Warehouse: reject Core / full stock.
+	if (node.IsCore() || warehouse_ == nullptr || !warehouse_->HasFreeSlot())
+	{
+		return eval;
+	}
+	eval.placeable = true;
+	eval.target = DropTarget_::Warehouse;
+	return eval;
+}
+
+void FieldLayoutEditor::RevertDrag_(ModuleField& field)
+{
+	(void)field;
+	if (dragged_ == nullptr)
+	{
+		return;
+	}
+
+	if (dragSource_ == DragSource_::Warehouse && warehouse_ != nullptr)
+	{
+		dragged_->EndLayoutGhost();
+		warehouse_->RelayoutSlots();
+		return;
+	}
+
+	dragged_->SetLocalPos(dragStartLocalPos_);
+	dragged_->SetFieldOrigin(editOrigin_);
+	dragged_->EndLayoutGhost();
+	dragged_->SyncVisual();
+}
+
+void FieldLayoutEditor::ClearActiveDrag_(ModuleField& field)
+{
+	if (dragged_ == nullptr)
+	{
+		return;
+	}
+	RevertDrag_(field);
+	dragged_ = nullptr;
+	dragSource_ = DragSource_::None;
+	dragOrigin_ = {};
+}
+
+void FieldLayoutEditor::ResolveRelease_(ModuleField& field)
+{
+	if (dragged_ == nullptr)
+	{
+		return;
+	}
+
+	const DropEval_ eval = EvalDrop_(field, *dragged_);
+	if (!eval.placeable || eval.target == DropTarget_::None)
+	{
+		RevertDrag_(field);
+		return;
+	}
+
+	IFieldNode* node = dragged_;
+	const DirectX::XMFLOAT2 world = WorldPosOf_(*node, dragOrigin_);
+
+	if (eval.target == DropTarget_::Field)
+	{
+		DirectX::XMFLOAT2 fieldLocal{
+			world.x - editOrigin_.x,
+			world.y - editOrigin_.y
+		};
+		fieldLocal = ClampLocalForNode_(fieldLocal, node->GetHitRadius());
+
+		if (dragSource_ == DragSource_::Warehouse && warehouse_ != nullptr)
+		{
+			node->EndLayoutGhost();
+			std::unique_ptr<IFieldNode> taken = warehouse_->TakeNode(node);
+			IFieldNode* adopted = field.AdoptNode(std::move(taken));
+			if (adopted == nullptr)
+			{
+				RevertDrag_(field);
+				return;
+			}
+			adopted->SetLocalPos(fieldLocal);
+			adopted->SetFieldOrigin(editOrigin_);
+			adopted->SyncVisual();
+			return;
+		}
+
+		// Same-zone Field drop.
+		node->SetLocalPos(fieldLocal);
+		node->SetFieldOrigin(editOrigin_);
+		node->EndLayoutGhost();
+		node->SyncVisual();
+		return;
+	}
+
+	if (eval.target == DropTarget_::Warehouse && warehouse_ != nullptr)
+	{
+		if (dragSource_ == DragSource_::Field)
+		{
+			node->EndLayoutGhost();
+			std::unique_ptr<IFieldNode> taken = field.TakeNode(node);
+			if (warehouse_->TryAdopt(taken) == nullptr)
+			{
+				IFieldNode* back = field.AdoptNode(std::move(taken));
+				if (back != nullptr)
+				{
+					back->SetLocalPos(dragStartLocalPos_);
+					back->SetFieldOrigin(editOrigin_);
+					back->SyncVisual();
+				}
+				return;
+			}
+			return;
+		}
+
+		// Same-zone Warehouse drop.
+		node->EndLayoutGhost();
+		warehouse_->RelayoutSlots();
 	}
 }
 
@@ -438,10 +580,7 @@ IFieldNode* FieldLayoutEditor::PickHover_(
 
 	auto consider = [&](IFieldNode& node, DirectX::XMFLOAT3 origin, DragSource_ source)
 	{
-		const DirectX::XMFLOAT2 world{
-			origin.x + node.GetLocalPos().x,
-			origin.y + node.GetLocalPos().y
-		};
+		const DirectX::XMFLOAT2 world = WorldPosOf_(node, origin);
 		const Collider2D::CircleCollider hit{ world, node.GetHitRadius() };
 		const Collider2D::PointCollider mousePt{ mouseGame };
 		if (!Collider2D::CollisionSystem::IsOverlap(hit, mousePt))
