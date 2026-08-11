@@ -171,6 +171,7 @@ void FieldLayoutEditor::Update(float dt, ModuleField& field, Window* hostWindow)
 			dragged_ = nullptr;
 			dragSource_ = DragSource_::None;
 			dragOrigin_ = {};
+			hover_ = PickHover_(field, mouseGame, hoverSource_);
 		}
 	}
 	else
