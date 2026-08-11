@@ -5,6 +5,7 @@
 #include "AttackNodeLabel.h"
 #include "Colors.h"
 
+#include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
 
@@ -29,6 +30,8 @@ public:
 	static constexpr unsigned kVisualSize = 16u;
 
 	virtual ~IFieldNode() = default;
+
+	[[nodiscard]] std::uint32_t GetInstanceId() const noexcept { return instanceId_; }
 
 	[[nodiscard]] DirectX::XMFLOAT2 GetLocalPos() const noexcept { return localPos_; }
 	void SetLocalPos(DirectX::XMFLOAT2 pos) noexcept { localPos_ = pos; }
@@ -94,7 +97,10 @@ public:
 	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept = 0;
 
 protected:
-	IFieldNode() = default;
+	IFieldNode() noexcept
+		:
+		instanceId_(++s_nextInstanceId_)
+	{}
 
 	[[nodiscard]] virtual Color GetReadyFillColor() const noexcept;
 
@@ -102,6 +108,7 @@ protected:
 	void SyncMaskUV_();
 	[[nodiscard]] float GetRemainRatio_() const noexcept;
 
+	std::uint32_t instanceId_{ 0 };
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
 	float hitRadius_{ 16.0f };
 	ModuleReadyState state_{ ModuleReadyState::Ready };
@@ -117,4 +124,7 @@ protected:
 	bool visualReady_{ false };
 	bool layoutGhostActive_{ false };
 	DirectX::XMFLOAT2 layoutGhostLocalPos_{ 0.0f, 0.0f };
+
+private:
+	static std::uint32_t s_nextInstanceId_;
 };

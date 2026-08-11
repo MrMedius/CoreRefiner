@@ -10,6 +10,7 @@
 
 #include "Win.h"
 
+#include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
@@ -43,8 +44,14 @@ public:
 		Rgph::RenderGraph& rg,
 		DirectX::XMFLOAT3 combatOrigin);
 
+	/**
+	 * @brief Leave layout edit; keep current Field/Warehouse arrangement (no Esc snapshot).
+	 */
 	void End(ModuleField& field, ModuleFieldCanvas& canvas);
 
+	/**
+	 * @brief Esc: restore Begin-time zone + localPos from layoutSnapshot_.
+	 */
 	void CancelRestore(ModuleField& field);
 
 	void Update(float dt, ModuleField& field, Window* hostWindow);
@@ -74,6 +81,19 @@ private:
 		DropTarget_ target{ DropTarget_::None };
 	};
 
+	enum class LayoutZone_ : unsigned char
+	{
+		Field,
+		Warehouse,
+	};
+
+	struct LayoutSnapshotEntry_
+	{
+		std::uint32_t id{ 0 };
+		LayoutZone_ zone{ LayoutZone_::Field };
+		DirectX::XMFLOAT2 localPos{ 0.0f, 0.0f };
+	};
+
 	void EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
 	[[nodiscard]] static std::unique_ptr<Canvas2D> MakeRingCanvas_(
 		Graphics& gfx,
@@ -81,6 +101,12 @@ private:
 		Color ringColor);
 
 	void Snapshot_(const ModuleField& field);
+
+	[[nodiscard]] IFieldNode* FindNodeById_(
+		ModuleField& field,
+		std::uint32_t id,
+		LayoutZone_& outZone) const noexcept;
+
 	void ApplyFieldOrigin_(ModuleField& field, ModuleFieldCanvas& canvas, DirectX::XMFLOAT3 origin);
 	void ClearAllLayoutGhosts_(ModuleField& field);
 	[[nodiscard]] DirectX::XMFLOAT2 MouseGame_() const noexcept;
@@ -100,16 +126,13 @@ private:
 
 	void SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mouseGame);
 
-	/**
-	 * @brief Green/red drop legality for the current dragged node pose.
-	 */
+	// Green/red drop legality for the current dragged node pose.
 	[[nodiscard]] DropEval_ EvalDrop_(const ModuleField& field, const IFieldNode& node) const noexcept;
 
 	void RevertDrag_(ModuleField& field);
 	void ResolveRelease_(ModuleField& field);
-	/**
-	 * @brief If a drag is active, revert like an illegal drop and clear drag pointers.
-	 */
+	
+	// If a drag is active, revert like an illegal drop and clear drag pointers.
 	void ClearActiveDrag_(ModuleField& field);
 
 	[[nodiscard]] IFieldNode* PickHover_(
@@ -131,9 +154,8 @@ private:
 	DirectX::XMFLOAT3 editOrigin_{ 0.0f, 0.0f, 0.0f };
 	ModuleWarehouse* warehouse_{ nullptr };
 
-	std::vector<DirectX::XMFLOAT2> snapshotLocalPos_;
+	std::vector<LayoutSnapshotEntry_> layoutSnapshot_;
 	DirectX::XMFLOAT2 dragStartLocalPos_{ 0.0f, 0.0f };
-	/** @brief Container origin frozen at grab; preview uses mouseGame - dragOrigin_. */
 	DirectX::XMFLOAT3 dragOrigin_{ 0.0f, 0.0f, 0.0f };
 
 	IFieldNode* hover_{ nullptr };

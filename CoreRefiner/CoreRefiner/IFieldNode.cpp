@@ -7,6 +7,8 @@
 
 #include <algorithm>
 
+std::uint32_t IFieldNode::s_nextInstanceId_ = 0;
+
 namespace
 {
 	void TintWhiteShapePixels(Canvas& c, const Color color)

@@ -57,7 +57,6 @@ void FieldLayoutEditor::Begin(
 	assembler.Reset();
 	canvas.ClearWaves();
 	field.ResetAllCooldowns();
-	Snapshot_(field);
 	EnsureRingVisual_(gfx, rg);
 	EnsureFieldNodeInfoCopyLoaded_();
 	infoPanel_.Ensure(gfx, rg);
@@ -77,6 +76,9 @@ void FieldLayoutEditor::Begin(
 
 	warehouse.SetOrigin(warehouseOrigin);
 	warehouse.SyncAllVisuals();
+
+	// warehouse_ already bound; snapshot both Field and Warehouse by instanceId.
+	Snapshot_(field);
 }
 
 void FieldLayoutEditor::End(ModuleField& field, ModuleFieldCanvas& canvas)
@@ -86,6 +88,8 @@ void FieldLayoutEditor::End(ModuleField& field, ModuleFieldCanvas& canvas)
 		return;
 	}
 
+	// Keep the current Field/Warehouse layout. Do NOT apply layoutSnapshot_
+	// (Esc CancelRestore is the only path that restores Begin poses).
 	ClearActiveDrag_(field);
 	ClearAllLayoutGhosts_(field);
 	infoPanel_.Hide();
@@ -100,6 +104,7 @@ void FieldLayoutEditor::End(ModuleField& field, ModuleFieldCanvas& canvas)
 		warehouse_->RelayoutSlots();
 	}
 	warehouse_ = nullptr;
+	layoutSnapshot_.clear();
 	active_ = false;
 
 	ApplyFieldOrigin_(field, canvas, combatOrigin_);
@@ -122,19 +127,110 @@ void FieldLayoutEditor::CancelRestore(ModuleField& field)
 	ringKind_ = RingKind_::Hover;
 	dragStartLocalPos_ = {};
 
-	const std::size_t n = (std::min)(field.GetNodeCount(), snapshotLocalPos_.size());
-	for (std::size_t i = 0; i < n; ++i)
+	struct PendingMigrate_
 	{
-		IFieldNode* node = field.GetNode(i);
-		if (node != nullptr)
+		std::unique_ptr<IFieldNode> node;
+		LayoutZone_ target{ LayoutZone_::Field };
+	};
+	std::vector<PendingMigrate_> pending;
+	pending.reserve(layoutSnapshot_.size());
+
+	// Pass 1: pull every zone-mismatched node out so capacity is free before re-adopt.
+	for (const LayoutSnapshotEntry_& entry : layoutSnapshot_)
+	{
+		LayoutZone_ curZone = LayoutZone_::Field;
+		IFieldNode* node = FindNodeById_(field, entry.id, curZone);
+		if (node == nullptr || curZone == entry.zone)
 		{
-			node->SetLocalPos(snapshotLocalPos_[i]);
+			continue;
+		}
+
+		std::unique_ptr<IFieldNode> taken;
+		if (curZone == LayoutZone_::Field)
+		{
+			taken = field.TakeNode(node);
+		}
+		else if (warehouse_ != nullptr)
+		{
+			taken = warehouse_->TakeNode(node);
+		}
+		if (taken == nullptr)
+		{
+			continue;
+		}
+		pending.push_back(PendingMigrate_{ std::move(taken), entry.zone });
+	}
+
+	auto adoptOne_ = [&](PendingMigrate_& p) -> IFieldNode*
+	{
+		if (p.node == nullptr)
+		{
+			return nullptr;
+		}
+		if (p.target == LayoutZone_::Field)
+		{
+			return field.AdoptNode(std::move(p.node));
+		}
+		if (warehouse_ == nullptr)
+		{
+			return field.AdoptNode(std::move(p.node));
+		}
+		IFieldNode* raw = warehouse_->TryAdopt(p.node);
+		if (raw != nullptr)
+		{
+			return raw;
+		}
+		// Full / Core: keep ownership on Field so the node is not dropped.
+		return field.AdoptNode(std::move(p.node));
+	};
+
+	// Pass 2a: return Field-bound nodes first (frees warehouse slots).
+	for (PendingMigrate_& p : pending)
+	{
+		if (p.target == LayoutZone_::Field)
+		{
+			(void)adoptOne_(p);
 		}
 	}
+	// Pass 2b: warehouse targets.
+	for (PendingMigrate_& p : pending)
+	{
+		if (p.target == LayoutZone_::Warehouse)
+		{
+			(void)adoptOne_(p);
+		}
+	}
+
+	// Pass 3: restore Begin localPos/origin (also repairs Take/TryAdopt RelayoutSlots side effects).
+	for (const LayoutSnapshotEntry_& entry : layoutSnapshot_)
+	{
+		LayoutZone_ curZone = LayoutZone_::Field;
+		IFieldNode* node = FindNodeById_(field, entry.id, curZone);
+		if (node == nullptr || curZone != entry.zone)
+		{
+			continue;
+		}
+
+		node->SetLocalPos(entry.localPos);
+		if (entry.zone == LayoutZone_::Field)
+		{
+			node->SetFieldOrigin(editOrigin_);
+		}
+		else if (warehouse_ != nullptr)
+		{
+			node->SetFieldOrigin(warehouse_->GetOrigin());
+		}
+		if (node->IsLayoutGhostActive())
+		{
+			node->EndLayoutGhost();
+		}
+		node->SyncVisual();
+	}
+
 	field.SyncAllVisuals();
 	if (warehouse_ != nullptr)
 	{
-		warehouse_->RelayoutSlots();
+		warehouse_->SyncAllVisuals();
 	}
 }
 
@@ -287,15 +383,77 @@ void FieldLayoutEditor::EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 
 void FieldLayoutEditor::Snapshot_(const ModuleField& field)
 {
-	const std::size_t n = field.GetNodeCount();
-	snapshotLocalPos_.resize(n);
-	for (std::size_t i = 0; i < n; ++i)
+	layoutSnapshot_.clear();
+	layoutSnapshot_.reserve(field.GetNodeCount()
+		+ ((warehouse_ != nullptr) ? warehouse_->GetNodeCount() : 0u));
+
+	for (std::size_t i = 0; i < field.GetNodeCount(); ++i)
 	{
 		const IFieldNode* node = field.GetNode(i);
-		snapshotLocalPos_[i] = (node != nullptr)
-			? node->GetLocalPos()
-			: DirectX::XMFLOAT2{ 0.0f, 0.0f };
+		if (node == nullptr)
+		{
+			continue;
+		}
+		layoutSnapshot_.push_back(LayoutSnapshotEntry_{
+			node->GetInstanceId(),
+			LayoutZone_::Field,
+			node->GetLocalPos()
+		});
 	}
+
+	if (warehouse_ == nullptr)
+	{
+		return;
+	}
+	for (std::size_t i = 0; i < warehouse_->GetNodeCount(); ++i)
+	{
+		const IFieldNode* node = warehouse_->GetNode(i);
+		if (node == nullptr)
+		{
+			continue;
+		}
+		layoutSnapshot_.push_back(LayoutSnapshotEntry_{
+			node->GetInstanceId(),
+			LayoutZone_::Warehouse,
+			node->GetLocalPos()
+		});
+	}
+}
+
+IFieldNode* FieldLayoutEditor::FindNodeById_(
+	ModuleField& field,
+	std::uint32_t id,
+	LayoutZone_& outZone) const noexcept
+{
+	if (id == 0u)
+	{
+		return nullptr;
+	}
+
+	for (std::size_t i = 0; i < field.GetNodeCount(); ++i)
+	{
+		IFieldNode* node = field.GetNode(i);
+		if (node != nullptr && node->GetInstanceId() == id)
+		{
+			outZone = LayoutZone_::Field;
+			return node;
+		}
+	}
+
+	if (warehouse_ != nullptr)
+	{
+		for (std::size_t i = 0; i < warehouse_->GetNodeCount(); ++i)
+		{
+			IFieldNode* node = warehouse_->GetNode(i);
+			if (node != nullptr && node->GetInstanceId() == id)
+			{
+				outZone = LayoutZone_::Warehouse;
+				return node;
+			}
+		}
+	}
+
+	return nullptr;
 }
 
 void FieldLayoutEditor::ApplyFieldOrigin_(
