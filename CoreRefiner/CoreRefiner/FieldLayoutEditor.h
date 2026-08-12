@@ -41,7 +41,9 @@ public:
 		ScanAssembler& assembler,
 		Graphics& gfx,
 		Rgph::RenderGraph& rg,
-		DirectX::XMFLOAT3 combatOrigin);
+		DirectX::XMFLOAT3 combatFieldOrigin,
+		DirectX::XMFLOAT3 layoutFieldOrigin,
+		DirectX::XMFLOAT3 warehouseOrigin);
 
 	/**
 	 * @brief Leave layout edit; keep current Field/Warehouse arrangement (no Esc snapshot).

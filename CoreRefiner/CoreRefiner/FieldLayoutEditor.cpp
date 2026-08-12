@@ -35,21 +35,14 @@ void FieldLayoutEditor::Begin(
 	ScanAssembler& assembler,
 	Graphics& gfx,
 	Rgph::RenderGraph& rg,
-	DirectX::XMFLOAT3 combatOrigin)
+	DirectX::XMFLOAT3 combatFieldOrigin,
+	DirectX::XMFLOAT3 layoutFieldOrigin,
+	DirectX::XMFLOAT3 warehouseOrigin)
 {
-	combatOrigin_ = combatOrigin;
+	combatOrigin_ = combatFieldOrigin;
+	editOrigin_ = layoutFieldOrigin;
 	field_ = &field;
 	warehouse_ = &warehouse;
-	editOrigin_ = DirectX::XMFLOAT3{
-		static_cast<float>(SCREEN_WIDTH) * 0.32f,
-		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
-		0.0f
-	};
-	const DirectX::XMFLOAT3 warehouseOrigin{
-		static_cast<float>(SCREEN_WIDTH) * 0.78f,
-		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
-		0.0f
-	};
 
 	assembler.Reset();
 	field_->ClearWaves();

@@ -13,16 +13,22 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
+	// Single source for the three layout origins used by combat + pause edit.
 	combatFieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
+	layoutFieldOrigin_ = DirectX::XMFLOAT3{
+		static_cast<float>(SCREEN_WIDTH) * 0.8f,
+		static_cast<float>(SCREEN_HEIGHT) * 0.3f,
+		0.0f
+	};
+	warehouseOrigin_ = DirectX::XMFLOAT3{
+		static_cast<float>(SCREEN_WIDTH) * 0.8f,
+		static_cast<float>(SCREEN_HEIGHT) * 0.7f,
+		0.0f
+	};
 
 	PlaceDemoField_();
 	field_.InitAllVisuals(gfx_, rg_, combatFieldOrigin_);
 
-	warehouseOrigin_ = DirectX::XMFLOAT3{
-		static_cast<float>(SCREEN_WIDTH) * 0.78f,
-		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
-		0.0f
-	};
 	PlaceDemoWarehouse_();
 	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
 }
@@ -131,7 +137,9 @@ void ModuleWorkbench::BeginLayoutEdit()
 		assembler_,
 		gfx_,
 		rg_,
-		combatFieldOrigin_);
+		combatFieldOrigin_,
+		layoutFieldOrigin_,
+		warehouseOrigin_);
 }
 
 void ModuleWorkbench::EndLayoutEdit()

@@ -41,6 +41,7 @@ public:
 	[[nodiscard]] bool IsLayoutEditActive() const noexcept { return layoutEditor_.IsActive(); }
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetCombatFieldOrigin() const noexcept { return combatFieldOrigin_; }
+	[[nodiscard]] DirectX::XMFLOAT3 GetLayoutFieldOrigin() const noexcept { return layoutFieldOrigin_; }
 	[[nodiscard]] DirectX::XMFLOAT3 GetWarehouseOrigin() const noexcept { return warehouseOrigin_; }
 
 	/** @brief Clear scan sessions, node cooldowns, and field ring draw. */
@@ -68,7 +69,8 @@ private:
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
 
-	DirectX::XMFLOAT3 combatFieldOrigin_{ 200.0f, 200.0f, 0.0f };
+	DirectX::XMFLOAT3 combatFieldOrigin_{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 layoutFieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
 
 	ModuleField field_;
