@@ -1,4 +1,5 @@
 #pragma once
+#include "Canvas2D.h"
 #include "IFieldNode.h"
 
 #include <cstddef>
@@ -102,6 +103,8 @@ public:
 
 	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin);
 	void SyncAllVisuals();
+	void SubmitBackground();
+	void SubmitNodes();
 	void SubmitAllVisuals();
 
 	template <typename Fn>
@@ -130,7 +133,13 @@ public:
 
 private:
 	[[nodiscard]] static DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) noexcept;
+	[[nodiscard]] static float HalfSpanX_() noexcept;
+	[[nodiscard]] static float HalfSpanY_() noexcept;
+	void EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
+	void PaintPanel_();
+	void SyncPanelTransform_() noexcept;
 
 	std::vector<std::unique_ptr<IFieldNode>> nodes_;
 	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
+	std::unique_ptr<Canvas2D> panel_;
 };

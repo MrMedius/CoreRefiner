@@ -192,6 +192,7 @@
     <ClCompile Include="IFieldNode.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="ModuleWarehouse.cpp" />
+    <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
     <ClCompile Include="UiToggle.cpp" />

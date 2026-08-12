@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IFieldNode.h"
+#include "ModuleFieldCanvas.h"
 
 #include <cstddef>
 #include <DirectXMath.h>
@@ -15,10 +16,19 @@ namespace Rgph
 	class RenderGraph;
 }
 
+/**
+ * @brief Combat loadout container: owns nodes + ModuleFieldCanvas background.
+ */
 class ModuleField
 {
 public:
 	static constexpr float kHalfExtent = 150.0f;
+
+	ModuleField() = default;
+	~ModuleField() = default;
+
+	ModuleField(const ModuleField&) = delete;
+	ModuleField& operator=(const ModuleField&) = delete;
 
 	template <typename T, typename... Args>
 	T* AddNode(Args&&... args)
@@ -47,6 +57,11 @@ public:
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
 	}
+
+	[[nodiscard]] DirectX::XMFLOAT3 GetFieldOrigin() const noexcept { return origin_; }
+
+	[[nodiscard]] ModuleFieldCanvas* GetCanvas() noexcept { return canvas_.get(); }
+	[[nodiscard]] const ModuleFieldCanvas* GetCanvas() const noexcept { return canvas_.get(); }
 
 	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(std::size_t index)
 	{
@@ -109,6 +124,26 @@ public:
 		}
 	}
 
+	void ClearWaves() noexcept
+	{
+		if (canvas_ != nullptr)
+		{
+			canvas_->ClearWaves();
+		}
+	}
+
+	void SetWavesLocal(
+		const DirectX::XMFLOAT2* centers,
+		const float* radii,
+		unsigned count,
+		float fieldSide = ModuleFieldCanvas::kDefaultFieldSide) noexcept
+	{
+		if (canvas_ != nullptr)
+		{
+			canvas_->SetWavesLocal(centers, radii, count, fieldSide);
+		}
+	}
+
 	template <typename Fn>
 	void ForEach(Fn&& fn)
 	{
@@ -134,52 +169,28 @@ public:
 	}
 
 	/**
-	 * @brief Init each node's self-owned canvases (call once after placing nodes).
+	 * @brief Create field canvas (once) and init each node's visuals.
 	 */
-	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin)
-	{
-		for (auto& n : nodes_)
-		{
-			if (n != nullptr)
-			{
-				n->InitVisual(gfx, rg, fieldOrigin);
-			}
-		}
-	}
+	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin);
 
-	void SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
-	{
-		for (auto& n : nodes_)
-		{
-			if (n != nullptr)
-			{
-				n->SetFieldOrigin(fieldOrigin);
-			}
-		}
-	}
+	/**
+	 * @brief Move field origin for nodes and background canvas together.
+	 */
+	void SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept;
 
-	void SyncAllVisuals()
-	{
-		for (auto& n : nodes_)
-		{
-			if (n != nullptr)
-			{
-				n->SyncVisual();
-			}
-		}
-	}
+	void SyncAllVisuals();
 
-	void SubmitAllVisuals()
-	{
-		for (auto& n : nodes_)
-		{
-			if (n != nullptr)
-			{
-				n->SubmitVisual();
-			}
-		}
-	}
+	/** @brief Submit field canvas only (call before any zone's nodes). */
+	void SubmitBackground();
+
+	/** @brief Submit loadout nodes only. */
+	void SubmitNodes();
+
+	/** @brief Convenience: SubmitBackground then SubmitNodes (not for cross-zone ordering). */
+	void SubmitAllVisuals();
 
 private:
 	std::vector<std::unique_ptr<IFieldNode>> nodes_;
+	std::unique_ptr<ModuleFieldCanvas> canvas_;
+	DirectX::XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
 };

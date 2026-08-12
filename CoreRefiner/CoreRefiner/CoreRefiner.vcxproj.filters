@@ -676,6 +676,9 @@
     <ClCompile Include="ModuleWarehouse.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClCompile>
+    <ClCompile Include="ModuleField.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">

@@ -2,7 +2,6 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "ModuleField.h"
-#include "ModuleFieldCanvas.h"
 #include "ModuleWarehouse.h"
 #include "FieldNodes.h"
 #include "ScanAssembler.h"
@@ -27,14 +26,6 @@ public:
 	{
 		fieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
 		combatFieldOrigin_ = fieldOrigin_;
-
-		{
-			constexpr float side = ModuleFieldCanvas::kDefaultFieldSide;
-			fieldCanvas_ = std::make_unique<ModuleFieldCanvas>(gfx, 300u, 300u);
-			fieldCanvas_->SetPosition(fieldOrigin_);
-			fieldCanvas_->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
-			fieldCanvas_->LinkTechniques(rg);
-		}
 
 		PlaceDemoField_();
 		field_.InitAllVisuals(gfx_, rg_, fieldOrigin_);
@@ -65,10 +56,7 @@ public:
 		assembler_.Reset();
 		field_.ResetAllCooldowns();
 		field_.SyncAllVisuals();
-		if (fieldCanvas_ != nullptr)
-		{
-			fieldCanvas_->ClearWaves();
-		}
+		field_.ClearWaves();
 	}
 
 	void Update(float dt)
@@ -127,7 +115,8 @@ public:
 	 */
 	void BeginLayoutEdit()
 	{
-		if (fieldCanvas_ == nullptr)
+		ModuleFieldCanvas* canvas = field_.GetCanvas();
+		if (canvas == nullptr)
 		{
 			return;
 		}
@@ -135,7 +124,7 @@ public:
 			field_,
 			warehouse_,
 			assembler_,
-			*fieldCanvas_,
+			*canvas,
 			gfx_,
 			rg_,
 			combatFieldOrigin_);
@@ -151,11 +140,12 @@ public:
 	 */
 	void EndLayoutEdit()
 	{
-		if (fieldCanvas_ == nullptr)
+		ModuleFieldCanvas* canvas = field_.GetCanvas();
+		if (canvas == nullptr)
 		{
 			return;
 		}
-		layoutEditor_.End(field_, *fieldCanvas_);
+		layoutEditor_.End(field_, *canvas);
 		fieldOrigin_ = combatFieldOrigin_;
 	}
 
@@ -170,14 +160,16 @@ public:
 
 	void Submit(void)
 	{
-		if (fieldCanvas_ != nullptr)
-		{
-			fieldCanvas_->Submit(Chan::ui);
-		}
-		field_.SubmitAllVisuals();
+		// Global order: all zone backgrounds → all zone nodes → editor overlay.
+		field_.SubmitBackground();
 		if (layoutEditor_.IsActive())
 		{
-			warehouse_.SubmitAllVisuals();
+			warehouse_.SubmitBackground();
+		}
+		field_.SubmitNodes();
+		if (layoutEditor_.IsActive())
+		{
+			warehouse_.SubmitNodes();
 			layoutEditor_.SubmitOverlay();
 		}
 	}
@@ -227,11 +219,6 @@ private:
 
 	void SyncFieldWaves_()
 	{
-		if (fieldCanvas_ == nullptr)
-		{
-			return;
-		}
-
 		DirectX::XMFLOAT2 centers[ModuleFieldCanvas::kMaxRings]{};
 		float radii[ModuleFieldCanvas::kMaxRings]{};
 		unsigned count = 0u;
@@ -247,7 +234,7 @@ private:
 			++count;
 		});
 
-		fieldCanvas_->SetWavesLocal(
+		field_.SetWavesLocal(
 			centers, radii, count, ModuleFieldCanvas::kDefaultFieldSide);
 	}
 
@@ -258,7 +245,6 @@ private:
 	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 combatFieldOrigin_{ 200.0f, 200.0f, 0.0f };
 	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
-	std::unique_ptr<ModuleFieldCanvas> fieldCanvas_;
 	ModuleField field_;
 	ModuleWarehouse warehouse_;
 	ScanAssembler assembler_;

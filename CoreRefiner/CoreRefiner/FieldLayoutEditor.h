@@ -148,6 +148,7 @@ private:
 	void SyncOneRingTransform_(Canvas2D& ring, IFieldNode& node, DirectX::XMFLOAT3 origin) const;
 	[[nodiscard]] Canvas2D* ActiveRing_() const noexcept;
 
+private:
 	bool active_{ false };
 
 	DirectX::XMFLOAT3 combatOrigin_{ 200.0f, 200.0f, 0.0f };
