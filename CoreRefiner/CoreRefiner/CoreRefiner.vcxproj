@@ -193,6 +193,7 @@
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
+    <ClCompile Include="ModuleWorkbench.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
     <ClCompile Include="UiToggle.cpp" />
@@ -366,6 +367,7 @@
     <ClInclude Include="ScanAssembler.h" />
     <ClInclude Include="ScanWave.h" />
     <ClInclude Include="ModuleField.h" />
+    <ClInclude Include="ModuleWorkbench.h" />
     <ClInclude Include="FieldLayoutEditor.h" />
     <ClInclude Include="FieldNodeInfoCopy.h" />
     <ClInclude Include="NodeInfoPanel.h" />
