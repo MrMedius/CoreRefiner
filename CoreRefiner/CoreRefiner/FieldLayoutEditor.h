@@ -2,7 +2,6 @@
 
 #include "Canvas2D.h"
 #include "ModuleField.h"
-#include "ModuleFieldCanvas.h"
 #include "ModuleWarehouse.h"
 #include "NodeInfoPanel.h"
 #include "ScanAssembler.h"
@@ -25,6 +24,7 @@ namespace Rgph
 
 /**
  * @brief Pause-time ModuleField + ModuleWarehouse layout editor.
+ * @note During an active session, field_ and warehouse_ are peer bindings (Begin/End).
  */
 class FieldLayoutEditor
 {
@@ -39,7 +39,6 @@ public:
 		ModuleField& field,
 		ModuleWarehouse& warehouse,
 		ScanAssembler& assembler,
-		ModuleFieldCanvas& canvas,
 		Graphics& gfx,
 		Rgph::RenderGraph& rg,
 		DirectX::XMFLOAT3 combatOrigin);
@@ -47,14 +46,14 @@ public:
 	/**
 	 * @brief Leave layout edit; keep current Field/Warehouse arrangement (no Esc snapshot).
 	 */
-	void End(ModuleField& field, ModuleFieldCanvas& canvas);
+	void End();
 
 	/**
 	 * @brief Esc: restore Begin-time zone + localPos from layoutSnapshot_.
 	 */
-	void CancelRestore(ModuleField& field);
+	void CancelRestore();
 
-	void Update(float dt, ModuleField& field, Window* hostWindow);
+	void Update(float dt, Window* hostWindow);
 
 	void SubmitOverlay();
 
@@ -100,43 +99,28 @@ private:
 		Rgph::RenderGraph& rg,
 		Color ringColor);
 
-	void Snapshot_(const ModuleField& field);
+	void Snapshot_();
 
 	[[nodiscard]] IFieldNode* FindNodeById_(
-		ModuleField& field,
 		std::uint32_t id,
 		LayoutZone_& outZone) const noexcept;
 
-	void ApplyFieldOrigin_(ModuleField& field, ModuleFieldCanvas& canvas, DirectX::XMFLOAT3 origin);
-	void ClearAllLayoutGhosts_(ModuleField& field);
+	void ClearAllLayoutGhosts_();
 	[[nodiscard]] DirectX::XMFLOAT2 MouseGame_() const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT3 OriginForSource_(DragSource_ source) const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT2 WorldPosOf_(const IFieldNode& node, DirectX::XMFLOAT3 origin) const noexcept;
 
-	[[nodiscard]] bool FieldContainsCircle_(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept;
-
-	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForNode_(
-		DirectX::XMFLOAT2 p,
-		float hitRadius) const noexcept;
-
-	[[nodiscard]] bool WouldOverlapOthers_(
-		const ModuleField& field,
-		const IFieldNode& self,
-		DirectX::XMFLOAT2 fieldLocal) const noexcept;
-
 	void SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mouseGame);
 
-	// Green/red drop legality for the current dragged node pose.
-	[[nodiscard]] DropEval_ EvalDrop_(const ModuleField& field, const IFieldNode& node) const noexcept;
+	/** @brief Green/red drop legality for the current dragged node pose. */
+	[[nodiscard]] DropEval_ EvalDrop_(const IFieldNode& node) const noexcept;
 
-	void RevertDrag_(ModuleField& field);
-	void ResolveRelease_(ModuleField& field);
-	
-	// If a drag is active, revert like an illegal drop and clear drag pointers.
-	void ClearActiveDrag_(ModuleField& field);
+	void RevertDrag_();
+	void ResolveRelease_();
+	/** @brief If a drag is active, revert like an illegal drop and clear drag pointers. */
+	void ClearActiveDrag_();
 
 	[[nodiscard]] IFieldNode* PickHover_(
-		ModuleField& field,
 		DirectX::XMFLOAT2 mouseGame,
 		DragSource_& outSource) const noexcept;
 
@@ -148,11 +132,11 @@ private:
 	void SyncOneRingTransform_(Canvas2D& ring, IFieldNode& node, DirectX::XMFLOAT3 origin) const;
 	[[nodiscard]] Canvas2D* ActiveRing_() const noexcept;
 
-private:
 	bool active_{ false };
 
 	DirectX::XMFLOAT3 combatOrigin_{ 200.0f, 200.0f, 0.0f };
 	DirectX::XMFLOAT3 editOrigin_{ 0.0f, 0.0f, 0.0f };
+	ModuleField* field_{ nullptr };
 	ModuleWarehouse* warehouse_{ nullptr };
 
 	std::vector<LayoutSnapshotEntry_> layoutSnapshot_;

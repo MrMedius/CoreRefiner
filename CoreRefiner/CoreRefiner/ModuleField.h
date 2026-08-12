@@ -189,6 +189,43 @@ public:
 	/** @brief Convenience: SubmitBackground then SubmitNodes (not for cross-zone ordering). */
 	void SubmitAllVisuals();
 
+	/**
+	 * @brief True if circle in world space lies entirely inside the field square.
+	 */
+	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept;
+
+	/**
+	 * @brief Clamp a field-local point so a circle of @p hitRadius stays inside kHalfExtent.
+	 */
+	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForRadius(
+		DirectX::XMFLOAT2 localPos,
+		float hitRadius) const noexcept;
+
+	/**
+	 * @brief True if a circle at @p fieldLocal would overlap any other node (excluding @p self).
+	 */
+	[[nodiscard]] bool WouldOverlap(
+		const IFieldNode& self,
+		DirectX::XMFLOAT2 fieldLocal) const noexcept;
+
+	/** @brief End layout ghost on every owned node. */
+	void ClearLayoutGhosts()
+	{
+		ForEach([](IFieldNode& node)
+		{
+			if (node.IsLayoutGhostActive())
+			{
+				node.EndLayoutGhost();
+			}
+		});
+	}
+
+	/**
+	 * @brief Nearest node whose hit circle contains @p worldPos.
+	 * @param outDistSq Distance squared from @p worldPos to the hit node center when found.
+	 */
+	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept;
+
 private:
 	std::vector<std::unique_ptr<IFieldNode>> nodes_;
 	std::unique_ptr<ModuleFieldCanvas> canvas_;

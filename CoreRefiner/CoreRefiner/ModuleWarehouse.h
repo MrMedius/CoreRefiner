@@ -107,6 +107,24 @@ public:
 	void SubmitNodes();
 	void SubmitAllVisuals();
 
+	/** @brief End layout ghost on every owned node. */
+	void ClearLayoutGhosts()
+	{
+		ForEach([](IFieldNode& node)
+		{
+			if (node.IsLayoutGhostActive())
+			{
+				node.EndLayoutGhost();
+			}
+		});
+	}
+
+	/**
+	 * @brief Nearest node whose hit circle contains @p worldPos.
+	 * @param outDistSq Distance squared from @p worldPos to the hit node center when found.
+	 */
+	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept;
+
 	template <typename Fn>
 	void ForEach(Fn&& fn)
 	{

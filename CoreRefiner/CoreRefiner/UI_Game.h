@@ -115,8 +115,7 @@ public:
 	 */
 	void BeginLayoutEdit()
 	{
-		ModuleFieldCanvas* canvas = field_.GetCanvas();
-		if (canvas == nullptr)
+		if (field_.GetCanvas() == nullptr)
 		{
 			return;
 		}
@@ -124,7 +123,6 @@ public:
 			field_,
 			warehouse_,
 			assembler_,
-			*canvas,
 			gfx_,
 			rg_,
 			combatFieldOrigin_);
@@ -140,12 +138,7 @@ public:
 	 */
 	void EndLayoutEdit()
 	{
-		ModuleFieldCanvas* canvas = field_.GetCanvas();
-		if (canvas == nullptr)
-		{
-			return;
-		}
-		layoutEditor_.End(field_, *canvas);
+		layoutEditor_.End();
 		fieldOrigin_ = combatFieldOrigin_;
 	}
 
@@ -155,7 +148,7 @@ public:
 	 */
 	void UpdateLayoutEdit(float dt)
 	{
-		layoutEditor_.Update(dt, field_, hostWindow_);
+		layoutEditor_.Update(dt, hostWindow_);
 	}
 
 	void Submit(void)
