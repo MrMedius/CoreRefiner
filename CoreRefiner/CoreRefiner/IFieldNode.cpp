@@ -1,7 +1,7 @@
 #include "IFieldNode.h"
 #include "Channels.h"
 #include "Colors.h"
-#include "FieldIconAtlas.h"
+#include "IconAtlas.h"
 #include "RenderGraph.h"
 #include "XMath.h"
 
@@ -44,18 +44,18 @@ void IFieldNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLO
 
 	icon_ = std::make_unique<Canvas2D>(gfx, kVisualSize, kVisualSize);
 	icon_->Clear(Colors::None);
-	FieldIconAtlas::BlitFieldIcon(
+	IconAtlas::BlitIcon(
 		*icon_,
-		FieldIconAtlas::GetFieldIcon(GetAttackNodeLabel()),
+		NodeIconAtlas::Get(GetAttackNodeLabel()),
 		GetReadyFillColor());
 	icon_->NotifyPixelsChanged();
 	icon_->LinkTechniques(rg);
 
 	mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
 	mask_->Clear(Colors::None);
-	FieldIconAtlas::BlitFieldIcon(
+	IconAtlas::BlitIcon(
 		*mask_,
-		FieldIconAtlas::GetFieldIcon(GetAttackNodeLabel()),
+		NodeIconAtlas::Get(GetAttackNodeLabel()),
 		Color(0u, 0u, 0u, 160u));
 	mask_->NotifyPixelsChanged();
 	mask_->NotifyPixelsChanged();

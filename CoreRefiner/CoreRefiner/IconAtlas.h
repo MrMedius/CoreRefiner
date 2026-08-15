@@ -7,15 +7,36 @@
 #include <cassert>
 #include <cstdint>
 
+namespace IconAtlas
+{
+	using IconBits = std::array<std::uint16_t, 16>;
 
-// 16x16 1-bit icon: each uint16_t is one row; bit0 = leftmost column.
-using FieldIconBits = std::array<std::uint16_t, 16>;
+	inline void BlitIcon(Canvas& canvas, const IconBits& bits, Color color)
+	{
+		const unsigned w = canvas.GetCanvasWidth();
+		const unsigned h = canvas.GetCanvasHeight();
+		const unsigned rows = (h < 16u) ? h : 16u;
+		const unsigned cols = (w < 16u) ? w : 16u;
 
-namespace FieldIconAtlas
+		for (unsigned y = 0u; y < rows; ++y)
+		{
+			const std::uint16_t row = bits[y];
+			for (unsigned x = 0u; x < cols; ++x)
+			{
+				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) != 0u)
+				{
+					canvas.PutPixel(x, y, color);
+				}
+			}
+		}
+	}
+}
+
+namespace NodeIconAtlas
 {
 	namespace detail
 	{
-		inline constexpr FieldIconBits kRoundFrame{
+		inline constexpr IconAtlas::IconBits kRoundFrame{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000000001000,
@@ -33,8 +54,7 @@ namespace FieldIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
-		inline constexpr FieldIconBits kSpawnBall{
+		inline constexpr IconAtlas::IconBits kSpawnBall{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000000001000,
@@ -53,7 +73,7 @@ namespace FieldIconAtlas
 			0b0000001111000000,
 		};
 
-		inline constexpr FieldIconBits kAttributeLifetime{
+		inline constexpr IconAtlas::IconBits kAttributeLifetime{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000000001000,
@@ -72,7 +92,7 @@ namespace FieldIconAtlas
 			0b0000001111000000,
 		};
 
-		inline constexpr FieldIconBits kAttributeSpeedRate{
+		inline constexpr IconAtlas::IconBits kAttributeSpeedRate{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000010001000,
@@ -91,7 +111,7 @@ namespace FieldIconAtlas
 			0b0000001111000000,
 		};
 
-		inline constexpr FieldIconBits kRuleOrbit{
+		inline constexpr IconAtlas::IconBits kRuleOrbit{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000000001000,
@@ -110,7 +130,7 @@ namespace FieldIconAtlas
 			0b0000001111000000,
 		};
 
-		inline constexpr FieldIconBits kOtherChild{
+		inline constexpr IconAtlas::IconBits kOtherChild{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000000001000,
@@ -130,7 +150,7 @@ namespace FieldIconAtlas
 		};
 	}
 
-	inline constexpr std::array<FieldIconBits, AttackNodeLabelCount()> kFieldIcons{
+	inline constexpr std::array<IconAtlas::IconBits, AttackNodeLabelCount()> kNodeIcons{
 		detail::kSpawnBall,
 		detail::kAttributeLifetime,
 		detail::kAttributeSpeedRate,
@@ -138,38 +158,86 @@ namespace FieldIconAtlas
 		detail::kOtherChild,
 	};
 
-	
-	// Lookup icon bits for a gameplay label.
-	[[nodiscard]] inline const FieldIconBits& GetFieldIcon(AttackNodeLabel id) noexcept
+	[[nodiscard]] inline const IconAtlas::IconBits& Get(AttackNodeLabel id) noexcept
 	{
 		const std::size_t i = ToIndex(id);
 		assert(i < AttackNodeLabelCount());
 		if (i >= AttackNodeLabelCount())
 		{
-			return kFieldIcons[0];
+			return kNodeIcons[0];
 		}
-		return kFieldIcons[i];
+		return kNodeIcons[i];
+	}
+}
+
+enum class UiIconId : unsigned char
+{
+	Currency,
+	Refresh,
+	Count
+};
+
+[[nodiscard]] inline constexpr std::size_t UiIconIdCount() noexcept
+{
+	return static_cast<std::size_t>(UiIconId::Count);
+}
+
+namespace UiIconAtlas
+{
+	namespace detail
+	{
+		inline constexpr IconAtlas::IconBits kCurrency{
+			0b0000001111000000,
+			0b0000111111110000,
+			0b0001110000111000,
+			0b0011000110001100,
+			0b0110001111000110,
+			0b0110011001100110,
+			0b1100011001100011,
+			0b1100011111100011,
+			0b1100000110000011,
+			0b1100000110000011,
+			0b0110000110000110,
+			0b0110000000000110,
+			0b0011000000001100,
+			0b0001110000111000,
+			0b0000111111110000,
+			0b0000001111000000,
+		};
+
+		inline constexpr IconAtlas::IconBits kRefresh{
+			0b0000001111110000,
+			0b0000110000011000,
+			0b0001000000001100,
+			0b0010000000000110,
+			0b0100000001100010,
+			0b0100000000110000,
+			0b1000000000010000,
+			0b1000100000000001,
+			0b1000010000000001,
+			0b0000110000000010,
+			0b0100011000000010,
+			0b0110000000000100,
+			0b0011000000001000,
+			0b0001100000110000,
+			0b0000111111000000,
+			0b0000000000000000,
+		};
 	}
 
-	
-	// Blit 1-bit icon onto canvas (bit0 = left). Clips to canvas size.
-	inline void BlitFieldIcon(Canvas& canvas, const FieldIconBits& bits, Color color)
-	{
-		const unsigned w = canvas.GetCanvasWidth();
-		const unsigned h = canvas.GetCanvasHeight();
-		const unsigned rows = (h < 16u) ? h : 16u;
-		const unsigned cols = (w < 16u) ? w : 16u;
+	inline constexpr std::array<IconAtlas::IconBits, UiIconIdCount()> kUiIcons{
+		detail::kCurrency,
+		detail::kRefresh,
+	};
 
-		for (unsigned y = 0u; y < rows; ++y)
+	[[nodiscard]] inline const IconAtlas::IconBits& Get(UiIconId id) noexcept
+	{
+		const std::size_t i = static_cast<std::size_t>(id);
+		assert(i < UiIconIdCount());
+		if (i >= UiIconIdCount())
 		{
-			const std::uint16_t row = bits[y];
-			for (unsigned x = 0u; x < cols; ++x)
-			{
-				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) != 0u)
-				{
-					canvas.PutPixel(x, y, color);
-				}
-			}
+			return kUiIcons[0];
 		}
+		return kUiIcons[i];
 	}
 }

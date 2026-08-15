@@ -372,7 +372,7 @@
     <ClInclude Include="FieldNodeInfoCopy.h" />
     <ClInclude Include="NodeInfoPanel.h" />
     <ClInclude Include="ModuleFieldCanvas.h" />
-    <ClInclude Include="FieldIconAtlas.h" />
+    <ClInclude Include="IconAtlas.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />

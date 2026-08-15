@@ -1353,6 +1353,9 @@
     <ClInclude Include="FieldIconAtlas.h">
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClInclude>
+    <ClInclude Include="IconAtlas.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+    </ClInclude>
     <ClInclude Include="ModuleField.h">
       <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
     </ClInclude>
