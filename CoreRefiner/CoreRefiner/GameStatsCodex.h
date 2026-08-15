@@ -74,6 +74,16 @@ struct TutorialData
     }
 };
 
+struct CurrencyData
+{
+    int amount{ 0 };
+
+    void Reset() noexcept
+    {
+        amount = 0;
+    }
+};
+
 
 class GameStatsCodex
 {
@@ -86,6 +96,7 @@ public:
     { 
         Get_().pData.Reset(); 
         Get_().tData.Reset();
+        Get_().cData.Reset();
     }
 
     /////////////////////////////////////////////////////////
@@ -159,6 +170,37 @@ public:
     static void AddOutputDamage(float d) noexcept { if (!Get_().tData.isTutorial) if (d > 0) Get_().pData.outputDamage += d; }
     static void AddInputDamage(float d) noexcept  { if (!Get_().tData.isTutorial) if (d > 0) Get_().pData.inputDamage += d; }
 
+    /////////////////////////////////////////////////////////
+    // CurrencyData (not gated by isTutorial)
+    /////////////////////////////////////////////////////////
+    [[nodiscard]] static int GetCurrency() noexcept
+    {
+        return Get_().cData.amount;
+    }
+
+    static void AddCurrency(int amount) noexcept
+    {
+        if (amount > 0)
+        {
+            Get_().cData.amount += amount;
+        }
+    }
+
+    static bool TrySpendCurrency(int amount) noexcept
+    {
+        if (amount <= 0)
+        {
+            return false;
+        }
+        CurrencyData& wallet = Get_().cData;
+        if (wallet.amount < amount)
+        {
+            return false;
+        }
+        wallet.amount -= amount;
+        return true;
+    }
+
     static void SpawnWindow()
     {
         const auto& s = GameStatsCodex::Get();
@@ -175,6 +217,7 @@ public:
         if (ImGui::CollapsingHeader("Score & State", ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::Text("Score: %d", s.score);
+            ImGui::Text("Currency: %d", GameStatsCodex::GetCurrency());
             ImGui::Text("GameClear: %s", s.gameClear ? "true" : "false");
             ImGui::Text("LifeTime: %.2f sec", s.lifeTime);
         }
@@ -228,4 +271,5 @@ private:
 private:
     PerformanceData pData;
     TutorialData tData;
+    CurrencyData cData;
 };

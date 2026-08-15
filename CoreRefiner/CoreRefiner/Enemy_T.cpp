@@ -1,6 +1,8 @@
 #include "Enemy_T.h"
+#include "Coin.h"
 #include "Math.h"
 #include "XMath.h"
+#include "ObjectCodex.h"
 
 void Enemy_T::Update(float dt)
 {
@@ -44,6 +46,20 @@ void Enemy_T::Submit(void)
 	ObjectBase::Submit();
 }
 
+void Enemy_T::DropCoin()
+{
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return;
+	}
+
+	DirectX::XMFLOAT3 pos = GetPosition();
+	pos.y += 0.4f;
+	if (Coin* coin = ObjectCodex::SpawnPooled<Coin>(environment_Coin, *gfx_, *rg_, pos))
+	{
+		coin->SpawnAt(pos);
+	}
+}
 void Enemy_T::SetupTransitions(void)
 {
 	// 状態の遷移条件を増加する
@@ -150,8 +166,8 @@ void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
 ------------------------------------------------------------------------------*/
 void Enemy_T_DeathState::OnEnter(Enemy_T* owner)
 {
-	// set anime
 	SoundCodex::Get().PlaySE(SndPath::SE_Enemy_Dead_Red_0);
+	owner->DropCoin();
 }
 
 void Enemy_T_DeathState::Update(Enemy_T* owner, float dt)

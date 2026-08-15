@@ -13,21 +13,17 @@ using namespace DirectX;
 enum Object_Type_Tag
 {
 	Item_Type_None		= 0x000,
-	// Attack
-	attack_Ball			= 0x101,
 	// Character
 	character_Player	= 0x999,
 	character_Enemy_T	= 0x011,
+	// Attack
+	attack_Ball			= 0x101,
 	// Environment				  
-	environment_Field	= 0x100,
+	environment_Field	= 0x200,
+	environment_Coin	= 0x201,
 	// Effect
 };
 
-/**
- * @brief Gameplay host with local Transform and optional Unity-style parent hierarchy.
- * @note transform_ stores Local TRS. With no parent, Local ≡ World.
- *       GetPosition/GetRotation/GetSize read local storage; use GetWorld* for rendered/collision space.
- */
 class ObjectBase
 {
 public:
@@ -75,46 +71,26 @@ public:
 	 * @brief Local position (≈ Unity localPosition; ≡ world when unparented).
 	 */
 	XMFLOAT3 GetPosition(void) const		{ return transform_.GetPosition(); }
-	/** @brief Raw stored local rotation (gameplay may keep degrees). */
 	XMFLOAT3 GetRotation(void) const		{ return transform_.GetRotationRaw(); }
 	XMFLOAT3 GetSize(void) const			{ return transform_.GetScale(); }
-	/** @brief Host local transform (single source of truth for local TRS). */
 	Transformation& GetTransform() noexcept { return transform_; }
 	const Transformation& GetTransform() const noexcept { return transform_; }
 
-	/**
-	 * @brief Local S*R*T matrix.
-	 */
+	// Local S*R*T matrix.
 	[[nodiscard]] DirectX::XMMATRIX GetLocalMatrix() const noexcept;
-	/**
-	 * @brief World matrix: local * parent->GetWorldMatrix() (row-vector, GM31/Unity-style).
-	 */
+	// World matrix: local * parent->GetWorldMatrix() (row-vector, GM31/Unity-style).
 	[[nodiscard]] DirectX::XMMATRIX GetWorldMatrix() const noexcept;
-	/**
-	 * @brief World-space translation extracted from GetWorldMatrix().
-	 */
+	// World-space translation extracted from GetWorldMatrix().
 	[[nodiscard]] DirectX::XMFLOAT3 GetWorldPosition() const noexcept;
 
-	/**
-	 * @brief Attach to parent; keeps local TRS (no worldPositionStays).
-	 * @param parent New parent, or nullptr to clear.
-	 */
 	void SetParent(ObjectBase* parent);
-	/** @brief Detach from current parent (safe if already root). */
 	void ClearParent();
-	/**
-	 * @brief Detach from parent and drop all child links (pool-safe reuse).
-	 */
 	void ResetHierarchy();
 	[[nodiscard]] ObjectBase* GetParent() const noexcept { return parent_; }
 	[[nodiscard]] size_t GetChildCount() const noexcept { return children_.size(); }
 	[[nodiscard]] ObjectBase* GetChild(size_t index) const noexcept;
 
-	/**
-	 * @brief Attach a component owned by this host.
-	 * @tparam T Must derive from IComponent; first ctor arg is always this owner.
-	 * @return Non-owning pointer to the created component.
-	 */
+
 	template <typename T, typename... Args>
 	T* AddComponent(Args&&... args)
 	{
@@ -129,9 +105,6 @@ public:
 		return raw;
 	}
 
-	/**
-	 * @brief Find first attached component of type T.
-	 */
 	template <typename T>
 	T* GetComponent() noexcept
 	{
@@ -158,9 +131,6 @@ public:
 		}
 		return nullptr;
 	}
-	/**
-	 * @brief Whether a component of type T is attached.
-	 */
 	template <typename T>
 	bool HasComponent() const noexcept
 	{
@@ -174,10 +144,6 @@ protected:
 	void Scale(float X, float Y, float Z)		{ transform_.AddScale(X, Y, Z); }
 	void SetSize(XMFLOAT3 size)					{ transform_.SetScale(size); }
 
-	/**
-	 * @brief Drive attached component Update (used by ObjectBase::Update).
-	 * @note Prefer ending derived Update with ObjectBase::Update(dt) rather than calling this directly.
-	 */
 	void UpdateComponents(float dt)
 	{
 		for (auto& c : components_)
@@ -185,10 +151,6 @@ protected:
 			c->Update(dt);
 		}
 	}
-	/**
-	 * @brief Drive attached component Submit (used by ObjectBase::Submit).
-	 * @note Prefer ending derived Submit with ObjectBase::Submit() rather than calling this directly.
-	 */
 	void SubmitComponents()
 	{
 		for (auto& c : components_)

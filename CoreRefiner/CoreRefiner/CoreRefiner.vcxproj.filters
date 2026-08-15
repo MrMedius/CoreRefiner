@@ -1050,6 +1050,9 @@
     <ClInclude Include="Field.h">
       <Filter>Object\Environment</Filter>
     </ClInclude>
+    <ClInclude Include="Coin.h">
+      <Filter>Object\Environment</Filter>
+    </ClInclude>
     <ClInclude Include="Pyramid.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>

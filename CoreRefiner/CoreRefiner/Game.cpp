@@ -262,6 +262,7 @@ void Game::Draw()
 			light.SpawnControlWindow();
 			SoundCodex::Get().SpawnWindow();
 			gameRG.RenderWindows(wnd.Gfx());
+			GameStatsCodex::SpawnWindow();
 		}
 #endif
 		break;

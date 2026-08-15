@@ -15,7 +15,9 @@ class Enemy_T : public Enemy
 public:
 	Enemy_T(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, Object_Type_Tag tag = character_Enemy_T)
 		:
-		Enemy(tag)
+		Enemy(tag),
+		gfx_(&gfx),
+		rg_(&rg)
 	{
 		// parameters init
 		SetPosition(position);
@@ -61,9 +63,8 @@ public:
 	void Update(float dt) override;
 	void Submit(void) override;
 	int GetKillScore() const noexcept override { return 40; }
-	/**
-	 * @brief Typed access to the owned Enemy_T_Shape for hurt/death animation.
-	 */
+
+	void DropCoin();
 	Enemy_T_Shape* GetVisual() noexcept
 	{
 		return pVisual_ != nullptr ? pVisual_->GetDrawableAs<Enemy_T_Shape>() : nullptr;
@@ -74,6 +75,8 @@ private:
 	std::unique_ptr<StateMachine<Enemy_T>> FSM;
 	VisualComponent* pVisual_{ nullptr };
 	BoxColliderComponent* pCollider_{ nullptr };
+	Graphics* gfx_{ nullptr };
+	Rgph::RenderGraph* rg_{ nullptr };
 };
 
 

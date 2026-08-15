@@ -408,6 +408,7 @@
     <ClInclude Include="DWriteLayoutRenderer.h" />
     <ClInclude Include="Enemy_T_Shape.h" />
     <ClInclude Include="Field.h" />
+    <ClInclude Include="Coin.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="Collision3D.h" />
     <ClInclude Include="Collision2D.h" />
