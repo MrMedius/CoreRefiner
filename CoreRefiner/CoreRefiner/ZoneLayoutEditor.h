@@ -8,10 +8,8 @@
 #include "Win.h"
 
 #include <array>
-#include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
-#include <vector>
 
 class Window;
 class Graphics;
@@ -34,8 +32,6 @@ public:
 
 	void End();
 
-	void CancelRestore();
-
 	void Update(float dt, Window* hostWindow);
 
 	void SubmitOverlay();
@@ -48,22 +44,12 @@ private:
 	struct DropEval_
 	{
 		bool placeable{ false };
+		bool unaffordable{ false };
 		ZoneId target{ kNoZone_ };
-	};
-
-	struct LayoutSnapshotEntry_
-	{
-		std::uint32_t id{ 0 };
-		ZoneId zone{ ZoneId::Field };
-		DirectX::XMFLOAT2 localPos{ 0.0f, 0.0f };
 	};
 
 	void EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
 	[[nodiscard]] static std::unique_ptr<Canvas2D> MakeRingCanvas_(Graphics& gfx, Rgph::RenderGraph& rg, Color ringColor);
-
-	void Snapshot_();
-
-	[[nodiscard]] IModuleNode* FindNodeById_(std::uint32_t id, ZoneId& outZone) const noexcept;
 
 	void ClearAllLayoutGhosts_();
 	[[nodiscard]] DirectX::XMFLOAT2 MouseGame_() const noexcept;
@@ -91,7 +77,6 @@ private:
 	DirectX::XMFLOAT3 combatOrigin_{ 200.0f, 200.0f, 0.0f };
 	std::array<IModuleZone*, ZoneCount()> zones_{};
 
-	std::vector<LayoutSnapshotEntry_> layoutSnapshot_;
 	DirectX::XMFLOAT2 dragStartLocalPos_{ 0.0f, 0.0f };
 	DirectX::XMFLOAT3 dragOrigin_{ 0.0f, 0.0f, 0.0f };
 
@@ -105,11 +90,13 @@ private:
 		Hover,   ///< Idle hover — yellow
 		Valid,   ///< Dragging, placeable — green
 		Overlap, ///< Dragging, not placeable — red
+		Denied,  ///< Dragging, Unaffordable — gray
 	};
 	RingKind_ ringKind_{ RingKind_::Hover };
 	std::unique_ptr<Canvas2D> ringHover_;
 	std::unique_ptr<Canvas2D> ringValid_;
 	std::unique_ptr<Canvas2D> ringOverlap_;
+	std::unique_ptr<Canvas2D> ringDenied_;
 	NodeInfoPanel infoPanel_;
 
 	static constexpr float kRingPadding_{ 12.0f };

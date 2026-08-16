@@ -67,6 +67,22 @@ public:
 	[[nodiscard]] virtual std::size_t GetNodeCount() const noexcept = 0;
 	[[nodiscard]] virtual IModuleNode* GetNode(std::size_t index) const noexcept = 0;
 
+	[[nodiscard]] virtual std::size_t FindNodeIndex(const IModuleNode* node) const noexcept
+	{
+		if (node == nullptr)
+		{
+			return static_cast<std::size_t>(-1);
+		}
+		for (std::size_t i = 0; i < GetNodeCount(); ++i)
+		{
+			if (GetNode(i) == node)
+			{
+				return i;
+			}
+		}
+		return static_cast<std::size_t>(-1);
+	}
+
 	[[nodiscard]] virtual std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) = 0;
 
 	[[nodiscard]] virtual bool TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos) = 0;

@@ -67,8 +67,14 @@ public:
 
 	void FillStock();
 
+	/**
+	 * @brief Mark listing `index` sold and drop its node. Slot index stays put.
+	 */
 	void MarkSold(std::size_t index);
 
+	/**
+	 * @brief Restore a taken listing into an unsold hole, or sell an inbound node.
+	 */
 	[[nodiscard]] bool TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos) override;
 
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;

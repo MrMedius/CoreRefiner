@@ -2,6 +2,7 @@
 #include "Channels.h"
 #include "Collision2D.h"
 #include "Colors.h"
+#include "GameStatsCodex.h"
 #include "ModuleNodeFactory.h"
 #include "ModuleNodeLabel.h"
 #include "ModuleNodePrice.h"
@@ -176,10 +177,30 @@ void ModuleShop::RelayoutSlots_()
 
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
 {
-	(void)node;
 	(void)localPos;
-	// Sell adopt lands in a later step; inbound drops are refused for now.
-	return false;
+	if (node == nullptr)
+	{
+		return false;
+	}
+
+	for (Slot& slot : slots_)
+	{
+		if (!slot.sold && slot.node == nullptr)
+		{
+			slot.node = std::move(node);
+			RelayoutSlots_();
+			return true;
+		}
+	}
+
+	if (node->IsCore())
+	{
+		return false;
+	}
+
+	GameStatsCodex::AddCurrency(ModuleNodePrice::GetSellPrice(node->GetModuleNodeLabel()));
+	node.reset();
+	return true;
 }
 
 DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept
@@ -199,6 +220,18 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 		{
 			result.localPos = SlotLocalPos_(i);
 		}
+		return result;
+	}
+
+	if (node.IsCore())
+	{
+		result.verdict = DropVerdict::Forbidden;
+		return result;
+	}
+
+	if (from == ZoneId::Field || from == ZoneId::Warehouse)
+	{
+		result.verdict = DropVerdict::Accept;
 		return result;
 	}
 

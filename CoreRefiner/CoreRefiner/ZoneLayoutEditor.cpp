@@ -1,5 +1,8 @@
 #include "ZoneLayoutEditor.h"
+#include "ModuleShop.h"
 #include "ModuleNodeInfoCopy.h"
+#include "ModuleNodePrice.h"
+#include "GameStatsCodex.h"
 #include "InputCodex.h"
 #include "Colors.h"
 #include "Channels.h"
@@ -63,8 +66,6 @@ void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::a
 		zone->SetOrigin(origins[i]);
 		zone->SyncAllVisuals();
 	}
-
-	Snapshot_();
 }
 
 void ZoneLayoutEditor::End()
@@ -74,8 +75,6 @@ void ZoneLayoutEditor::End()
 		return;
 	}
 
-	// Keep the current arrangement. Do NOT apply layoutSnapshot_
-	// (Esc CancelRestore is the only path that restores Begin poses).
 	ClearActiveDrag_();
 	ClearAllLayoutGhosts_();
 	infoPanel_.Hide();
@@ -92,128 +91,7 @@ void ZoneLayoutEditor::End()
 	}
 
 	zones_.fill(nullptr);
-	layoutSnapshot_.clear();
 	active_ = false;
-}
-
-void ZoneLayoutEditor::CancelRestore()
-{
-	if (!active_)
-	{
-		return;
-	}
-
-	ClearActiveDrag_();
-	ClearAllLayoutGhosts_();
-	infoPanel_.Hide();
-
-	hover_ = nullptr;
-	hoverSource_ = kNoZone_;
-	ringKind_ = RingKind_::Hover;
-	dragStartLocalPos_ = {};
-
-	struct PendingMigrate_
-	{
-		std::unique_ptr<IModuleNode> node;
-		ZoneId target{ ZoneId::Field };
-	};
-	std::vector<PendingMigrate_> pending;
-	pending.reserve(layoutSnapshot_.size());
-
-	// Pass 1: pull every zone-mismatched node out so capacity is free before re-adopt.
-	for (const LayoutSnapshotEntry_& entry : layoutSnapshot_)
-	{
-		ZoneId curZone = kNoZone_;
-		IModuleNode* node = FindNodeById_(entry.id, curZone);
-		if (node == nullptr || curZone == entry.zone)
-		{
-			continue;
-		}
-
-		IModuleZone* source = ZoneAt_(curZone);
-		if (source == nullptr)
-		{
-			continue;
-		}
-		std::unique_ptr<IModuleNode> taken = source->TakeNode(node);
-		if (taken == nullptr)
-		{
-			continue;
-		}
-		pending.push_back(PendingMigrate_{ std::move(taken), entry.zone });
-	}
-
-	auto adoptOne_ = [&](PendingMigrate_& p) -> IModuleNode*
-	{
-		if (p.node == nullptr)
-		{
-			return nullptr;
-		}
-		IModuleNode* raw = p.node.get();
-		const DirectX::XMFLOAT2 local = raw->GetLocalPos();
-		if (IModuleZone* target = ZoneAt_(p.target))
-		{
-			if (target->TryAcceptDrop(p.node, local))
-			{
-				return raw;
-			}
-		}
-		// Full / Core / missing target: keep ownership on Field so the node is not dropped.
-		if (IModuleZone* field = ZoneAt_(ZoneId::Field))
-		{
-			const DirectX::XMFLOAT2 fallbackLocal =
-				(raw != nullptr) ? raw->GetLocalPos() : DirectX::XMFLOAT2{};
-			if (!field->TryAcceptDrop(p.node, fallbackLocal))
-			{
-				return nullptr;
-			}
-			return raw;
-		}
-		return nullptr;
-	};
-
-	// Pass 2: re-adopt in ZoneId order so Field is filled first (frees warehouse slots).
-	for (std::size_t zi = 0; zi < ZoneCount(); ++zi)
-	{
-		const ZoneId targetId = static_cast<ZoneId>(zi);
-		for (PendingMigrate_& p : pending)
-		{
-			if (p.target == targetId)
-			{
-				(void)adoptOne_(p);
-			}
-		}
-	}
-
-	// Pass 3: restore Begin localPos/origin (also repairs Take/TryAcceptDrop RelayoutSlots side effects).
-	for (const LayoutSnapshotEntry_& entry : layoutSnapshot_)
-	{
-		ZoneId curZone = kNoZone_;
-		IModuleNode* node = FindNodeById_(entry.id, curZone);
-		if (node == nullptr || curZone != entry.zone)
-		{
-			continue;
-		}
-
-		node->SetLocalPos(entry.localPos);
-		if (IModuleZone* zone = ZoneAt_(entry.zone))
-		{
-			node->SetZoneOrigin(zone->GetOrigin());
-		}
-		if (node->IsLayoutGhostActive())
-		{
-			node->EndLayoutGhost();
-		}
-		node->SyncVisual();
-	}
-
-	for (IModuleZone* zone : zones_)
-	{
-		if (zone != nullptr)
-		{
-			zone->SyncAllVisuals();
-		}
-	}
 }
 
 void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
@@ -225,12 +103,6 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	}
 
 	auto& input = InputCodex::Get();
-
-	if (input.KeyTriggered(KK_ESCAPE))
-	{
-		CancelRestore();
-		return;
-	}
 
 	const DirectX::XMFLOAT2 mouseGame = MouseGame_();
 
@@ -278,7 +150,18 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	if (dragged_ != nullptr)
 	{
 		const DropEval_ eval = EvalDrop_(*dragged_);
-		ringKind_ = eval.placeable ? RingKind_::Valid : RingKind_::Overlap;
+		if (eval.unaffordable)
+		{
+			ringKind_ = RingKind_::Denied;
+		}
+		else if (eval.placeable)
+		{
+			ringKind_ = RingKind_::Valid;
+		}
+		else
+		{
+			ringKind_ = RingKind_::Overlap;
+		}
 	}
 	else
 	{
@@ -350,77 +233,22 @@ std::unique_ptr<Canvas2D> ZoneLayoutEditor::MakeRingCanvas_(Graphics& gfx, Rgph:
 
 void ZoneLayoutEditor::EnsureRingVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	if (ringHover_ != nullptr)
+	if (ringHover_ == nullptr)
 	{
-		return;
+		ringHover_ = MakeRingCanvas_(gfx, rg, Color{ 255u, 230u, 80u, 230u });
 	}
-
-	ringHover_ = MakeRingCanvas_(gfx, rg, Color{ 255u, 230u, 80u, 230u });
-	ringValid_ = MakeRingCanvas_(gfx, rg, Color{ 80u, 220u, 120u, 230u });
-	ringOverlap_ = MakeRingCanvas_(gfx, rg, Color{ 230u, 80u, 80u, 230u });
-}
-
-void ZoneLayoutEditor::Snapshot_()
-{
-	layoutSnapshot_.clear();
-
-	std::size_t total = 0u;
-	for (IModuleZone* zone : zones_)
+	if (ringValid_ == nullptr)
 	{
-		if (zone != nullptr)
-		{
-			total += zone->GetNodeCount();
-		}
+		ringValid_ = MakeRingCanvas_(gfx, rg, Color{ 80u, 220u, 120u, 230u });
 	}
-	layoutSnapshot_.reserve(total);
-
-	for (IModuleZone* zone : zones_)
+	if (ringOverlap_ == nullptr)
 	{
-		if (zone == nullptr)
-		{
-			continue;
-		}
-		for (std::size_t i = 0; i < zone->GetNodeCount(); ++i)
-		{
-			const IModuleNode* node = zone->GetNode(i);
-			if (node == nullptr)
-			{
-				continue;
-			}
-			layoutSnapshot_.push_back(LayoutSnapshotEntry_{
-				node->GetInstanceId(),
-				zone->GetZoneId(),
-				node->GetLocalPos()
-			});
-		}
+		ringOverlap_ = MakeRingCanvas_(gfx, rg, Color{ 230u, 80u, 80u, 230u });
 	}
-}
-
-IModuleNode* ZoneLayoutEditor::FindNodeById_(std::uint32_t id, ZoneId& outZone) const noexcept
-{
-	if (id == 0u)
+	if (ringDenied_ == nullptr)
 	{
-		return nullptr;
+		ringDenied_ = MakeRingCanvas_(gfx, rg, Color{ 160u, 160u, 160u, 230u });
 	}
-
-	for (IModuleZone* zone : zones_)
-	{
-		if (zone == nullptr)
-		{
-			continue;
-		}
-		for (std::size_t i = 0; i < zone->GetNodeCount(); ++i)
-		{
-			IModuleNode* node = zone->GetNode(i);
-			if (node != nullptr && node->GetInstanceId() == id)
-			{
-				outZone = zone->GetZoneId();
-				return node;
-			}
-		}
-	}
-
-	return nullptr;
 }
 
 void ZoneLayoutEditor::ClearAllLayoutGhosts_()
@@ -493,12 +321,30 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 			continue;
 		}
 		const DropResult drop = zone->EvalDrop(node, world, from);
+		if (drop.verdict == DropVerdict::Unaffordable)
+		{
+			eval.unaffordable = true;
+			return eval;
+		}
 		if (!IsDropAccepted(drop.verdict))
 		{
 			return eval;
 		}
+
+		const ZoneId target = static_cast<ZoneId>(i);
+		if (from == ZoneId::Shop && target != ZoneId::Shop)
+		{
+			const int price = ModuleNodePrice::GetBuyPrice(node.GetModuleNodeLabel());
+			if (GameStatsCodex::GetCurrency() < price)
+			{
+				eval.unaffordable = true;
+				eval.target = target;
+				return eval;
+			}
+		}
+
 		eval.placeable = true;
-		eval.target = static_cast<ZoneId>(i);
+		eval.target = target;
 		return eval;
 	}
 	return eval;
@@ -572,6 +418,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	}
 
 	node->EndLayoutGhost();
+	const std::size_t sourceIndex = source->FindNodeIndex(node);
 	std::unique_ptr<IModuleNode> taken = source->TakeNode(node);
 	if (!target->TryAcceptDrop(taken, drop.localPos))
 	{
@@ -580,6 +427,28 @@ void ZoneLayoutEditor::ResolveRelease_()
 			(void)source->TryAcceptDrop(taken, dragStartLocalPos_);
 		}
 		RevertDrag_();
+		return;
+	}
+
+	if (dragSource_ != ZoneId::Shop)
+	{
+		return;
+	}
+
+	const int price = ModuleNodePrice::GetBuyPrice(node->GetModuleNodeLabel());
+	if (!GameStatsCodex::TrySpendCurrency(price))
+	{
+		std::unique_ptr<IModuleNode> back = target->TakeNode(node);
+		if (back != nullptr)
+		{
+			(void)source->TryAcceptDrop(back, dragStartLocalPos_);
+		}
+		RevertDrag_();
+		return;
+	}
+	if (auto* shop = dynamic_cast<ModuleShop*>(source))
+	{
+		shop->MarkSold(sourceIndex);
 	}
 }
 
@@ -643,6 +512,10 @@ void ZoneLayoutEditor::SyncRingTransform_(IModuleNode& node, DirectX::XMFLOAT3 o
 	{
 		SyncOneRingTransform_(*ringOverlap_, node, origin);
 	}
+	if (ringDenied_ != nullptr)
+	{
+		SyncOneRingTransform_(*ringDenied_, node, origin);
+	}
 }
 
 void ZoneLayoutEditor::SyncOneRingTransform_(Canvas2D& ring, IModuleNode& node, DirectX::XMFLOAT3 origin) const
@@ -665,6 +538,8 @@ Canvas2D* ZoneLayoutEditor::ActiveRing_() const noexcept
 		return ringValid_.get();
 	case RingKind_::Overlap:
 		return ringOverlap_.get();
+	case RingKind_::Denied:
+		return ringDenied_.get();
 	case RingKind_::Hover:
 	default:
 		return ringHover_.get();
