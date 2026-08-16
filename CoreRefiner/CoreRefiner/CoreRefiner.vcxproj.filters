@@ -688,6 +688,9 @@
     <ClCompile Include="IModuleNode.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClCompile>
+    <ClCompile Include="ModuleShop.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1418,6 +1421,9 @@
     </ClInclude>
     <ClInclude Include="ModuleNodePrice.h">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleShop.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

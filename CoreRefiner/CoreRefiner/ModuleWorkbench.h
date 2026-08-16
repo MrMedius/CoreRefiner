@@ -1,5 +1,6 @@
 #pragma once
 #include "ModuleField.h"
+#include "ModuleShop.h"
 #include "ModuleWarehouse.h"
 #include "ScanAssembler.h"
 #include "ZoneLayoutEditor.h"
@@ -29,6 +30,9 @@ public:
 	[[nodiscard]] ModuleWarehouse& GetWarehouse() noexcept { return warehouse_; }
 	[[nodiscard]] const ModuleWarehouse& GetWarehouse() const noexcept { return warehouse_; }
 
+	[[nodiscard]] ModuleShop& GetShop() noexcept { return shop_; }
+	[[nodiscard]] const ModuleShop& GetShop() const noexcept { return shop_; }
+
 	[[nodiscard]] ScanAssembler& GetAssembler() noexcept { return assembler_; }
 	[[nodiscard]] const ScanAssembler& GetAssembler() const noexcept { return assembler_; }
 
@@ -37,6 +41,7 @@ public:
 	[[nodiscard]] DirectX::XMFLOAT3 GetCombatFieldOrigin() const noexcept { return combatFieldOrigin_; }
 	[[nodiscard]] DirectX::XMFLOAT3 GetLayoutFieldOrigin() const noexcept { return layoutFieldOrigin_; }
 	[[nodiscard]] DirectX::XMFLOAT3 GetWarehouseOrigin() const noexcept { return warehouseOrigin_; }
+	[[nodiscard]] DirectX::XMFLOAT3 GetShopOrigin() const noexcept { return shopOrigin_; }
 
 	void Reset();
 
@@ -59,9 +64,11 @@ private:
 	DirectX::XMFLOAT3 combatFieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 layoutFieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 shopOrigin_{ 0.0f, 0.0f, 0.0f };
 
 	ModuleField field_;
 	ModuleWarehouse warehouse_;
+	ModuleShop shop_;
 	ScanAssembler assembler_;
 	ZoneLayoutEditor layoutEditor_;
 };

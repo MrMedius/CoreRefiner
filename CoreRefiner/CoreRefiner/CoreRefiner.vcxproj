@@ -193,6 +193,7 @@
     <ClCompile Include="IModuleNode.cpp" />
     <ClCompile Include="ModuleNodeFactory.cpp" />
     <ClCompile Include="ModuleNodeInfoCopy.cpp" />
+    <ClCompile Include="ModuleShop.cpp" />
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ModuleWorkbench.cpp" />
@@ -365,6 +366,7 @@
     <ClInclude Include="ModuleNodeInfoCopy.h" />
     <ClInclude Include="ModuleNodePrice.h" />
     <ClInclude Include="ModuleNodes.h" />
+    <ClInclude Include="ModuleShop.h" />
     <ClInclude Include="ModuleWarehouse.h" />
     <ClInclude Include="Rule_Orbit_Module.h" />
     <ClInclude Include="AttackDeployer.h" />

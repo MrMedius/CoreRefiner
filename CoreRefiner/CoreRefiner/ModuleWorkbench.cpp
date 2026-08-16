@@ -15,7 +15,7 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
-	// Single source for the three layout origins used by combat + pause edit.
+	// Single source for the layout origins used by combat + pause edit.
 	combatFieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
 	layoutFieldOrigin_ = DirectX::XMFLOAT3{
 		static_cast<float>(SCREEN_WIDTH) * 0.8f,
@@ -27,12 +27,20 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 		static_cast<float>(SCREEN_HEIGHT) * 0.7f,
 		0.0f
 	};
+	// Shop: 5×48 pitch + 2×20 pad ≈ 232px wide; keep leftmost slot on-screen in the left half.
+	shopOrigin_ = DirectX::XMFLOAT3{
+		160.0f,
+		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
+		0.0f
+	};
 
 	PlaceDemoField_();
 	field_.InitAllVisuals(gfx_, rg_, combatFieldOrigin_);
 
 	PlaceDemoWarehouse_();
 	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
+
+	shop_.InitAllVisuals(gfx_, rg_, shopOrigin_);
 }
 
 void ModuleWorkbench::PlaceDemoField_()
@@ -141,10 +149,12 @@ void ModuleWorkbench::BeginLayoutEdit()
 	std::array<IModuleZone*, ZoneCount()> zones{};
 	zones[ToIndex(ZoneId::Field)] = &field_;
 	zones[ToIndex(ZoneId::Warehouse)] = &warehouse_;
+	zones[ToIndex(ZoneId::Shop)] = &shop_;
 
 	std::array<DirectX::XMFLOAT3, ZoneCount()> origins{};
 	origins[ToIndex(ZoneId::Field)] = layoutFieldOrigin_;
 	origins[ToIndex(ZoneId::Warehouse)] = warehouseOrigin_;
+	origins[ToIndex(ZoneId::Shop)] = shopOrigin_;
 
 	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
 }
@@ -166,11 +176,13 @@ void ModuleWorkbench::Submit()
 	if (layoutEditor_.IsActive())
 	{
 		warehouse_.SubmitBackground();
+		shop_.SubmitBackground();
 	}
 	field_.SubmitNodes();
 	if (layoutEditor_.IsActive())
 	{
 		warehouse_.SubmitNodes();
+		shop_.SubmitNodes();
 		layoutEditor_.SubmitOverlay();
 	}
 }

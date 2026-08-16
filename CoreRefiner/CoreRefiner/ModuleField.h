@@ -136,30 +136,6 @@ public:
 		}
 	}
 
-	template <typename Fn>
-	void ForEach(Fn&& fn)
-	{
-		for (auto& n : nodes_)
-		{
-			if (n != nullptr)
-			{
-				fn(*n);
-			}
-		}
-	}
-
-	template <typename Fn>
-	void ForEach(Fn&& fn) const
-	{
-		for (const auto& n : nodes_)
-		{
-			if (n != nullptr)
-			{
-				fn(*n);
-			}
-		}
-	}
-
 	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
 
 	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept override;
@@ -177,17 +153,6 @@ public:
 	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForRadius(DirectX::XMFLOAT2 localPos, float hitRadius) const noexcept;
 
 	[[nodiscard]] bool WouldOverlap(const IModuleNode& self, DirectX::XMFLOAT2 fieldLocal) const noexcept;
-
-	void ClearLayoutGhosts() override
-	{
-		ForEach([](IModuleNode& node)
-		{
-			if (node.IsLayoutGhostActive())
-			{
-				node.EndLayoutGhost();
-			}
-		});
-	}
 
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 

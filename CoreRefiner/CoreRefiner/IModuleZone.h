@@ -69,31 +69,53 @@ public:
 
 	[[nodiscard]] virtual std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) = 0;
 
-	[[nodiscard]] virtual bool TryAcceptDrop(
-		std::unique_ptr<IModuleNode>& node,
-		DirectX::XMFLOAT2 localPos) = 0;
+	[[nodiscard]] virtual bool TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos) = 0;
 
-	[[nodiscard]] virtual bool ContainsCircle(
-		DirectX::XMFLOAT2 worldCenter,
-		float radius) const noexcept = 0;
+	[[nodiscard]] virtual bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept = 0;
 
-	[[nodiscard]] virtual IModuleNode* PickAt(
-		DirectX::XMFLOAT2 worldPos,
-		float& outDistSq) noexcept = 0;
+	[[nodiscard]] virtual IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept = 0;
 
-	[[nodiscard]] virtual DropResult EvalDrop(
-		const IModuleNode& node,
-		DirectX::XMFLOAT2 worldPos,
-		ZoneId from) const noexcept = 0;
+	[[nodiscard]] virtual DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept = 0;
 
-	virtual void InitAllVisuals(
-		Graphics& gfx,
-		Rgph::RenderGraph& rg,
-		DirectX::XMFLOAT3 origin) = 0;
+	virtual void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) = 0;
 	virtual void SyncAllVisuals() = 0;
 	virtual void SubmitBackground() = 0;
 	virtual void SubmitNodes() = 0;
-	virtual void ClearLayoutGhosts() = 0;
+
+	template <typename Fn>
+	void ForEach(Fn&& fn)
+	{
+		for (std::size_t i = 0; i < GetNodeCount(); ++i)
+		{
+			if (IModuleNode* node = GetNode(i))
+			{
+				fn(*node);
+			}
+		}
+	}
+
+	template <typename Fn>
+	void ForEach(Fn&& fn) const
+	{
+		for (std::size_t i = 0; i < GetNodeCount(); ++i)
+		{
+			if (IModuleNode* node = GetNode(i))
+			{
+				fn(*node);
+			}
+		}
+	}
+
+	virtual void ClearLayoutGhosts()
+	{
+		ForEach([](IModuleNode& node)
+		{
+			if (node.IsLayoutGhostActive())
+			{
+				node.EndLayoutGhost();
+			}
+		});
+	}
 
 protected:
 	IModuleZone() = default;
