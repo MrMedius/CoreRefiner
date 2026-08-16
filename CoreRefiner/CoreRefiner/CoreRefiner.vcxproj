@@ -363,6 +363,7 @@
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
     <ClInclude Include="ModuleNodeFactory.h" />
     <ClInclude Include="ModuleNodeInfoCopy.h" />
+    <ClInclude Include="ModuleNodePrice.h" />
     <ClInclude Include="ModuleNodes.h" />
     <ClInclude Include="ModuleWarehouse.h" />
     <ClInclude Include="Rule_Orbit_Module.h" />

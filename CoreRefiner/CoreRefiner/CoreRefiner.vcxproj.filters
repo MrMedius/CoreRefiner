@@ -1416,6 +1416,9 @@
     <ClInclude Include="ModuleNodeLabel.h">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
+    <ClInclude Include="ModuleNodePrice.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
