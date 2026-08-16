@@ -2,7 +2,7 @@
 
 #include "Canvas2D.h"
 #include "Canvas2DSpriteUV.h"
-#include "AttackNodeLabel.h"
+#include "ModuleNodeLabel.h"
 #include "Colors.h"
 
 #include <cstdint>
@@ -24,12 +24,12 @@ enum class ModuleReadyState : unsigned char
 	Cooling,
 };
 
-class IFieldNode
+class IModuleNode
 {
 public:
 	static constexpr unsigned kVisualSize = 16u;
 
-	virtual ~IFieldNode() = default;
+	virtual ~IModuleNode() = default;
 
 	[[nodiscard]] std::uint32_t GetInstanceId() const noexcept { return instanceId_; }
 
@@ -79,9 +79,9 @@ public:
 		}
 	}
 
-	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin);
+	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin);
 
-	void SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept;
+	void SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept;
 
 	void SyncVisual();
 
@@ -94,10 +94,10 @@ public:
 	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
 
 	virtual void ApplyTo(DeployContext& ctx) = 0;
-	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept = 0;
+	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
 
 protected:
-	IFieldNode() noexcept
+	IModuleNode() noexcept
 		:
 		instanceId_(++s_nextInstanceId_)
 	{}
@@ -120,7 +120,7 @@ protected:
 
 	std::unique_ptr<Canvas2D> icon_;
 	std::unique_ptr<Canvas2DSpriteUV> mask_;
-	DirectX::XMFLOAT3 fieldOrigin_{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 zoneOrigin_{ 0.0f, 0.0f, 0.0f };
 	bool visualReady_{ false };
 	bool layoutGhostActive_{ false };
 	DirectX::XMFLOAT2 layoutGhostLocalPos_{ 0.0f, 0.0f };

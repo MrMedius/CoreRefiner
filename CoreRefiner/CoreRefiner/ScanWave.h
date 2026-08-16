@@ -1,12 +1,12 @@
 #pragma once
 
-#include "IFieldNode.h"
+#include "IModuleNode.h"
 
 #include <DirectXMath.h>
 
 struct ScanWave
 {
-	IFieldNode* source{ nullptr };
+	IModuleNode* source{ nullptr };
 	DirectX::XMFLOAT2 center{ 0.0f, 0.0f };
 	float radius{ 0.0f };
 	float maxRadius{ 120.0f };
@@ -29,7 +29,7 @@ struct ScanWave
 		return false;
 	}
 
-	void Start(IFieldNode* src, DirectX::XMFLOAT2 at, float maxR, float speed)
+	void Start(IModuleNode* src, DirectX::XMFLOAT2 at, float maxR, float speed)
 	{
 		source = src;
 		center = at;

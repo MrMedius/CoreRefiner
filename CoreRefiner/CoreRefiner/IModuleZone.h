@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IFieldNode.h"
+#include "IModuleNode.h"
 
 #include <cstddef>
 #include <DirectXMath.h>
@@ -65,24 +65,24 @@ public:
 	virtual void SetOrigin(DirectX::XMFLOAT3 origin) noexcept = 0;
 
 	[[nodiscard]] virtual std::size_t GetNodeCount() const noexcept = 0;
-	[[nodiscard]] virtual IFieldNode* GetNode(std::size_t index) const noexcept = 0;
+	[[nodiscard]] virtual IModuleNode* GetNode(std::size_t index) const noexcept = 0;
 
-	[[nodiscard]] virtual std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node) = 0;
+	[[nodiscard]] virtual std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) = 0;
 
 	[[nodiscard]] virtual bool TryAcceptDrop(
-		std::unique_ptr<IFieldNode>& node,
+		std::unique_ptr<IModuleNode>& node,
 		DirectX::XMFLOAT2 localPos) = 0;
 
 	[[nodiscard]] virtual bool ContainsCircle(
 		DirectX::XMFLOAT2 worldCenter,
 		float radius) const noexcept = 0;
 
-	[[nodiscard]] virtual IFieldNode* PickAt(
+	[[nodiscard]] virtual IModuleNode* PickAt(
 		DirectX::XMFLOAT2 worldPos,
 		float& outDistSq) noexcept = 0;
 
 	[[nodiscard]] virtual DropResult EvalDrop(
-		const IFieldNode& node,
+		const IModuleNode& node,
 		DirectX::XMFLOAT2 worldPos,
 		ZoneId from) const noexcept = 0;
 

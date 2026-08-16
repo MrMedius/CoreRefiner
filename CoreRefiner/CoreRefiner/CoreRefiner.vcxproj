@@ -189,8 +189,10 @@
   <ItemGroup>
     <ClCompile Include="Attack.cpp" />
     <ClCompile Include="AttackManager.cpp" />
-    <ClCompile Include="IFieldNode.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
+    <ClCompile Include="IModuleNode.cpp" />
+    <ClCompile Include="ModuleNodeFactory.cpp" />
+    <ClCompile Include="ModuleNodeInfoCopy.cpp" />
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ModuleWorkbench.cpp" />
@@ -284,7 +286,6 @@
     <ClCompile Include="UiUtf8EditBuffer.cpp" />
     <ClCompile Include="Canvas2DRipples.cpp" />
     <ClCompile Include="ModuleFieldCanvas.cpp" />
-    <ClCompile Include="FieldNodeInfoCopy.cpp" />
     <ClCompile Include="NodeInfoPanel.cpp" />
     <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
@@ -355,21 +356,22 @@
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
-    <ClInclude Include="FieldNodes.h" />
+    <ClInclude Include="IModuleNode.h" />
     <ClInclude Include="IModuleZone.h" />
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="Attribute_Lifetime_Module.h" />
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
+    <ClInclude Include="ModuleNodeFactory.h" />
+    <ClInclude Include="ModuleNodeInfoCopy.h" />
+    <ClInclude Include="ModuleNodes.h" />
     <ClInclude Include="ModuleWarehouse.h" />
     <ClInclude Include="Rule_Orbit_Module.h" />
     <ClInclude Include="AttackDeployer.h" />
-    <ClInclude Include="AttackNodeLabel.h" />
-    <ClInclude Include="IFieldNode.h" />
+    <ClInclude Include="ModuleNodeLabel.h" />
     <ClInclude Include="ScanAssembler.h" />
     <ClInclude Include="ScanWave.h" />
     <ClInclude Include="ModuleField.h" />
     <ClInclude Include="ModuleWorkbench.h" />
-    <ClInclude Include="FieldNodeInfoCopy.h" />
     <ClInclude Include="NodeInfoPanel.h" />
     <ClInclude Include="ModuleFieldCanvas.h" />
     <ClInclude Include="IconAtlas.h" />
@@ -1429,12 +1431,10 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="FieldNodeInfoCopy.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="asset\Icon\WhiteArrow.cur" />
     <None Include="LightVectorData.hlsli" />
     <None Include="MathHelpers.hlsli" />
+    <None Include="ModuleNodeInfoCopy.json" />
     <None Include="PointLight.hlsli" />
     <None Include="PShadow.hlsli" />
     <None Include="ShaderOps.hlsli" />

@@ -118,18 +118,18 @@ void ModuleWarehouse::RelayoutSlots()
 {
 	for (std::size_t i = 0; i < nodes_.size(); ++i)
 	{
-		IFieldNode* node = nodes_[i].get();
+		IModuleNode* node = nodes_[i].get();
 		if (node == nullptr)
 		{
 			continue;
 		}
 		node->SetLocalPos(SlotLocalPos_(i));
-		node->SetFieldOrigin(warehouseOrigin_);
+		node->SetZoneOrigin(warehouseOrigin_);
 		node->SyncVisual();
 	}
 }
 
-bool ModuleWarehouse::TryAcceptDrop(std::unique_ptr<IFieldNode>& node, DirectX::XMFLOAT2 localPos)
+bool ModuleWarehouse::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
 {
 	(void)localPos;
 	if (node == nullptr || node->IsCore() || IsFull())
@@ -141,7 +141,7 @@ bool ModuleWarehouse::TryAcceptDrop(std::unique_ptr<IFieldNode>& node, DirectX::
 	return true;
 }
 
-DropResult ModuleWarehouse::EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept
+DropResult ModuleWarehouse::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept
 {
 	DropResult result{};
 	if (!ContainsCircle(worldPos, node.GetHitRadius()))
@@ -181,19 +181,19 @@ DropResult ModuleWarehouse::EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 w
 	return result;
 }
 
-std::unique_ptr<IFieldNode> ModuleWarehouse::TakeNode(std::size_t index)
+std::unique_ptr<IModuleNode> ModuleWarehouse::TakeNode(std::size_t index)
 {
 	if (index >= nodes_.size())
 	{
 		return nullptr;
 	}
-	std::unique_ptr<IFieldNode> out = std::move(nodes_[index]);
+	std::unique_ptr<IModuleNode> out = std::move(nodes_[index]);
 	nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(index));
 	RelayoutSlots();
 	return out;
 }
 
-std::unique_ptr<IFieldNode> ModuleWarehouse::TakeNode(IFieldNode* node)
+std::unique_ptr<IModuleNode> ModuleWarehouse::TakeNode(IModuleNode* node)
 {
 	if (node == nullptr)
 	{
@@ -328,14 +328,14 @@ void ModuleWarehouse::SubmitAllVisuals()
 	SubmitNodes();
 }
 
-IFieldNode* ModuleWarehouse::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
+IModuleNode* ModuleWarehouse::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
 {
-	IFieldNode* best = nullptr;
+	IModuleNode* best = nullptr;
 	float bestDistSq = 1.0e9f;
 
 	for (auto& n : nodes_)
 	{
-		IFieldNode* node = n.get();
+		IModuleNode* node = n.get();
 		if (node == nullptr)
 		{
 			continue;

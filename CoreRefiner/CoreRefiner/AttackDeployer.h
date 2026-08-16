@@ -1,7 +1,7 @@
 #pragma once
 #include "Attack.h"
 #include "Ball.h"
-#include "AttackNodeLabel.h"
+#include "ModuleNodeLabel.h"
 
 #include "Rule_Orbit_Module.h"
 #include "Attribute_Lifetime_Module.h"
@@ -58,7 +58,7 @@ class IAttackNodeStep
 public:
 	virtual ~IAttackNodeStep() = default;
 	virtual void Apply(DeployContext& ctx) = 0;
-	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept = 0;
+	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
 	[[nodiscard]] virtual const char* GetName() const noexcept = 0;
 	[[nodiscard]] virtual bool HasModule() const noexcept { return false; }
 	[[nodiscard]] virtual DeployTarget GetTarget() const noexcept { return DeployTarget::Focus; }
@@ -116,9 +116,9 @@ public:
 		enableCollider_(enableCollider)
 	{}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Spawn_Ball;
+		return ModuleNodeLabel::Spawn_Ball;
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Spawn_Ball"; }
 
@@ -180,9 +180,9 @@ private:
 class AttackNodeStep_Other_Child final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Other_Child;
+		return ModuleNodeLabel::Other_Child;
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Child"; }
 
@@ -214,9 +214,9 @@ public:
 		durationSeconds_(durationSeconds)
 	{}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Attribute_Lifetime;
+		return ModuleNodeLabel::Attribute_Lifetime;
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_Lifetime"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
@@ -246,9 +246,9 @@ public:
 		: speedRate_{ speedRate }
 	{}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Attribute_SpeedRate;
+		return ModuleNodeLabel::Attribute_SpeedRate;
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SpeedRate"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
@@ -281,9 +281,9 @@ public:
 		orbitPhase_(phase)
 	{}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Rule_Orbit;
+		return ModuleNodeLabel::Rule_Orbit;
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Orbit"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }

@@ -661,12 +661,6 @@
     <ClCompile Include="Canvas2DRipples.cpp">
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClCompile>
-    <ClCompile Include="IFieldNode.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldNodeInfoCopy.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClCompile>
     <ClCompile Include="NodeInfoPanel.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClCompile>
@@ -684,6 +678,15 @@
     </ClCompile>
     <ClCompile Include="ZoneLayoutEditor.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
+    <ClCompile Include="ModuleNodeInfoCopy.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClCompile>
+    <ClCompile Include="ModuleNodeFactory.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClCompile>
+    <ClCompile Include="IModuleNode.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1350,15 +1353,6 @@
     <ClInclude Include="Canvas2DRipples.h">
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClInclude>
-    <ClInclude Include="FieldNodes.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClInclude>
-    <ClInclude Include="IFieldNode.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClInclude>
-    <ClInclude Include="FieldNodeInfoCopy.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClInclude>
     <ClInclude Include="NodeInfoPanel.h">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
@@ -1379,9 +1373,6 @@
     </ClInclude>
     <ClInclude Include="Ball.h">
       <Filter>Object\Attack</Filter>
-    </ClInclude>
-    <ClInclude Include="AttackNodeLabel.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
     <ClInclude Include="ModuleField.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
@@ -1409,6 +1400,21 @@
     </ClInclude>
     <ClInclude Include="ZoneLayoutEditor.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleNodeInfoCopy.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleNodes.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleNodeFactory.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="IModuleNode.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleNodeLabel.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1640,7 +1646,7 @@
     <None Include="Time.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
-    <None Include="FieldNodeInfoCopy.json">
+    <None Include="ModuleNodeInfoCopy.json">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </None>
   </ItemGroup>

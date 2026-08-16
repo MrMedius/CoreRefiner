@@ -18,7 +18,7 @@ struct ScanSession
 	ScanWave wave{};
 	bool active{ false };
 	bool pendingFire{ false };
-	IFieldNode* lastSource{ nullptr };
+	IModuleNode* lastSource{ nullptr };
 	std::vector<Attack*> committedShots;
 	std::size_t appliedTokenCount{ 0 };
 	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
@@ -79,7 +79,7 @@ public:
 		{
 			return false;
 		}
-		const IFieldNode* core = field.GetCore();
+		const IModuleNode* core = field.GetCore();
 		return core != nullptr && core->IsReady();
 	}
 
@@ -95,7 +95,7 @@ public:
 			return;
 		}
 
-		IFieldNode* core = field.GetCore();
+		IModuleNode* core = field.GetCore();
 		if (core == nullptr)
 		{
 			return;
@@ -195,7 +195,7 @@ public:
 	void ForceFinish(ModuleField& field)
 	{
 		ForceCommit();
-		field.ForEach([](IFieldNode& node)
+		field.ForEach([](IModuleNode& node)
 		{
 			//if (node.IsReady())
 			{
@@ -298,7 +298,7 @@ private:
 		session.pendingFire = !session.committedShots.empty();
 	}
 
-	bool ApplyHit_(std::size_t sessionIndex, IFieldNode& node)
+	bool ApplyHit_(std::size_t sessionIndex, IModuleNode& node)
 	{
 		if (sessionIndex >= sessions_.size())
 		{
@@ -317,7 +317,7 @@ private:
 		const bool flushedShots = session.ctx.shots.size() > shotsBefore;
 
 		/**
-		 * Spawn_Ball Flush (core or FieldNode_Spawn_Ball): park previous roots, keep new parent,
+		 * Spawn_Ball Flush (core or ModuleNode_Spawn_Ball): park previous roots, keep new parent,
 		 * reset token count, continue scan from this node. Fill-only hits just chain.
 		 */
 		if (flushedShots)
@@ -387,13 +387,13 @@ private:
 			return false;
 		}
 
-		IFieldNode* best = nullptr;
+		IModuleNode* best = nullptr;
 		float bestAbs = 1.0e9f;
 
 		const ScanWave& wave = sessions_[sessionIndex].wave;
-		IFieldNode* const source = wave.source;
+		IModuleNode* const source = wave.source;
 
-		field.ForEach([&](IFieldNode& node)
+		field.ForEach([&](IModuleNode& node)
 		{
 			if (!node.IsReady())
 			{

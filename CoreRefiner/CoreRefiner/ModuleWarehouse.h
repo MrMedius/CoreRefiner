@@ -1,6 +1,6 @@
 #pragma once
 #include "Canvas2D.h"
-#include "IFieldNode.h"
+#include "IModuleNode.h"
 #include "IModuleZone.h"
 
 #include <cstddef>
@@ -63,7 +63,7 @@ public:
 
 	[[nodiscard]] bool HasFreeSlot() const noexcept { return !IsFull(); }
 
-	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept override
+	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
 	}
@@ -78,10 +78,10 @@ public:
 
 	void RelayoutSlots();
 
-	[[nodiscard]] bool TryAcceptDrop(std::unique_ptr<IFieldNode>& node, DirectX::XMFLOAT2 localPos) override;
+	[[nodiscard]] bool TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos) override;
 
-	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(std::size_t index);
-	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node) override;
+	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(std::size_t index);
+	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
 
 	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
 	void SyncAllVisuals() override;
@@ -91,7 +91,7 @@ public:
 
 	void ClearLayoutGhosts() override
 	{
-		ForEach([](IFieldNode& node)
+		ForEach([](IModuleNode& node)
 		{
 			if (node.IsLayoutGhostActive())
 			{
@@ -100,9 +100,9 @@ public:
 		});
 	}
 
-	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
+	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 
-	[[nodiscard]] DropResult EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
+	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 
 	template <typename Fn>
 	void ForEach(Fn&& fn)
@@ -136,7 +136,7 @@ private:
 	void PaintPanel_();
 	void SyncPanelTransform_() noexcept;
 
-	std::vector<std::unique_ptr<IFieldNode>> nodes_;
+	std::vector<std::unique_ptr<IModuleNode>> nodes_;
 	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
 	std::unique_ptr<Canvas2D> panel_;
 };

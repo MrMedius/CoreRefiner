@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AttackNodeLabel.h"
+#include "ModuleNodeLabel.h"
 
 class Attack;
 class Character;
@@ -17,10 +17,10 @@ public:
 	virtual void OnHit(Character* other) { (void)other; }
 	virtual void OnRecycle() {}
 
-	[[nodiscard]] virtual bool HasAttackNodeLabel() const noexcept { return false; }
-	[[nodiscard]] virtual AttackNodeLabel GetAttackNodeLabel() const noexcept
+	[[nodiscard]] virtual bool HasModuleNodeLabel() const noexcept { return false; }
+	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept
 	{
-		return AttackNodeLabel::Count;
+		return ModuleNodeLabel::Count;
 	}
 
 	[[nodiscard]] Attack* GetOwner() const noexcept { return owner_; }

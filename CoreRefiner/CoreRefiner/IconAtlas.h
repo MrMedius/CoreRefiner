@@ -1,5 +1,5 @@
 #pragma once
-#include "AttackNodeLabel.h"
+#include "ModuleNodeLabel.h"
 #include "Canvas.h"
 #include "Colors.h"
 
@@ -150,7 +150,7 @@ namespace NodeIconAtlas
 		};
 	}
 
-	inline constexpr std::array<IconAtlas::IconBits, AttackNodeLabelCount()> kNodeIcons{
+	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
 		detail::kSpawnBall,
 		detail::kAttributeLifetime,
 		detail::kAttributeSpeedRate,
@@ -158,11 +158,11 @@ namespace NodeIconAtlas
 		detail::kOtherChild,
 	};
 
-	[[nodiscard]] inline const IconAtlas::IconBits& Get(AttackNodeLabel id) noexcept
+	[[nodiscard]] inline const IconAtlas::IconBits& Get(ModuleNodeLabel id) noexcept
 	{
 		const std::size_t i = ToIndex(id);
-		assert(i < AttackNodeLabelCount());
-		if (i >= AttackNodeLabelCount())
+		assert(i < ModuleNodeLabelCount());
+		if (i >= ModuleNodeLabelCount())
 		{
 			return kNodeIcons[0];
 		}

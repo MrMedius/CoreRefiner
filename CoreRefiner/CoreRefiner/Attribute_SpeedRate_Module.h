@@ -15,10 +15,10 @@ public:
 		speedRate_(speedRate)
 	{}
 
-	[[nodiscard]] bool HasAttackNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Attribute_SpeedRate;
+		return ModuleNodeLabel::Attribute_SpeedRate;
 	}
 
 	void OnSpawn() override

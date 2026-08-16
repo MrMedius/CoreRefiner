@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IFieldNode.h"
+#include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleFieldCanvas.h"
 
@@ -37,7 +37,7 @@ public:
 		return raw;
 	}
 
-	[[nodiscard]] IFieldNode* GetCore() const noexcept
+	[[nodiscard]] IModuleNode* GetCore() const noexcept
 	{
 		for (const auto& n : nodes_)
 		{
@@ -53,7 +53,7 @@ public:
 
 	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return nodes_.size(); }
 
-	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept override
+	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
 	}
@@ -63,18 +63,18 @@ public:
 	[[nodiscard]] ModuleFieldCanvas* GetCanvas() noexcept { return canvas_.get(); }
 	[[nodiscard]] const ModuleFieldCanvas* GetCanvas() const noexcept { return canvas_.get(); }
 
-	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(std::size_t index)
+	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(std::size_t index)
 	{
 		if (index >= nodes_.size())
 		{
 			return nullptr;
 		}
-		std::unique_ptr<IFieldNode> out = std::move(nodes_[index]);
+		std::unique_ptr<IModuleNode> out = std::move(nodes_[index]);
 		nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(index));
 		return out;
 	}
 
-	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node) override
+	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override
 	{
 		if (node == nullptr)
 		{
@@ -91,7 +91,7 @@ public:
 	}
 
 	[[nodiscard]] bool TryAcceptDrop(
-		std::unique_ptr<IFieldNode>& node,
+		std::unique_ptr<IModuleNode>& node,
 		DirectX::XMFLOAT2 localPos) override;
 
 	void TickAllCooldowns(float dt)
@@ -176,11 +176,11 @@ public:
 
 	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForRadius(DirectX::XMFLOAT2 localPos, float hitRadius) const noexcept;
 
-	[[nodiscard]] bool WouldOverlap(const IFieldNode& self, DirectX::XMFLOAT2 fieldLocal) const noexcept;
+	[[nodiscard]] bool WouldOverlap(const IModuleNode& self, DirectX::XMFLOAT2 fieldLocal) const noexcept;
 
 	void ClearLayoutGhosts() override
 	{
-		ForEach([](IFieldNode& node)
+		ForEach([](IModuleNode& node)
 		{
 			if (node.IsLayoutGhostActive())
 			{
@@ -189,12 +189,12 @@ public:
 		});
 	}
 
-	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
+	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 
-	[[nodiscard]] DropResult EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
+	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 
 private:
-	std::vector<std::unique_ptr<IFieldNode>> nodes_;
+	std::vector<std::unique_ptr<IModuleNode>> nodes_;
 	std::unique_ptr<ModuleFieldCanvas> canvas_;
 	DirectX::XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
 };

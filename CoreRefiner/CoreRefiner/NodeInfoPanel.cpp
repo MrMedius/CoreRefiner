@@ -11,9 +11,6 @@
 
 namespace
 {
-	/**
-	 * @brief Clamp panel center so the full AABB stays inside the logical screen.
-	 */
 	[[nodiscard]] DirectX::XMFLOAT2 ClampPanelCenter_(
 		float cx,
 		float cy,
@@ -63,14 +60,14 @@ void NodeInfoPanel::Ensure(Graphics& gfx, Rgph::RenderGraph& rg)
 	canvas_->LinkTechniques(rg);
 }
 
-void NodeInfoPanel::ShowFor(AttackNodeLabel label, DirectX::XMFLOAT2 anchorGameXY)
+void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY)
 {
 	if (canvas_ == nullptr)
 	{
 		return;
 	}
 
-	const FieldNodeInfoLanguage lang = GetFieldNodeInfoLanguage();
+	const ModuleNodeInfoLanguage lang = GetModuleNodeInfoLanguage();
 	const bool contentDirty =
 		!cachedLabel_.has_value()
 		|| !cachedLanguage_.has_value()
@@ -102,9 +99,9 @@ void NodeInfoPanel::Submit() const
 	canvas_->Submit(Chan::ui);
 }
 
-void NodeInfoPanel::RebuildContent_(AttackNodeLabel label)
+void NodeInfoPanel::RebuildContent_(ModuleNodeLabel label)
 {
-	const FieldNodeInfoEntry& entry = GetFieldNodeInfoCopy(label);
+	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(label);
 	const std::string text = entry.ComposedText();
 
 	auto ctx = TextCodex::Get().BeginDraw();

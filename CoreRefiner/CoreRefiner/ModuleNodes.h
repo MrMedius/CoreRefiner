@@ -1,14 +1,14 @@
 #pragma once
 
-#include "IFieldNode.h"
+#include "IModuleNode.h"
 #include "AttackDeployer.h"
 
 #include <DirectXMath.h>
 
-class FieldNode_Spawn_Ball : public IFieldNode
+class ModuleNode_Spawn_Ball : public IModuleNode
 {
 public:
-	explicit FieldNode_Spawn_Ball(
+	explicit ModuleNode_Spawn_Ball(
 		DirectX::XMFLOAT2 localPos,
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
@@ -28,9 +28,9 @@ public:
 		AttackNodeStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
 	}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Spawn_Ball;
+		return ModuleNodeLabel::Spawn_Ball;
 	}
 
 protected:
@@ -38,15 +38,15 @@ protected:
 	bool enableCollider_{ true };
 };
 
-class FieldNode_Spawn_Ball_Core final : public FieldNode_Spawn_Ball
+class ModuleNode_Spawn_Ball_Core final : public ModuleNode_Spawn_Ball
 {
 public:
-	explicit FieldNode_Spawn_Ball_Core(
+	explicit ModuleNode_Spawn_Ball_Core(
 		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
 		:
-		FieldNode_Spawn_Ball(localPos, scale, enableCollider)
+		ModuleNode_Spawn_Ball(localPos, scale, enableCollider)
 	{
 		isCore_ = true;
 		scanMaxRadius_ = 140.0f;
@@ -54,10 +54,10 @@ public:
 	}
 };
 
-class FieldNode_Other_Child final : public IFieldNode
+class ModuleNode_Other_Child final : public IModuleNode
 {
 public:
-	explicit FieldNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
+	explicit ModuleNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
 		hitRadius_ = 14.0f;
@@ -71,16 +71,16 @@ public:
 		AttackNodeStep_Other_Child::Make()->Apply(ctx);
 	}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Other_Child;
+		return ModuleNodeLabel::Other_Child;
 	}
 };
 
-class FieldNode_Attribute_Lifetime final : public IFieldNode
+class ModuleNode_Attribute_Lifetime final : public IModuleNode
 {
 public:
-	FieldNode_Attribute_Lifetime(DirectX::XMFLOAT2 localPos, float durationSeconds = 2.0f) noexcept
+	ModuleNode_Attribute_Lifetime(DirectX::XMFLOAT2 localPos, float durationSeconds = 2.0f) noexcept
 		:
 		durationSeconds_(durationSeconds)
 	{
@@ -96,19 +96,19 @@ public:
 		AttackNodeStep_Attribute_Lifetime::Make(durationSeconds_)->Apply(ctx);
 	}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Attribute_Lifetime;
+		return ModuleNodeLabel::Attribute_Lifetime;
 	}
 
 private:
 	float durationSeconds_{ 2.0f };
 };
 
-class FieldNode_Attribute_SpeedRate final : public IFieldNode
+class ModuleNode_Attribute_SpeedRate final : public IModuleNode
 {
 public:
-	FieldNode_Attribute_SpeedRate(DirectX::XMFLOAT2 localPos, float speedRate = 1.0f) noexcept
+	ModuleNode_Attribute_SpeedRate(DirectX::XMFLOAT2 localPos, float speedRate = 1.0f) noexcept
 		:
 		speedRate_(speedRate)
 	{
@@ -124,19 +124,19 @@ public:
 		AttackNodeStep_Attribute_SpeedRate::Make(speedRate_)->Apply(ctx);
 	}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Attribute_SpeedRate;
+		return ModuleNodeLabel::Attribute_SpeedRate;
 	}
 
 private:
 	float speedRate_{ 1.0f };
 };
 
-class FieldNode_Rule_Orbit final : public IFieldNode
+class ModuleNode_Rule_Orbit final : public IModuleNode
 {
 public:
-	FieldNode_Rule_Orbit(
+	ModuleNode_Rule_Orbit(
 		DirectX::XMFLOAT2 localPos,
 		float radius = 2.0f,
 		float angularSpeed = 3.5f,
@@ -158,9 +158,9 @@ public:
 		AttackNodeStep_Rule_Orbit::Make(orbitRadius_, orbitAngularSpeed_, orbitPhase_)->Apply(ctx);
 	}
 
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Rule_Orbit;
+		return ModuleNodeLabel::Rule_Orbit;
 	}
 
 private:

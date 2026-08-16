@@ -1,5 +1,5 @@
 #include "ZoneLayoutEditor.h"
-#include "FieldNodeInfoCopy.h"
+#include "ModuleNodeInfoCopy.h"
 #include "InputCodex.h"
 #include "Colors.h"
 #include "Channels.h"
@@ -11,21 +11,21 @@
 
 namespace
 {
-	void EnsureFieldNodeInfoCopyLoaded_()
+	void EnsureModuleNodeInfoCopyLoaded_()
 	{
-		if (IsFieldNodeInfoCopyLoaded())
+		if (IsModuleNodeInfoCopyLoaded())
 		{
 			return;
 		}
-		if (LoadFieldNodeInfoCopy("FieldNodeInfoCopy.json"))
+		if (LoadModuleNodeInfoCopy("ModuleNodeInfoCopy.json"))
 		{
 			return;
 		}
-		if (LoadFieldNodeInfoCopy("CoreRefiner/FieldNodeInfoCopy.json"))
+		if (LoadModuleNodeInfoCopy("CoreRefiner/ModuleNodeInfoCopy.json"))
 		{
 			return;
 		}
-		(void)LoadFieldNodeInfoCopy("CoreRefiner/CoreRefiner/FieldNodeInfoCopy.json");
+		(void)LoadModuleNodeInfoCopy("CoreRefiner/CoreRefiner/ModuleNodeInfoCopy.json");
 	}
 
 	[[nodiscard]] bool IsBoundZoneId_(ZoneId id) noexcept
@@ -40,7 +40,7 @@ void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::a
 	zones_ = zones;
 
 	EnsureRingVisual_(gfx, rg);
-	EnsureFieldNodeInfoCopyLoaded_();
+	EnsureModuleNodeInfoCopyLoaded_();
 	infoPanel_.Ensure(gfx, rg);
 	infoPanel_.Hide();
 
@@ -114,7 +114,7 @@ void ZoneLayoutEditor::CancelRestore()
 
 	struct PendingMigrate_
 	{
-		std::unique_ptr<IFieldNode> node;
+		std::unique_ptr<IModuleNode> node;
 		ZoneId target{ ZoneId::Field };
 	};
 	std::vector<PendingMigrate_> pending;
@@ -124,7 +124,7 @@ void ZoneLayoutEditor::CancelRestore()
 	for (const LayoutSnapshotEntry_& entry : layoutSnapshot_)
 	{
 		ZoneId curZone = kNoZone_;
-		IFieldNode* node = FindNodeById_(entry.id, curZone);
+		IModuleNode* node = FindNodeById_(entry.id, curZone);
 		if (node == nullptr || curZone == entry.zone)
 		{
 			continue;
@@ -135,7 +135,7 @@ void ZoneLayoutEditor::CancelRestore()
 		{
 			continue;
 		}
-		std::unique_ptr<IFieldNode> taken = source->TakeNode(node);
+		std::unique_ptr<IModuleNode> taken = source->TakeNode(node);
 		if (taken == nullptr)
 		{
 			continue;
@@ -143,13 +143,13 @@ void ZoneLayoutEditor::CancelRestore()
 		pending.push_back(PendingMigrate_{ std::move(taken), entry.zone });
 	}
 
-	auto adoptOne_ = [&](PendingMigrate_& p) -> IFieldNode*
+	auto adoptOne_ = [&](PendingMigrate_& p) -> IModuleNode*
 	{
 		if (p.node == nullptr)
 		{
 			return nullptr;
 		}
-		IFieldNode* raw = p.node.get();
+		IModuleNode* raw = p.node.get();
 		const DirectX::XMFLOAT2 local = raw->GetLocalPos();
 		if (IModuleZone* target = ZoneAt_(p.target))
 		{
@@ -189,7 +189,7 @@ void ZoneLayoutEditor::CancelRestore()
 	for (const LayoutSnapshotEntry_& entry : layoutSnapshot_)
 	{
 		ZoneId curZone = kNoZone_;
-		IFieldNode* node = FindNodeById_(entry.id, curZone);
+		IModuleNode* node = FindNodeById_(entry.id, curZone);
 		if (node == nullptr || curZone != entry.zone)
 		{
 			continue;
@@ -198,7 +198,7 @@ void ZoneLayoutEditor::CancelRestore()
 		node->SetLocalPos(entry.localPos);
 		if (IModuleZone* zone = ZoneAt_(entry.zone))
 		{
-			node->SetFieldOrigin(zone->GetOrigin());
+			node->SetZoneOrigin(zone->GetOrigin());
 		}
 		if (node->IsLayoutGhostActive())
 		{
@@ -273,7 +273,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		}
 	}
 
-	IFieldNode* ringTarget = (dragged_ != nullptr) ? dragged_ : hover_;
+	IModuleNode* ringTarget = (dragged_ != nullptr) ? dragged_ : hover_;
 	const ZoneId ringSource = (dragged_ != nullptr) ? dragSource_ : hoverSource_;
 	if (dragged_ != nullptr)
 	{
@@ -298,7 +298,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		const DirectX::XMFLOAT3 origin = OriginForSource_(hoverSource_);
 		const DirectX::XMFLOAT2 local = hover_->GetLocalPos();
 		infoPanel_.ShowFor(
-			hover_->GetAttackNodeLabel(),
+			hover_->GetModuleNodeLabel(),
 			DirectX::XMFLOAT2{ origin.x + local.x, origin.y + local.y });
 	}
 }
@@ -382,7 +382,7 @@ void ZoneLayoutEditor::Snapshot_()
 		}
 		for (std::size_t i = 0; i < zone->GetNodeCount(); ++i)
 		{
-			const IFieldNode* node = zone->GetNode(i);
+			const IModuleNode* node = zone->GetNode(i);
 			if (node == nullptr)
 			{
 				continue;
@@ -396,7 +396,7 @@ void ZoneLayoutEditor::Snapshot_()
 	}
 }
 
-IFieldNode* ZoneLayoutEditor::FindNodeById_(std::uint32_t id, ZoneId& outZone) const noexcept
+IModuleNode* ZoneLayoutEditor::FindNodeById_(std::uint32_t id, ZoneId& outZone) const noexcept
 {
 	if (id == 0u)
 	{
@@ -411,7 +411,7 @@ IFieldNode* ZoneLayoutEditor::FindNodeById_(std::uint32_t id, ZoneId& outZone) c
 		}
 		for (std::size_t i = 0; i < zone->GetNodeCount(); ++i)
 		{
-			IFieldNode* node = zone->GetNode(i);
+			IModuleNode* node = zone->GetNode(i);
 			if (node != nullptr && node->GetInstanceId() == id)
 			{
 				outZone = zone->GetZoneId();
@@ -452,7 +452,7 @@ DirectX::XMFLOAT3 ZoneLayoutEditor::OriginForSource_(ZoneId source) const noexce
 	return DirectX::XMFLOAT3{};
 }
 
-DirectX::XMFLOAT2 ZoneLayoutEditor::WorldPosOf_(const IFieldNode& node, DirectX::XMFLOAT3 origin) const noexcept
+DirectX::XMFLOAT2 ZoneLayoutEditor::WorldPosOf_(const IModuleNode& node, DirectX::XMFLOAT3 origin) const noexcept
 {
 	return DirectX::XMFLOAT2{
 		origin.x + node.GetLocalPos().x,
@@ -469,7 +469,7 @@ IModuleZone* ZoneLayoutEditor::ZoneAt_(ZoneId id) const noexcept
 	return zones_[ToIndex(id)];
 }
 
-void ZoneLayoutEditor::SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mouseGame)
+void ZoneLayoutEditor::SetFreePreview_(IModuleNode& node, DirectX::XMFLOAT2 mouseGame)
 {
 	node.SetLocalPos(DirectX::XMFLOAT2{
 		mouseGame.x - dragOrigin_.x,
@@ -478,7 +478,7 @@ void ZoneLayoutEditor::SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mouse
 	node.SyncVisual();
 }
 
-ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IFieldNode& node) const noexcept
+ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node) const noexcept
 {
 	DropEval_ eval{};
 	const DirectX::XMFLOAT2 world = WorldPosOf_(node, dragOrigin_);
@@ -514,7 +514,7 @@ void ZoneLayoutEditor::RevertDrag_()
 	dragged_->SetLocalPos(dragStartLocalPos_);
 	if (IModuleZone* source = ZoneAt_(dragSource_))
 	{
-		dragged_->SetFieldOrigin(source->GetOrigin());
+		dragged_->SetZoneOrigin(source->GetOrigin());
 	}
 	dragged_->EndLayoutGhost();
 	dragged_->SyncVisual();
@@ -552,7 +552,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
-	IFieldNode* node = dragged_;
+	IModuleNode* node = dragged_;
 	const DirectX::XMFLOAT2 world = WorldPosOf_(*node, dragOrigin_);
 	const DropResult drop = target->EvalDrop(*node, world, dragSource_);
 	if (!IsDropAccepted(drop.verdict))
@@ -564,7 +564,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	if (dragSource_ == eval.target)
 	{
 		node->SetLocalPos(drop.localPos);
-		node->SetFieldOrigin(target->GetOrigin());
+		node->SetZoneOrigin(target->GetOrigin());
 		node->EndLayoutGhost();
 		node->SyncVisual();
 		target->SyncAllVisuals();
@@ -572,7 +572,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	}
 
 	node->EndLayoutGhost();
-	std::unique_ptr<IFieldNode> taken = source->TakeNode(node);
+	std::unique_ptr<IModuleNode> taken = source->TakeNode(node);
 	if (!target->TryAcceptDrop(taken, drop.localPos))
 	{
 		if (taken != nullptr)
@@ -583,10 +583,10 @@ void ZoneLayoutEditor::ResolveRelease_()
 	}
 }
 
-IFieldNode* ZoneLayoutEditor::PickHover_(DirectX::XMFLOAT2 mouseGame, ZoneId& outSource) const noexcept
+IModuleNode* ZoneLayoutEditor::PickHover_(DirectX::XMFLOAT2 mouseGame, ZoneId& outSource) const noexcept
 {
 	outSource = kNoZone_;
-	IFieldNode* best = nullptr;
+	IModuleNode* best = nullptr;
 	float bestDistSq = 1.0e9f;
 
 	for (IModuleZone* zone : zones_)
@@ -596,7 +596,7 @@ IFieldNode* ZoneLayoutEditor::PickHover_(DirectX::XMFLOAT2 mouseGame, ZoneId& ou
 			continue;
 		}
 		float distSq = 1.0e9f;
-		IFieldNode* hit = zone->PickAt(mouseGame, distSq);
+		IModuleNode* hit = zone->PickAt(mouseGame, distSq);
 		if (hit == nullptr)
 		{
 			continue;
@@ -611,7 +611,7 @@ IFieldNode* ZoneLayoutEditor::PickHover_(DirectX::XMFLOAT2 mouseGame, ZoneId& ou
 	return best;
 }
 
-void ZoneLayoutEditor::SnapCursorToNode_(IFieldNode& node, DirectX::XMFLOAT3 origin, Window& hostWindow) const noexcept
+void ZoneLayoutEditor::SnapCursorToNode_(IModuleNode& node, DirectX::XMFLOAT3 origin, Window& hostWindow) const noexcept
 {
 	const DirectX::XMFLOAT2 local = node.GetLocalPos();
 	const int gameX = static_cast<int>(std::lround(origin.x + local.x));
@@ -629,7 +629,7 @@ void ZoneLayoutEditor::SnapCursorToNode_(IFieldNode& node, DirectX::XMFLOAT3 ori
 	::SetCursorPos(pt.x, pt.y);
 }
 
-void ZoneLayoutEditor::SyncRingTransform_(IFieldNode& node, DirectX::XMFLOAT3 origin)
+void ZoneLayoutEditor::SyncRingTransform_(IModuleNode& node, DirectX::XMFLOAT3 origin)
 {
 	if (ringHover_ != nullptr)
 	{
@@ -645,7 +645,7 @@ void ZoneLayoutEditor::SyncRingTransform_(IFieldNode& node, DirectX::XMFLOAT3 or
 	}
 }
 
-void ZoneLayoutEditor::SyncOneRingTransform_(Canvas2D& ring, IFieldNode& node, DirectX::XMFLOAT3 origin) const
+void ZoneLayoutEditor::SyncOneRingTransform_(Canvas2D& ring, IModuleNode& node, DirectX::XMFLOAT3 origin) const
 {
 	const DirectX::XMFLOAT2 local = node.GetLocalPos();
 	const float side = node.GetHitRadius() * 2.0f + kRingPadding_;

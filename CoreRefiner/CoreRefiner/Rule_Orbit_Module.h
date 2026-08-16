@@ -26,10 +26,10 @@ public:
 		angle_(phase0)
 	{}
 
-	[[nodiscard]] bool HasAttackNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Rule_Orbit;
+		return ModuleNodeLabel::Rule_Orbit;
 	}
 
 	void OnSpawn() override

@@ -38,13 +38,13 @@ void ModuleField::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	{
 		if (n != nullptr)
 		{
-			n->SetFieldOrigin(origin_);
+			n->SetZoneOrigin(origin_);
 		}
 	}
 }
 
 bool ModuleField::TryAcceptDrop(
-	std::unique_ptr<IFieldNode>& node,
+	std::unique_ptr<IModuleNode>& node,
 	DirectX::XMFLOAT2 localPos)
 {
 	if (node == nullptr)
@@ -52,16 +52,16 @@ bool ModuleField::TryAcceptDrop(
 		return false;
 	}
 
-	IFieldNode* raw = node.get();
+	IModuleNode* raw = node.get();
 	raw->SetLocalPos(localPos);
-	raw->SetFieldOrigin(origin_);
+	raw->SetZoneOrigin(origin_);
 	nodes_.push_back(std::move(node));
 	raw->SyncVisual();
 	return true;
 }
 
 DropResult ModuleField::EvalDrop(
-	const IFieldNode& node,
+	const IModuleNode& node,
 	DirectX::XMFLOAT2 worldPos,
 	ZoneId from) const noexcept
 {
@@ -149,13 +149,13 @@ DirectX::XMFLOAT2 ModuleField::ClampLocalForRadius(
 }
 
 bool ModuleField::WouldOverlap(
-	const IFieldNode& self,
+	const IModuleNode& self,
 	DirectX::XMFLOAT2 fieldLocal) const noexcept
 {
 	const Collider2D::CircleCollider moving{ fieldLocal, self.GetHitRadius() };
 	for (const auto& n : nodes_)
 	{
-		const IFieldNode* other = n.get();
+		const IModuleNode* other = n.get();
 		if (other == nullptr || other == &self)
 		{
 			continue;
@@ -169,14 +169,14 @@ bool ModuleField::WouldOverlap(
 	return false;
 }
 
-IFieldNode* ModuleField::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
+IModuleNode* ModuleField::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
 {
-	IFieldNode* best = nullptr;
+	IModuleNode* best = nullptr;
 	float bestDistSq = 1.0e9f;
 
 	for (auto& n : nodes_)
 	{
-		IFieldNode* node = n.get();
+		IModuleNode* node = n.get();
 		if (node == nullptr)
 		{
 			continue;

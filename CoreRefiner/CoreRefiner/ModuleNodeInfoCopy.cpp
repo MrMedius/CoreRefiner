@@ -1,4 +1,4 @@
-#include "FieldNodeInfoCopy.h"
+#include "ModuleNodeInfoCopy.h"
 
 #include "json.hpp"
 
@@ -12,21 +12,21 @@ namespace
 {
 	using json = nlohmann::json;
 
-	FieldNodeInfoLanguage g_language{ FieldNodeInfoLanguage::Zh };
+	ModuleNodeInfoLanguage g_language{ ModuleNodeInfoLanguage::Zh };
 	bool g_loaded{ false };
 
-	/** @brief Per-language map: AttackNodeLabel index → entry. */
-	using LabelTable = std::unordered_map<std::size_t, FieldNodeInfoEntry>;
+	/** @brief Per-language map: ModuleNodeLabel index → entry. */
+	using LabelTable = std::unordered_map<std::size_t, ModuleNodeInfoEntry>;
 	std::array<LabelTable, 3> g_tables{};
 
-	[[nodiscard]] constexpr std::size_t LangIndex(FieldNodeInfoLanguage lang) noexcept
+	[[nodiscard]] constexpr std::size_t LangIndex(ModuleNodeInfoLanguage lang) noexcept
 	{
 		return static_cast<std::size_t>(lang);
 	}
 
-	[[nodiscard]] const FieldNodeInfoEntry& BakedDefault_()
+	[[nodiscard]] const ModuleNodeInfoEntry& BakedDefault_()
 	{
-		static const FieldNodeInfoEntry kDefault{
+		static const ModuleNodeInfoEntry kDefault{
 			"Unknown Module",
 			"No localized copy is available for this node.",
 			{}
@@ -34,44 +34,44 @@ namespace
 		return kDefault;
 	}
 
-	[[nodiscard]] std::optional<AttackNodeLabel> ParseAttackNodeLabel_(std::string_view name) noexcept
+	[[nodiscard]] std::optional<ModuleNodeLabel> ParseModuleNodeLabel_(std::string_view name) noexcept
 	{
 		if (name == "Spawn_Ball")
 		{
-			return AttackNodeLabel::Spawn_Ball;
+			return ModuleNodeLabel::Spawn_Ball;
 		}
 		if (name == "Attribute_Lifetime")
 		{
-			return AttackNodeLabel::Attribute_Lifetime;
+			return ModuleNodeLabel::Attribute_Lifetime;
 		}
 		if (name == "Attribute_SpeedRate")
 		{
-			return AttackNodeLabel::Attribute_SpeedRate;
+			return ModuleNodeLabel::Attribute_SpeedRate;
 		}
 		if (name == "Rule_Orbit")
 		{
-			return AttackNodeLabel::Rule_Orbit;
+			return ModuleNodeLabel::Rule_Orbit;
 		}
 		if (name == "Other_Child")
 		{
-			return AttackNodeLabel::Other_Child;
+			return ModuleNodeLabel::Other_Child;
 		}
 		return std::nullopt;
 	}
 
-	[[nodiscard]] std::optional<FieldNodeInfoLanguage> ParseLanguageKey_(std::string_view key) noexcept
+	[[nodiscard]] std::optional<ModuleNodeInfoLanguage> ParseLanguageKey_(std::string_view key) noexcept
 	{
 		if (key == "zh")
 		{
-			return FieldNodeInfoLanguage::Zh;
+			return ModuleNodeInfoLanguage::Zh;
 		}
 		if (key == "ja")
 		{
-			return FieldNodeInfoLanguage::Ja;
+			return ModuleNodeInfoLanguage::Ja;
 		}
 		if (key == "en")
 		{
-			return FieldNodeInfoLanguage::En;
+			return ModuleNodeInfoLanguage::En;
 		}
 		return std::nullopt;
 	}
@@ -97,9 +97,9 @@ namespace
 		return DWRITE_FONT_WEIGHT_NORMAL;
 	}
 
-	[[nodiscard]] FieldNodeInfoEntry ParseEntry_(const json& j)
+	[[nodiscard]] ModuleNodeInfoEntry ParseEntry_(const json& j)
 	{
-		FieldNodeInfoEntry entry{};
+		ModuleNodeInfoEntry entry{};
 		if (j.contains("title") && j["title"].is_string())
 		{
 			entry.title = j["title"].get<std::string>();
@@ -141,11 +141,11 @@ namespace
 		return entry;
 	}
 
-	[[nodiscard]] const FieldNodeInfoEntry* TryGet_(
-		FieldNodeInfoLanguage lang,
-		AttackNodeLabel label) noexcept
+	[[nodiscard]] const ModuleNodeInfoEntry* TryGet_(
+		ModuleNodeInfoLanguage lang,
+		ModuleNodeLabel label) noexcept
 	{
-		if (label == AttackNodeLabel::Count)
+		if (label == ModuleNodeLabel::Count)
 		{
 			return nullptr;
 		}
@@ -159,42 +159,42 @@ namespace
 	}
 }
 
-void SetFieldNodeInfoLanguage(FieldNodeInfoLanguage lang) noexcept
+void SetModuleNodeInfoLanguage(ModuleNodeInfoLanguage lang) noexcept
 {
 	g_language = lang;
 }
 
-FieldNodeInfoLanguage GetFieldNodeInfoLanguage() noexcept
+ModuleNodeInfoLanguage GetModuleNodeInfoLanguage() noexcept
 {
 	return g_language;
 }
 
-const char* ToAttackNodeLabelName(AttackNodeLabel label) noexcept
+const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 {
 	switch (label)
 	{
-	case AttackNodeLabel::Spawn_Ball: return "Spawn_Ball";
-	case AttackNodeLabel::Attribute_Lifetime: return "Attribute_Lifetime";
-	case AttackNodeLabel::Attribute_SpeedRate: return "Attribute_SpeedRate";
-	case AttackNodeLabel::Rule_Orbit: return "Rule_Orbit";
-	case AttackNodeLabel::Other_Child: return "Other_Child";
-	case AttackNodeLabel::Count: return "";
+	case ModuleNodeLabel::Spawn_Ball: return "Spawn_Ball";
+	case ModuleNodeLabel::Attribute_Lifetime: return "Attribute_Lifetime";
+	case ModuleNodeLabel::Attribute_SpeedRate: return "Attribute_SpeedRate";
+	case ModuleNodeLabel::Rule_Orbit: return "Rule_Orbit";
+	case ModuleNodeLabel::Other_Child: return "Other_Child";
+	case ModuleNodeLabel::Count: return "";
 	}
 	return "";
 }
 
-const char* ToFieldNodeInfoLanguageKey(FieldNodeInfoLanguage lang) noexcept
+const char* ToModuleNodeInfoLanguageKey(ModuleNodeInfoLanguage lang) noexcept
 {
 	switch (lang)
 	{
-	case FieldNodeInfoLanguage::Zh: return "zh";
-	case FieldNodeInfoLanguage::Ja: return "ja";
-	case FieldNodeInfoLanguage::En: return "en";
+	case ModuleNodeInfoLanguage::Zh: return "zh";
+	case ModuleNodeInfoLanguage::Ja: return "ja";
+	case ModuleNodeInfoLanguage::En: return "en";
 	}
 	return "zh";
 }
 
-bool LoadFieldNodeInfoCopy(const std::filesystem::path& path)
+bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 {
 	for (auto& table : g_tables)
 	{
@@ -235,7 +235,7 @@ bool LoadFieldNodeInfoCopy(const std::filesystem::path& path)
 		LabelTable& table = g_tables[LangIndex(*langOpt)];
 		for (auto lit = it.value().begin(); lit != it.value().end(); ++lit)
 		{
-			const auto labelOpt = ParseAttackNodeLabel_(lit.key());
+			const auto labelOpt = ParseModuleNodeLabel_(lit.key());
 			if (!labelOpt.has_value() || !lit.value().is_object())
 			{
 				continue;
@@ -249,22 +249,22 @@ bool LoadFieldNodeInfoCopy(const std::filesystem::path& path)
 	return any;
 }
 
-bool IsFieldNodeInfoCopyLoaded() noexcept
+bool IsModuleNodeInfoCopyLoaded() noexcept
 {
 	return g_loaded;
 }
 
-const FieldNodeInfoEntry& GetFieldNodeInfoCopy(AttackNodeLabel label)
+const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label)
 {
-	const FieldNodeInfoLanguage order[] = {
+	const ModuleNodeInfoLanguage order[] = {
 		g_language,
-		FieldNodeInfoLanguage::En,
-		FieldNodeInfoLanguage::Zh,
+		ModuleNodeInfoLanguage::En,
+		ModuleNodeInfoLanguage::Zh,
 	};
 
-	for (FieldNodeInfoLanguage lang : order)
+	for (ModuleNodeInfoLanguage lang : order)
 	{
-		if (const FieldNodeInfoEntry* e = TryGet_(lang, label))
+		if (const ModuleNodeInfoEntry* e = TryGet_(lang, label))
 		{
 			return *e;
 		}

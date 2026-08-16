@@ -1,4 +1,4 @@
-#include "IFieldNode.h"
+#include "IModuleNode.h"
 #include "Channels.h"
 #include "Colors.h"
 #include "IconAtlas.h"
@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-std::uint32_t IFieldNode::s_nextInstanceId_ = 0;
+std::uint32_t IModuleNode::s_nextInstanceId_ = 0;
 
 namespace
 {
@@ -29,7 +29,7 @@ namespace
 	}
 }
 
-Color IFieldNode::GetReadyFillColor() const noexcept
+Color IModuleNode::GetReadyFillColor() const noexcept
 {
 	if (isCore_)
 	{
@@ -38,15 +38,15 @@ Color IFieldNode::GetReadyFillColor() const noexcept
 	return Color(120u, 200u, 255u, 255u);
 }
 
-void IFieldNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin)
+void IModuleNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin)
 {
-	fieldOrigin_ = fieldOrigin;
+	zoneOrigin_ = zoneOrigin;
 
 	icon_ = std::make_unique<Canvas2D>(gfx, kVisualSize, kVisualSize);
 	icon_->Clear(Colors::None);
 	IconAtlas::BlitIcon(
 		*icon_,
-		NodeIconAtlas::Get(GetAttackNodeLabel()),
+		NodeIconAtlas::Get(GetModuleNodeLabel()),
 		GetReadyFillColor());
 	icon_->NotifyPixelsChanged();
 	icon_->LinkTechniques(rg);
@@ -55,7 +55,7 @@ void IFieldNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLO
 	mask_->Clear(Colors::None);
 	IconAtlas::BlitIcon(
 		*mask_,
-		NodeIconAtlas::Get(GetAttackNodeLabel()),
+		NodeIconAtlas::Get(GetModuleNodeLabel()),
 		Color(0u, 0u, 0u, 160u));
 	mask_->NotifyPixelsChanged();
 	mask_->NotifyPixelsChanged();
@@ -69,16 +69,16 @@ void IFieldNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLO
 	ApplyVisualTransform_();
 }
 
-void IFieldNode::SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
+void IModuleNode::SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept
 {
-	fieldOrigin_ = fieldOrigin;
+	zoneOrigin_ = zoneOrigin;
 	if (visualReady_)
 	{
 		ApplyVisualTransform_();
 	}
 }
 
-void IFieldNode::BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept
+void IModuleNode::BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept
 {
 	layoutGhostActive_ = true;
 	layoutGhostLocalPos_ = at;
@@ -93,7 +93,7 @@ void IFieldNode::BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept
 	}
 }
 
-void IFieldNode::EndLayoutGhost() noexcept
+void IModuleNode::EndLayoutGhost() noexcept
 {
 	layoutGhostActive_ = false;
 	layoutGhostLocalPos_ = {};
@@ -111,7 +111,7 @@ void IFieldNode::EndLayoutGhost() noexcept
 	}
 }
 
-void IFieldNode::SyncVisual()
+void IModuleNode::SyncVisual()
 {
 	if (!visualReady_)
 	{
@@ -122,7 +122,7 @@ void IFieldNode::SyncVisual()
 	ApplyVisualTransform_();
 }
 
-void IFieldNode::SubmitVisual()
+void IModuleNode::SubmitVisual()
 {
 	if (!visualReady_)
 	{
@@ -148,7 +148,7 @@ void IFieldNode::SubmitVisual()
 	}
 }
 
-void IFieldNode::ApplyVisualTransform_()
+void IModuleNode::ApplyVisualTransform_()
 {
 	if (icon_ == nullptr || mask_ == nullptr)
 	{
@@ -159,20 +159,20 @@ void IFieldNode::ApplyVisualTransform_()
 	const DirectX::XMFLOAT3 scale{ side, side, 1.0f };
 
 	const DirectX::XMFLOAT3 iconPos = (
-		V(fieldOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
+		V(zoneOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
 	).ToFloat3();
 	icon_->SetPosition(iconPos);
 	icon_->SetScale(scale);
 
 	const DirectX::XMFLOAT2 maskLocal = layoutGhostActive_ ? layoutGhostLocalPos_ : localPos_;
 	const DirectX::XMFLOAT3 maskPos = (
-		V(fieldOrigin_) + Vec3{ maskLocal.x, maskLocal.y, 0.0f }
+		V(zoneOrigin_) + Vec3{ maskLocal.x, maskLocal.y, 0.0f }
 	).ToFloat3();
 	mask_->SetPosition(maskPos);
 	mask_->SetScale(scale);
 }
 
-float IFieldNode::GetRemainRatio_() const noexcept
+float IModuleNode::GetRemainRatio_() const noexcept
 {
 	if (state_ != ModuleReadyState::Cooling)
 	{
@@ -182,7 +182,7 @@ float IFieldNode::GetRemainRatio_() const noexcept
 	return std::clamp(cooldownRemaining_ / duration, 0.0f, 1.0f);
 }
 
-void IFieldNode::SyncMaskUV_()
+void IModuleNode::SyncMaskUV_()
 {
 	if (mask_ == nullptr)
 	{

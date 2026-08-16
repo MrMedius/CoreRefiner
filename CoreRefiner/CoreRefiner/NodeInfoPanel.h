@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AttackNodeLabel.h"
-#include "FieldNodeInfoCopy.h"
+#include "ModuleNodeLabel.h"
+#include "ModuleNodeInfoCopy.h"
 
 #include <DirectXMath.h>
 #include <memory>
@@ -32,7 +32,7 @@ public:
 	/**
 	 * @brief Show copy for @p label anchored near @p anchorGameXY (game pixels, center-ish).
 	 */
-	void ShowFor(AttackNodeLabel label, DirectX::XMFLOAT2 anchorGameXY);
+	void ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY);
 
 	void Hide() noexcept;
 
@@ -42,7 +42,7 @@ public:
 	void Submit() const;
 
 private:
-	void RebuildContent_(AttackNodeLabel label);
+	void RebuildContent_(ModuleNodeLabel label);
 	void SyncPosition_(DirectX::XMFLOAT2 anchorGameXY);
 
 	Graphics* gfx_{ nullptr };
@@ -50,8 +50,8 @@ private:
 	std::unique_ptr<Canvas2D> canvas_;
 
 	bool visible_{ false };
-	std::optional<AttackNodeLabel> cachedLabel_;
-	std::optional<FieldNodeInfoLanguage> cachedLanguage_;
+	std::optional<ModuleNodeLabel> cachedLabel_;
+	std::optional<ModuleNodeInfoLanguage> cachedLanguage_;
 	unsigned contentW_{ 1u };
 	unsigned contentH_{ 1u };
 

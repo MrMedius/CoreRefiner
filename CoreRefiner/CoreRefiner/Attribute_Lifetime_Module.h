@@ -23,10 +23,10 @@ public:
 		}
 	}
 
-	[[nodiscard]] bool HasAttackNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] AttackNodeLabel GetAttackNodeLabel() const noexcept override
+	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return AttackNodeLabel::Attribute_Lifetime;
+		return ModuleNodeLabel::Attribute_Lifetime;
 	}
 
 	void OnSpawn() override

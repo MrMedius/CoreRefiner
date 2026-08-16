@@ -63,27 +63,27 @@ private:
 
 	void Snapshot_();
 
-	[[nodiscard]] IFieldNode* FindNodeById_(std::uint32_t id, ZoneId& outZone) const noexcept;
+	[[nodiscard]] IModuleNode* FindNodeById_(std::uint32_t id, ZoneId& outZone) const noexcept;
 
 	void ClearAllLayoutGhosts_();
 	[[nodiscard]] DirectX::XMFLOAT2 MouseGame_() const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT3 OriginForSource_(ZoneId source) const noexcept;
-	[[nodiscard]] DirectX::XMFLOAT2 WorldPosOf_(const IFieldNode& node, DirectX::XMFLOAT3 origin) const noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 WorldPosOf_(const IModuleNode& node, DirectX::XMFLOAT3 origin) const noexcept;
 	[[nodiscard]] IModuleZone* ZoneAt_(ZoneId id) const noexcept;
 
-	void SetFreePreview_(IFieldNode& node, DirectX::XMFLOAT2 mouseGame);
+	void SetFreePreview_(IModuleNode& node, DirectX::XMFLOAT2 mouseGame);
 
-	[[nodiscard]] DropEval_ EvalDrop_(const IFieldNode& node) const noexcept;
+	[[nodiscard]] DropEval_ EvalDrop_(const IModuleNode& node) const noexcept;
 
 	void RevertDrag_();
 	void ResolveRelease_();
 	void ClearActiveDrag_();
 
-	[[nodiscard]] IFieldNode* PickHover_(DirectX::XMFLOAT2 mouseGame, ZoneId& outSource) const noexcept;
+	[[nodiscard]] IModuleNode* PickHover_(DirectX::XMFLOAT2 mouseGame, ZoneId& outSource) const noexcept;
 
-	void SnapCursorToNode_(IFieldNode& node, DirectX::XMFLOAT3 origin, Window& hostWindow) const noexcept;
-	void SyncRingTransform_(IFieldNode& node, DirectX::XMFLOAT3 origin);
-	void SyncOneRingTransform_(Canvas2D& ring, IFieldNode& node, DirectX::XMFLOAT3 origin) const;
+	void SnapCursorToNode_(IModuleNode& node, DirectX::XMFLOAT3 origin, Window& hostWindow) const noexcept;
+	void SyncRingTransform_(IModuleNode& node, DirectX::XMFLOAT3 origin);
+	void SyncOneRingTransform_(Canvas2D& ring, IModuleNode& node, DirectX::XMFLOAT3 origin) const;
 	[[nodiscard]] Canvas2D* ActiveRing_() const noexcept;
 
 	bool active_{ false };
@@ -95,8 +95,8 @@ private:
 	DirectX::XMFLOAT2 dragStartLocalPos_{ 0.0f, 0.0f };
 	DirectX::XMFLOAT3 dragOrigin_{ 0.0f, 0.0f, 0.0f };
 
-	IFieldNode* hover_{ nullptr };
-	IFieldNode* dragged_{ nullptr };
+	IModuleNode* hover_{ nullptr };
+	IModuleNode* dragged_{ nullptr };
 	ZoneId hoverSource_{ kNoZone_ };
 	ZoneId dragSource_{ kNoZone_ };
 
