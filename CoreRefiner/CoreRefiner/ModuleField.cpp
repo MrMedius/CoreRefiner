@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <cmath>
 
-void ModuleField::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin)
+void ModuleField::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin)
 {
-	origin_ = fieldOrigin;
+	origin_ = origin;
 	if (canvas_ == nullptr)
 	{
 		constexpr float side = ModuleFieldCanvas::kDefaultFieldSide;
@@ -27,9 +27,9 @@ void ModuleField::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::
 	}
 }
 
-void ModuleField::SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
+void ModuleField::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 {
-	origin_ = fieldOrigin;
+	origin_ = origin;
 	if (canvas_ != nullptr)
 	{
 		canvas_->SetPosition(origin_);
@@ -41,6 +41,53 @@ void ModuleField::SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept
 			n->SetFieldOrigin(origin_);
 		}
 	}
+}
+
+bool ModuleField::TryAcceptDrop(
+	std::unique_ptr<IFieldNode>& node,
+	DirectX::XMFLOAT2 localPos)
+{
+	if (node == nullptr)
+	{
+		return false;
+	}
+
+	IFieldNode* raw = node.get();
+	raw->SetLocalPos(localPos);
+	raw->SetFieldOrigin(origin_);
+	nodes_.push_back(std::move(node));
+	raw->SyncVisual();
+	return true;
+}
+
+DropResult ModuleField::EvalDrop(
+	const IFieldNode& node,
+	DirectX::XMFLOAT2 worldPos,
+	ZoneId from) const noexcept
+{
+	(void)from;
+	DropResult result{};
+	const float radius = node.GetHitRadius();
+	if (!ContainsCircle(worldPos, radius))
+	{
+		result.verdict = DropVerdict::OutOfBounds;
+		return result;
+	}
+
+	DirectX::XMFLOAT2 local{
+		worldPos.x - origin_.x,
+		worldPos.y - origin_.y
+	};
+	local = ClampLocalForRadius(local, radius);
+	result.localPos = local;
+	if (WouldOverlap(node, local))
+	{
+		result.verdict = DropVerdict::Blocked;
+		return result;
+	}
+
+	result.verdict = DropVerdict::Accept;
+	return result;
 }
 
 void ModuleField::SyncAllVisuals()

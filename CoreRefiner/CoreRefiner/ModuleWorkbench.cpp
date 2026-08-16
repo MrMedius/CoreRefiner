@@ -2,11 +2,13 @@
 #include "AttackManager.h"
 #include "Channels.h"
 #include "FieldNodes.h"
+#include "IModuleZone.h"
 #include "InputCodex.h"
 #include "ObjectCodex.h"
 #include "Player.h"
 #include "Win.h"
 #include "Window.h"
+#include <array>
 
 ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
@@ -131,15 +133,20 @@ void ModuleWorkbench::BeginLayoutEdit()
 	{
 		return;
 	}
-	layoutEditor_.Begin(
-		field_,
-		warehouse_,
-		assembler_,
-		gfx_,
-		rg_,
-		combatFieldOrigin_,
-		layoutFieldOrigin_,
-		warehouseOrigin_);
+
+	assembler_.Reset();
+	field_.ClearWaves();
+	field_.ResetAllCooldowns();
+
+	std::array<IModuleZone*, ZoneCount()> zones{};
+	zones[ToIndex(ZoneId::Field)] = &field_;
+	zones[ToIndex(ZoneId::Warehouse)] = &warehouse_;
+
+	std::array<DirectX::XMFLOAT3, ZoneCount()> origins{};
+	origins[ToIndex(ZoneId::Field)] = layoutFieldOrigin_;
+	origins[ToIndex(ZoneId::Warehouse)] = warehouseOrigin_;
+
+	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
 }
 
 void ModuleWorkbench::EndLayoutEdit()

@@ -1,10 +1,8 @@
 #pragma once
-
-#include "FieldLayoutEditor.h"
 #include "ModuleField.h"
 #include "ModuleWarehouse.h"
 #include "ScanAssembler.h"
-
+#include "ZoneLayoutEditor.h"
 #include <DirectXMath.h>
 
 class AttackManager;
@@ -16,10 +14,6 @@ namespace Rgph
 	class RenderGraph;
 }
 
-/**
- * @brief Owns ModuleField / ModuleWarehouse / ScanAssembler / FieldLayoutEditor.
- * @note UI_Game should not own zone instances directly; route through this hub.
- */
 class ModuleWorkbench
 {
 public:
@@ -44,21 +38,14 @@ public:
 	[[nodiscard]] DirectX::XMFLOAT3 GetLayoutFieldOrigin() const noexcept { return layoutFieldOrigin_; }
 	[[nodiscard]] DirectX::XMFLOAT3 GetWarehouseOrigin() const noexcept { return warehouseOrigin_; }
 
-	/** @brief Clear scan sessions, node cooldowns, and field ring draw. */
 	void Reset();
 
-	/**
-	 * @brief Combat tick: cooldowns, scan assemble, fire batches, field waves.
-	 */
 	void Update(float dt, AttackManager* attackManager);
 
 	void BeginLayoutEdit();
 	void EndLayoutEdit();
 	void UpdateLayoutEdit(float dt, Window* hostWindow);
 
-	/**
-	 * @brief Submit order: all backgrounds → all nodes → layout overlay when editing.
-	 */
 	void Submit();
 
 private:
@@ -76,5 +63,5 @@ private:
 	ModuleField field_;
 	ModuleWarehouse warehouse_;
 	ScanAssembler assembler_;
-	FieldLayoutEditor layoutEditor_;
+	ZoneLayoutEditor layoutEditor_;
 };

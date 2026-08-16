@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IFieldNode.h"
+#include "IModuleZone.h"
 #include "ModuleFieldCanvas.h"
 
 #include <cstddef>
@@ -16,16 +17,13 @@ namespace Rgph
 	class RenderGraph;
 }
 
-/**
- * @brief Combat loadout container: owns nodes + ModuleFieldCanvas background.
- */
-class ModuleField
+class ModuleField : public IModuleZone
 {
 public:
 	static constexpr float kHalfExtent = 150.0f;
 
 	ModuleField() = default;
-	~ModuleField() = default;
+	~ModuleField() override = default;
 
 	ModuleField(const ModuleField&) = delete;
 	ModuleField& operator=(const ModuleField&) = delete;
@@ -51,14 +49,16 @@ public:
 		return nullptr;
 	}
 
-	[[nodiscard]] std::size_t GetNodeCount() const noexcept { return nodes_.size(); }
+	[[nodiscard]] ZoneId GetZoneId() const noexcept override { return ZoneId::Field; }
 
-	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept
+	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return nodes_.size(); }
+
+	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept override
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
 	}
 
-	[[nodiscard]] DirectX::XMFLOAT3 GetFieldOrigin() const noexcept { return origin_; }
+	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept override { return origin_; }
 
 	[[nodiscard]] ModuleFieldCanvas* GetCanvas() noexcept { return canvas_.get(); }
 	[[nodiscard]] const ModuleFieldCanvas* GetCanvas() const noexcept { return canvas_.get(); }
@@ -74,7 +74,7 @@ public:
 		return out;
 	}
 
-	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node)
+	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node) override
 	{
 		if (node == nullptr)
 		{
@@ -90,16 +90,9 @@ public:
 		return nullptr;
 	}
 
-	IFieldNode* AdoptNode(std::unique_ptr<IFieldNode> node)
-	{
-		if (node == nullptr)
-		{
-			return nullptr;
-		}
-		IFieldNode* raw = node.get();
-		nodes_.push_back(std::move(node));
-		return raw;
-	}
+	[[nodiscard]] bool TryAcceptDrop(
+		std::unique_ptr<IFieldNode>& node,
+		DirectX::XMFLOAT2 localPos) override;
 
 	void TickAllCooldowns(float dt)
 	{
@@ -112,7 +105,6 @@ public:
 		}
 	}
 
-	/** @brief Ready all nodes and clear remaining cooldown (scene leave). */
 	void ResetAllCooldowns() noexcept
 	{
 		for (auto& n : nodes_)
@@ -168,48 +160,25 @@ public:
 		}
 	}
 
-	/**
-	 * @brief Create field canvas (once) and init each node's visuals.
-	 */
-	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 fieldOrigin);
+	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
 
-	/**
-	 * @brief Move field origin for nodes and background canvas together.
-	 */
-	void SetFieldOrigin(DirectX::XMFLOAT3 fieldOrigin) noexcept;
+	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept override;
 
-	void SyncAllVisuals();
+	void SyncAllVisuals() override;
 
-	/** @brief Submit field canvas only (call before any zone's nodes). */
-	void SubmitBackground();
+	void SubmitBackground() override;
 
-	/** @brief Submit loadout nodes only. */
-	void SubmitNodes();
+	void SubmitNodes() override;
 
-	/** @brief Convenience: SubmitBackground then SubmitNodes (not for cross-zone ordering). */
 	void SubmitAllVisuals();
 
-	/**
-	 * @brief True if circle in world space lies entirely inside the field square.
-	 */
-	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept;
+	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
-	/**
-	 * @brief Clamp a field-local point so a circle of @p hitRadius stays inside kHalfExtent.
-	 */
-	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForRadius(
-		DirectX::XMFLOAT2 localPos,
-		float hitRadius) const noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForRadius(DirectX::XMFLOAT2 localPos, float hitRadius) const noexcept;
 
-	/**
-	 * @brief True if a circle at @p fieldLocal would overlap any other node (excluding @p self).
-	 */
-	[[nodiscard]] bool WouldOverlap(
-		const IFieldNode& self,
-		DirectX::XMFLOAT2 fieldLocal) const noexcept;
+	[[nodiscard]] bool WouldOverlap(const IFieldNode& self, DirectX::XMFLOAT2 fieldLocal) const noexcept;
 
-	/** @brief End layout ghost on every owned node. */
-	void ClearLayoutGhosts()
+	void ClearLayoutGhosts() override
 	{
 		ForEach([](IFieldNode& node)
 		{
@@ -220,11 +189,9 @@ public:
 		});
 	}
 
-	/**
-	 * @brief Nearest node whose hit circle contains @p worldPos.
-	 * @param outDistSq Distance squared from @p worldPos to the hit node center when found.
-	 */
-	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept;
+	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
+
+	[[nodiscard]] DropResult EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 
 private:
 	std::vector<std::unique_ptr<IFieldNode>> nodes_;

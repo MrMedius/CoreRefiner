@@ -284,7 +284,6 @@
     <ClCompile Include="UiUtf8EditBuffer.cpp" />
     <ClCompile Include="Canvas2DRipples.cpp" />
     <ClCompile Include="ModuleFieldCanvas.cpp" />
-    <ClCompile Include="FieldLayoutEditor.cpp" />
     <ClCompile Include="FieldNodeInfoCopy.cpp" />
     <ClCompile Include="NodeInfoPanel.cpp" />
     <ClCompile Include="UiRoot.cpp" />
@@ -348,6 +347,7 @@
     <ClCompile Include="Window.cpp" />
     <ClCompile Include="WindowsMessageMap.cpp" />
     <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="ZoneLayoutEditor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationInfo.h" />
@@ -356,6 +356,7 @@
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="FieldNodes.h" />
+    <ClInclude Include="IModuleZone.h" />
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="Attribute_Lifetime_Module.h" />
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
@@ -368,7 +369,6 @@
     <ClInclude Include="ScanWave.h" />
     <ClInclude Include="ModuleField.h" />
     <ClInclude Include="ModuleWorkbench.h" />
-    <ClInclude Include="FieldLayoutEditor.h" />
     <ClInclude Include="FieldNodeInfoCopy.h" />
     <ClInclude Include="NodeInfoPanel.h" />
     <ClInclude Include="ModuleFieldCanvas.h" />
@@ -590,6 +590,7 @@
     <ClInclude Include="WindowsMessageMap.h" />
     <ClInclude Include="WindowsThrowMacros.h" />
     <ClInclude Include="WireframePass.h" />
+    <ClInclude Include="ZoneLayoutEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc" />

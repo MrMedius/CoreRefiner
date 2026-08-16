@@ -129,16 +129,56 @@ void ModuleWarehouse::RelayoutSlots()
 	}
 }
 
-IFieldNode* ModuleWarehouse::TryAdopt(std::unique_ptr<IFieldNode>& node)
+bool ModuleWarehouse::TryAcceptDrop(std::unique_ptr<IFieldNode>& node, DirectX::XMFLOAT2 localPos)
 {
+	(void)localPos;
 	if (node == nullptr || node->IsCore() || IsFull())
 	{
-		return nullptr;
+		return false;
 	}
-	IFieldNode* raw = node.get();
 	nodes_.push_back(std::move(node));
 	RelayoutSlots();
-	return raw;
+	return true;
+}
+
+DropResult ModuleWarehouse::EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept
+{
+	DropResult result{};
+	if (!ContainsCircle(worldPos, node.GetHitRadius()))
+	{
+		result.verdict = DropVerdict::OutOfBounds;
+		return result;
+	}
+
+	if (from == ZoneId::Warehouse)
+	{
+		result.verdict = DropVerdict::Accept;
+		for (std::size_t i = 0; i < nodes_.size(); ++i)
+		{
+			if (nodes_[i].get() == &node)
+			{
+				result.localPos = SlotLocalPos_(i);
+				break;
+			}
+		}
+		return result;
+	}
+
+	if (node.IsCore())
+	{
+		result.verdict = DropVerdict::Forbidden;
+		return result;
+	}
+
+	if (!HasFreeSlot())
+	{
+		result.verdict = DropVerdict::NoSpace;
+		return result;
+	}
+
+	result.verdict = DropVerdict::Accept;
+	result.localPos = SlotLocalPos_(nodes_.size());
+	return result;
 }
 
 std::unique_ptr<IFieldNode> ModuleWarehouse::TakeNode(std::size_t index)

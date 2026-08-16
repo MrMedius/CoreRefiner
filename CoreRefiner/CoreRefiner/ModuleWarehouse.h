@@ -1,6 +1,7 @@
 #pragma once
 #include "Canvas2D.h"
 #include "IFieldNode.h"
+#include "IModuleZone.h"
 
 #include <cstddef>
 #include <DirectXMath.h>
@@ -15,23 +16,15 @@ namespace Rgph
 	class RenderGraph;
 }
 
-/**
- * @brief Pause-only Node stockpile (non-Core). Owns IFieldNode instances in a capped grid.
- */
-class ModuleWarehouse
+class ModuleWarehouse : public IModuleZone
 {
 public:
 	static constexpr int kColumns = 3;
 	static constexpr int kMaxRows = 4;
-	static constexpr std::size_t kMaxSlots =
-		static_cast<std::size_t>(kColumns) * static_cast<std::size_t>(kMaxRows);
+	static constexpr std::size_t kMaxSlots = static_cast<std::size_t>(kColumns) * static_cast<std::size_t>(kMaxRows);
 	static constexpr float kSlotPitch = 48.0f;
-	/** @brief Extra padding beyond outermost slot centers so a hit circle fits inside the box. */
 	static constexpr float kBoundsPad = 20.0f;
 
-	/**
-	 * @brief Axis-aligned warehouse drop zone in game pixels (center + half extents).
-	 */
 	struct BoundsWorld
 	{
 		DirectX::XMFLOAT2 center{ 0.0f, 0.0f };
@@ -39,15 +32,11 @@ public:
 	};
 
 	ModuleWarehouse() = default;
-	~ModuleWarehouse() = default;
+	~ModuleWarehouse() override = default;
 
 	ModuleWarehouse(const ModuleWarehouse&) = delete;
 	ModuleWarehouse& operator=(const ModuleWarehouse&) = delete;
 
-	/**
-	 * @brief Construct and store a node, then relayout.
-	 * @return Raw pointer, or nullptr if Core / full (node discarded on Core; not created on full).
-	 */
 	template <typename T, typename... Args>
 	T* AddNode(Args&&... args)
 	{
@@ -66,49 +55,41 @@ public:
 		return raw;
 	}
 
-	[[nodiscard]] std::size_t GetNodeCount() const noexcept { return nodes_.size(); }
+	[[nodiscard]] ZoneId GetZoneId() const noexcept override { return ZoneId::Warehouse; }
+
+	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return nodes_.size(); }
 
 	[[nodiscard]] bool IsFull() const noexcept { return nodes_.size() >= kMaxSlots; }
 
 	[[nodiscard]] bool HasFreeSlot() const noexcept { return !IsFull(); }
 
-	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept
+	[[nodiscard]] IFieldNode* GetNode(std::size_t index) const noexcept override
 	{
 		return (index < nodes_.size()) ? nodes_[index].get() : nullptr;
 	}
 
-	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept { return warehouseOrigin_; }
+	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept override { return warehouseOrigin_; }
 
-	/**
-	 * @brief World-space AABB covering a full kMaxSlots grid (for drop containment).
-	 */
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept;
 
-	/**
-	 * @brief True if circle (center, radius) lies entirely inside GetBoundsWorld().
-	 */
-	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept;
+	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
-	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept;
+	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept override;
 
 	void RelayoutSlots();
 
-	/**
-	 * @brief Adopt @p node if non-null, not Core, and not full; on failure leaves @p node unchanged.
-	 */
-	[[nodiscard]] IFieldNode* TryAdopt(std::unique_ptr<IFieldNode>& node);
+	[[nodiscard]] bool TryAcceptDrop(std::unique_ptr<IFieldNode>& node, DirectX::XMFLOAT2 localPos) override;
 
 	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(std::size_t index);
-	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node);
+	[[nodiscard]] std::unique_ptr<IFieldNode> TakeNode(IFieldNode* node) override;
 
-	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin);
-	void SyncAllVisuals();
-	void SubmitBackground();
-	void SubmitNodes();
+	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
+	void SyncAllVisuals() override;
+	void SubmitBackground() override;
+	void SubmitNodes() override;
 	void SubmitAllVisuals();
 
-	/** @brief End layout ghost on every owned node. */
-	void ClearLayoutGhosts()
+	void ClearLayoutGhosts() override
 	{
 		ForEach([](IFieldNode& node)
 		{
@@ -119,11 +100,9 @@ public:
 		});
 	}
 
-	/**
-	 * @brief Nearest node whose hit circle contains @p worldPos.
-	 * @param outDistSq Distance squared from @p worldPos to the hit node center when found.
-	 */
-	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept;
+	[[nodiscard]] IFieldNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
+
+	[[nodiscard]] DropResult EvalDrop(const IFieldNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 
 	template <typename Fn>
 	void ForEach(Fn&& fn)

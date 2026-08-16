@@ -191,11 +191,14 @@
     <Filter Include="Object\Attack\ModuleSystem">
       <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Object\Attack\ModuleSystem\ModuleField">
-      <UniqueIdentifier>{2c8ddd78-41cc-44dc-ac39-305fd102b427}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Object\Attack\ModuleSystem\Module">
       <UniqueIdentifier>{921d0296-bdea-4ba1-b1bf-0766eca9dcab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Attack\ModuleSystem\ModuleNode">
+      <UniqueIdentifier>{2c8ddd78-41cc-44dc-ac39-305fd102b427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Attack\ModuleSystem\ModuleZone">
+      <UniqueIdentifier>{84af3475-ca95-4c36-95cd-3e51da6b3cf5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -659,28 +662,28 @@
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClCompile>
     <ClCompile Include="IFieldNode.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClCompile>
-    <ClCompile Include="ModuleFieldCanvas.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldLayoutEditor.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClCompile>
     <ClCompile Include="FieldNodeInfoCopy.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClCompile>
     <ClCompile Include="NodeInfoPanel.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClCompile>
-    <ClCompile Include="ModuleWarehouse.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClCompile>
     <ClCompile Include="ModuleField.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
+    <ClCompile Include="ModuleFieldCanvas.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
+    <ClCompile Include="ModuleWarehouse.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClCompile>
     <ClCompile Include="ModuleWorkbench.cpp">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
+    <ClCompile Include="ZoneLayoutEditor.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1348,40 +1351,16 @@
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClInclude>
     <ClInclude Include="FieldNodes.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
     <ClInclude Include="IFieldNode.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="FieldIconAtlas.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="IconAtlas.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleField.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleWorkbench.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="FieldLayoutEditor.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
     <ClInclude Include="FieldNodeInfoCopy.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
     <ClInclude Include="NodeInfoPanel.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ModuleFieldCanvas.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ScanAssembler.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
-    </ClInclude>
-    <ClInclude Include="ScanWave.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
     <ClInclude Include="Attribute_Lifetime_Module.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
@@ -1398,14 +1377,38 @@
     <ClInclude Include="AttackDeployer.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
-    <ClInclude Include="AttackNodeLabel.h">
-      <Filter>Object\Attack\ModuleSystem</Filter>
-    </ClInclude>
     <ClInclude Include="Ball.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
+    <ClInclude Include="AttackNodeLabel.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleField.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleFieldCanvas.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
     <ClInclude Include="ModuleWarehouse.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleWorkbench.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanAssembler.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanWave.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="IconAtlas.h">
+      <Filter>Tool</Filter>
+    </ClInclude>
+    <ClInclude Include="IModuleZone.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ZoneLayoutEditor.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1638,7 +1641,7 @@
       <Filter>Shader\Common</Filter>
     </None>
     <None Include="FieldNodeInfoCopy.json">
-      <Filter>Object\Attack\ModuleSystem\ModuleField</Filter>
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </None>
   </ItemGroup>
 </Project>
