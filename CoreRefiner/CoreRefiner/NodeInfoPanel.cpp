@@ -60,11 +60,16 @@ void NodeInfoPanel::Ensure(Graphics& gfx, Rgph::RenderGraph& rg)
 	canvas_->LinkTechniques(rg);
 }
 
-void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY)
+void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor, float maxWidthPx, bool titleOnly)
 {
 	if (canvas_ == nullptr)
 	{
 		return;
+	}
+
+	if (maxWidthPx <= 0.0f)
+	{
+		maxWidthPx = kMaxWidthPx_;
 	}
 
 	const ModuleNodeInfoLanguage lang = GetModuleNodeInfoLanguage();
@@ -72,7 +77,13 @@ void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameX
 		!cachedLabel_.has_value()
 		|| !cachedLanguage_.has_value()
 		|| *cachedLabel_ != label
-		|| *cachedLanguage_ != lang;
+		|| *cachedLanguage_ != lang
+		|| maxWidthPx_ != maxWidthPx
+		|| titleOnly_ != titleOnly;
+
+	anchor_ = anchor;
+	maxWidthPx_ = maxWidthPx;
+	titleOnly_ = titleOnly;
 
 	if (contentDirty)
 	{
@@ -102,7 +113,11 @@ void NodeInfoPanel::Submit() const
 void NodeInfoPanel::RebuildContent_(ModuleNodeLabel label)
 {
 	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(label);
-	const std::string text = entry.ComposedText();
+	std::string text = titleOnly_ ? entry.title : entry.ComposedText();
+	if (text.empty())
+	{
+		text = entry.body;
+	}
 
 	auto ctx = TextCodex::Get().BeginDraw();
 	Text::RenderRequest& rq = ctx.Request();
@@ -117,7 +132,7 @@ void NodeInfoPanel::RebuildContent_(ModuleNodeLabel label)
 	rq.style.wordWrapEnabled = true;
 	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
 	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-	rq.maxWidthPx = kMaxWidthPx_;
+	rq.maxWidthPx = maxWidthPx_;
 	rq.paddingPx = kPaddingPx_;
 	rq.defaultColor = Colors::White;
 	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
@@ -150,9 +165,10 @@ void NodeInfoPanel::SyncPosition_(DirectX::XMFLOAT2 anchorGameXY)
 	const float halfW = static_cast<float>(contentW_) * 0.5f;
 	const float halfH = static_cast<float>(contentH_) * 0.5f;
 
-	// Prefer sitting above the node; clamp keeps the whole panel on-screen.
 	const float preferCx = anchorGameXY.x;
-	const float preferCy = anchorGameXY.y - halfH - kAnchorGap_;
+	const float preferCy = (anchor_ == Anchor::Below)
+		? (anchorGameXY.y + halfH + kAnchorGap_)
+		: (anchorGameXY.y - halfH - kAnchorGap_);
 	const DirectX::XMFLOAT2 center = ClampPanelCenter_(
 		preferCx,
 		preferCy,

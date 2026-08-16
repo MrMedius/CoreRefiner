@@ -27,9 +27,12 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 		static_cast<float>(SCREEN_HEIGHT) * 0.7f,
 		0.0f
 	};
-	// Shop: 5×48 pitch + 2×20 pad ≈ 232px wide; keep leftmost slot on-screen in the left half.
+	// Shop: pitch matches info-panel width so five descriptions do not overlap;
+	// origin keeps the leftmost panel on-screen.
+	const float shopHalfSpanX =
+		(static_cast<float>(ModuleShop::kColumns - 1) * 0.5f) * ModuleShop::kSlotPitch;
 	shopOrigin_ = DirectX::XMFLOAT3{
-		160.0f,
+		shopHalfSpanX + ModuleShop::kInfoMaxWidthPx * 0.5f + 12.0f,
 		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
 		0.0f
 	};
@@ -183,6 +186,7 @@ void ModuleWorkbench::Submit()
 	{
 		warehouse_.SubmitNodes();
 		shop_.SubmitNodes();
+		shop_.SubmitInfoPanels();
 		layoutEditor_.SubmitOverlay();
 	}
 }

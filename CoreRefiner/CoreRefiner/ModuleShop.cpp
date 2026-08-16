@@ -3,19 +3,40 @@
 #include "Collision2D.h"
 #include "Colors.h"
 #include "GameStatsCodex.h"
+#include "Graphics.h"
 #include "ModuleNodeFactory.h"
+#include "ModuleNodeInfoCopy.h"
 #include "ModuleNodeLabel.h"
 #include "ModuleNodePrice.h"
 #include "RenderGraph.h"
+#include "TextCodex.h"
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <utility>
 
 static_assert(ModuleShop::kSlotCount <= ModuleNodeLabelCount());
 
 namespace
 {
+	void EnsureModuleNodeInfoCopyLoaded_()
+	{
+		if (IsModuleNodeInfoCopyLoaded())
+		{
+			return;
+		}
+		if (LoadModuleNodeInfoCopy("ModuleNodeInfoCopy.json"))
+		{
+			return;
+		}
+		if (LoadModuleNodeInfoCopy("CoreRefiner/ModuleNodeInfoCopy.json"))
+		{
+			return;
+		}
+		(void)LoadModuleNodeInfoCopy("CoreRefiner/CoreRefiner/ModuleNodeInfoCopy.json");
+	}
+
 	void PutPixelClamped(Canvas2D& canvas, int x, int y, Color c)
 	{
 		const int w = static_cast<int>(canvas.GetCanvasWidth());
@@ -158,6 +179,7 @@ void ModuleShop::MarkSold(std::size_t index)
 	}
 	slots_[index].sold = true;
 	slots_[index].node.reset();
+	SyncInfoPanels_();
 }
 
 void ModuleShop::RelayoutSlots_()
@@ -173,6 +195,7 @@ void ModuleShop::RelayoutSlots_()
 		node->SetZoneOrigin(origin_);
 		node->SyncVisual();
 	}
+	SyncInfoPanels_();
 }
 
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
@@ -246,7 +269,153 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 	{
 		return nullptr;
 	}
-	return std::move(slots_[i].node);
+	std::unique_ptr<IModuleNode> taken = std::move(slots_[i].node);
+	SyncInfoPanels_();
+	return taken;
+}
+
+void ModuleShop::SyncInfoPanels_()
+{
+	SyncPriceLabels_();
+
+	if (gfx_ != nullptr && rg_ != nullptr)
+	{
+		for (NodeInfoPanel& panel : infoPanels_)
+		{
+			panel.Ensure(*gfx_, *rg_);
+		}
+	}
+
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		NodeInfoPanel& panel = infoPanels_[i];
+		const Slot& slot = slots_[i];
+		if (slot.sold || slot.node == nullptr)
+		{
+			panel.Hide();
+			continue;
+		}
+
+		const DirectX::XMFLOAT2 local = SlotLocalPos_(i);
+		const float iconX = origin_.x + local.x;
+		const float iconY = origin_.y + local.y;
+		const float radius = slot.node->GetHitRadius();
+		float infoAnchorY = iconY + radius + kPriceGapBelowIcon;
+		if (Canvas2D* price = priceCanvases_[i].get())
+		{
+			infoAnchorY += static_cast<float>(price->GetCanvasHeight());
+		}
+
+		panel.ShowFor(
+			slot.node->GetModuleNodeLabel(),
+			DirectX::XMFLOAT2{ iconX, infoAnchorY },
+			NodeInfoPanel::Anchor::Below,
+			kInfoMaxWidthPx,
+			false);
+	}
+}
+
+void ModuleShop::EnsurePriceVisuals_()
+{
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return;
+	}
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		if (priceCanvases_[i] != nullptr)
+		{
+			continue;
+		}
+		priceCanvases_[i] = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
+		priceCanvases_[i]->Clear(Colors::None);
+		priceCanvases_[i]->LinkTechniques(*rg_);
+		paintedPrice_[i] = -1;
+	}
+}
+
+void ModuleShop::PaintPrice_(std::size_t index)
+{
+	if (index >= kSlotCount || priceCanvases_[index] == nullptr)
+	{
+		return;
+	}
+
+	const int price = slots_[index].price;
+	if (paintedPrice_[index] == price)
+	{
+		return;
+	}
+
+	Canvas2D& canvas = *priceCanvases_[index];
+	auto ctx = TextCodex::Get().BeginDraw();
+	Text::RenderRequest& rq = ctx.Request();
+	rq.text = std::to_string(price);
+	rq.canvasMode = Text::CanvasMode::Auto;
+	rq.clearMode = Text::ClearMode::Clear;
+	rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+	rq.fallbackFonts.clear();
+	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
+	rq.style.fontSize = kPriceFontSize;
+	rq.style.wordWrapEnabled = false;
+	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
+	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+	rq.maxWidthPx = kSlotPitch;
+	rq.paddingPx = 3;
+	rq.defaultColor = Color{ 255u, 220u, 90u, 255u };
+	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
+	ctx.Render(canvas);
+
+	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
+	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
+	canvas.SetScale(DirectX::XMFLOAT3{
+		static_cast<float>(w),
+		static_cast<float>(h),
+		1.0f
+	});
+	paintedPrice_[index] = price;
+}
+
+void ModuleShop::SyncPriceLabels_()
+{
+	EnsurePriceVisuals_();
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		Canvas2D* canvas = priceCanvases_[i].get();
+		if (canvas == nullptr)
+		{
+			continue;
+		}
+
+		const Slot& slot = slots_[i];
+		if (slot.sold || slot.node == nullptr)
+		{
+			continue;
+		}
+
+		PaintPrice_(i);
+		const DirectX::XMFLOAT2 local = SlotLocalPos_(i);
+		const float radius = slot.node->GetHitRadius();
+		const float halfH = static_cast<float>(canvas->GetCanvasHeight()) * 0.5f;
+		canvas->SetPosition(DirectX::XMFLOAT3{
+			origin_.x + local.x,
+			origin_.y + local.y + radius + kPriceGapBelowIcon + halfH,
+			0.0f
+		});
+	}
+}
+
+void ModuleShop::SubmitPrices_()
+{
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		const Slot& slot = slots_[i];
+		if (slot.sold || slot.node == nullptr || priceCanvases_[i] == nullptr)
+		{
+			continue;
+		}
+		priceCanvases_[i]->Submit(Chan::ui);
+	}
 }
 
 void ModuleShop::EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -318,8 +487,16 @@ void ModuleShop::SyncPanelTransform_() noexcept
 void ModuleShop::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin)
 {
 	origin_ = origin;
-	FillStock();
+	gfx_ = &gfx;
+	rg_ = &rg;
+	EnsureModuleNodeInfoCopyLoaded_();
 	EnsurePanelVisual_(gfx, rg);
+	for (NodeInfoPanel& panel : infoPanels_)
+	{
+		panel.Ensure(gfx, rg);
+	}
+	EnsurePriceVisuals_();
+	FillStock();
 	for (Slot& slot : slots_)
 	{
 		if (slot.node != nullptr)
@@ -341,6 +518,7 @@ void ModuleShop::SyncAllVisuals()
 			slot.node->SyncVisual();
 		}
 	}
+	SyncInfoPanels_();
 }
 
 void ModuleShop::SubmitBackground()
@@ -362,10 +540,20 @@ void ModuleShop::SubmitNodes()
 	}
 }
 
+void ModuleShop::SubmitInfoPanels()
+{
+	SubmitPrices_();
+	for (NodeInfoPanel& panel : infoPanels_)
+	{
+		panel.Submit();
+	}
+}
+
 void ModuleShop::SubmitAllVisuals()
 {
 	SubmitBackground();
 	SubmitNodes();
+	SubmitInfoPanels();
 }
 
 IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept

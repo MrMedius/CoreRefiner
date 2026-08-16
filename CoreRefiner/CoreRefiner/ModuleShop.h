@@ -2,6 +2,7 @@
 #include "Canvas2D.h"
 #include "IModuleNode.h"
 #include "IModuleZone.h"
+#include "NodeInfoPanel.h"
 
 #include <array>
 #include <cstddef>
@@ -21,8 +22,11 @@ public:
 	static constexpr int kColumns = 5;
 	static constexpr int kRows = 1;
 	static constexpr std::size_t kSlotCount = static_cast<std::size_t>(kColumns) * static_cast<std::size_t>(kRows);
-	static constexpr float kSlotPitch = 48.0f;
-	static constexpr float kBoundsPad = 20.0f;
+	static constexpr float kSlotPitch = 140.0f;
+	static constexpr float kBoundsPad = 36.0f;
+	static constexpr float kInfoMaxWidthPx = 140.0f;
+	static constexpr float kPriceFontSize = 14.0f;
+	static constexpr float kPriceGapBelowIcon = 2.0f;
 
 	struct BoundsWorld
 	{
@@ -67,14 +71,8 @@ public:
 
 	void FillStock();
 
-	/**
-	 * @brief Mark listing `index` sold and drop its node. Slot index stays put.
-	 */
 	void MarkSold(std::size_t index);
 
-	/**
-	 * @brief Restore a taken listing into an unsold hole, or sell an inbound node.
-	 */
 	[[nodiscard]] bool TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos) override;
 
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
@@ -83,6 +81,7 @@ public:
 	void SyncAllVisuals() override;
 	void SubmitBackground() override;
 	void SubmitNodes() override;
+	void SubmitInfoPanels();
 	void SubmitAllVisuals();
 
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
@@ -97,12 +96,22 @@ private:
 	[[nodiscard]] static float HalfSpanX_() noexcept;
 	[[nodiscard]] static float HalfSpanY_() noexcept;
 	void RelayoutSlots_();
+	void SyncInfoPanels_();
+	void EnsurePriceVisuals_();
+	void PaintPrice_(std::size_t index);
+	void SyncPriceLabels_();
+	void SubmitPrices_();
 	void EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintPanel_();
 	void SyncPanelTransform_() noexcept;
 	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
 
 	std::array<Slot, kSlotCount> slots_{};
+	std::array<NodeInfoPanel, kSlotCount> infoPanels_{};
+	std::array<std::unique_ptr<Canvas2D>, kSlotCount> priceCanvases_{};
+	std::array<int, kSlotCount> paintedPrice_{};
 	DirectX::XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
+	Graphics* gfx_{ nullptr };
+	Rgph::RenderGraph* rg_{ nullptr };
 	std::unique_ptr<Canvas2D> panel_;
 };
