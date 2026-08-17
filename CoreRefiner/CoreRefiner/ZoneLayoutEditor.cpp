@@ -66,6 +66,11 @@ void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::a
 		zone->SetOrigin(origins[i]);
 		zone->SyncAllVisuals();
 	}
+
+	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
+	{
+		shop->ResetVisit();
+	}
 }
 
 void ZoneLayoutEditor::End()
@@ -78,6 +83,11 @@ void ZoneLayoutEditor::End()
 	ClearActiveDrag_();
 	ClearAllLayoutGhosts_();
 	infoPanel_.Hide();
+
+	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
+	{
+		shop->ResetVisit();
+	}
 
 	hover_ = nullptr;
 	hoverSource_ = kNoZone_;
@@ -96,13 +106,17 @@ void ZoneLayoutEditor::End()
 
 void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 {
-	(void)dt;
 	if (!active_)
 	{
 		return;
 	}
 
 	auto& input = InputCodex::Get();
+	ModuleShop* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	if (shop != nullptr)
+	{
+		shop->TickHud(dt);
+	}
 
 	const DirectX::XMFLOAT2 mouseGame = MouseGame_();
 
@@ -124,6 +138,15 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 			hover_ = PickHover_(mouseGame, hoverSource_);
 		}
 	}
+	else if (shop != nullptr && shop->HitRefreshButton(mouseGame))
+	{
+		hover_ = nullptr;
+		hoverSource_ = kNoZone_;
+		if (input.MouseLeftTriggered())
+		{
+			(void)shop->TryRefresh();
+		}
+	}
 	else
 	{
 		hover_ = PickHover_(mouseGame, hoverSource_);
@@ -143,6 +166,11 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 				dragOrigin_.y + dragged_->GetLocalPos().y
 			});
 		}
+	}
+
+	if (shop != nullptr)
+	{
+		shop->SyncHud();
 	}
 
 	IModuleNode* ringTarget = (dragged_ != nullptr) ? dragged_ : hover_;

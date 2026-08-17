@@ -4,6 +4,7 @@
 #include "Colors.h"
 #include "GameStatsCodex.h"
 #include "Graphics.h"
+#include "IconAtlas.h"
 #include "ModuleNodeFactory.h"
 #include "ModuleNodeInfoCopy.h"
 #include "ModuleNodeLabel.h"
@@ -13,8 +14,20 @@
 
 #include <algorithm>
 #include <cmath>
+#include <random>
 #include <string>
 #include <utility>
+
+/**
+ * @brief 均匀抽取一种现有节点类型（不含 Count）。刷新时各槽独立抽取，允许重复。
+ */
+[[nodiscard]] static ModuleNodeLabel PickRandomShopLabel_()
+{
+	static std::mt19937 rng{ std::random_device{}() };
+	static std::uniform_int_distribution<int> dist(
+		0, static_cast<int>(ModuleNodeLabelCount()) - 1);
+	return static_cast<ModuleNodeLabel>(dist(rng));
+}
 
 static_assert(ModuleShop::kSlotCount <= ModuleNodeLabelCount());
 
@@ -171,6 +184,284 @@ void ModuleShop::FillStock()
 	RelayoutSlots_();
 }
 
+int ModuleShop::GetRefreshCost() const noexcept
+{
+	return kRefreshBaseCost_ + refreshCount_ * kRefreshCostStep_;
+}
+
+void ModuleShop::ResetVisit()
+{
+	refreshCount_ = 0;
+	refreshDeniedSec_ = 0.0f;
+	paintedRefreshCost_ = -1;
+	if (gfx_ != nullptr)
+	{
+		SyncHud();
+	}
+}
+
+void ModuleShop::TickHud(float dt)
+{
+	if (refreshDeniedSec_ > 0.0f)
+	{
+		refreshDeniedSec_ -= dt;
+		if (refreshDeniedSec_ < 0.0f)
+		{
+			refreshDeniedSec_ = 0.0f;
+		}
+	}
+	SyncHud();
+}
+
+bool ModuleShop::TryRefresh()
+{
+	const int cost = GetRefreshCost();
+	if (!GameStatsCodex::TrySpendCurrency(cost))
+	{
+		refreshDeniedSec_ = 0.35f;
+		PaintHudIcons_();
+		return false;
+	}
+	++refreshCount_;
+	RerollStock_();
+	paintedRefreshCost_ = -1;
+	SyncHud();
+	return true;
+}
+
+void ModuleShop::RerollStock_()
+{
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		const ModuleNodeLabel label = PickRandomShopLabel_();
+		slots_[i].node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(i));
+		slots_[i].sold = false;
+		slots_[i].price = (slots_[i].node != nullptr)
+			? ModuleNodePrice::GetBuyPrice(label)
+			: 0;
+	}
+	if (gfx_ != nullptr && rg_ != nullptr)
+	{
+		for (Slot& slot : slots_)
+		{
+			if (slot.node != nullptr)
+			{
+				slot.node->InitVisual(*gfx_, *rg_, origin_);
+			}
+		}
+	}
+	for (int& painted : paintedPrice_)
+	{
+		painted = -1;
+	}
+	RelayoutSlots_();
+}
+
+Color ModuleShop::RefreshIconTint_() const noexcept
+{
+	if (refreshDeniedSec_ > 0.0f)
+	{
+		return Color{ 230u, 80u, 80u, 255u };
+	}
+	if (GameStatsCodex::GetCurrency() < GetRefreshCost())
+	{
+		return Color{ 160u, 160u, 160u, 255u };
+	}
+	return Color{ 120u, 220u, 180u, 255u };
+}
+
+DirectX::XMFLOAT2 ModuleShop::CurrencyIconCenter_() const noexcept
+{
+	const BoundsWorld b = GetBoundsWorld();
+	return DirectX::XMFLOAT2{
+		b.center.x - b.half.x + kHudIconWorld_ * 0.5f,
+		b.center.y - b.half.y - kHudIconWorld_ * 0.5f - 8.0f
+	};
+}
+
+DirectX::XMFLOAT2 ModuleShop::RefreshButtonCenter_() const noexcept
+{
+	const BoundsWorld b = GetBoundsWorld();
+	return DirectX::XMFLOAT2{
+		b.center.x + b.half.x - kHudIconWorld_ * 0.5f,
+		b.center.y - b.half.y - kHudIconWorld_ * 0.5f - 8.0f
+	};
+}
+
+bool ModuleShop::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const DirectX::XMFLOAT2 c = RefreshButtonCenter_();
+	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
+	return std::fabs(worldPos.x - c.x) <= half && std::fabs(worldPos.y - c.y) <= half;
+}
+
+void ModuleShop::EnsureHudVisuals_()
+{
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return;
+	}
+
+	auto makeIcon = [&](std::unique_ptr<Canvas2D>& canvas)
+	{
+		if (canvas != nullptr)
+		{
+			return;
+		}
+		canvas = std::make_unique<Canvas2D>(*gfx_, IModuleNode::kVisualSize, IModuleNode::kVisualSize);
+		canvas->Clear(Colors::None);
+		canvas->LinkTechniques(*rg_);
+		canvas->SetScale(DirectX::XMFLOAT3{ kHudIconWorld_, kHudIconWorld_, 1.0f });
+	};
+	auto makeText = [&](std::unique_ptr<Canvas2D>& canvas)
+	{
+		if (canvas != nullptr)
+		{
+			return;
+		}
+		canvas = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
+		canvas->Clear(Colors::None);
+		canvas->LinkTechniques(*rg_);
+	};
+
+	makeIcon(currencyIcon_);
+	makeIcon(refreshIcon_);
+	makeText(currencyText_);
+	makeText(refreshCostText_);
+}
+
+void ModuleShop::PaintHudIcons_()
+{
+	EnsureHudVisuals_();
+	if (currencyIcon_ == nullptr || refreshIcon_ == nullptr)
+	{
+		return;
+	}
+
+	auto blit = [](Canvas2D& canvas, const IconAtlas::IconBits& bits, Color color)
+	{
+		canvas.Clear(Colors::None);
+		IconAtlas::BlitIcon(canvas, bits, color);
+		canvas.NotifyPixelsChanged();
+	};
+
+	if (!currencyIconReady_)
+	{
+		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), Color{ 255u, 210u, 80u, 255u });
+		currencyIconReady_ = true;
+	}
+
+	const Color tint = RefreshIconTint_();
+	if (paintedRefreshTint_ != tint)
+	{
+		blit(*refreshIcon_, UiIconAtlas::Get(UiIconId::Refresh), tint);
+		paintedRefreshTint_ = tint;
+	}
+}
+
+void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
+{
+	if (painted == value)
+	{
+		return;
+	}
+
+	auto ctx = TextCodex::Get().BeginDraw();
+	Text::RenderRequest& rq = ctx.Request();
+	rq.text = std::to_string(value);
+	rq.canvasMode = Text::CanvasMode::Auto;
+	rq.clearMode = Text::ClearMode::Clear;
+	rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+	rq.fallbackFonts.clear();
+	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
+	rq.style.fontSize = kPriceFontSize;
+	rq.style.wordWrapEnabled = false;
+	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
+	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+	rq.maxWidthPx = 80.0f;
+	rq.paddingPx = 2;
+	rq.defaultColor = Colors::White;
+	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
+	ctx.Render(canvas);
+
+	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
+	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
+	canvas.SetScale(DirectX::XMFLOAT3{
+		static_cast<float>(w),
+		static_cast<float>(h),
+		1.0f
+	});
+	painted = value;
+}
+
+void ModuleShop::SyncHudTransforms_() noexcept
+{
+	const DirectX::XMFLOAT2 coin = CurrencyIconCenter_();
+	const DirectX::XMFLOAT2 refresh = RefreshButtonCenter_();
+
+	if (currencyIcon_ != nullptr)
+	{
+		currencyIcon_->SetPosition(DirectX::XMFLOAT3{ coin.x, coin.y, 0.0f });
+	}
+	if (refreshIcon_ != nullptr)
+	{
+		refreshIcon_->SetPosition(DirectX::XMFLOAT3{ refresh.x, refresh.y, 0.0f });
+	}
+	if (currencyText_ != nullptr)
+	{
+		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
+		currencyText_->SetPosition(DirectX::XMFLOAT3{
+			coin.x + kHudIconWorld_ * 0.5f + 4.0f + halfW,
+			coin.y,
+			0.0f
+		});
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		const float halfW = static_cast<float>(refreshCostText_->GetCanvasWidth()) * 0.5f;
+		refreshCostText_->SetPosition(DirectX::XMFLOAT3{
+			refresh.x - kHudIconWorld_ * 0.5f - 4.0f - halfW,
+			refresh.y,
+			0.0f
+		});
+	}
+}
+
+void ModuleShop::SyncHud()
+{
+	EnsureHudVisuals_();
+	PaintHudIcons_();
+	if (currencyText_ != nullptr)
+	{
+		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
+	}
+	SyncHudTransforms_();
+}
+
+void ModuleShop::SubmitHud()
+{
+	if (currencyIcon_ != nullptr)
+	{
+		currencyIcon_->Submit(Chan::ui);
+	}
+	if (currencyText_ != nullptr)
+	{
+		currencyText_->Submit(Chan::ui);
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		refreshCostText_->Submit(Chan::ui);
+	}
+	if (refreshIcon_ != nullptr)
+	{
+		refreshIcon_->Submit(Chan::ui);
+	}
+}
+
 void ModuleShop::MarkSold(std::size_t index)
 {
 	if (index >= kSlotCount)
@@ -313,6 +604,7 @@ void ModuleShop::SyncInfoPanels_()
 			kInfoMaxWidthPx,
 			false);
 	}
+	SyncHud();
 }
 
 void ModuleShop::EnsurePriceVisuals_()
@@ -547,6 +839,7 @@ void ModuleShop::SubmitInfoPanels()
 	{
 		panel.Submit();
 	}
+	SubmitHud();
 }
 
 void ModuleShop::SubmitAllVisuals()
