@@ -18,9 +18,6 @@
 #include <string>
 #include <utility>
 
-/**
- * @brief 均匀抽取一种现有节点类型（不含 Count）。刷新时各槽独立抽取，允许重复。
- */
 [[nodiscard]] static ModuleNodeLabel PickRandomShopLabel_()
 {
 	static std::mt19937 rng{ std::random_device{}() };
@@ -129,7 +126,7 @@ std::size_t ModuleShop::FindSlotIndex_(const IModuleNode* node) const noexcept
 	return kSlotCount;
 }
 
-ModuleShop::BoundsWorld ModuleShop::GetBoundsWorld() const noexcept
+ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
 {
 	const float halfSpanX = HalfSpanX_();
 	const float halfSpanY = HalfSpanY_();
@@ -147,18 +144,42 @@ ModuleShop::BoundsWorld ModuleShop::GetBoundsWorld() const noexcept
 	return b;
 }
 
+ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
+{
+	const BoundsWorld trade = GetTradeBoundsWorld();
+	const float tradeH = trade.half.y * 2.0f;
+	const float below =
+		kReserveGap + kReservePanelHeight
+		+ kReserveGap + kReservePanelHeight;
+	const float shellH = kShellPadTop + tradeH + below;
+
+	BoundsWorld b{};
+	b.half = DirectX::XMFLOAT2{
+		trade.half.x + kShellPadX,
+		shellH * 0.5f
+	};
+	const float tradeTop = trade.center.y - trade.half.y;
+	const float shellTop = tradeTop - kShellPadTop;
+	b.center = DirectX::XMFLOAT2{
+		trade.center.x,
+		shellTop + b.half.y
+	};
+	return b;
+}
+
+ModuleShop::BoundsWorld ModuleShop::GetBoundsWorld() const noexcept
+{
+	return GetTradeBoundsWorld();
+}
+
 bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept
 {
-	const BoundsWorld b = GetBoundsWorld();
-	const float r = (std::max)(radius, 0.0f);
-	const float minX = b.center.x - b.half.x + r;
-	const float maxX = b.center.x + b.half.x - r;
-	const float minY = b.center.y - b.half.y + r;
-	const float maxY = b.center.y + b.half.y - r;
-	if (minX > maxX || minY > maxY)
-	{
-		return false;
-	}
+	(void)radius;
+	const BoundsWorld b = GetTradeBoundsWorld();
+	const float minX = b.center.x - b.half.x;
+	const float maxX = b.center.x + b.half.x;
+	const float minY = b.center.y - b.half.y;
+	const float maxY = b.center.y + b.half.y;
 	return worldCenter.x >= minX && worldCenter.x <= maxX
 		&& worldCenter.y >= minY && worldCenter.y <= maxY;
 }
@@ -168,6 +189,7 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	origin_ = origin;
 	RelayoutSlots_();
 	SyncPanelTransform_();
+	SyncShellTransform_();
 }
 
 void ModuleShop::FillStock()
@@ -767,9 +789,61 @@ void ModuleShop::SyncPanelTransform_() noexcept
 		return;
 	}
 
-	const BoundsWorld b = GetBoundsWorld();
+	const BoundsWorld b = GetTradeBoundsWorld();
 	panel_->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
 	panel_->SetScale(DirectX::XMFLOAT3{
+		b.half.x * 2.0f,
+		b.half.y * 2.0f,
+		1.0f
+	});
+}
+
+void ModuleShop::EnsureShellVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	if (shell_ != nullptr)
+	{
+		return;
+	}
+
+	const BoundsWorld b = GetShellBoundsWorld();
+	const unsigned w = static_cast<unsigned>(std::lround(b.half.x * 2.0f));
+	const unsigned h = static_cast<unsigned>(std::lround(b.half.y * 2.0f));
+	shell_ = std::make_unique<Canvas2D>(gfx, (std::max)(1u, w), (std::max)(1u, h));
+	PaintShell_();
+	shell_->LinkTechniques(rg);
+	SyncShellTransform_();
+}
+
+void ModuleShop::PaintShell_()
+{
+	if (shell_ == nullptr)
+	{
+		return;
+	}
+
+	constexpr Color kBg{ 18u, 22u, 32u, 200u };
+	constexpr Color kOuter{ 210u, 220u, 235u, 180u };
+	constexpr Color kInner{ 150u, 165u, 185u, 120u };
+
+	shell_->Clear(kBg);
+
+	const int w = static_cast<int>(shell_->GetCanvasWidth());
+	const int h = static_cast<int>(shell_->GetCanvasHeight());
+	DrawRectOutline(*shell_, 1, 1, w - 2, h - 2, kOuter);
+	DrawRectOutline(*shell_, 4, 4, w - 5, h - 5, kInner);
+	shell_->NotifyPixelsChanged();
+}
+
+void ModuleShop::SyncShellTransform_() noexcept
+{
+	if (shell_ == nullptr)
+	{
+		return;
+	}
+
+	const BoundsWorld b = GetShellBoundsWorld();
+	shell_->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
+	shell_->SetScale(DirectX::XMFLOAT3{
 		b.half.x * 2.0f,
 		b.half.y * 2.0f,
 		1.0f
@@ -782,6 +856,7 @@ void ModuleShop::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::X
 	gfx_ = &gfx;
 	rg_ = &rg;
 	EnsureModuleNodeInfoCopyLoaded_();
+	EnsureShellVisual_(gfx, rg);
 	EnsurePanelVisual_(gfx, rg);
 	for (NodeInfoPanel& panel : infoPanels_)
 	{
@@ -798,10 +873,12 @@ void ModuleShop::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::X
 	}
 	RelayoutSlots_();
 	SyncPanelTransform_();
+	SyncShellTransform_();
 }
 
 void ModuleShop::SyncAllVisuals()
 {
+	SyncShellTransform_();
 	SyncPanelTransform_();
 	for (Slot& slot : slots_)
 	{
@@ -815,6 +892,10 @@ void ModuleShop::SyncAllVisuals()
 
 void ModuleShop::SubmitBackground()
 {
+	if (shell_ != nullptr)
+	{
+		shell_->Submit(Chan::ui);
+	}
 	if (panel_ != nullptr)
 	{
 		panel_->Submit(Chan::ui);

@@ -93,16 +93,12 @@ ModuleWarehouse::BoundsWorld ModuleWarehouse::GetBoundsWorld() const noexcept
 
 bool ModuleWarehouse::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept
 {
+	(void)radius;
 	const BoundsWorld b = GetBoundsWorld();
-	const float r = (std::max)(radius, 0.0f);
-	const float minX = b.center.x - b.half.x + r;
-	const float maxX = b.center.x + b.half.x - r;
-	const float minY = b.center.y - b.half.y + r;
-	const float maxY = b.center.y + b.half.y - r;
-	if (minX > maxX || minY > maxY)
-	{
-		return false;
-	}
+	const float minX = b.center.x - b.half.x;
+	const float maxX = b.center.x + b.half.x;
+	const float minY = b.center.y - b.half.y;
+	const float maxY = b.center.y + b.half.y;
 	return worldCenter.x >= minX && worldCenter.x <= maxX
 		&& worldCenter.y >= minY && worldCenter.y <= maxY;
 }

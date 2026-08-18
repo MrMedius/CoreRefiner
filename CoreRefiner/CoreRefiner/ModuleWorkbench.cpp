@@ -24,7 +24,7 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	};
 	warehouseOrigin_ = DirectX::XMFLOAT3{
 		static_cast<float>(SCREEN_WIDTH) * 0.8f,
-		static_cast<float>(SCREEN_HEIGHT) * 0.7f,
+		478.5f,
 		0.0f
 	};
 	// Shop: pitch matches info-panel width so five descriptions do not overlap;

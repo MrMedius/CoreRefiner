@@ -28,6 +28,14 @@ public:
 	static constexpr float kInfoMaxWidthPx = 140.0f;
 	static constexpr float kPriceFontSize = 14.0f;
 	static constexpr float kPriceGapBelowIcon = 2.0f;
+	/** @brief 整店外壳相对买卖框左右各扩的边距。 */
+	static constexpr float kShellPadX = 16.0f;
+	/** @brief 整店外壳相对买卖框顶边再扩的边距。 */
+	static constexpr float kShellPadTop = 12.0f;
+	/** @brief Function2 / Function3 各预留的高度（S2 再画板）。 */
+	static constexpr float kReservePanelHeight = 96.0f;
+	/** @brief 买卖框与预留板、以及两块预留板之间的间隙。 */
+	static constexpr float kReserveGap = 12.0f;
 
 	struct BoundsWorld
 	{
@@ -64,6 +72,11 @@ public:
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept override { return origin_; }
 
+	/** @brief 买卖框世界包围盒；拖入此范围才可出售。 */
+	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
+	/** @brief 整店外壳世界包围盒；只用于绘制，不参与命中。 */
+	[[nodiscard]] BoundsWorld GetShellBoundsWorld() const noexcept;
+	/** @brief 与 GetTradeBoundsWorld 相同，保留给现有调用点。 */
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept;
 
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
@@ -124,6 +137,9 @@ private:
 	void EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintPanel_();
 	void SyncPanelTransform_() noexcept;
+	void EnsureShellVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
+	void PaintShell_();
+	void SyncShellTransform_() noexcept;
 	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
 
 	std::array<Slot, kSlotCount> slots_{};
@@ -133,7 +149,10 @@ private:
 	DirectX::XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
+	/** @brief 买卖框底板（含槽格线）。 */
 	std::unique_ptr<Canvas2D> panel_;
+	/** @brief 整店外壳；下半预留 Function2/3，不参与命中。 */
+	std::unique_ptr<Canvas2D> shell_;
 
 	static constexpr float kHudIconWorld_{ 24.0f };
 	static constexpr float kHudHitPad_{ 4.0f };

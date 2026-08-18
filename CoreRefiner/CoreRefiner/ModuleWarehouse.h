@@ -19,11 +19,13 @@ namespace Rgph
 class ModuleWarehouse : public IModuleZone
 {
 public:
-	static constexpr int kColumns = 3;
+	/** @brief 5 列与 Field 等宽（half.x = 150 → 框宽 300）。 */
+	static constexpr int kColumns = 5;
 	static constexpr int kMaxRows = 4;
 	static constexpr std::size_t kMaxSlots = static_cast<std::size_t>(kColumns) * static_cast<std::size_t>(kMaxRows);
-	static constexpr float kSlotPitch = 48.0f;
-	static constexpr float kBoundsPad = 20.0f;
+	/** @brief 槽距 56 / pad 38：half = (150, 122)，框 300 x 244，四边留 10px。 */
+	static constexpr float kSlotPitch = 56.0f;
+	static constexpr float kBoundsPad = 38.0f;
 
 	struct BoundsWorld
 	{
