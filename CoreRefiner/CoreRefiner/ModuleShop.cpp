@@ -46,49 +46,6 @@ namespace
 		}
 		(void)LoadModuleNodeInfoCopy("CoreRefiner/CoreRefiner/ModuleNodeInfoCopy.json");
 	}
-
-	void PutPixelClamped(Canvas2D& canvas, int x, int y, Color c)
-	{
-		const int w = static_cast<int>(canvas.GetCanvasWidth());
-		const int h = static_cast<int>(canvas.GetCanvasHeight());
-		if (x < 0 || y < 0 || x >= w || y >= h)
-		{
-			return;
-		}
-		canvas.PutPixel(static_cast<unsigned>(x), static_cast<unsigned>(y), c);
-	}
-
-	void DrawHLine(Canvas2D& canvas, int x0, int x1, int y, Color c)
-	{
-		if (x1 < x0)
-		{
-			std::swap(x0, x1);
-		}
-		for (int x = x0; x <= x1; ++x)
-		{
-			PutPixelClamped(canvas, x, y, c);
-		}
-	}
-
-	void DrawVLine(Canvas2D& canvas, int x, int y0, int y1, Color c)
-	{
-		if (y1 < y0)
-		{
-			std::swap(y0, y1);
-		}
-		for (int y = y0; y <= y1; ++y)
-		{
-			PutPixelClamped(canvas, x, y, c);
-		}
-	}
-
-	void DrawRectOutline(Canvas2D& canvas, int x0, int y0, int x1, int y1, Color c)
-	{
-		DrawHLine(canvas, x0, x1, y0, c);
-		DrawHLine(canvas, x0, x1, y1, c);
-		DrawVLine(canvas, x0, y0, y1, c);
-		DrawVLine(canvas, x1, y0, y1, c);
-	}
 }
 
 float ModuleShop::HalfSpanX_() noexcept
@@ -189,7 +146,6 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	origin_ = origin;
 	RelayoutSlots_();
 	SyncPanelTransform_();
-	SyncShellTransform_();
 }
 
 void ModuleShop::FillStock()
@@ -798,65 +754,11 @@ void ModuleShop::SyncPanelTransform_() noexcept
 	});
 }
 
-void ModuleShop::EnsureShellVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
+void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	if (shell_ != nullptr)
-	{
-		return;
-	}
-
-	const BoundsWorld b = GetShellBoundsWorld();
-	const unsigned w = static_cast<unsigned>(std::lround(b.half.x * 2.0f));
-	const unsigned h = static_cast<unsigned>(std::lround(b.half.y * 2.0f));
-	shell_ = std::make_unique<Canvas2D>(gfx, (std::max)(1u, w), (std::max)(1u, h));
-	PaintShell_();
-	shell_->LinkTechniques(rg);
-	SyncShellTransform_();
-}
-
-void ModuleShop::PaintShell_()
-{
-	if (shell_ == nullptr)
-	{
-		return;
-	}
-
-	constexpr Color kBg{ 18u, 22u, 32u, 200u };
-	constexpr Color kOuter{ 210u, 220u, 235u, 180u };
-	constexpr Color kInner{ 150u, 165u, 185u, 120u };
-
-	shell_->Clear(kBg);
-
-	const int w = static_cast<int>(shell_->GetCanvasWidth());
-	const int h = static_cast<int>(shell_->GetCanvasHeight());
-	DrawRectOutline(*shell_, 1, 1, w - 2, h - 2, kOuter);
-	DrawRectOutline(*shell_, 4, 4, w - 5, h - 5, kInner);
-	shell_->NotifyPixelsChanged();
-}
-
-void ModuleShop::SyncShellTransform_() noexcept
-{
-	if (shell_ == nullptr)
-	{
-		return;
-	}
-
-	const BoundsWorld b = GetShellBoundsWorld();
-	shell_->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
-	shell_->SetScale(DirectX::XMFLOAT3{
-		b.half.x * 2.0f,
-		b.half.y * 2.0f,
-		1.0f
-	});
-}
-
-void ModuleShop::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin)
-{
-	origin_ = origin;
 	gfx_ = &gfx;
 	rg_ = &rg;
 	EnsureModuleNodeInfoCopyLoaded_();
-	EnsureShellVisual_(gfx, rg);
 	EnsurePanelVisual_(gfx, rg);
 	for (NodeInfoPanel& panel : infoPanels_)
 	{
@@ -873,12 +775,10 @@ void ModuleShop::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::X
 	}
 	RelayoutSlots_();
 	SyncPanelTransform_();
-	SyncShellTransform_();
 }
 
-void ModuleShop::SyncAllVisuals()
+void ModuleShop::SyncZoneTransforms_()
 {
-	SyncShellTransform_();
 	SyncPanelTransform_();
 	for (Slot& slot : slots_)
 	{
@@ -890,12 +790,8 @@ void ModuleShop::SyncAllVisuals()
 	SyncInfoPanels_();
 }
 
-void ModuleShop::SubmitBackground()
+void ModuleShop::SubmitZoneBackground_()
 {
-	if (shell_ != nullptr)
-	{
-		shell_->Submit(Chan::ui);
-	}
 	if (panel_ != nullptr)
 	{
 		panel_->Submit(Chan::ui);

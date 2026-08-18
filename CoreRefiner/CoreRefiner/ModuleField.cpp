@@ -6,9 +6,8 @@
 #include <algorithm>
 #include <cmath>
 
-void ModuleField::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin)
+void ModuleField::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	origin_ = origin;
 	if (canvas_ == nullptr)
 	{
 		constexpr float side = ModuleFieldCanvas::kDefaultFieldSide;
@@ -90,7 +89,7 @@ DropResult ModuleField::EvalDrop(
 	return result;
 }
 
-void ModuleField::SyncAllVisuals()
+void ModuleField::SyncZoneTransforms_()
 {
 	for (auto& n : nodes_)
 	{
@@ -101,7 +100,7 @@ void ModuleField::SyncAllVisuals()
 	}
 }
 
-void ModuleField::SubmitBackground()
+void ModuleField::SubmitZoneBackground_()
 {
 	if (canvas_ != nullptr)
 	{
@@ -124,6 +123,14 @@ void ModuleField::SubmitAllVisuals()
 {
 	SubmitBackground();
 	SubmitNodes();
+}
+
+ModuleField::BoundsWorld ModuleField::GetBoundsWorld() const noexcept
+{
+	BoundsWorld b{};
+	b.center = DirectX::XMFLOAT2{ origin_.x, origin_.y };
+	b.half = DirectX::XMFLOAT2{ kHalfExtent, kHalfExtent };
+	return b;
 }
 
 bool ModuleField::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept

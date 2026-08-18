@@ -7,52 +7,6 @@
 #include <algorithm>
 #include <cmath>
 
-namespace
-{
-	void PutPixelClamped(Canvas2D& canvas, int x, int y, Color c)
-	{
-		const int w = static_cast<int>(canvas.GetCanvasWidth());
-		const int h = static_cast<int>(canvas.GetCanvasHeight());
-		if (x < 0 || y < 0 || x >= w || y >= h)
-		{
-			return;
-		}
-		canvas.PutPixel(static_cast<unsigned>(x), static_cast<unsigned>(y), c);
-	}
-
-	void DrawHLine(Canvas2D& canvas, int x0, int x1, int y, Color c)
-	{
-		if (x1 < x0)
-		{
-			std::swap(x0, x1);
-		}
-		for (int x = x0; x <= x1; ++x)
-		{
-			PutPixelClamped(canvas, x, y, c);
-		}
-	}
-
-	void DrawVLine(Canvas2D& canvas, int x, int y0, int y1, Color c)
-	{
-		if (y1 < y0)
-		{
-			std::swap(y0, y1);
-		}
-		for (int y = y0; y <= y1; ++y)
-		{
-			PutPixelClamped(canvas, x, y, c);
-		}
-	}
-
-	void DrawRectOutline(Canvas2D& canvas, int x0, int y0, int x1, int y1, Color c)
-	{
-		DrawHLine(canvas, x0, x1, y0, c);
-		DrawHLine(canvas, x0, x1, y1, c);
-		DrawVLine(canvas, x0, y0, y1, c);
-		DrawVLine(canvas, x1, y0, y1, c);
-	}
-}
-
 float ModuleWarehouse::HalfSpanX_() noexcept
 {
 	return (static_cast<float>(kColumns - 1) * 0.5f) * kSlotPitch;
@@ -272,9 +226,8 @@ void ModuleWarehouse::SyncPanelTransform_() noexcept
 	});
 }
 
-void ModuleWarehouse::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin)
+void ModuleWarehouse::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	warehouseOrigin_ = origin;
 	EnsurePanelVisual_(gfx, rg);
 	for (auto& n : nodes_)
 	{
@@ -287,7 +240,7 @@ void ModuleWarehouse::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, Direc
 	SyncPanelTransform_();
 }
 
-void ModuleWarehouse::SyncAllVisuals()
+void ModuleWarehouse::SyncZoneTransforms_()
 {
 	SyncPanelTransform_();
 	for (auto& n : nodes_)
@@ -299,7 +252,7 @@ void ModuleWarehouse::SyncAllVisuals()
 	}
 }
 
-void ModuleWarehouse::SubmitBackground()
+void ModuleWarehouse::SubmitZoneBackground_()
 {
 	if (panel_ != nullptr)
 	{

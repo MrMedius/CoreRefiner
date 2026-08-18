@@ -27,12 +27,6 @@ public:
 	static constexpr float kSlotPitch = 56.0f;
 	static constexpr float kBoundsPad = 38.0f;
 
-	struct BoundsWorld
-	{
-		DirectX::XMFLOAT2 center{ 0.0f, 0.0f };
-		DirectX::XMFLOAT2 half{ 0.0f, 0.0f };
-	};
-
 	ModuleWarehouse() = default;
 	~ModuleWarehouse() override = default;
 
@@ -72,7 +66,7 @@ public:
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept override { return warehouseOrigin_; }
 
-	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept;
+	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
 
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
@@ -85,15 +79,17 @@ public:
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(std::size_t index);
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
 
-	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
-	void SyncAllVisuals() override;
-	void SubmitBackground() override;
 	void SubmitNodes() override;
 	void SubmitAllVisuals();
 
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 
 	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
+
+protected:
+	void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) override;
+	void SyncZoneTransforms_() override;
+	void SubmitZoneBackground_() override;
 
 private:
 	[[nodiscard]] static DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) noexcept;

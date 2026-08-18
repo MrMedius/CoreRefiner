@@ -191,6 +191,7 @@
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="IModuleNode.cpp" />
+    <ClCompile Include="IModuleZone.cpp" />
     <ClCompile Include="ModuleNodeFactory.cpp" />
     <ClCompile Include="ModuleNodeInfoCopy.cpp" />
     <ClCompile Include="ModuleShop.cpp" />

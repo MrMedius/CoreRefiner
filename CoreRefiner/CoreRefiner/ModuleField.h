@@ -60,6 +60,9 @@ public:
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept override { return origin_; }
 
+	/** @brief origin 即中心，半宽半高均为 kHalfExtent。 */
+	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
+
 	[[nodiscard]] ModuleFieldCanvas* GetCanvas() noexcept { return canvas_.get(); }
 	[[nodiscard]] const ModuleFieldCanvas* GetCanvas() const noexcept { return canvas_.get(); }
 
@@ -136,13 +139,7 @@ public:
 		}
 	}
 
-	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
-
 	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept override;
-
-	void SyncAllVisuals() override;
-
-	void SubmitBackground() override;
 
 	void SubmitNodes() override;
 
@@ -157,6 +154,11 @@ public:
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 
 	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
+
+protected:
+	void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) override;
+	void SyncZoneTransforms_() override;
+	void SubmitZoneBackground_() override;
 
 private:
 	std::vector<std::unique_ptr<IModuleNode>> nodes_;

@@ -37,12 +37,6 @@ public:
 	/** @brief 买卖框与预留板、以及两块预留板之间的间隙。 */
 	static constexpr float kReserveGap = 12.0f;
 
-	struct BoundsWorld
-	{
-		DirectX::XMFLOAT2 center{ 0.0f, 0.0f };
-		DirectX::XMFLOAT2 half{ 0.0f, 0.0f };
-	};
-
 	struct Slot
 	{
 		std::unique_ptr<IModuleNode> node;
@@ -75,9 +69,9 @@ public:
 	/** @brief 买卖框世界包围盒；拖入此范围才可出售。 */
 	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
 	/** @brief 整店外壳世界包围盒；只用于绘制，不参与命中。 */
-	[[nodiscard]] BoundsWorld GetShellBoundsWorld() const noexcept;
+	[[nodiscard]] BoundsWorld GetShellBoundsWorld() const noexcept override;
 	/** @brief 与 GetTradeBoundsWorld 相同，保留给现有调用点。 */
-	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept;
+	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
 
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
@@ -102,9 +96,6 @@ public:
 
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
 
-	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin) override;
-	void SyncAllVisuals() override;
-	void SubmitBackground() override;
 	void SubmitNodes() override;
 	void SubmitInfoPanels();
 	void SubmitAllVisuals();
@@ -115,6 +106,11 @@ public:
 		const IModuleNode& node,
 		DirectX::XMFLOAT2 worldPos,
 		ZoneId from) const noexcept override;
+
+protected:
+	void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) override;
+	void SyncZoneTransforms_() override;
+	void SubmitZoneBackground_() override;
 
 private:
 	[[nodiscard]] static DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) noexcept;
@@ -137,9 +133,6 @@ private:
 	void EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintPanel_();
 	void SyncPanelTransform_() noexcept;
-	void EnsureShellVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintShell_();
-	void SyncShellTransform_() noexcept;
 	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
 
 	std::array<Slot, kSlotCount> slots_{};
@@ -151,8 +144,6 @@ private:
 	Rgph::RenderGraph* rg_{ nullptr };
 	/** @brief 买卖框底板（含槽格线）。 */
 	std::unique_ptr<Canvas2D> panel_;
-	/** @brief 整店外壳；下半预留 Function2/3，不参与命中。 */
-	std::unique_ptr<Canvas2D> shell_;
 
 	static constexpr float kHudIconWorld_{ 24.0f };
 	static constexpr float kHudHitPad_{ 4.0f };
