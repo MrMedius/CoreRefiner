@@ -28,6 +28,8 @@ public:
 	static constexpr float kInfoMaxWidthPx = 140.0f;
 	static constexpr float kPriceFontSize = 14.0f;
 	static constexpr float kPriceGapBelowIcon = 2.0f;
+	/** @brief 商品在店内统一绘制半径；买走后恢复节点真实命中半径。 */
+	static constexpr float kStoredVisualRadius = 15.0f;
 	/** @brief 整店外壳相对买卖框左右各扩的边距。 */
 	static constexpr float kShellPadX = 16.0f;
 	/** @brief 整店外壳相对买卖框顶边再扩的边距。 */

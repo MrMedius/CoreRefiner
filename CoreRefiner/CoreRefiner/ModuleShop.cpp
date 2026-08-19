@@ -462,6 +462,7 @@ void ModuleShop::RelayoutSlots_()
 		}
 		node->SetLocalPos(SlotLocalPos_(i));
 		node->SetZoneOrigin(origin_);
+		node->SetVisualRadiusOverride(kStoredVisualRadius);
 		node->SyncVisual();
 	}
 	SyncInfoPanels_();
@@ -539,6 +540,10 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 		return nullptr;
 	}
 	std::unique_ptr<IModuleNode> taken = std::move(slots_[i].node);
+	if (taken != nullptr)
+	{
+		taken->ClearVisualRadiusOverride();
+	}
 	SyncInfoPanels_();
 	return taken;
 }
@@ -568,7 +573,7 @@ void ModuleShop::SyncInfoPanels_()
 		const DirectX::XMFLOAT2 local = SlotLocalPos_(i);
 		const float iconX = origin_.x + local.x;
 		const float iconY = origin_.y + local.y;
-		const float radius = slot.node->GetHitRadius();
+		const float radius = slot.node->GetVisualRadius();
 		float infoAnchorY = iconY + radius + kPriceGapBelowIcon;
 		if (Canvas2D* price = priceCanvases_[i].get())
 		{
@@ -665,7 +670,7 @@ void ModuleShop::SyncPriceLabels_()
 
 		PaintPrice_(i);
 		const DirectX::XMFLOAT2 local = SlotLocalPos_(i);
-		const float radius = slot.node->GetHitRadius();
+		const float radius = slot.node->GetVisualRadius();
 		const float halfH = static_cast<float>(canvas->GetCanvasHeight()) * 0.5f;
 		canvas->SetPosition(DirectX::XMFLOAT3{
 			origin_.x + local.x,
@@ -843,7 +848,7 @@ IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) no
 			origin_.x + local.x,
 			origin_.y + local.y
 		};
-		const Collider2D::CircleCollider hit{ world, node->GetHitRadius() };
+		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
 		const Collider2D::PointCollider pt{ worldPos };
 		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
 		{

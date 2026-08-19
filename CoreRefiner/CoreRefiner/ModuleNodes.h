@@ -17,7 +17,7 @@ public:
 		enableCollider_(enableCollider)
 	{
 		localPos_ = localPos;
-		hitRadius_ = 16.0f;
+		hitRadius_ = 24.0f;
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -60,7 +60,7 @@ public:
 	explicit ModuleNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 14.0f;
+		hitRadius_ = 8.0f;
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -85,7 +85,7 @@ public:
 		durationSeconds_(durationSeconds)
 	{
 		localPos_ = localPos;
-		hitRadius_ = 14.0f;
+		hitRadius_ = 16.0f;
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -113,7 +113,7 @@ public:
 		speedRate_(speedRate)
 	{
 		localPos_ = localPos;
-		hitRadius_ = 14.0f;
+		hitRadius_ = 12.0f;
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -147,7 +147,7 @@ public:
 		orbitPhase_(phase)
 	{
 		localPos_ = localPos;
-		hitRadius_ = 14.0f;
+		hitRadius_ = 20.0f;
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;

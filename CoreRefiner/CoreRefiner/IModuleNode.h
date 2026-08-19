@@ -39,6 +39,38 @@ public:
 	[[nodiscard]] float GetHitRadius() const noexcept { return hitRadius_; }
 	void SetHitRadius(float r) noexcept { hitRadius_ = r; }
 
+	/** @brief 槽位残影 / 静置图标用半径；未覆盖时与命中半径相同。 */
+	[[nodiscard]] float GetVisualRadius() const noexcept
+	{
+		return (visualRadiusOverride_ > 0.0f) ? visualRadiusOverride_ : hitRadius_;
+	}
+
+	/** @brief 当前跟随鼠标的图标半径；拖起时一律用 hitRadius_。 */
+	[[nodiscard]] float GetIconRadius() const noexcept
+	{
+		return layoutGhostActive_ ? hitRadius_ : GetVisualRadius();
+	}
+
+	/** @brief 覆盖绘制半径；传入 <= 0 等效于清除覆盖。 */
+	void SetVisualRadiusOverride(float r) noexcept
+	{
+		visualRadiusOverride_ = r;
+		if (visualReady_)
+		{
+			ApplyVisualTransform_();
+		}
+	}
+
+	/** @brief 取消绘制半径覆盖，恢复为命中半径。 */
+	void ClearVisualRadiusOverride() noexcept
+	{
+		visualRadiusOverride_ = 0.0f;
+		if (visualReady_)
+		{
+			ApplyVisualTransform_();
+		}
+	}
+
 	[[nodiscard]] ModuleReadyState GetState() const noexcept { return state_; }
 	[[nodiscard]] bool IsCore() const noexcept { return isCore_; }
 	[[nodiscard]] bool IsReady() const noexcept { return state_ == ModuleReadyState::Ready; }
@@ -111,6 +143,8 @@ protected:
 	std::uint32_t instanceId_{ 0 };
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
 	float hitRadius_{ 16.0f };
+	/** @brief <= 0 表示不覆盖，绘制走 hitRadius_。 */
+	float visualRadiusOverride_{ 0.0f };
 	ModuleReadyState state_{ ModuleReadyState::Ready };
 	float cooldownRemaining_{ 0.0f };
 	float cooldownDuration_{ 3.0f };

@@ -75,6 +75,7 @@ void ModuleWarehouse::RelayoutSlots()
 		}
 		node->SetLocalPos(SlotLocalPos_(i));
 		node->SetZoneOrigin(warehouseOrigin_);
+		node->SetVisualRadiusOverride(kStoredVisualRadius);
 		node->SyncVisual();
 	}
 }
@@ -139,6 +140,10 @@ std::unique_ptr<IModuleNode> ModuleWarehouse::TakeNode(std::size_t index)
 	}
 	std::unique_ptr<IModuleNode> out = std::move(nodes_[index]);
 	nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(index));
+	if (out != nullptr)
+	{
+		out->ClearVisualRadiusOverride();
+	}
 	RelayoutSlots();
 	return out;
 }
@@ -294,7 +299,7 @@ IModuleNode* ModuleWarehouse::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistS
 			warehouseOrigin_.x + local.x,
 			warehouseOrigin_.y + local.y
 		};
-		const Collider2D::CircleCollider hit{ world, node->GetHitRadius() };
+		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
 		const Collider2D::PointCollider pt{ worldPos };
 		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
 		{

@@ -549,7 +549,7 @@ void ZoneLayoutEditor::SyncRingTransform_(IModuleNode& node, DirectX::XMFLOAT3 o
 void ZoneLayoutEditor::SyncOneRingTransform_(Canvas2D& ring, IModuleNode& node, DirectX::XMFLOAT3 origin) const
 {
 	const DirectX::XMFLOAT2 local = node.GetLocalPos();
-	const float side = node.GetHitRadius() * 2.0f + kRingPadding_;
+	const float side = node.GetIconRadius() * 2.0f + kRingPadding_;
 	ring.SetPosition(DirectX::XMFLOAT3{
 		origin.x + local.x,
 		origin.y + local.y,

@@ -155,21 +155,21 @@ void IModuleNode::ApplyVisualTransform_()
 		return;
 	}
 
-	const float side = hitRadius_ * 2.0f;
-	const DirectX::XMFLOAT3 scale{ side, side, 1.0f };
+	const float iconSide = GetIconRadius() * 2.0f;
+	const float maskSide = GetVisualRadius() * 2.0f;
 
 	const DirectX::XMFLOAT3 iconPos = (
 		V(zoneOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
 	).ToFloat3();
 	icon_->SetPosition(iconPos);
-	icon_->SetScale(scale);
+	icon_->SetScale(DirectX::XMFLOAT3{ iconSide, iconSide, 1.0f });
 
 	const DirectX::XMFLOAT2 maskLocal = layoutGhostActive_ ? layoutGhostLocalPos_ : localPos_;
 	const DirectX::XMFLOAT3 maskPos = (
 		V(zoneOrigin_) + Vec3{ maskLocal.x, maskLocal.y, 0.0f }
 	).ToFloat3();
 	mask_->SetPosition(maskPos);
-	mask_->SetScale(scale);
+	mask_->SetScale(DirectX::XMFLOAT3{ maskSide, maskSide, 1.0f });
 }
 
 float IModuleNode::GetRemainRatio_() const noexcept

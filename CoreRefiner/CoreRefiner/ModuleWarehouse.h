@@ -26,6 +26,8 @@ public:
 	/** @brief 槽距 56 / pad 38：half = (150, 122)，框 300 x 244，四边留 10px。 */
 	static constexpr float kSlotPitch = 56.0f;
 	static constexpr float kBoundsPad = 38.0f;
+	/** @brief 仓库内统一绘制半径；拿起后恢复节点真实命中半径。 */
+	static constexpr float kStoredVisualRadius = 15.0f;
 
 	ModuleWarehouse() = default;
 	~ModuleWarehouse() override = default;
