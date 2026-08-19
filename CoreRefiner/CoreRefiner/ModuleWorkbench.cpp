@@ -27,13 +27,17 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 		478.5f,
 		0.0f
 	};
-	// Shop: pitch matches info-panel width so five descriptions do not overlap;
-	// origin keeps the leftmost panel on-screen.
+	// Shop 贴左栏：外壳左/顶距屏幕 kScreenPad（Gold/Reset 在买卖框顶栏内，不再额外上抬）。
 	const float shopHalfSpanX =
 		(static_cast<float>(ModuleShop::kColumns - 1) * 0.5f) * ModuleShop::kSlotPitch;
+	const float tradeHalfX = shopHalfSpanX + ModuleShop::kBoundsPad;
+	const float shellHalfX = tradeHalfX + ModuleShop::kShellPadX;
+	const float tradeHalfY = ModuleShop::kBoundsPad;
+	const float shellTopFromOrigin = ModuleShop::kShellPadTop + tradeHalfY;
+	constexpr float kScreenPad = 40.0f;
 	shopOrigin_ = DirectX::XMFLOAT3{
-		shopHalfSpanX + ModuleShop::kInfoMaxWidthPx * 0.5f + 12.0f,
-		static_cast<float>(SCREEN_HEIGHT) * 0.5f,
+		shellHalfX + kScreenPad,
+		shellTopFromOrigin + kScreenPad,
 		0.0f
 	};
 
@@ -186,7 +190,7 @@ void ModuleWorkbench::Submit()
 	{
 		warehouse_.SubmitNodes();
 		shop_.SubmitNodes();
-		shop_.SubmitInfoPanels();
+		shop_.SubmitHud();
 		layoutEditor_.SubmitOverlay();
 	}
 }

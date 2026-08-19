@@ -17,6 +17,7 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <vector>
 
 [[nodiscard]] static ModuleNodeLabel PickRandomShopLabel_()
 {
@@ -53,17 +54,43 @@ float ModuleShop::HalfSpanX_() noexcept
 	return (static_cast<float>(kColumns - 1) * 0.5f) * kSlotPitch;
 }
 
-float ModuleShop::HalfSpanY_() noexcept
+float ModuleShop::TradeHalfX_() noexcept
 {
-	return (static_cast<float>(kRows - 1) * 0.5f) * kSlotPitch;
+	return HalfSpanX_() + kBoundsPad;
+}
+
+float ModuleShop::TradeHalfY_() noexcept
+{
+	return (kHudBarHeight + kCardHeight + 2.0f * kSlotMargin) * 0.5f;
+}
+
+float ModuleShop::TradeCenterLocalY_() noexcept
+{
+	return TradeHalfY_() - kBoundsPad;
+}
+
+float ModuleShop::CardCenterLocalY_() noexcept
+{
+	return TradeCenterLocalY_() - TradeHalfY_() + kHudBarHeight + kSlotMargin + SlotCellHeight_() * 0.5f;
+}
+
+float ModuleShop::SlotCellWidth_() noexcept
+{
+	const float innerW = TradeHalfX_() * 2.0f;
+	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
+}
+
+float ModuleShop::SlotCellHeight_() noexcept
+{
+	return kCardHeight;
 }
 
 DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) noexcept
 {
-	const int col = static_cast<int>(index % static_cast<std::size_t>(kColumns));
-	const int row = static_cast<int>(index / static_cast<std::size_t>(kColumns));
-	const float x = (static_cast<float>(col) - (static_cast<float>(kColumns - 1) * 0.5f)) * kSlotPitch;
-	const float y = static_cast<float>(row) * kSlotPitch;
+	const float cellW = SlotCellWidth_();
+	const float x = (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * cellW;
+	const float cardTop = CardCenterLocalY_() - SlotCellHeight_() * 0.5f;
+	const float y = cardTop + kCardIconPad + kStoredVisualRadius;
 	return DirectX::XMFLOAT2{ x, y };
 }
 
@@ -85,18 +112,14 @@ std::size_t ModuleShop::FindSlotIndex_(const IModuleNode* node) const noexcept
 
 ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
 {
-	const float halfSpanX = HalfSpanX_();
-	const float halfSpanY = HalfSpanY_();
-	const float localCenterY = halfSpanY;
-
 	BoundsWorld b{};
+	b.half = DirectX::XMFLOAT2{
+		TradeHalfX_(),
+		TradeHalfY_()
+	};
 	b.center = DirectX::XMFLOAT2{
 		origin_.x,
-		origin_.y + localCenterY
-	};
-	b.half = DirectX::XMFLOAT2{
-		halfSpanX + kBoundsPad,
-		halfSpanY + kBoundsPad
+		origin_.y + TradeCenterLocalY_()
 	};
 	return b;
 }
@@ -146,6 +169,8 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	origin_ = origin;
 	RelayoutSlots_();
 	SyncPanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncReserveTransforms_();
 }
 
 void ModuleShop::FillStock()
@@ -228,10 +253,6 @@ void ModuleShop::RerollStock_()
 			}
 		}
 	}
-	for (int& painted : paintedPrice_)
-	{
-		painted = -1;
-	}
 	RelayoutSlots_();
 }
 
@@ -250,19 +271,21 @@ Color ModuleShop::RefreshIconTint_() const noexcept
 
 DirectX::XMFLOAT2 ModuleShop::CurrencyIconCenter_() const noexcept
 {
-	const BoundsWorld b = GetBoundsWorld();
+	const BoundsWorld b = GetTradeBoundsWorld();
+	const float barY = b.center.y - b.half.y + kHudBarHeight * 0.5f;
 	return DirectX::XMFLOAT2{
-		b.center.x - b.half.x + kHudIconWorld_ * 0.5f,
-		b.center.y - b.half.y - kHudIconWorld_ * 0.5f - 8.0f
+		b.center.x - b.half.x + kSlotMargin + kHudIconWorld_ * 0.5f,
+		barY
 	};
 }
 
 DirectX::XMFLOAT2 ModuleShop::RefreshButtonCenter_() const noexcept
 {
-	const BoundsWorld b = GetBoundsWorld();
+	const BoundsWorld b = GetTradeBoundsWorld();
+	const float barY = b.center.y - b.half.y + kHudBarHeight * 0.5f;
 	return DirectX::XMFLOAT2{
-		b.center.x + b.half.x - kHudIconWorld_ * 0.5f,
-		b.center.y - b.half.y - kHudIconWorld_ * 0.5f - 8.0f
+		b.center.x + b.half.x - kSlotMargin - kHudIconWorld_ * 0.5f,
+		barY
 	};
 }
 
@@ -448,7 +471,7 @@ void ModuleShop::MarkSold(std::size_t index)
 	}
 	slots_[index].sold = true;
 	slots_[index].node.reset();
-	SyncInfoPanels_();
+	RefreshSlotCards_();
 }
 
 void ModuleShop::RelayoutSlots_()
@@ -465,7 +488,7 @@ void ModuleShop::RelayoutSlots_()
 		node->SetVisualRadiusOverride(kStoredVisualRadius);
 		node->SyncVisual();
 	}
-	SyncInfoPanels_();
+	RefreshSlotCards_();
 }
 
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
@@ -544,152 +567,138 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 	{
 		taken->ClearVisualRadiusOverride();
 	}
-	SyncInfoPanels_();
+	RefreshSlotCards_();
 	return taken;
 }
 
-void ModuleShop::SyncInfoPanels_()
+void ModuleShop::RefreshSlotCards_()
 {
-	SyncPriceLabels_();
-
 	if (gfx_ != nullptr && rg_ != nullptr)
 	{
-		for (NodeInfoPanel& panel : infoPanels_)
-		{
-			panel.Ensure(*gfx_, *rg_);
-		}
+		EnsureSlotCardVisuals_(*gfx_, *rg_);
 	}
-
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		NodeInfoPanel& panel = infoPanels_[i];
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			panel.Hide();
-			continue;
-		}
-
-		const DirectX::XMFLOAT2 local = SlotLocalPos_(i);
-		const float iconX = origin_.x + local.x;
-		const float iconY = origin_.y + local.y;
-		const float radius = slot.node->GetVisualRadius();
-		float infoAnchorY = iconY + radius + kPriceGapBelowIcon;
-		if (Canvas2D* price = priceCanvases_[i].get())
-		{
-			infoAnchorY += static_cast<float>(price->GetCanvasHeight());
-		}
-
-		panel.ShowFor(
-			slot.node->GetModuleNodeLabel(),
-			DirectX::XMFLOAT2{ iconX, infoAnchorY },
-			NodeInfoPanel::Anchor::Below,
-			kInfoMaxWidthPx,
-			false);
+		PaintSlotCard_(i);
 	}
+	SyncSlotCardTransforms_();
 	SyncHud();
 }
 
-void ModuleShop::EnsurePriceVisuals_()
+void ModuleShop::EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return;
-	}
+	const unsigned w = (std::max)(1u, static_cast<unsigned>(std::lround(SlotCellWidth_())));
+	const unsigned h = (std::max)(1u, static_cast<unsigned>(std::lround(SlotCellHeight_())));
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		if (priceCanvases_[i] != nullptr)
+		if (slotCards_[i] != nullptr)
 		{
 			continue;
 		}
-		priceCanvases_[i] = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
-		priceCanvases_[i]->Clear(Colors::None);
-		priceCanvases_[i]->LinkTechniques(*rg_);
-		paintedPrice_[i] = -1;
+		slotCards_[i] = std::make_unique<Canvas2D>(gfx, w, h);
+		slotCards_[i]->LinkTechniques(rg);
 	}
 }
 
-void ModuleShop::PaintPrice_(std::size_t index)
+void ModuleShop::PaintSlotCard_(std::size_t index)
 {
-	if (index >= kSlotCount || priceCanvases_[index] == nullptr)
+	if (index >= kSlotCount || slotCards_[index] == nullptr)
 	{
 		return;
 	}
 
-	const int price = slots_[index].price;
-	if (paintedPrice_[index] == price)
+	Canvas2D& canvas = *slotCards_[index];
+	const Slot& slot = slots_[index];
+	const bool empty = slot.sold || slot.node == nullptr;
+
+	constexpr Color kCardBg{ 42u, 56u, 78u, 190u };
+	constexpr Color kEmptyBg{ 28u, 36u, 52u, 150u };
+	constexpr Color kFrame{ 170u, 190u, 210u, 150u };
+	constexpr Color kPrice{ 255u, 220u, 90u, 255u };
+
+	canvas.Clear(empty ? kEmptyBg : kCardBg);
+	const int cw = static_cast<int>(canvas.GetCanvasWidth());
+	const int ch = static_cast<int>(canvas.GetCanvasHeight());
+	DrawRectOutline(canvas, 1, 1, cw - 2, ch - 2, kFrame);
+
+	const int iconZoneH = static_cast<int>(std::lround(
+		kCardIconPad + kStoredVisualRadius * 2.0f + kCardIconPad));
+	DrawHLine(canvas, 8, cw - 9, iconZoneH, kFrame);
+
+	if (empty)
 	{
+		canvas.NotifyPixelsChanged();
 		return;
 	}
 
-	Canvas2D& canvas = *priceCanvases_[index];
-	auto ctx = TextCodex::Get().BeginDraw();
-	Text::RenderRequest& rq = ctx.Request();
-	rq.text = std::to_string(price);
-	rq.canvasMode = Text::CanvasMode::Auto;
-	rq.clearMode = Text::ClearMode::Clear;
-	rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-	rq.fallbackFonts.clear();
-	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-	rq.style.fontSize = kPriceFontSize;
-	rq.style.wordWrapEnabled = false;
-	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-	rq.maxWidthPx = kSlotPitch;
-	rq.paddingPx = 3;
-	rq.defaultColor = Color{ 255u, 220u, 90u, 255u };
-	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
-	ctx.Render(canvas);
+	auto drawText = [&](const std::string& text, float fontSize, float offsetY,
+		DWRITE_TEXT_ALIGNMENT align, Color color, bool wrap, const std::vector<Text::Span>& spans)
+	{
+		auto ctx = TextCodex::Get().BeginDraw();
+		Text::RenderRequest& rq = ctx.Request();
+		rq.text = text;
+		rq.canvasMode = Text::CanvasMode::Fixed;
+		rq.clearMode = Text::ClearMode::NoClear;
+		rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+		rq.fallbackFonts.clear();
+		rq.fallbackFonts.push_back(Text::FontSource::System(L"Yu Gothic UI"));
+		rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
+		rq.style.fontSize = fontSize;
+		rq.style.wordWrapEnabled = wrap;
+		rq.style.textAlign = align;
+		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+		rq.maxWidthPx = static_cast<float>(cw);
+		rq.paddingPx = 6;
+		rq.drawOffsetYPx = offsetY;
+		rq.defaultColor = color;
+		rq.backgroundColor = Colors::None;
+		rq.spans = spans;
+		ctx.Render(canvas);
+	};
 
-	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
-	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
-	canvas.SetScale(DirectX::XMFLOAT3{
-		static_cast<float>(w),
-		static_cast<float>(h),
-		1.0f
-	});
-	paintedPrice_[index] = price;
+	drawText(
+		std::to_string(slot.price),
+		kPriceFontSize,
+		static_cast<float>(iconZoneH),
+		DWRITE_TEXT_ALIGNMENT_CENTER,
+		kPrice,
+		false,
+		{});
+
+	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(slot.node->GetModuleNodeLabel());
+	drawText(
+		entry.ComposedText(),
+		13.0f,
+		static_cast<float>(iconZoneH) + kPriceFontSize + 8.0f,
+		DWRITE_TEXT_ALIGNMENT_LEADING,
+		Colors::White,
+		true,
+		entry.spans);
+
+	canvas.NotifyPixelsChanged();
 }
 
-void ModuleShop::SyncPriceLabels_()
+void ModuleShop::SyncSlotCardTransforms_() noexcept
 {
-	EnsurePriceVisuals_();
+	const float cardCenterLocalY = CardCenterLocalY_();
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		Canvas2D* canvas = priceCanvases_[i].get();
+		Canvas2D* canvas = slotCards_[i].get();
 		if (canvas == nullptr)
 		{
 			continue;
 		}
-
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			continue;
-		}
-
-		PaintPrice_(i);
-		const DirectX::XMFLOAT2 local = SlotLocalPos_(i);
-		const float radius = slot.node->GetVisualRadius();
-		const float halfH = static_cast<float>(canvas->GetCanvasHeight()) * 0.5f;
+		const DirectX::XMFLOAT2 slot = SlotLocalPos_(i);
 		canvas->SetPosition(DirectX::XMFLOAT3{
-			origin_.x + local.x,
-			origin_.y + local.y + radius + kPriceGapBelowIcon + halfH,
+			origin_.x + slot.x,
+			origin_.y + cardCenterLocalY,
 			0.0f
 		});
-	}
-}
-
-void ModuleShop::SubmitPrices_()
-{
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr || priceCanvases_[i] == nullptr)
-		{
-			continue;
-		}
-		priceCanvases_[i]->Submit(Chan::ui);
+		canvas->SetScale(DirectX::XMFLOAT3{
+			SlotCellWidth_(),
+			SlotCellHeight_(),
+			1.0f
+		});
 	}
 }
 
@@ -700,10 +709,8 @@ void ModuleShop::EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 		return;
 	}
 
-	const float halfX = HalfSpanX_() + kBoundsPad;
-	const float halfY = HalfSpanY_() + kBoundsPad;
-	const unsigned w = static_cast<unsigned>(std::lround(halfX * 2.0f));
-	const unsigned h = static_cast<unsigned>(std::lround(halfY * 2.0f));
+	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfX_() * 2.0f)));
+	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfY_() * 2.0f)));
 
 	panel_ = std::make_unique<Canvas2D>(gfx, w, h);
 	PaintPanel_();
@@ -719,27 +726,19 @@ void ModuleShop::PaintPanel_()
 	}
 
 	constexpr Color kBg{ 36u, 48u, 68u, 150u };
-	constexpr Color kGrid{ 170u, 190u, 210u, 110u };
+	constexpr Color kFrame{ 170u, 190u, 210u, 90u };
 
 	panel_->Clear(kBg);
-
-	const float halfX = HalfSpanX_() + kBoundsPad;
-	const float halfY = HalfSpanY_() + kBoundsPad;
-	const float localCenterY = HalfSpanY_();
-	const float halfPitch = kSlotPitch * 0.5f;
-
-	for (std::size_t i = 0; i < kSlotCount; ++i)
+	const int w = static_cast<int>(panel_->GetCanvasWidth());
+	const int h = static_cast<int>(panel_->GetCanvasHeight());
+	constexpr Color kHudBar{ 28u, 38u, 56u, 200u };
+	const int barBottom = static_cast<int>(std::lround(kHudBarHeight)) - 1;
+	for (int y = 1; y < barBottom; ++y)
 	{
-		const DirectX::XMFLOAT2 slot = SlotLocalPos_(i);
-		const float cx = slot.x + halfX;
-		const float cy = slot.y - localCenterY + halfY;
-		const int x0 = static_cast<int>(std::lround(cx - halfPitch));
-		const int y0 = static_cast<int>(std::lround(cy - halfPitch));
-		const int x1 = static_cast<int>(std::lround(cx + halfPitch));
-		const int y1 = static_cast<int>(std::lround(cy + halfPitch));
-		DrawRectOutline(*panel_, x0, y0, x1, y1, kGrid);
+		DrawHLine(*panel_, 1, w - 2, y, kHudBar);
 	}
-
+	DrawRectOutline(*panel_, 0, 0, w - 1, h - 1, kFrame);
+	DrawHLine(*panel_, 1, w - 2, barBottom, kFrame);
 	panel_->NotifyPixelsChanged();
 }
 
@@ -759,17 +758,107 @@ void ModuleShop::SyncPanelTransform_() noexcept
 	});
 }
 
+ModuleShop::BoundsWorld ModuleShop::GetReserveBoundsWorld_(std::size_t index) const noexcept
+{
+	const BoundsWorld trade = GetTradeBoundsWorld();
+	BoundsWorld b{};
+	b.half = DirectX::XMFLOAT2{
+		trade.half.x,
+		kReservePanelHeight * 0.5f
+	};
+	const float tradeBottom = trade.center.y + trade.half.y;
+	const float top = tradeBottom + kReserveGap
+		+ static_cast<float>(index) * (kReservePanelHeight + kReserveGap);
+	b.center = DirectX::XMFLOAT2{
+		trade.center.x,
+		top + b.half.y
+	};
+	return b;
+}
+
+void ModuleShop::EnsureReserveVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	const BoundsWorld sample = GetReserveBoundsWorld_(0);
+	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, sample.half.x * 2.0f)));
+	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, sample.half.y * 2.0f)));
+
+	for (std::size_t i = 0; i < kReserveCount_; ++i)
+	{
+		if (reservePanels_[i] != nullptr)
+		{
+			continue;
+		}
+		reservePanels_[i] = std::make_unique<Canvas2D>(gfx, w, h);
+		PaintReservePanel_(i);
+		reservePanels_[i]->LinkTechniques(rg);
+	}
+	SyncReserveTransforms_();
+}
+
+void ModuleShop::PaintReservePanel_(std::size_t index)
+{
+	if (index >= kReserveCount_ || reservePanels_[index] == nullptr)
+	{
+		return;
+	}
+
+	Canvas2D& canvas = *reservePanels_[index];
+	constexpr Color kBg{ 28u, 36u, 52u, 160u };
+	constexpr Color kFrame{ 170u, 190u, 210u, 110u };
+	constexpr Color kTitle{ 180u, 195u, 215u, 200u };
+
+	canvas.Clear(kBg);
+	const int cw = static_cast<int>(canvas.GetCanvasWidth());
+	const int ch = static_cast<int>(canvas.GetCanvasHeight());
+	DrawRectOutline(canvas, 2, 2, cw - 3, ch - 3, kFrame);
+
+	auto ctx = TextCodex::Get().BeginDraw();
+	Text::RenderRequest& rq = ctx.Request();
+	rq.text = (index == 0) ? "Function2" : "Function3";
+	rq.canvasMode = Text::CanvasMode::Fixed;
+	rq.clearMode = Text::ClearMode::NoClear;
+	rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+	rq.fallbackFonts.clear();
+	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
+	rq.style.fontSize = 16.0f;
+	rq.style.wordWrapEnabled = false;
+	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
+	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+	rq.maxWidthPx = static_cast<float>(cw);
+	rq.paddingPx = 4;
+	rq.defaultColor = kTitle;
+	rq.backgroundColor = Colors::None;
+	ctx.Render(canvas);
+	canvas.NotifyPixelsChanged();
+}
+
+void ModuleShop::SyncReserveTransforms_() noexcept
+{
+	for (std::size_t i = 0; i < kReserveCount_; ++i)
+	{
+		Canvas2D* canvas = reservePanels_[i].get();
+		if (canvas == nullptr)
+		{
+			continue;
+		}
+		const BoundsWorld b = GetReserveBoundsWorld_(i);
+		canvas->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
+		canvas->SetScale(DirectX::XMFLOAT3{
+			b.half.x * 2.0f,
+			b.half.y * 2.0f,
+			1.0f
+		});
+	}
+}
+
 void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	gfx_ = &gfx;
 	rg_ = &rg;
 	EnsureModuleNodeInfoCopyLoaded_();
 	EnsurePanelVisual_(gfx, rg);
-	for (NodeInfoPanel& panel : infoPanels_)
-	{
-		panel.Ensure(gfx, rg);
-	}
-	EnsurePriceVisuals_();
+	EnsureSlotCardVisuals_(gfx, rg);
+	EnsureReserveVisuals_(gfx, rg);
 	FillStock();
 	for (Slot& slot : slots_)
 	{
@@ -780,11 +869,15 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	}
 	RelayoutSlots_();
 	SyncPanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncReserveTransforms_();
 }
 
 void ModuleShop::SyncZoneTransforms_()
 {
 	SyncPanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncReserveTransforms_();
 	for (Slot& slot : slots_)
 	{
 		if (slot.node != nullptr)
@@ -792,7 +885,7 @@ void ModuleShop::SyncZoneTransforms_()
 			slot.node->SyncVisual();
 		}
 	}
-	SyncInfoPanels_();
+	SyncHud();
 }
 
 void ModuleShop::SubmitZoneBackground_()
@@ -800,6 +893,20 @@ void ModuleShop::SubmitZoneBackground_()
 	if (panel_ != nullptr)
 	{
 		panel_->Submit(Chan::ui);
+	}
+	for (auto& card : slotCards_)
+	{
+		if (card != nullptr)
+		{
+			card->Submit(Chan::ui);
+		}
+	}
+	for (auto& canvas : reservePanels_)
+	{
+		if (canvas != nullptr)
+		{
+			canvas->Submit(Chan::ui);
+		}
 	}
 }
 
@@ -812,23 +919,6 @@ void ModuleShop::SubmitNodes()
 			slot.node->SubmitVisual();
 		}
 	}
-}
-
-void ModuleShop::SubmitInfoPanels()
-{
-	SubmitPrices_();
-	for (NodeInfoPanel& panel : infoPanels_)
-	{
-		panel.Submit();
-	}
-	SubmitHud();
-}
-
-void ModuleShop::SubmitAllVisuals()
-{
-	SubmitBackground();
-	SubmitNodes();
-	SubmitInfoPanels();
 }
 
 IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept

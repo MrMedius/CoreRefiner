@@ -143,8 +143,6 @@ public:
 
 	void SubmitNodes() override;
 
-	void SubmitAllVisuals();
-
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
 	[[nodiscard]] DirectX::XMFLOAT2 ClampLocalForRadius(DirectX::XMFLOAT2 localPos, float hitRadius) const noexcept;

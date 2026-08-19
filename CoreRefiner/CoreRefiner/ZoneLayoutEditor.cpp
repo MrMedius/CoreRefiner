@@ -200,7 +200,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		SyncRingTransform_(*ringTarget, OriginForSource_(ringSource));
 	}
 
-	if (dragged_ != nullptr || hover_ == nullptr)
+	if (dragged_ != nullptr || hover_ == nullptr || hoverSource_ == ZoneId::Shop)
 	{
 		infoPanel_.Hide();
 	}

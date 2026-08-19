@@ -34,11 +34,9 @@ public:
 
 	void Ensure(Graphics& gfx, Rgph::RenderGraph& rg);
 
-	void ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor = Anchor::Above, float maxWidthPx = kMaxWidthPx_, bool titleOnly = false);
+	void ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor = Anchor::Above, float maxWidthPx = kMaxWidthPx_);
 
 	void Hide() noexcept;
-
-	[[nodiscard]] bool IsVisible() const noexcept { return visible_; }
 
 	void Submit() const;
 
@@ -55,7 +53,6 @@ private:
 	std::optional<ModuleNodeInfoLanguage> cachedLanguage_;
 	Anchor anchor_{ Anchor::Above };
 	float maxWidthPx_{ kMaxWidthPx_ };
-	bool titleOnly_{ false };
 	unsigned contentW_{ 1u };
 	unsigned contentH_{ 1u };
 

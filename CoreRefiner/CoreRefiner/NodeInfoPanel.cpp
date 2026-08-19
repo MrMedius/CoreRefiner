@@ -60,7 +60,7 @@ void NodeInfoPanel::Ensure(Graphics& gfx, Rgph::RenderGraph& rg)
 	canvas_->LinkTechniques(rg);
 }
 
-void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor, float maxWidthPx, bool titleOnly)
+void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor, float maxWidthPx)
 {
 	if (canvas_ == nullptr)
 	{
@@ -78,12 +78,10 @@ void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameX
 		|| !cachedLanguage_.has_value()
 		|| *cachedLabel_ != label
 		|| *cachedLanguage_ != lang
-		|| maxWidthPx_ != maxWidthPx
-		|| titleOnly_ != titleOnly;
+		|| maxWidthPx_ != maxWidthPx;
 
 	anchor_ = anchor;
 	maxWidthPx_ = maxWidthPx;
-	titleOnly_ = titleOnly;
 
 	if (contentDirty)
 	{
@@ -113,7 +111,7 @@ void NodeInfoPanel::Submit() const
 void NodeInfoPanel::RebuildContent_(ModuleNodeLabel label)
 {
 	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(label);
-	std::string text = titleOnly_ ? entry.title : entry.ComposedText();
+	std::string text = entry.ComposedText();
 	if (text.empty())
 	{
 		text = entry.body;

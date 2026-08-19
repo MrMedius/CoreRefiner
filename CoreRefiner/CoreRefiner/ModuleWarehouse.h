@@ -82,7 +82,6 @@ public:
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
 
 	void SubmitNodes() override;
-	void SubmitAllVisuals();
 
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 

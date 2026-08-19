@@ -276,12 +276,6 @@ void ModuleWarehouse::SubmitNodes()
 	}
 }
 
-void ModuleWarehouse::SubmitAllVisuals()
-{
-	SubmitBackground();
-	SubmitNodes();
-}
-
 IModuleNode* ModuleWarehouse::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
 {
 	IModuleNode* best = nullptr;

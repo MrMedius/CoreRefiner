@@ -119,12 +119,6 @@ void ModuleField::SubmitNodes()
 	}
 }
 
-void ModuleField::SubmitAllVisuals()
-{
-	SubmitBackground();
-	SubmitNodes();
-}
-
 ModuleField::BoundsWorld ModuleField::GetBoundsWorld() const noexcept
 {
 	BoundsWorld b{};
