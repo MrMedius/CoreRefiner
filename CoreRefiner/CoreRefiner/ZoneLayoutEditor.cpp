@@ -439,6 +439,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	{
 		node->SetLocalPos(drop.localPos);
 		node->SetZoneOrigin(target->GetOrigin());
+		target->OnSameZoneMove(*node, drop.localPos);
 		node->EndLayoutGhost();
 		node->SyncVisual();
 		target->SyncAllVisuals();

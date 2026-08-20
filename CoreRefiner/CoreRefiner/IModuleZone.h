@@ -106,6 +106,13 @@ public:
 
 	[[nodiscard]] virtual DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept = 0;
 
+	/** @brief 同区内移动落点已 Accept 之后；默认空实现。仓库用它换槽。 */
+	virtual void OnSameZoneMove(IModuleNode& node, DirectX::XMFLOAT2 localPos)
+	{
+		(void)node;
+		(void)localPos;
+	}
+
 	/** @brief 初始化本区视觉：先定原点并确保外壳，再交给子类。 */
 	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin);
 	/** @brief 同步本区变换：先同步外壳，再交给子类。 */

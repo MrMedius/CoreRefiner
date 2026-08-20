@@ -4,8 +4,52 @@
 #include "Colors.h"
 #include "RenderGraph.h"
 
-#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+
+namespace
+{
+	/** @brief 画布内写像素；越界忽略。 */
+	void PutPixelClamped_(Canvas2D& canvas, int x, int y, Color c)
+	{
+		const int w = static_cast<int>(canvas.GetCanvasWidth());
+		const int h = static_cast<int>(canvas.GetCanvasHeight());
+		if (x < 0 || y < 0 || x >= w || y >= h)
+		{
+			return;
+		}
+		canvas.PutPixel(static_cast<unsigned>(x), static_cast<unsigned>(y), c);
+	}
+
+	/** @brief Bresenham 直线，用于未启用格的叉。 */
+	void DrawLine_(Canvas2D& canvas, int x0, int y0, int x1, int y1, Color c)
+	{
+		const int dx = std::abs(x1 - x0);
+		const int dy = std::abs(y1 - y0);
+		const int sx = (x0 < x1) ? 1 : -1;
+		const int sy = (y0 < y1) ? 1 : -1;
+		int err = dx - dy;
+		for (;;)
+		{
+			PutPixelClamped_(canvas, x0, y0, c);
+			if (x0 == x1 && y0 == y1)
+			{
+				break;
+			}
+			const int e2 = 2 * err;
+			if (e2 > -dy)
+			{
+				err -= dy;
+				x0 += sx;
+			}
+			if (e2 < dx)
+			{
+				err += dx;
+				y0 += sy;
+			}
+		}
+	}
+}
 
 float ModuleWarehouse::HalfSpanX_() noexcept
 {
@@ -24,6 +68,56 @@ DirectX::XMFLOAT2 ModuleWarehouse::SlotLocalPos_(std::size_t index) noexcept
 	const float x = (static_cast<float>(col) - (static_cast<float>(kColumns - 1) * 0.5f)) * kSlotPitch;
 	const float y = static_cast<float>(row) * kSlotPitch;
 	return DirectX::XMFLOAT2{ x, y };
+}
+
+std::size_t ModuleWarehouse::FindFirstEmptySlot_() const noexcept
+{
+	for (std::size_t i = 0; i < enabledSlots_; ++i)
+	{
+		if (nodes_[i] == nullptr)
+		{
+			return i;
+		}
+	}
+	return kMaxSlots;
+}
+
+std::size_t ModuleWarehouse::SlotIndexAtLocal_(DirectX::XMFLOAT2 localPos) const noexcept
+{
+	const float colF = localPos.x / kSlotPitch + static_cast<float>(kColumns - 1) * 0.5f;
+	const float rowF = localPos.y / kSlotPitch;
+	const int col = static_cast<int>(std::lround(colF));
+	const int row = static_cast<int>(std::lround(rowF));
+	if (col < 0 || col >= kColumns || row < 0 || row >= kMaxRows)
+	{
+		return kMaxSlots;
+	}
+	const std::size_t index = static_cast<std::size_t>(row) * static_cast<std::size_t>(kColumns)
+		+ static_cast<std::size_t>(col);
+	const DirectX::XMFLOAT2 center = SlotLocalPos_(index);
+	if (std::fabs(localPos.x - center.x) > kCellHalfExtent
+		|| std::fabs(localPos.y - center.y) > kCellHalfExtent)
+	{
+		return kMaxSlots;
+	}
+	return index;
+}
+
+std::size_t ModuleWarehouse::SlotIndexAt_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return SlotIndexAtLocal_(DirectX::XMFLOAT2{
+		worldPos.x - warehouseOrigin_.x,
+		worldPos.y - warehouseOrigin_.y
+	});
+}
+
+void ModuleWarehouse::SetEnabledSlotCount(std::size_t count) noexcept
+{
+	enabledSlots_ = (count > kMaxSlots) ? kMaxSlots : count;
+	if (panel_ != nullptr)
+	{
+		PaintPanel_();
+	}
 }
 
 ModuleWarehouse::BoundsWorld ModuleWarehouse::GetBoundsWorld() const noexcept
@@ -66,7 +160,7 @@ void ModuleWarehouse::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 
 void ModuleWarehouse::RelayoutSlots()
 {
-	for (std::size_t i = 0; i < nodes_.size(); ++i)
+	for (std::size_t i = 0; i < kMaxSlots; ++i)
 	{
 		IModuleNode* node = nodes_[i].get();
 		if (node == nullptr)
@@ -82,12 +176,16 @@ void ModuleWarehouse::RelayoutSlots()
 
 bool ModuleWarehouse::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
 {
-	(void)localPos;
-	if (node == nullptr || node->IsCore() || IsFull())
+	if (node == nullptr || node->IsCore())
 	{
 		return false;
 	}
-	nodes_.push_back(std::move(node));
+	const std::size_t slot = SlotIndexAtLocal_(localPos);
+	if (slot >= enabledSlots_ || nodes_[slot] != nullptr)
+	{
+		return false;
+	}
+	nodes_[slot] = std::move(node);
 	RelayoutSlots();
 	return true;
 }
@@ -101,45 +199,67 @@ DropResult ModuleWarehouse::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 
 		return result;
 	}
 
-	if (from == ZoneId::Warehouse)
-	{
-		result.verdict = DropVerdict::Accept;
-		for (std::size_t i = 0; i < nodes_.size(); ++i)
-		{
-			if (nodes_[i].get() == &node)
-			{
-				result.localPos = SlotLocalPos_(i);
-				break;
-			}
-		}
-		return result;
-	}
-
-	if (node.IsCore())
+	if (from != ZoneId::Warehouse && node.IsCore())
 	{
 		result.verdict = DropVerdict::Forbidden;
 		return result;
 	}
 
-	if (!HasFreeSlot())
+	const std::size_t slot = SlotIndexAt_(worldPos);
+	if (slot >= kMaxSlots)
+	{
+		result.verdict = DropVerdict::OutOfBounds;
+		return result;
+	}
+	if (slot >= enabledSlots_)
 	{
 		result.verdict = DropVerdict::NoSpace;
 		return result;
 	}
+	if (nodes_[slot] != nullptr && nodes_[slot].get() != &node)
+	{
+		result.verdict = DropVerdict::Blocked;
+		return result;
+	}
 
 	result.verdict = DropVerdict::Accept;
-	result.localPos = SlotLocalPos_(nodes_.size());
+	result.localPos = SlotLocalPos_(slot);
 	return result;
+}
+
+void ModuleWarehouse::OnSameZoneMove(IModuleNode& node, DirectX::XMFLOAT2 localPos)
+{
+	const std::size_t dest = SlotIndexAtLocal_(localPos);
+	if (dest >= enabledSlots_)
+	{
+		return;
+	}
+
+	std::size_t src = kMaxSlots;
+	for (std::size_t i = 0; i < kMaxSlots; ++i)
+	{
+		if (nodes_[i].get() == &node)
+		{
+			src = i;
+			break;
+		}
+	}
+	if (src >= kMaxSlots || src == dest || nodes_[dest] != nullptr)
+	{
+		return;
+	}
+
+	nodes_[dest] = std::move(nodes_[src]);
+	RelayoutSlots();
 }
 
 std::unique_ptr<IModuleNode> ModuleWarehouse::TakeNode(std::size_t index)
 {
-	if (index >= nodes_.size())
+	if (index >= kMaxSlots)
 	{
 		return nullptr;
 	}
 	std::unique_ptr<IModuleNode> out = std::move(nodes_[index]);
-	nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(index));
 	if (out != nullptr)
 	{
 		out->ClearVisualRadiusOverride();
@@ -154,7 +274,7 @@ std::unique_ptr<IModuleNode> ModuleWarehouse::TakeNode(IModuleNode* node)
 	{
 		return nullptr;
 	}
-	for (std::size_t i = 0; i < nodes_.size(); ++i)
+	for (std::size_t i = 0; i < kMaxSlots; ++i)
 	{
 		if (nodes_[i].get() == node)
 		{
@@ -191,13 +311,13 @@ void ModuleWarehouse::PaintPanel_()
 
 	constexpr Color kBg{ 36u, 48u, 68u, 150u };
 	constexpr Color kGrid{ 170u, 190u, 210u, 110u };
+	constexpr Color kDisabledX{ 90u, 100u, 120u, 180u };
 
 	panel_->Clear(kBg);
 
 	const float halfX = HalfSpanX_() + kBoundsPad;
 	const float halfY = HalfSpanY_() + kBoundsPad;
 	const float localCenterY = HalfSpanY_();
-	const float halfPitch = kSlotPitch * 0.5f;
 
 	for (std::size_t i = 0; i < kMaxSlots; ++i)
 	{
@@ -205,11 +325,17 @@ void ModuleWarehouse::PaintPanel_()
 		// Warehouse-local → panel pixel (bounds center is local (0, localCenterY)).
 		const float cx = slot.x + halfX;
 		const float cy = slot.y - localCenterY + halfY;
-		const int x0 = static_cast<int>(std::lround(cx - halfPitch));
-		const int y0 = static_cast<int>(std::lround(cy - halfPitch));
-		const int x1 = static_cast<int>(std::lround(cx + halfPitch));
-		const int y1 = static_cast<int>(std::lround(cy + halfPitch));
+		const int x0 = static_cast<int>(std::lround(cx - kCellHalfExtent));
+		const int y0 = static_cast<int>(std::lround(cy - kCellHalfExtent));
+		const int x1 = static_cast<int>(std::lround(cx + kCellHalfExtent));
+		const int y1 = static_cast<int>(std::lround(cy + kCellHalfExtent));
 		DrawRectOutline(*panel_, x0, y0, x1, y1, kGrid);
+		if (i >= enabledSlots_)
+		{
+			constexpr int kInset = 6;
+			DrawLine_(*panel_, x0 + kInset, y0 + kInset, x1 - kInset, y1 - kInset, kDisabledX);
+			DrawLine_(*panel_, x1 - kInset, y0 + kInset, x0 + kInset, y1 - kInset, kDisabledX);
+		}
 	}
 
 	panel_->NotifyPixelsChanged();
