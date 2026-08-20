@@ -27,7 +27,7 @@
 	return static_cast<ModuleNodeLabel>(dist(rng));
 }
 
-static_assert(ModuleShop::kSlotCount <= ModuleNodeLabelCount());
+static_assert(ModuleShop::kSlotCount >= 1);
 
 namespace
 {
@@ -49,47 +49,57 @@ namespace
 	}
 }
 
-float ModuleShop::HalfSpanX_() noexcept
+ModuleShop::BoundsWorld ModuleShop::ShellInnerRect_() const noexcept
 {
-	return (static_cast<float>(kColumns - 1) * 0.5f) * kSlotPitch;
+	const BoundsWorld shell = GetShellBoundsWorld();
+	BoundsWorld inner{};
+	inner.center = shell.center;
+	inner.half = DirectX::XMFLOAT2{
+		shell.half.x - kShellInnerPad,
+		shell.half.y - kShellInnerPad
+	};
+	return inner;
 }
 
-float ModuleShop::TradeHalfX_() noexcept
+float ModuleShop::SplitUnitHeight_() const noexcept
 {
-	return HalfSpanX_() + kBoundsPad;
+	const float innerH = shellHalf_.y * 2.0f - 2.0f * kShellInnerPad;
+	const float ratioSum = static_cast<float>(kTradeRatio)
+		+ static_cast<float>(kFunctionRatio) * static_cast<float>(kReserveCount_);
+	return (innerH - 2.0f * kShellInnerGap) / ratioSum;
 }
 
-float ModuleShop::TradeHalfY_() noexcept
+float ModuleShop::TradeHalfX_() const noexcept
 {
-	return (kHudBarHeight + kCardHeight + 2.0f * kSlotMargin) * 0.5f;
+	return shellHalf_.x - kShellInnerPad;
 }
 
-float ModuleShop::TradeCenterLocalY_() noexcept
+float ModuleShop::TradeHalfY_() const noexcept
 {
-	return TradeHalfY_() - kBoundsPad;
+	return SplitUnitHeight_() * static_cast<float>(kTradeRatio) * 0.5f;
 }
 
-float ModuleShop::CardCenterLocalY_() noexcept
+float ModuleShop::TradeCenterLocalY_() const noexcept
 {
-	return TradeCenterLocalY_() - TradeHalfY_() + kHudBarHeight + kSlotMargin + SlotCellHeight_() * 0.5f;
+	return -(shellHalf_.y - kShellInnerPad) + TradeHalfY_();
 }
 
-float ModuleShop::SlotCellWidth_() noexcept
+float ModuleShop::CardCenterLocalY_() const noexcept
+{
+	return TradeCenterLocalY_() - TradeHalfY_() + kHudBarHeight + kSlotMargin + kCardHeight * 0.5f;
+}
+
+float ModuleShop::SlotPitchX_() const noexcept
 {
 	const float innerW = TradeHalfX_() * 2.0f;
 	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
 }
 
-float ModuleShop::SlotCellHeight_() noexcept
+DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) const noexcept
 {
-	return kCardHeight;
-}
-
-DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) noexcept
-{
-	const float cellW = SlotCellWidth_();
-	const float x = (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * cellW;
-	const float cardTop = CardCenterLocalY_() - SlotCellHeight_() * 0.5f;
+	const float pitch = SlotPitchX_();
+	const float x = (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
+	const float cardTop = CardCenterLocalY_() - kCardHeight * 0.5f;
 	const float y = cardTop + kCardIconPad + kStoredVisualRadius;
 	return DirectX::XMFLOAT2{ x, y };
 }
@@ -112,37 +122,28 @@ std::size_t ModuleShop::FindSlotIndex_(const IModuleNode* node) const noexcept
 
 ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
 {
+	const BoundsWorld inner = ShellInnerRect_();
+	const float tradeH = SplitUnitHeight_() * static_cast<float>(kTradeRatio);
 	BoundsWorld b{};
 	b.half = DirectX::XMFLOAT2{
-		TradeHalfX_(),
-		TradeHalfY_()
+		inner.half.x,
+		tradeH * 0.5f
 	};
+	const float innerTop = inner.center.y - inner.half.y;
 	b.center = DirectX::XMFLOAT2{
-		origin_.x,
-		origin_.y + TradeCenterLocalY_()
+		inner.center.x,
+		innerTop + b.half.y
 	};
 	return b;
 }
 
 ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
 {
-	const BoundsWorld trade = GetTradeBoundsWorld();
-	const float tradeH = trade.half.y * 2.0f;
-	const float below =
-		kReserveGap + kReservePanelHeight
-		+ kReserveGap + kReservePanelHeight;
-	const float shellH = kShellPadTop + tradeH + below;
-
 	BoundsWorld b{};
-	b.half = DirectX::XMFLOAT2{
-		trade.half.x + kShellPadX,
-		shellH * 0.5f
-	};
-	const float tradeTop = trade.center.y - trade.half.y;
-	const float shellTop = tradeTop - kShellPadTop;
+	b.half = shellHalf_;
 	b.center = DirectX::XMFLOAT2{
-		trade.center.x,
-		shellTop + b.half.y
+		origin_.x,
+		origin_.y
 	};
 	return b;
 }
@@ -173,11 +174,25 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	SyncReserveTransforms_();
 }
 
+void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
+{
+	shellHalf_.x = (std::max)(1.0f, halfX);
+	shellHalf_.y = (std::max)(1.0f, halfY);
+	if (gfx_ != nullptr && rg_ != nullptr)
+	{
+		EnsurePanelVisual_(*gfx_, *rg_);
+		EnsureReserveVisuals_(*gfx_, *rg_);
+	}
+	RelayoutSlots_();
+	SyncPanelTransform_();
+	SyncReserveTransforms_();
+}
+
 void ModuleShop::FillStock()
 {
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		const ModuleNodeLabel label = static_cast<ModuleNodeLabel>(i);
+		const ModuleNodeLabel label = static_cast<ModuleNodeLabel>(i % ModuleNodeLabelCount());
 		slots_[i].node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(i));
 		slots_[i].sold = false;
 		slots_[i].price = (slots_[i].node != nullptr)
@@ -587,16 +602,20 @@ void ModuleShop::RefreshSlotCards_()
 
 void ModuleShop::EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	const unsigned w = (std::max)(1u, static_cast<unsigned>(std::lround(SlotCellWidth_())));
-	const unsigned h = (std::max)(1u, static_cast<unsigned>(std::lround(SlotCellHeight_())));
+	const unsigned w = (std::max)(1u, static_cast<unsigned>(std::lround(kCardWidth)));
+	const unsigned h = (std::max)(1u, static_cast<unsigned>(std::lround(kCardHeight)));
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		if (slotCards_[i] != nullptr)
+		if (slotCards_[i] == nullptr)
 		{
+			slotCards_[i] = std::make_unique<Canvas2D>(gfx, w, h);
+			slotCards_[i]->LinkTechniques(rg);
 			continue;
 		}
-		slotCards_[i] = std::make_unique<Canvas2D>(gfx, w, h);
-		slotCards_[i]->LinkTechniques(rg);
+		if (slotCards_[i]->GetCanvasWidth() != w || slotCards_[i]->GetCanvasHeight() != h)
+		{
+			slotCards_[i]->Resize(w, h);
+		}
 	}
 }
 
@@ -625,14 +644,9 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		kCardIconPad + kStoredVisualRadius * 2.0f + kCardIconPad));
 	DrawHLine(canvas, 8, cw - 9, iconZoneH, kFrame);
 
-	if (empty)
-	{
-		canvas.NotifyPixelsChanged();
-		return;
-	}
-
 	auto drawText = [&](const std::string& text, float fontSize, float offsetY,
-		DWRITE_TEXT_ALIGNMENT align, Color color, bool wrap, const std::vector<Text::Span>& spans)
+		DWRITE_TEXT_ALIGNMENT align, Color color, bool wrap, const std::vector<Text::Span>& spans,
+		DWRITE_PARAGRAPH_ALIGNMENT paraAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR)
 	{
 		auto ctx = TextCodex::Get().BeginDraw();
 		Text::RenderRequest& rq = ctx.Request();
@@ -646,7 +660,7 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		rq.style.fontSize = fontSize;
 		rq.style.wordWrapEnabled = wrap;
 		rq.style.textAlign = align;
-		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+		rq.style.paragraphAlign = paraAlign;
 		rq.maxWidthPx = static_cast<float>(cw);
 		rq.paddingPx = 6;
 		rq.drawOffsetYPx = offsetY;
@@ -656,13 +670,34 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		ctx.Render(canvas);
 	};
 
+	if (slot.sold)
+	{
+		constexpr Color kSold{ 160u, 160u, 160u, 220u };
+		drawText(
+			"SOLD OUT",
+			16.0f,
+			0.0f,
+			DWRITE_TEXT_ALIGNMENT_CENTER,
+			kSold,
+			true,
+			{},
+			DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+		canvas.NotifyPixelsChanged();
+		return;
+	}
+	if (slot.node == nullptr)
+	{
+		canvas.NotifyPixelsChanged();
+		return;
+	}
+
 	drawText(
 		std::to_string(slot.price),
 		kPriceFontSize,
 		static_cast<float>(iconZoneH),
 		DWRITE_TEXT_ALIGNMENT_CENTER,
 		kPrice,
-		false,
+		true,
 		{});
 
 	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(slot.node->GetModuleNodeLabel());
@@ -695,8 +730,8 @@ void ModuleShop::SyncSlotCardTransforms_() noexcept
 			0.0f
 		});
 		canvas->SetScale(DirectX::XMFLOAT3{
-			SlotCellWidth_(),
-			SlotCellHeight_(),
+			kCardWidth,
+			kCardHeight,
 			1.0f
 		});
 	}
@@ -704,17 +739,24 @@ void ModuleShop::SyncSlotCardTransforms_() noexcept
 
 void ModuleShop::EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	if (panel_ != nullptr)
-	{
-		return;
-	}
-
 	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfX_() * 2.0f)));
 	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfY_() * 2.0f)));
-
-	panel_ = std::make_unique<Canvas2D>(gfx, w, h);
-	PaintPanel_();
-	panel_->LinkTechniques(rg);
+	bool painted = false;
+	if (panel_ == nullptr)
+	{
+		panel_ = std::make_unique<Canvas2D>(gfx, w, h);
+		panel_->LinkTechniques(rg);
+		painted = true;
+	}
+	else if (panel_->GetCanvasWidth() != w || panel_->GetCanvasHeight() != h)
+	{
+		panel_->Resize(w, h);
+		painted = true;
+	}
+	if (painted)
+	{
+		PaintPanel_();
+	}
 	SyncPanelTransform_();
 }
 
@@ -760,17 +802,21 @@ void ModuleShop::SyncPanelTransform_() noexcept
 
 ModuleShop::BoundsWorld ModuleShop::GetReserveBoundsWorld_(std::size_t index) const noexcept
 {
-	const BoundsWorld trade = GetTradeBoundsWorld();
+	const BoundsWorld inner = ShellInnerRect_();
+	const float unit = SplitUnitHeight_();
+	const float tradeH = unit * static_cast<float>(kTradeRatio);
+	const float funcH = unit * static_cast<float>(kFunctionRatio);
+	const float innerTop = inner.center.y - inner.half.y;
+	const float top = innerTop + tradeH + kShellInnerGap
+		+ static_cast<float>(index) * (funcH + kShellInnerGap);
+
 	BoundsWorld b{};
 	b.half = DirectX::XMFLOAT2{
-		trade.half.x,
-		kReservePanelHeight * 0.5f
+		inner.half.x,
+		funcH * 0.5f
 	};
-	const float tradeBottom = trade.center.y + trade.half.y;
-	const float top = tradeBottom + kReserveGap
-		+ static_cast<float>(index) * (kReservePanelHeight + kReserveGap);
 	b.center = DirectX::XMFLOAT2{
-		trade.center.x,
+		inner.center.x,
 		top + b.half.y
 	};
 	return b;
@@ -784,13 +830,22 @@ void ModuleShop::EnsureReserveVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	for (std::size_t i = 0; i < kReserveCount_; ++i)
 	{
-		if (reservePanels_[i] != nullptr)
+		bool painted = false;
+		if (reservePanels_[i] == nullptr)
 		{
-			continue;
+			reservePanels_[i] = std::make_unique<Canvas2D>(gfx, w, h);
+			reservePanels_[i]->LinkTechniques(rg);
+			painted = true;
 		}
-		reservePanels_[i] = std::make_unique<Canvas2D>(gfx, w, h);
-		PaintReservePanel_(i);
-		reservePanels_[i]->LinkTechniques(rg);
+		else if (reservePanels_[i]->GetCanvasWidth() != w || reservePanels_[i]->GetCanvasHeight() != h)
+		{
+			reservePanels_[i]->Resize(w, h);
+			painted = true;
+		}
+		if (painted)
+		{
+			PaintReservePanel_(i);
+		}
 	}
 	SyncReserveTransforms_();
 }
@@ -821,7 +876,7 @@ void ModuleShop::PaintReservePanel_(std::size_t index)
 	rq.fallbackFonts.clear();
 	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
 	rq.style.fontSize = 16.0f;
-	rq.style.wordWrapEnabled = false;
+	rq.style.wordWrapEnabled = true;
 	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
 	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
 	rq.maxWidthPx = static_cast<float>(cw);

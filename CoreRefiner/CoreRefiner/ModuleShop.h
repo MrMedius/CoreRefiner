@@ -21,28 +21,35 @@ class ModuleShop : public IModuleZone
 public:
 	static constexpr int kColumns = 5;
 	static constexpr std::size_t kSlotCount = static_cast<std::size_t>(kColumns);
-	/** @brief 仅用于买卖框宽度：half.x = (kColumns-1)/2*pitch + kBoundsPad。槽位间距改由 SlotCellWidth_ 均分。 */
-	static constexpr float kSlotPitch = 140.0f;
-	static constexpr float kBoundsPad = 36.0f;
-	/** @brief 商品格相对买卖框内沿的边距。格宽 = (内宽 - 2*margin) / kSlotCount。 */
+	/** @brief 买卖框内沿相对商品排布区域的左右/上下留白；不决定卡片尺寸。 */
 	static constexpr float kSlotMargin = 10.0f;
-	/** @brief 买卖框顶部 Gold / Reset 栏高度；框向下长高，顶边仍对齐 origin.y - kBoundsPad。 */
+	/** @brief 商品卡固定宽度；与 kColumns 无关。 */
+	static constexpr float kCardWidth = 140.0f;
+	/** @brief 商品卡固定高度；与买卖框高度无关。 */
+	static constexpr float kCardHeight = 220.0f;
+	/** @brief 买卖框顶部 Gold / Reset 栏高度。 */
 	static constexpr float kHudBarHeight = 32.0f;
-	/** @brief 单张商品卡高度（图标区 + 价格 + 描述）。 */
-	static constexpr float kCardHeight = 180.0f;
 	/** @brief 卡片顶边到图标圆的间隙。 */
 	static constexpr float kCardIconPad = 8.0f;
 	static constexpr float kPriceFontSize = 14.0f;
 	/** @brief 商品在店内统一绘制半径；买走后恢复节点真实命中半径。 */
 	static constexpr float kStoredVisualRadius = 15.0f;
-	/** @brief 整店外壳相对买卖框左右各扩的边距。 */
-	static constexpr float kShellPadX = 16.0f;
-	/** @brief 整店外壳相对买卖框顶边再扩的边距。 */
+	/** @brief 默认外壳半宽；Q4 起由 SetShellExtent 覆盖。 */
+	static constexpr float kFrozenShellHalfX = 332.0f;
+	/** @brief 默认外壳半高；Q4 起由 SetShellExtent 覆盖。 */
+	static constexpr float kFrozenShellHalfY = 230.0f;
+	/** @brief origin.y 到买卖框顶边的距离（Workbench 排版用，Q4 前保留）。 */
+	static constexpr float kBoundsPad = 36.0f;
+	/** @brief 外壳顶边相对 origin.y - kBoundsPad 再上扩的边距。 */
 	static constexpr float kShellPadTop = 12.0f;
-	/** @brief Function2 / Function3 各预留的高度。 */
-	static constexpr float kReservePanelHeight = 96.0f;
-	/** @brief 买卖框与预留板、以及两块预留板之间的间隙。 */
-	static constexpr float kReserveGap = 12.0f;
+	/** @brief 外壳内沿相对外壳的边距。 */
+	static constexpr float kShellInnerPad = 12.0f;
+	/** @brief 买卖框与 Function 板、以及两块 Function 板之间的间隙。 */
+	static constexpr float kShellInnerGap = 12.0f;
+	/** @brief 外壳内竖直比例：买卖框。 */
+	static constexpr int kTradeRatio = 2;
+	/** @brief 外壳内竖直比例：每块 Function 板。 */
+	static constexpr int kFunctionRatio = 1;
 
 	struct Slot
 	{
@@ -78,6 +85,8 @@ public:
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
 	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept override;
+	/** @brief 设置外壳半宽半高（世界像素）；origin 为外壳中心。 */
+	void SetShellExtent(float halfX, float halfY) noexcept;
 
 	void FillStock();
 
@@ -113,17 +122,19 @@ protected:
 	void SubmitZoneBackground_() override;
 
 private:
-	[[nodiscard]] static DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) noexcept;
-	[[nodiscard]] static float HalfSpanX_() noexcept;
-	/** @brief 买卖框内每个商品格的宽度（按 kSlotCount 均分）。 */
-	[[nodiscard]] static float SlotCellWidth_() noexcept;
-	[[nodiscard]] static float SlotCellHeight_() noexcept;
-	[[nodiscard]] static float TradeHalfX_() noexcept;
-	[[nodiscard]] static float TradeHalfY_() noexcept;
-	/** @brief 买卖框中心相对 origin 的本地 Y；顶边与旧 pad 盒对齐。 */
-	[[nodiscard]] static float TradeCenterLocalY_() noexcept;
-	/** @brief 商品卡中心相对 origin 的本地 Y（HUD 栏下方）。 */
-	[[nodiscard]] static float CardCenterLocalY_() noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) const noexcept;
+	/** @brief 外壳减去内边距后的内容矩形。 */
+	[[nodiscard]] BoundsWorld ShellInnerRect_() const noexcept;
+	/** @brief 2:1:1 切分的单位高度。 */
+	[[nodiscard]] float SplitUnitHeight_() const noexcept;
+	/** @brief 买卖框内商品卡中心的水平步长（按 kSlotCount 均分，不改变卡片尺寸）。 */
+	[[nodiscard]] float SlotPitchX_() const noexcept;
+	[[nodiscard]] float TradeHalfX_() const noexcept;
+	[[nodiscard]] float TradeHalfY_() const noexcept;
+	/** @brief 买卖框中心相对外壳中心的本地 Y。 */
+	[[nodiscard]] float TradeCenterLocalY_() const noexcept;
+	/** @brief 商品卡中心相对外壳中心的本地 Y（HUD 栏下方）。 */
+	[[nodiscard]] float CardCenterLocalY_() const noexcept;
 	void RelayoutSlots_();
 	void RefreshSlotCards_();
 	void EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
@@ -149,6 +160,7 @@ private:
 	std::array<Slot, kSlotCount> slots_{};
 	std::array<std::unique_ptr<Canvas2D>, kSlotCount> slotCards_{};
 	DirectX::XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT2 shellHalf_{ kFrozenShellHalfX, kFrozenShellHalfY };
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
 	/** @brief 买卖框底板。 */

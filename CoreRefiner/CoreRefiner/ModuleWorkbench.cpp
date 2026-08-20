@@ -1,6 +1,7 @@
 #include "ModuleWorkbench.h"
 #include "AttackManager.h"
 #include "Channels.h"
+#include "Graphics.h"
 #include "ModuleNodes.h"
 #include "IModuleZone.h"
 #include "InputCodex.h"
@@ -17,29 +18,7 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	// Single source for the layout origins used by combat + pause edit.
 	combatFieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
-	layoutFieldOrigin_ = DirectX::XMFLOAT3{
-		static_cast<float>(SCREEN_WIDTH) * 0.8f,
-		static_cast<float>(SCREEN_HEIGHT) * 0.3f,
-		0.0f
-	};
-	warehouseOrigin_ = DirectX::XMFLOAT3{
-		static_cast<float>(SCREEN_WIDTH) * 0.8f,
-		478.5f,
-		0.0f
-	};
-	// Shop 贴左栏：外壳左/顶距屏幕 kScreenPad（Gold/Reset 在买卖框顶栏内，不再额外上抬）。
-	const float shopHalfSpanX =
-		(static_cast<float>(ModuleShop::kColumns - 1) * 0.5f) * ModuleShop::kSlotPitch;
-	const float tradeHalfX = shopHalfSpanX + ModuleShop::kBoundsPad;
-	const float shellHalfX = tradeHalfX + ModuleShop::kShellPadX;
-	const float tradeHalfY = ModuleShop::kBoundsPad;
-	const float shellTopFromOrigin = ModuleShop::kShellPadTop + tradeHalfY;
-	constexpr float kScreenPad = 40.0f;
-	shopOrigin_ = DirectX::XMFLOAT3{
-		shellHalfX + kScreenPad,
-		shellTopFromOrigin + kScreenPad,
-		0.0f
-	};
+	ComputeLayout_();
 
 	PlaceDemoField_();
 	field_.InitAllVisuals(gfx_, rg_, combatFieldOrigin_);
@@ -48,6 +27,62 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
 
 	shop_.InitAllVisuals(gfx_, rg_, shopOrigin_);
+}
+
+void ModuleWorkbench::ComputeLayout_() noexcept
+{
+	const float screenW = static_cast<float>(SCREEN_WIDTH);
+	const float screenH = static_cast<float>(SCREEN_HEIGHT);
+	/** 与 IModuleZone::kShellPad 相同；基类该常量是 protected。 */
+	constexpr float kShellPad = 12.0f;
+
+	const float fieldOuterHalf = ModuleField::kHalfExtent + kShellPad;
+	const float fieldOuterH = fieldOuterHalf * 2.0f;
+	const float fieldOuterW = fieldOuterH;
+
+	const float warehouseHalfX =
+		(static_cast<float>(ModuleWarehouse::kColumns - 1) * 0.5f) * ModuleWarehouse::kSlotPitch
+		+ ModuleWarehouse::kBoundsPad;
+	const float warehouseHalfY =
+		(static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch
+		+ ModuleWarehouse::kBoundsPad;
+	const float warehouseSpanY =
+		(static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch;
+	const float warehouseOuterHalfX = warehouseHalfX + kShellPad;
+	const float warehouseOuterHalfY = warehouseHalfY + kShellPad;
+	const float warehouseOuterH = warehouseOuterHalfY * 2.0f;
+	const float warehouseOuterW = warehouseOuterHalfX * 2.0f;
+	const float rightOuterW = (fieldOuterW > warehouseOuterW) ? fieldOuterW : warehouseOuterW;
+
+	const float gap = (screenH - fieldOuterH - warehouseOuterH) / 3.0f;
+	const float rightLeft = screenW - gap - rightOuterW;
+	const float rightCx = rightLeft + rightOuterW * 0.5f;
+
+	layoutFieldOrigin_ = DirectX::XMFLOAT3{
+		rightCx,
+		gap + fieldOuterHalf,
+		0.0f
+	};
+
+	const float warehouseShellTop = gap + fieldOuterH + gap;
+	warehouseOrigin_ = DirectX::XMFLOAT3{
+		rightCx,
+		warehouseShellTop + warehouseOuterHalfY - warehouseSpanY,
+		0.0f
+	};
+
+	const float shopLeft = gap;
+	const float shopRight = rightLeft - gap;
+	const float shopTop = gap;
+	const float shopBottom = screenH - gap;
+	const float shopHalfX = (shopRight - shopLeft) * 0.5f;
+	const float shopHalfY = (shopBottom - shopTop) * 0.5f;
+	shopOrigin_ = DirectX::XMFLOAT3{
+		shopLeft + shopHalfX,
+		shopTop + shopHalfY,
+		0.0f
+	};
+	shop_.SetShellExtent(shopHalfX, shopHalfY);
 }
 
 void ModuleWorkbench::PlaceDemoField_()
@@ -71,17 +106,7 @@ void ModuleWorkbench::PlaceDemoField_()
 }
 
 void ModuleWorkbench::PlaceDemoWarehouse_()
-{
-	const DirectX::XMFLOAT2 zero{ 0.0f, 0.0f };
-	warehouse_.AddNode<ModuleNode_Spawn_Ball>(zero);
-	warehouse_.AddNode<ModuleNode_Spawn_Ball>(zero);
-	warehouse_.AddNode<ModuleNode_Other_Child>(zero);
-	warehouse_.AddNode<ModuleNode_Other_Child>(zero);
-	warehouse_.AddNode<ModuleNode_Rule_Orbit>(zero);
-	warehouse_.AddNode<ModuleNode_Attribute_Lifetime>(zero, 2.0f);
-	warehouse_.AddNode<ModuleNode_Attribute_SpeedRate>(zero, 0.5f);
-	warehouse_.AddNode<ModuleNode_Attribute_SpeedRate>(zero, 0.2f);
-}
+{}
 
 void ModuleWorkbench::Reset()
 {

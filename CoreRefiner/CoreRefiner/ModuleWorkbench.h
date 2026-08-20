@@ -57,6 +57,8 @@ private:
 	void PlaceDemoField_();
 	void PlaceDemoWarehouse_();
 	void SyncFieldWaves_();
+	/** @brief 按统一缝隙计算暂停布局：左 Shop、右上 Field、右下 Warehouse。 */
+	void ComputeLayout_() noexcept;
 
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
