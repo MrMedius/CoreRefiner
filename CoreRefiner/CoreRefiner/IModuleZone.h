@@ -169,11 +169,6 @@ protected:
 	/** @brief 子类提交自身内容背景（不含外壳）。 */
 	virtual void SubmitZoneBackground_() = 0;
 
-	static void PutPixelClamped(Canvas2D& canvas, int x, int y, Color c);
-	static void DrawHLine(Canvas2D& canvas, int x0, int x1, int y, Color c);
-	static void DrawVLine(Canvas2D& canvas, int x, int y0, int y1, Color c);
-	static void DrawRectOutline(Canvas2D& canvas, int x0, int y0, int x1, int y1, Color c);
-
 private:
 	void EnsureShell_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintShell_();

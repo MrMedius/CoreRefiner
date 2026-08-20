@@ -1,4 +1,5 @@
 #include "ToggleCanvasView.h"
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 
 #include <algorithm>
@@ -8,23 +9,6 @@ namespace Ui
 {
 	namespace
 	{
-		void FillRect(Canvas& c, unsigned x0, unsigned y0, unsigned x1, unsigned y1, Color col)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			if (w == 0u || h == 0u)
-				return;
-
-			const unsigned left = std::min(x0, x1);
-			const unsigned right = std::min(std::max(x0, x1), w - 1u);
-			const unsigned top = std::min(y0, y1);
-			const unsigned bottom = std::min(std::max(y0, y1), h - 1u);
-
-			for (unsigned y = top; y <= bottom; ++y)
-				for (unsigned x = left; x <= right; ++x)
-					c.PutPixel(x, y, col);
-		}
-
 		void DrawThickLine(Canvas& c, float x0, float y0, float x1, float y1, Color col, unsigned thickness)
 		{
 			const float dx = x1 - x0;
@@ -46,29 +30,6 @@ namespace Ui
 					for (int ox = -static_cast<int>(halfT); ox <= static_cast<int>(halfT); ++ox)
 						c.PutPixel(static_cast<unsigned>(px + static_cast<float>(ox)), static_cast<unsigned>(py + static_cast<float>(oy)), col);
 			}
-		}
-
-		void DrawBoxBorderInRect(
-			Canvas& c,
-			const unsigned x0,
-			const unsigned y0,
-			const unsigned x1,
-			const unsigned y1,
-			const unsigned border,
-			const Color borderColor)
-		{
-			if (border == 0u)
-				return;
-
-			const unsigned w = x1 - x0 + 1u;
-			const unsigned h = y1 - y0 + 1u;
-			if (border * 2u >= w || border * 2u >= h)
-				return;
-
-			FillRect(c, x0, y0, x1, y0 + border - 1u, borderColor);
-			FillRect(c, x0, y1 + 1u - border, x1, y1, borderColor);
-			FillRect(c, x0, y0 + border, x0 + border - 1u, y1 - border, borderColor);
-			FillRect(c, x1 + 1u - border, y0 + border, x1, y1 - border, borderColor);
 		}
 
 		void ComputeBoxOuterRect(
@@ -180,18 +141,18 @@ namespace Ui
 			&& border * 2u < (outerX1 - outerX0 + 1u)
 			&& border * 2u < (outerY1 - outerY0 + 1u))
 		{
-			FillRect(
+			CanvasPixelDraw::FillRect(
 				c,
 				outerX0 + border,
 				outerY0 + border,
 				outerX1 - border,
 				outerY1 - border,
 				boxFill);
-			DrawBoxBorderInRect(c, outerX0, outerY0, outerX1, outerY1, border, style_.borderColor);
+			CanvasPixelDraw::DrawRectBorder(c, outerX0, outerY0, outerX1, outerY1, border, style_.borderColor);
 			return;
 		}
 
-		FillRect(c, outerX0, outerY0, outerX1, outerY1, boxFill);
+		CanvasPixelDraw::FillRect(c, outerX0, outerY0, outerX1, outerY1, boxFill);
 	}
 
 	void ToggleCanvasView::RepaintCheckColor_(const ToggleViewModel& vm)

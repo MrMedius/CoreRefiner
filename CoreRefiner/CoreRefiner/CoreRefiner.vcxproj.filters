@@ -1428,6 +1428,9 @@
     <ClInclude Include="ModuleShop.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
+    <ClInclude Include="CanvasPixelDraw.h">
+      <Filter>Tool</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

@@ -9,26 +9,6 @@
 
 std::uint32_t IModuleNode::s_nextInstanceId_ = 0;
 
-namespace
-{
-	void TintWhiteShapePixels(Canvas& c, const Color color)
-	{
-		const unsigned w = c.GetCanvasWidth();
-		const unsigned h = c.GetCanvasHeight();
-		for (unsigned y = 0u; y < h; ++y)
-		{
-			for (unsigned x = 0u; x < w; ++x)
-			{
-				const Color px = c.GetPixel(x, y);
-				if (px.GetA() > 0u)
-				{
-					c.PutPixel(x, y, color);
-				}
-			}
-		}
-	}
-}
-
 Color IModuleNode::GetReadyFillColor() const noexcept
 {
 	if (isCore_)

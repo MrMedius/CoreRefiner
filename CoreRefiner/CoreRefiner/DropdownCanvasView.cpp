@@ -1,6 +1,7 @@
 #include "DropdownCanvasView.h"
 
 #include "Canvas.h"
+#include "CanvasPixelDraw.h"
 #include "Graphics.h"
 #include "TextCodex.h"
 
@@ -20,57 +21,9 @@ namespace Ui
 			return std::max(1u, std::min(value, kMaxCanvasPixelDim));
 		}
 
-		void FillRect(::Canvas& c, unsigned x0, unsigned y0, unsigned x1, unsigned y1, Color col)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			if (w == 0u || h == 0u)
-				return;
-
-			const unsigned left = std::min(x0, x1);
-			const unsigned right = std::min(std::max(x0, x1), w - 1u);
-			const unsigned top = std::min(y0, y1);
-			const unsigned bottom = std::min(std::max(y0, y1), h - 1u);
-
-			for (unsigned y = top; y <= bottom; ++y)
-				for (unsigned x = left; x <= right; ++x)
-					c.PutPixel(x, y, col);
-		}
-
-		void DrawBoxBorder(::Canvas& c, const unsigned border, const Color borderColor)
-		{
-			if (border == 0u)
-				return;
-
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			if (border * 2u >= w || border * 2u >= h)
-				return;
-
-			FillRect(c, 0u, 0u, w - 1u, border - 1u, borderColor);
-			FillRect(c, 0u, h - border, w - 1u, h - 1u, borderColor);
-			FillRect(c, 0u, border, border - 1u, h - border - 1u, borderColor);
-			FillRect(c, w - border, border, w - 1u, h - border - 1u, borderColor);
-		}
-
 		[[nodiscard]] bool IsDisabledPhase(const UiVisualPhase phase) noexcept
 		{
 			return phase == UiVisualPhase::Disabled;
-		}
-
-		void TintWhiteShapePixels(::Canvas& c, const Color color)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			for (unsigned y = 0u; y < h; ++y)
-			{
-				for (unsigned x = 0u; x < w; ++x)
-				{
-					const Color px = c.GetPixel(x, y);
-					if (px.GetA() > 0u)
-						c.PutPixel(x, y, color);
-				}
-			}
 		}
 	}
 
@@ -261,14 +214,19 @@ namespace Ui
 	{
 		::Canvas& c = *headerBgCanvas_;
 		c.Clear(HeaderBackgroundForPhase(phase));
-		DrawBoxBorder(c, style_.headerBorderPx, style_.headerBorder);
+		const unsigned w = c.GetCanvasWidth();
+		const unsigned h = c.GetCanvasHeight();
+		if (w > 0u && h > 0u)
+		{
+			CanvasPixelDraw::DrawRectBorder(c, 0u, 0u, w - 1u, h - 1u, style_.headerBorderPx, style_.headerBorder);
+		}
 	}
 
 	void DropdownCanvasView::BakeArrowGeometry_()
 	{
 		::Canvas& c = *arrowCanvas_;
 		c.ApplyForm(Canvas::Form::Triangle, 0.0f);
-		TintWhiteShapePixels(c, style_.arrowColor);
+		CanvasPixelDraw::TintOpaquePixels(c, style_.arrowColor);
 	}
 
 	void DropdownCanvasView::SyncArrowOrientation_(const bool expanded) noexcept

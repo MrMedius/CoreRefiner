@@ -1,5 +1,6 @@
 #include "StepperCanvasView.h"
 
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
@@ -11,51 +12,6 @@ namespace Ui
 {
 	namespace
 	{
-		/** @brief 在 Canvas 内壁绘制矩形焦点环。 */
-		void DrawFocusRing(Canvas& c, const Color ring, const unsigned thick)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			if (w == 0u || h == 0u || thick == 0u)
-				return;
-			for (unsigned t = 0u; t < thick; ++t)
-			{
-				if (t >= w || t >= h)
-					break;
-				const unsigned y1 = t;
-				const unsigned y2 = h - 1u - t;
-				for (unsigned x = 0u; x < w; ++x)
-				{
-					c.PutPixel(x, y1, ring);
-					if (y2 != y1)
-						c.PutPixel(x, y2, ring);
-				}
-				const unsigned x1 = t;
-				const unsigned x2 = w - 1u - t;
-				for (unsigned y = y1; y <= y2; ++y)
-				{
-					c.PutPixel(x1, y, ring);
-					if (x2 != x1)
-						c.PutPixel(x2, y, ring);
-				}
-			}
-		}
-
-		void TintWhiteShapePixels(Canvas& c, const Color color)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			for (unsigned y = 0u; y < h; ++y)
-			{
-				for (unsigned x = 0u; x < w; ++x)
-				{
-					const Color px = c.GetPixel(x, y);
-					if (px.GetA() > 0u)
-						c.PutPixel(x, y, color);
-				}
-			}
-		}
-
 		void RenderTextOnCanvas(
 			Canvas& c,
 			const std::string& text,
@@ -102,11 +58,11 @@ namespace Ui
 	{
 		minusArrowCanvas_->ApplyForm(Canvas::Form::Triangle, 0.0f);
 		minusArrowCanvas_->SetRotation(0.0f, 0.0f, -90.0f);
-		TintWhiteShapePixels(*minusArrowCanvas_, style_.symbolNormal);
+		CanvasPixelDraw::TintOpaquePixels(*minusArrowCanvas_, style_.symbolNormal);
 
 		plusArrowCanvas_->ApplyForm(Canvas::Form::Triangle, 0.0f);
 		plusArrowCanvas_->SetRotation(0.0f, 0.0f, 90.0f);
-		TintWhiteShapePixels(*plusArrowCanvas_, style_.symbolNormal);
+		CanvasPixelDraw::TintOpaquePixels(*plusArrowCanvas_, style_.symbolNormal);
 
 		ringCanvas_->Clear(Colors::None);
 	}
@@ -190,13 +146,13 @@ namespace Ui
 	void StepperCanvasView::RepaintMinusArrow_(const bool enabled)
 	{
 		minusArrowCanvas_->ReapplyForm();
-		TintWhiteShapePixels(*minusArrowCanvas_, SymbolColorForEnabled(enabled));
+		CanvasPixelDraw::TintOpaquePixels(*minusArrowCanvas_, SymbolColorForEnabled(enabled));
 	}
 
 	void StepperCanvasView::RepaintPlusArrow_(const bool enabled)
 	{
 		plusArrowCanvas_->ReapplyForm();
-		TintWhiteShapePixels(*plusArrowCanvas_, SymbolColorForEnabled(enabled));
+		CanvasPixelDraw::TintOpaquePixels(*plusArrowCanvas_, SymbolColorForEnabled(enabled));
 	}
 
 	void StepperCanvasView::RepaintText_(const StepperViewModel& vm)
@@ -219,7 +175,7 @@ namespace Ui
 		Canvas& c = *ringCanvas_;
 		c.Clear(Colors::None);
 		if (show)
-			DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
+			CanvasPixelDraw::DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
 	}
 
 	void StepperCanvasView::SyncFrom(const StepperViewModel& vm)

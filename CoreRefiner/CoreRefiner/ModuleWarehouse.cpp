@@ -1,55 +1,11 @@
 #include "ModuleWarehouse.h"
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Collision2D.h"
 #include "Colors.h"
 #include "RenderGraph.h"
 
 #include <cmath>
-#include <cstdlib>
-
-namespace
-{
-	/** @brief 画布内写像素；越界忽略。 */
-	void PutPixelClamped_(Canvas2D& canvas, int x, int y, Color c)
-	{
-		const int w = static_cast<int>(canvas.GetCanvasWidth());
-		const int h = static_cast<int>(canvas.GetCanvasHeight());
-		if (x < 0 || y < 0 || x >= w || y >= h)
-		{
-			return;
-		}
-		canvas.PutPixel(static_cast<unsigned>(x), static_cast<unsigned>(y), c);
-	}
-
-	/** @brief Bresenham 直线，用于未启用格的叉。 */
-	void DrawLine_(Canvas2D& canvas, int x0, int y0, int x1, int y1, Color c)
-	{
-		const int dx = std::abs(x1 - x0);
-		const int dy = std::abs(y1 - y0);
-		const int sx = (x0 < x1) ? 1 : -1;
-		const int sy = (y0 < y1) ? 1 : -1;
-		int err = dx - dy;
-		for (;;)
-		{
-			PutPixelClamped_(canvas, x0, y0, c);
-			if (x0 == x1 && y0 == y1)
-			{
-				break;
-			}
-			const int e2 = 2 * err;
-			if (e2 > -dy)
-			{
-				err -= dy;
-				x0 += sx;
-			}
-			if (e2 < dx)
-			{
-				err += dx;
-				y0 += sy;
-			}
-		}
-	}
-}
 
 float ModuleWarehouse::HalfSpanX_() noexcept
 {
@@ -329,12 +285,12 @@ void ModuleWarehouse::PaintPanel_()
 		const int y0 = static_cast<int>(std::lround(cy - kCellHalfExtent));
 		const int x1 = static_cast<int>(std::lround(cx + kCellHalfExtent));
 		const int y1 = static_cast<int>(std::lround(cy + kCellHalfExtent));
-		DrawRectOutline(*panel_, x0, y0, x1, y1, kGrid);
+		CanvasPixelDraw::DrawRectOutline(*panel_, x0, y0, x1, y1, kGrid);
 		if (i >= enabledSlots_)
 		{
 			constexpr int kInset = 6;
-			DrawLine_(*panel_, x0 + kInset, y0 + kInset, x1 - kInset, y1 - kInset, kDisabledX);
-			DrawLine_(*panel_, x1 - kInset, y0 + kInset, x0 + kInset, y1 - kInset, kDisabledX);
+			CanvasPixelDraw::DrawLine(*panel_, x0 + kInset, y0 + kInset, x1 - kInset, y1 - kInset, kDisabledX);
+			CanvasPixelDraw::DrawLine(*panel_, x1 - kInset, y0 + kInset, x0 + kInset, y1 - kInset, kDisabledX);
 		}
 	}
 

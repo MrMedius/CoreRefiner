@@ -1,4 +1,5 @@
 #include "ModuleShop.h"
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Collision2D.h"
 #include "Colors.h"
@@ -638,11 +639,11 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 	canvas.Clear(empty ? kEmptyBg : kCardBg);
 	const int cw = static_cast<int>(canvas.GetCanvasWidth());
 	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	DrawRectOutline(canvas, 1, 1, cw - 2, ch - 2, kFrame);
+	CanvasPixelDraw::DrawRectOutline(canvas, 1, 1, cw - 2, ch - 2, kFrame);
 
 	const int iconZoneH = static_cast<int>(std::lround(
 		kCardIconPad + kStoredVisualRadius * 2.0f + kCardIconPad));
-	DrawHLine(canvas, 8, cw - 9, iconZoneH, kFrame);
+	CanvasPixelDraw::DrawHLine(canvas, 8, cw - 9, iconZoneH, kFrame);
 
 	auto drawText = [&](const std::string& text, float fontSize, float offsetY,
 		DWRITE_TEXT_ALIGNMENT align, Color color, bool wrap, const std::vector<Text::Span>& spans,
@@ -777,10 +778,10 @@ void ModuleShop::PaintPanel_()
 	const int barBottom = static_cast<int>(std::lround(kHudBarHeight)) - 1;
 	for (int y = 1; y < barBottom; ++y)
 	{
-		DrawHLine(*panel_, 1, w - 2, y, kHudBar);
+		CanvasPixelDraw::DrawHLine(*panel_, 1, w - 2, y, kHudBar);
 	}
-	DrawRectOutline(*panel_, 0, 0, w - 1, h - 1, kFrame);
-	DrawHLine(*panel_, 1, w - 2, barBottom, kFrame);
+	CanvasPixelDraw::DrawRectOutline(*panel_, 0, 0, w - 1, h - 1, kFrame);
+	CanvasPixelDraw::DrawHLine(*panel_, 1, w - 2, barBottom, kFrame);
 	panel_->NotifyPixelsChanged();
 }
 
@@ -865,7 +866,7 @@ void ModuleShop::PaintReservePanel_(std::size_t index)
 	canvas.Clear(kBg);
 	const int cw = static_cast<int>(canvas.GetCanvasWidth());
 	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	DrawRectOutline(canvas, 2, 2, cw - 3, ch - 3, kFrame);
+	CanvasPixelDraw::DrawRectOutline(canvas, 2, 2, cw - 3, ch - 3, kFrame);
 
 	auto ctx = TextCodex::Get().BeginDraw();
 	Text::RenderRequest& rq = ctx.Request();

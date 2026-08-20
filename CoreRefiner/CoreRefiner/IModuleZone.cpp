@@ -1,4 +1,5 @@
 #include "IModuleZone.h"
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Colors.h"
 #include "Graphics.h"
@@ -6,7 +7,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <utility>
 
 IModuleZone::BoundsWorld IModuleZone::GetShellBoundsWorld() const noexcept
 {
@@ -14,49 +14,6 @@ IModuleZone::BoundsWorld IModuleZone::GetShellBoundsWorld() const noexcept
 	b.half.x += kShellPad;
 	b.half.y += kShellPad;
 	return b;
-}
-
-void IModuleZone::PutPixelClamped(Canvas2D& canvas, int x, int y, Color c)
-{
-	const int w = static_cast<int>(canvas.GetCanvasWidth());
-	const int h = static_cast<int>(canvas.GetCanvasHeight());
-	if (x < 0 || y < 0 || x >= w || y >= h)
-	{
-		return;
-	}
-	canvas.PutPixel(static_cast<unsigned>(x), static_cast<unsigned>(y), c);
-}
-
-void IModuleZone::DrawHLine(Canvas2D& canvas, int x0, int x1, int y, Color c)
-{
-	if (x1 < x0)
-	{
-		std::swap(x0, x1);
-	}
-	for (int x = x0; x <= x1; ++x)
-	{
-		PutPixelClamped(canvas, x, y, c);
-	}
-}
-
-void IModuleZone::DrawVLine(Canvas2D& canvas, int x, int y0, int y1, Color c)
-{
-	if (y1 < y0)
-	{
-		std::swap(y0, y1);
-	}
-	for (int y = y0; y <= y1; ++y)
-	{
-		PutPixelClamped(canvas, x, y, c);
-	}
-}
-
-void IModuleZone::DrawRectOutline(Canvas2D& canvas, int x0, int y0, int x1, int y1, Color c)
-{
-	DrawHLine(canvas, x0, x1, y0, c);
-	DrawHLine(canvas, x0, x1, y1, c);
-	DrawVLine(canvas, x0, y0, y1, c);
-	DrawVLine(canvas, x1, y0, y1, c);
 }
 
 void IModuleZone::EnsureShell_(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -90,8 +47,8 @@ void IModuleZone::PaintShell_()
 
 	const int w = static_cast<int>(shell_->GetCanvasWidth());
 	const int h = static_cast<int>(shell_->GetCanvasHeight());
-	DrawRectOutline(*shell_, 1, 1, w - 2, h - 2, kOuter);
-	DrawRectOutline(*shell_, 4, 4, w - 5, h - 5, kInner);
+	CanvasPixelDraw::DrawRectOutline(*shell_, 1, 1, w - 2, h - 2, kOuter);
+	CanvasPixelDraw::DrawRectOutline(*shell_, 4, 4, w - 5, h - 5, kInner);
 	shell_->NotifyPixelsChanged();
 }
 

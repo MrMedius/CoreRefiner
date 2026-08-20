@@ -1,5 +1,6 @@
 #include "ButtonCanvasView.h"
 
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
@@ -9,35 +10,6 @@ namespace Ui
 {
 	namespace
 	{
-		void DrawFocusRing(Canvas& c, Color ring, unsigned thick)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			if (w == 0u || h == 0u || thick == 0u)
-				return;
-			for (unsigned t = 0; t < thick; ++t)
-			{
-				if (t >= w || t >= h)
-					break;
-				const unsigned y1 = t;
-				const unsigned y2 = h - 1u - t;
-				for (unsigned x = 0; x < w; ++x)
-				{
-					c.PutPixel(x, y1, ring);
-					if (y2 != y1)
-						c.PutPixel(x, y2, ring);
-				}
-				const unsigned x1 = t;
-				const unsigned x2 = w - 1u - t;
-				for (unsigned y = y1; y <= y2; ++y)
-				{
-					c.PutPixel(x1, y, ring);
-					if (x2 != x1)
-						c.PutPixel(x2, y, ring);
-				}
-			}
-		}
-
 		[[nodiscard]] bool IsDisabledPhase(UiVisualPhase phase) noexcept
 		{
 			return phase == UiVisualPhase::Disabled;
@@ -133,7 +105,7 @@ namespace Ui
 		Canvas& c = *ringCanvas_;
 		c.Clear(Colors::None);
 		if (phase == UiVisualPhase::Focused)
-			DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
+			CanvasPixelDraw::DrawFocusRing(c, style_.focusRingColor, style_.focusRingThicknessPx);
 	}
 
 	void ButtonCanvasView::SyncFrom(const ButtonViewModel& vm)

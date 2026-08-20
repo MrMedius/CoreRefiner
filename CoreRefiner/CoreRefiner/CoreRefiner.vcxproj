@@ -358,6 +358,7 @@
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
+    <ClInclude Include="CanvasPixelDraw.h" />
     <ClInclude Include="IModuleNode.h" />
     <ClInclude Include="IModuleZone.h" />
     <ClInclude Include="IProjectileModule.h" />

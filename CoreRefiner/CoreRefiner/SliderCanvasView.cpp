@@ -1,4 +1,5 @@
 #include "SliderCanvasView.h"
+#include "CanvasPixelDraw.h"
 #include "Channels.h"
 
 #include <algorithm>
@@ -8,23 +9,6 @@ namespace Ui
 {
 	namespace
 	{
-		void FillRect(Canvas& c, unsigned x0, unsigned y0, unsigned x1, unsigned y1, Color col)
-		{
-			const unsigned w = c.GetCanvasWidth();
-			const unsigned h = c.GetCanvasHeight();
-			if (w == 0u || h == 0u)
-				return;
-
-			const unsigned left = std::min(x0, x1);
-			const unsigned right = std::min(std::max(x0, x1), w - 1u);
-			const unsigned top = std::min(y0, y1);
-			const unsigned bottom = std::min(std::max(y0, y1), h - 1u);
-
-			for (unsigned y = top; y <= bottom; ++y)
-				for (unsigned x = left; x <= right; ++x)
-					c.PutPixel(x, y, col);
-		}
-
 		[[nodiscard]] float RadToDeg(const float rad) noexcept
 		{
 			return rad * (180.0f / 3.14159265358979323846f);
@@ -85,15 +69,7 @@ namespace Ui
 		c.Clear(Colors::None);
 
 		const unsigned border = style_.borderPx;
-		if (border > 0u && border * 2u < w && border * 2u < h)
-		{
-			const unsigned y0 = border;
-			const unsigned y1 = h - 1u - border;
-			FillRect(c, 0u, 0u, w - 1u, border - 1u, style_.borderColor);
-			FillRect(c, 0u, h - border, w - 1u, h - 1u, style_.borderColor);
-			FillRect(c, 0u, y0, border - 1u, y1, style_.borderColor);
-			FillRect(c, w - border, y0, w - 1u, y1, style_.borderColor);
-		}
+		CanvasPixelDraw::DrawRectBorder(c, 0u, 0u, w - 1u, h - 1u, border, style_.borderColor);
 	}
 
 	void SliderCanvasView::RepaintTrackFill_(const SliderViewModel& vm)
@@ -111,7 +87,7 @@ namespace Ui
 		{
 			const unsigned y0 = border;
 			const unsigned y1 = h - 1u - border;
-			FillRect(c, border, y0, w - 1u - border, y1, track);
+			CanvasPixelDraw::FillRect(c, border, y0, w - 1u - border, y1, track);
 			return;
 		}
 
