@@ -17,6 +17,7 @@
 #include "UI_Title.h"
 #include "UI_Game.h"
 #include "UI_Sample.h"
+#include "WaveDirector.h"
 
 class Game
 {
@@ -27,7 +28,7 @@ private:
 		SCENE_GAME,
 		SCENE_RESULT,
 		SCENE_COUNT
-	}Scene{ SCENE_GAME };
+	}Scene{ SCENE_TITLE };
 public:
 	Game(const std::string& commandLine = "");
 	int RunGame();
@@ -41,6 +42,8 @@ private:
 	void SetScene(SCENE scene);
 	void LeaveScene(SCENE scene);
 	void EnterScene(SCENE scene);
+	void EnterCombatPresentation_();
+	void EnterPrepPresentation_();
 	/********************************/
 	/*         Game Related         */
 	/********************************/
@@ -50,7 +53,6 @@ private:
 	ImguiManager imgui;
 	Window wnd;
 	ScriptCommander scriptCommander;
-	bool Pause{ false };
 	// FPS calculation
 	std::chrono::steady_clock::time_point LastFrameTime;
 	std::chrono::steady_clock::time_point StartFrameTime;
@@ -61,10 +63,14 @@ private:
 	/********************************/
 	/*         Game Related         */
 	/********************************/
+	// Renender
 	PointLight light;
 	CameraContainer cameras{ wnd.Gfx() };
 	Rgph::InGameRenderGraph gameRG{ wnd.Gfx() };
 	Rgph::InUserInterfaceRenderGraph UIRG{ wnd.Gfx() };
+	// GameArramgement
+	bool Pause{ false };
+	WaveDirector waveDirector_;
 	// Objects
 	Player* pPlayer;
 	std::unique_ptr<AttackManager> pAttackManager;

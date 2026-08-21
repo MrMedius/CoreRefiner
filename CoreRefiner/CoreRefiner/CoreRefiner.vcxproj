@@ -291,6 +291,7 @@
     <ClCompile Include="NodeInfoPanel.cpp" />
     <ClCompile Include="UiRoot.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClCompile Include="WaveDirector.cpp" />
     <ClCompile Include="XMath.cpp" />
     <ClCompile Include="CubeTexture.cpp" />
     <ClCompile Include="DepthStencil.cpp" />
@@ -514,6 +515,8 @@
     <ClInclude Include="UI_Setting.h" />
     <ClInclude Include="UI_Title.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="WaveDirector.h" />
+    <ClInclude Include="WaveRules.h" />
     <ClInclude Include="Win.h" />
     <ClInclude Include="WRL.h" />
     <ClInclude Include="XMath.h" />

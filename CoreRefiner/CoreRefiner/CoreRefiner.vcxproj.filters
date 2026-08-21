@@ -1,21 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shader">
-      <UniqueIdentifier>{fced4d1c-e288-47a9-b931-6d15810821fa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\Common">
-      <UniqueIdentifier>{54352f59-5a07-47b8-b385-3e06ca138a69}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\3D">
-      <UniqueIdentifier>{fd2579ac-b15c-4bd9-8cdf-18b66e56edc2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\2D">
-      <UniqueIdentifier>{e0683dd9-83ad-4428-8a0d-6f8f8ea450ea}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\PostProcessing">
-      <UniqueIdentifier>{1523bd4e-3c8e-4368-b0ce-1e71b8b43f13}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Framework">
       <UniqueIdentifier>{cfb9cbab-184f-4318-82d4-055e081e1557}</UniqueIdentifier>
     </Filter>
@@ -199,6 +184,24 @@
     </Filter>
     <Filter Include="Object\Attack\ModuleSystem\ModuleZone">
       <UniqueIdentifier>{84af3475-ca95-4c36-95cd-3e51da6b3cf5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tool\GameArrangement">
+      <UniqueIdentifier>{5d5ddc54-6338-4cbd-bc0b-1a34e9e773f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{fced4d1c-e288-47a9-b931-6d15810821fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Common">
+      <UniqueIdentifier>{54352f59-5a07-47b8-b385-3e06ca138a69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\3D">
+      <UniqueIdentifier>{fd2579ac-b15c-4bd9-8cdf-18b66e56edc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\2D">
+      <UniqueIdentifier>{e0683dd9-83ad-4428-8a0d-6f8f8ea450ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\PostProcessing">
+      <UniqueIdentifier>{1523bd4e-3c8e-4368-b0ce-1e71b8b43f13}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -693,6 +696,9 @@
     </ClCompile>
     <ClCompile Include="IModuleZone.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
+    <ClCompile Include="WaveDirector.cpp">
+      <Filter>Tool\GameArrangement</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1430,6 +1436,12 @@
     </ClInclude>
     <ClInclude Include="CanvasPixelDraw.h">
       <Filter>Tool</Filter>
+    </ClInclude>
+    <ClInclude Include="WaveRules.h">
+      <Filter>Tool\GameArrangement</Filter>
+    </ClInclude>
+    <ClInclude Include="WaveDirector.h">
+      <Filter>Tool\GameArrangement</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -27,7 +27,7 @@ Game::Game(const std::string& commandLine)
 	cameras.LinkTechniques(gameRG);
 
 	// Persistent player (survives scene leave)
-	pPlayer = ObjectCodex::AcquirePersistent<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,20.0f,0.0f });
+	pPlayer = ObjectCodex::AcquirePersistent<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,5.0f,0.0f });
 	pAttackManager = std::make_unique<AttackManager>(wnd.Gfx(), gameRG);
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
 	pEnemyManager = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG);
@@ -39,6 +39,18 @@ Game::Game(const std::string& commandLine)
 	uiGame = std::make_unique<UI_Game>(wnd.Gfx(), gameRG);
 	uiGame->SetAttackManager(pAttackManager.get());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
+
+	waveDirector_.onWaveStart = [this](const WaveSpec&)
+	{
+		EnterCombatPresentation_();
+	};
+	waveDirector_.onWaveEnd = [this](int)
+	{
+		if (waveDirector_.GetPhase() == GamePhase::Prep)
+		{
+			EnterPrepPresentation_();
+		}
+	};
 
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
@@ -111,15 +123,22 @@ void Game::LeaveScene(SCENE scene)
 	switch (scene)
 	{
 	case SCENE_GAME:
+		waveDirector_.Reset();
 		// Discard in-progress assemble (standby/pending) before live attack list.
 		if (uiGame != nullptr)
 		{
+			if (uiGame->GetWorkbench().IsLayoutEditActive())
+			{
+				uiGame->EndLayoutEdit();
+			}
 			uiGame->Reset();
 		}
 		pAttackManager->Reset();
 		pEnemyManager->Reset();
 		pEnvironmentManager->Reset();
 		DeferredDisableQueue::Get().Flush();
+		Pause = false;
+		wnd.EnableCursor();
 		// Player remains AcquirePersistent — not Deactivated here
 		break;
 	case SCENE_TITLE:
@@ -140,11 +159,35 @@ void Game::EnterScene(SCENE scene)
 			pPlayer->Activate();
 		}
 		cameras.Reset();
+		waveDirector_.Reset();
+		waveDirector_.RequestStartWave();
 		break;
 	case SCENE_TITLE:
 	case SCENE_RESULT:
 	default:
 		break;
+	}
+}
+
+void Game::EnterCombatPresentation_()
+{
+	if (uiGame != nullptr && uiGame->GetWorkbench().IsLayoutEditActive())
+	{
+		uiGame->EndLayoutEdit();
+	}
+}
+
+void Game::EnterPrepPresentation_()
+{
+	wnd.EnableCursor();
+	if (uiGame == nullptr)
+	{
+		return;
+	}
+	uiGame->SetHostWindow(&wnd);
+	if (!uiGame->GetWorkbench().IsLayoutEditActive())
+	{
+		uiGame->BeginLayoutEdit();
 	}
 }
 
@@ -172,43 +215,42 @@ void Game::Update(float dt)
 	case SCENE_GAME:
 		if (InputCodex::Get().KeyTriggered(KK_P))
 		{
-			if (!Pause)
-			{
-				Pause = true;
-				wnd.EnableCursor();
-				uiGame->SetHostWindow(&wnd);
-				uiGame->BeginLayoutEdit();
-			}
-			else
-			{
-				uiGame->EndLayoutEdit();
-				Pause = false;
-			}
+			waveDirector_.DebugSkipPhase();
 		}
 
 		if (!Pause)
 		{
-			// Game Loop
-			auto playerPos = pPlayer->GetPosition();
-			cameras.Update(dt, playerPos, &wnd);
-			if (!cameras.GetScreenFroze())
+			waveDirector_.Update(dt);
+			switch (waveDirector_.GetPhase())
 			{
-				light.Update(dt, playerPos);
+			case GamePhase::Combat:
+			{
+				auto playerPos = pPlayer->GetPosition();
+				cameras.Update(dt, playerPos, &wnd);
+				if (!cameras.GetScreenFroze())
+				{
+					light.Update(dt, playerPos);
 
-				pPlayer->Update(dt);
-				pAttackManager->Update(dt);
-				pEnvironmentManager->Update(dt);
-				pEnemyManager->Update(dt);
+					pPlayer->Update(dt);
+					pAttackManager->Update(dt);
+					pEnvironmentManager->Update(dt);
+					pEnemyManager->Update(dt);
+				}
+				gameRG.Update(dt);
+				SoundCodex::Get().SetListenerPosition(playerPos);
+
+				uiGame->Update(dt);
+				break;
 			}
-			gameRG.Update(dt);
-			SoundCodex::Get().SetListenerPosition(playerPos);
-
-			uiGame->Update(dt);
-		}
-		else
-		{
-			uiGame->SetHostWindow(&wnd);
-			uiGame->UpdateLayoutEdit(dt);
+			case GamePhase::Prep:
+				uiGame->SetHostWindow(&wnd);
+				uiGame->UpdateLayoutEdit(dt);
+				break;
+			case GamePhase::Defeat:
+			case GamePhase::Victory:
+			default:
+				break;
+			}
 		}
 		break;
 	case SCENE_RESULT:
@@ -238,7 +280,7 @@ void Game::Draw()
 		light.Bind(wnd.Gfx(), cameras->GetMatrix());
 		gameRG.BindMainCamera(cameras.GetActiveCamera());
 
-		if (!Pause)
+		if (!Pause && waveDirector_.GetPhase() == GamePhase::Combat)
 		{
 #ifdef _DEBUG
 			light.Submit(Chan::main);
@@ -250,13 +292,13 @@ void Game::Draw()
 			pPlayer->Submit();
 		}
 
-		// Pause: layout UI only (field / rings / overlays); no world Submit.
+		// Prep: layout UI only (field / rings / overlays); no world Submit.
 		uiGame->Submit();
 
 		gameRG.Execute(wnd.Gfx());
 
 #ifdef _DEBUG
-		if (!Pause)
+		if (!Pause && waveDirector_.GetPhase() == GamePhase::Combat)
 		{
 			cameras.SpawnWindow(wnd.Gfx());
 			light.SpawnControlWindow();
