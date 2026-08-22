@@ -67,9 +67,6 @@
     <Filter Include="Object\Effects">
       <UniqueIdentifier>{27af5168-0697-4898-9ffd-68f1f14efb32}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Object\Managers">
-      <UniqueIdentifier>{23a5047b-d01b-4eb1-b7ca-3ff05f5b0ea3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Tool">
       <UniqueIdentifier>{05ac8d12-cd0c-4120-9a3e-4b52c67aedb0}</UniqueIdentifier>
     </Filter>
@@ -202,6 +199,9 @@
     </Filter>
     <Filter Include="Shader\PostProcessing">
       <UniqueIdentifier>{1523bd4e-3c8e-4368-b0ce-1e71b8b43f13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tool\Managers">
+      <UniqueIdentifier>{23a5047b-d01b-4eb1-b7ca-3ff05f5b0ea3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -427,14 +427,11 @@
     <ClCompile Include="Character.cpp">
       <Filter>Object\Character</Filter>
     </ClCompile>
-    <ClCompile Include="DeferredDisableQueue.cpp">
-      <Filter>Object</Filter>
-    </ClCompile>
     <ClCompile Include="EnemyManager.cpp">
-      <Filter>Object\Managers</Filter>
+      <Filter>Tool\Managers</Filter>
     </ClCompile>
     <ClCompile Include="EnvironmentManager.cpp">
-      <Filter>Object\Managers</Filter>
+      <Filter>Tool\Managers</Filter>
     </ClCompile>
     <ClCompile Include="Enemy_T.cpp">
       <Filter>Object\Character\Enemy</Filter>
@@ -449,7 +446,7 @@
       <Filter>Object\Shapes</Filter>
     </ClCompile>
     <ClCompile Include="AttackManager.cpp">
-      <Filter>Object\Managers</Filter>
+      <Filter>Tool\Managers</Filter>
     </ClCompile>
     <ClCompile Include="Attack.cpp">
       <Filter>Object\Attack</Filter>
@@ -700,6 +697,9 @@
     <ClCompile Include="WaveDirector.cpp">
       <Filter>Tool\GameArrangement</Filter>
     </ClCompile>
+    <ClCompile Include="DeferredDisableQueue.cpp">
+      <Filter>Tool\GameArrangement</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -885,13 +885,7 @@
     <ClInclude Include="ObjectBase.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="DeferredDisableQueue.h">
-      <Filter>Object</Filter>
-    </ClInclude>
     <ClInclude Include="ObjectCodex.h">
-      <Filter>Object</Filter>
-    </ClInclude>
-    <ClInclude Include="HierarchySpawn.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="Character.h">
@@ -934,10 +928,10 @@
       <Filter>Object\Effects</Filter>
     </ClInclude>
     <ClInclude Include="EnvironmentManager.h">
-      <Filter>Object\Managers</Filter>
+      <Filter>Tool\Managers</Filter>
     </ClInclude>
     <ClInclude Include="EnemyManager.h">
-      <Filter>Object\Managers</Filter>
+      <Filter>Tool\Managers</Filter>
     </ClInclude>
     <ClInclude Include="AnimationInfo.h">
       <Filter>Tool</Filter>
@@ -1087,7 +1081,7 @@
       <Filter>Object\Attack</Filter>
     </ClInclude>
     <ClInclude Include="AttackManager.h">
-      <Filter>Object\Managers</Filter>
+      <Filter>Tool\Managers</Filter>
     </ClInclude>
     <ClInclude Include="Enemy_T_Shape.h">
       <Filter>Object\Shapes</Filter>
@@ -1441,6 +1435,12 @@
       <Filter>Tool\GameArrangement</Filter>
     </ClInclude>
     <ClInclude Include="WaveDirector.h">
+      <Filter>Tool\GameArrangement</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredDisableQueue.h">
+      <Filter>Tool\GameArrangement</Filter>
+    </ClInclude>
+    <ClInclude Include="HierarchySpawn.h">
       <Filter>Tool\GameArrangement</Filter>
     </ClInclude>
   </ItemGroup>

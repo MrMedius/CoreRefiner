@@ -40,12 +40,19 @@ Game::Game(const std::string& commandLine)
 	uiGame->SetAttackManager(pAttackManager.get());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
-	waveDirector_.onWaveStart = [this](const WaveSpec&)
+	waveDirector_.onWaveStart = [this](const WaveSpec& spec)
 	{
 		EnterCombatPresentation_();
+		pEnemyManager->SetWave(spec);
+	};
+	waveDirector_.onWaveExpire = [this](int)
+	{
+		BeginVacuumSweep_();
 	};
 	waveDirector_.onWaveEnd = [this](int)
 	{
+		pEnvironmentManager->CollectAllCoins();
+		DeferredDisableQueue::Get().Flush();
 		if (waveDirector_.GetPhase() == GamePhase::Prep)
 		{
 			EnterPrepPresentation_();
@@ -191,6 +198,31 @@ void Game::EnterPrepPresentation_()
 	}
 }
 
+void Game::BeginVacuumSweep_()
+{
+	vacuumElapsed_ = 0.0f;
+	pEnemyManager->HaltSpawning();
+	pEnemyManager->ClearAll();
+	pAttackManager->Reset();
+	pEnvironmentManager->BeginVacuum();
+}
+
+void Game::TryFinishVacuum_(float dt)
+{
+	vacuumElapsed_ += dt;
+	if (pEnvironmentManager->HasActiveCoins() && vacuumElapsed_ < kVacuumTimeout_)
+	{
+		return;
+	}
+	waveDirector_.FinishWave();
+}
+
+bool Game::IsCombatWorld_() const noexcept
+{
+	const GamePhase phase = waveDirector_.GetPhase();
+	return phase == GamePhase::Combat || phase == GamePhase::Vacuum;
+}
+
 void Game::Update(float dt)
 {
 #ifdef _DEBUG
@@ -242,6 +274,21 @@ void Game::Update(float dt)
 				uiGame->Update(dt);
 				break;
 			}
+			case GamePhase::Vacuum:
+			{
+				auto playerPos = pPlayer->GetPosition();
+				cameras.Update(dt, playerPos, &wnd);
+				if (!cameras.GetScreenFroze())
+				{
+					light.Update(dt, playerPos);
+					pPlayer->Update(dt);
+					pEnvironmentManager->Update(dt);
+				}
+				gameRG.Update(dt);
+				SoundCodex::Get().SetListenerPosition(playerPos);
+				TryFinishVacuum_(dt);
+				break;
+			}
 			case GamePhase::Prep:
 				uiGame->SetHostWindow(&wnd);
 				uiGame->UpdateLayoutEdit(dt);
@@ -280,7 +327,7 @@ void Game::Draw()
 		light.Bind(wnd.Gfx(), cameras->GetMatrix());
 		gameRG.BindMainCamera(cameras.GetActiveCamera());
 
-		if (!Pause && waveDirector_.GetPhase() == GamePhase::Combat)
+		if (!Pause && IsCombatWorld_())
 		{
 #ifdef _DEBUG
 			light.Submit(Chan::main);
@@ -298,7 +345,7 @@ void Game::Draw()
 		gameRG.Execute(wnd.Gfx());
 
 #ifdef _DEBUG
-		if (!Pause && waveDirector_.GetPhase() == GamePhase::Combat)
+		if (!Pause && IsCombatWorld_())
 		{
 			cameras.SpawnWindow(wnd.Gfx());
 			light.SpawnControlWindow();

@@ -44,6 +44,12 @@ private:
 	void EnterScene(SCENE scene);
 	void EnterCombatPresentation_();
 	void EnterPrepPresentation_();
+	/** @brief 停刷怪、清敌人与弹幕，并让残留金币强制飞向玩家。 */
+	void BeginVacuumSweep_();
+	/** @brief 金币吸完或超时后 FinishWave。 */
+	void TryFinishVacuum_(float dt);
+	/** @brief Combat / Vacuum 都要画世界。 */
+	[[nodiscard]] bool IsCombatWorld_() const noexcept;
 	/********************************/
 	/*         Game Related         */
 	/********************************/
@@ -71,6 +77,8 @@ private:
 	// GameArramgement
 	bool Pause{ false };
 	WaveDirector waveDirector_;
+	float vacuumElapsed_{ 0.0f };
+	static constexpr float kVacuumTimeout_{ 3.0f };
 	// Objects
 	Player* pPlayer;
 	std::unique_ptr<AttackManager> pAttackManager;

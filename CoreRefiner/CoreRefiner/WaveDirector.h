@@ -5,11 +5,12 @@
 #include <functional>
 
 /**
- * @brief 一局游戏的相位：战斗、战备、失败、通关。
+ * @brief 一局游戏的相位：战斗、收尾吸取、战备、失败、通关。
  */
 enum class GamePhase
 {
 	Combat,
+	Vacuum,
 	Prep,
 	Defeat,
 	Victory
@@ -29,7 +30,7 @@ public:
 	/** @brief 回到战备、波次 0；不触发回调。 */
 	void Reset() noexcept;
 
-	/** @brief 仅 Combat 相扣剩余时间；归零则结束本波。 */
+	/** @brief Combat 扣剩余时间，归零进入 Vacuum；Vacuum 由外部 FinishWave。 */
 	void Update(float dt);
 
 	[[nodiscard]] GamePhase GetPhase() const noexcept { return phase_; }
@@ -44,17 +45,22 @@ public:
 	void RequestStartWave();
 	/** @brief 玩家死亡，进入 Defeat；不视为波次成功结束。 */
 	void NotifyPlayerDead();
+	/** @brief Vacuum 相结束本波，进入 Prep 或 Victory。 */
+	void FinishWave();
 
 	/**
-	 * @brief 调试用强制切相：Combat → 结束本波，Prep → 开下一波。
+	 * @brief 调试用强制切相：Combat → Vacuum，Vacuum → 结束本波，Prep → 开下一波。
 	 */
 	void DebugSkipPhase();
 
 	std::function<void(const WaveSpec&)> onWaveStart;
+	/** @brief 倒计时结束、进入吸取收尾（尚未切 Prep）。 */
+	std::function<void(int)> onWaveExpire;
 	std::function<void(int)> onWaveEnd;
 
 private:
 	void StartWave_(int wave);
+	void ExpireWave_();
 	void EndWave_();
 
 	GamePhase phase_{ GamePhase::Prep };

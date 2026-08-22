@@ -19,7 +19,7 @@ void WaveDirector::Update(float dt)
 	if (remainSec_ <= 0.0f)
 	{
 		remainSec_ = 0.0f;
-		EndWave_();
+		ExpireWave_();
 	}
 }
 
@@ -59,13 +59,25 @@ void WaveDirector::NotifyPlayerDead()
 	remainSec_ = 0.0f;
 }
 
+void WaveDirector::FinishWave()
+{
+	if (phase_ != GamePhase::Vacuum)
+	{
+		return;
+	}
+	EndWave_();
+}
+
 void WaveDirector::DebugSkipPhase()
 {
 	switch (phase_)
 	{
 	case GamePhase::Combat:
 		remainSec_ = 0.0f;
-		EndWave_();
+		ExpireWave_();
+		break;
+	case GamePhase::Vacuum:
+		FinishWave();
 		break;
 	case GamePhase::Prep:
 		RequestStartWave();
@@ -84,6 +96,20 @@ void WaveDirector::StartWave_(int wave)
 	if (onWaveStart)
 	{
 		onWaveStart(currentSpec_);
+	}
+}
+
+void WaveDirector::ExpireWave_()
+{
+	if (phase_ != GamePhase::Combat)
+	{
+		return;
+	}
+	remainSec_ = 0.0f;
+	phase_ = GamePhase::Vacuum;
+	if (onWaveExpire)
+	{
+		onWaveExpire(waveIndex_);
 	}
 }
 

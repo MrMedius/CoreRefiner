@@ -72,6 +72,8 @@ public:
 	static constexpr float kMagnetRadius = 5.0f;
 	/** @brief Magnet travel speed in world units per second. */
 	static constexpr float kMagnetSpeed = 14.0f;
+	/** @brief 波末强制吸取速度；保证场地对角也能在超时前飞到。 */
+	static constexpr float kVacuumSpeed = 40.0f;
 
 	Coin(
 		Graphics& gfx,
@@ -99,6 +101,7 @@ public:
 	void SpawnAt(XMFLOAT3 position)
 	{
 		collected_ = false;
+		forceMagnet_ = false;
 		SetPosition(position);
 		SetSize({ kSize, kSize, kSize });
 		if (pCollider_ != nullptr)
@@ -112,6 +115,7 @@ public:
 	void OnEnable(void) override
 	{
 		collected_ = false;
+		forceMagnet_ = false;
 		if (pCollider_ != nullptr)
 		{
 			pCollider_->SetEnabled(true);
@@ -141,6 +145,18 @@ public:
 		Collect_();
 	}
 
+	/** @brief 立刻结算；已收集则忽略。超时收尾用。 */
+	void CollectNow()
+	{
+		Collect_();
+	}
+
+	/** @brief 波末强制吸取：无视半径，改用 kVacuumSpeed。 */
+	void SetForceMagnet(bool on) noexcept
+	{
+		forceMagnet_ = on;
+	}
+
 private:
 	void AttractTowardPlayer_(float dt)
 	{
@@ -157,14 +173,18 @@ private:
 
 		const Vec3 delta = V(player->GetPosition()) - V(GetPosition());
 		const float distSq = delta.LengthSq();
-		const float radiusSq = kMagnetRadius * kMagnetRadius;
-		if (distSq > radiusSq || distSq <= 1.0e-8f)
+		if (distSq <= 1.0e-8f)
+		{
+			return;
+		}
+		if (!forceMagnet_ && distSq > kMagnetRadius * kMagnetRadius)
 		{
 			return;
 		}
 
 		const float dist = delta.Length();
-		const float step = kMagnetSpeed * dt;
+		const float speed = forceMagnet_ ? kVacuumSpeed : kMagnetSpeed;
+		const float step = speed * dt;
 		if (step >= dist)
 		{
 			SetPosition(player->GetPosition());
@@ -218,4 +238,5 @@ private:
 
 	BoxColliderComponent* pCollider_{ nullptr };
 	bool collected_{ false };
+	bool forceMagnet_{ false };
 };

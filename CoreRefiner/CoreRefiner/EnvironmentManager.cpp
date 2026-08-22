@@ -86,3 +86,37 @@ void EnvironmentManager::EnterGame(void)
 		}
 	}
 }
+
+void EnvironmentManager::BeginVacuum()
+{
+	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
+	{
+		if (coin != nullptr)
+		{
+			coin->SetForceMagnet(true);
+		}
+	}
+}
+
+bool EnvironmentManager::HasActiveCoins() const
+{
+	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
+	{
+		if (coin != nullptr)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void EnvironmentManager::CollectAllCoins()
+{
+	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
+	{
+		if (coin != nullptr)
+		{
+			coin->CollectNow();
+		}
+	}
+}
