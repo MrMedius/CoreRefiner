@@ -8,11 +8,11 @@
 namespace ModuleNodePrice
 {
 	inline constexpr std::array<int, ModuleNodeLabelCount()> kBuyPrice{
-		10, // Spawn_Ball
-		16, // Attribute_Lifetime
-		16, // Attribute_SpeedRate
-		20, // Rule_Orbit
-		12, // Other_Child
+		4, // Spawn_Ball
+		4, // Attribute_Lifetime
+		4, // Attribute_SpeedRate
+		4, // Rule_Orbit
+		4, // Other_Child
 	};
 
 	inline constexpr int kSellPriceNumerator = 1;

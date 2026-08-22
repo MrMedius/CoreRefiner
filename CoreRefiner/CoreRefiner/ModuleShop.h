@@ -171,8 +171,8 @@ private:
 
 	static constexpr float kHudIconWorld_{ 24.0f };
 	static constexpr float kHudHitPad_{ 4.0f };
-	static constexpr int kRefreshBaseCost_{ 5 };
-	static constexpr int kRefreshCostStep_{ 5 };
+	static constexpr int kRefreshBaseCost_{ 1 };
+	static constexpr int kRefreshCostStep_{ 1 };
 
 	int refreshCount_{ 0 };
 	float refreshDeniedSec_{ 0.0f };

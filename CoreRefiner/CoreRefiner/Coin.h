@@ -228,7 +228,7 @@ private:
 			return;
 		}
 		collected_ = true;
-		GameStatsCodex::AddCurrency(1);
+		GameStatsCodex::AddExp(1);
 		if (pCollider_ != nullptr)
 		{
 			pCollider_->SetEnabled(false);

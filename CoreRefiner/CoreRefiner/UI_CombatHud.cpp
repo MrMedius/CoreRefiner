@@ -3,6 +3,7 @@
 #include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Colors.h"
+#include "GameStatsCodex.h"
 #include "ModuleField.h"
 #include "TextCodex.h"
 
@@ -35,6 +36,8 @@ UI_CombatHud::UI_CombatHud(Graphics& gfx, Rgph::RenderGraph& rg, ModuleField* fi
 	PaintWave_();
 	PaintTimer_();
 	PaintHpBar_();
+	PaintExpBar_();
+	PaintCurrency_();
 	SyncTransforms_();
 }
 
@@ -88,6 +91,7 @@ void UI_CombatHud::SubmitField()
 
 void UI_CombatHud::SubmitHud()
 {
+	SyncEconomy_();
 	if (waveText_ != nullptr)
 	{
 		waveText_->Submit(Chan::ui);
@@ -99,6 +103,14 @@ void UI_CombatHud::SubmitHud()
 	if (hpBar_ != nullptr)
 	{
 		hpBar_->Submit(Chan::ui);
+	}
+	if (expBar_ != nullptr)
+	{
+		expBar_->Submit(Chan::ui);
+	}
+	if (currencyText_ != nullptr)
+	{
+		currencyText_->Submit(Chan::ui);
 	}
 }
 
@@ -128,6 +140,19 @@ void UI_CombatHud::EnsureVisuals_()
 		hpBar_->Clear(Colors::None);
 		hpBar_->LinkTechniques(rg_);
 		hpBar_->SetScale(DirectX::XMFLOAT3{ static_cast<float>(kHpBarW_),static_cast<float>(kHpBarH_),1.0f });
+	}
+	if (expBar_ == nullptr)
+	{
+		expBar_ = std::make_unique<Canvas2D>(gfx_, kExpBarW_, kExpBarH_);
+		expBar_->Clear(Colors::None);
+		expBar_->LinkTechniques(rg_);
+		expBar_->SetScale(DirectX::XMFLOAT3{ static_cast<float>(kExpBarW_),static_cast<float>(kExpBarH_),1.0f });
+	}
+	if (currencyText_ == nullptr)
+	{
+		currencyText_ = std::make_unique<Canvas2D>(gfx_, 96u, 28u);
+		currencyText_->Clear(Colors::None);
+		currencyText_->LinkTechniques(rg_);
 	}
 }
 
@@ -188,6 +213,73 @@ void UI_CombatHud::PaintHpBar_()
 	paintedHpKey_ = key;
 }
 
+void UI_CombatHud::PaintExpBar_()
+{
+	EnsureVisuals_();
+	if (expBar_ == nullptr)
+	{
+		return;
+	}
+
+	const unsigned lastX = kExpBarW_ - 1u;
+	const unsigned lastY = kExpBarH_ - 1u;
+	expBar_->Clear(Color{ 24u, 26u, 32u, 220u });
+	CanvasPixelDraw::DrawRectBorder(*expBar_, 0u, 0u, lastX, lastY, 1u, Colors::White);
+
+	const int key = HpKey_(expDrawRatio_);
+	if (key > 0 && kExpBarW_ > 4u && kExpBarH_ > 4u)
+	{
+		const unsigned innerW = kExpBarW_ - 4u;
+		const unsigned fillW = static_cast<unsigned>(
+			std::max(1, (key * static_cast<int>(innerW) + 50) / 100));
+		const unsigned x1 = 2u + fillW - 1u;
+		CanvasPixelDraw::FillRect(*expBar_, 2u, 2u, x1, lastY - 2u, Colors::Green);
+	}
+	expBar_->NotifyPixelsChanged();
+	paintedExpKey_ = key;
+}
+
+void UI_CombatHud::PaintCurrency_()
+{
+	EnsureVisuals_();
+	if (currencyText_ == nullptr)
+	{
+		return;
+	}
+	const int gold = GameStatsCodex::GetCurrency();
+	PaintText_(
+		*currencyText_,
+		std::to_string(gold),
+		kCurrencyFontSize_,
+		paintedCurrency_,
+		gold);
+}
+
+void UI_CombatHud::SyncEconomy_()
+{
+	const float need = static_cast<float>((std::max)(GameStatsCodex::GetExpToNext(), 1));
+	const float target = std::clamp(
+		static_cast<float>(GameStatsCodex::GetExp()) / need,
+		0.0f,
+		1.0f);
+	if (expDrawRatio_ != target)
+	{
+		expDrawRatio_ += (target - expDrawRatio_) * 0.2f;
+	}
+	const int expKey = HpKey_(expDrawRatio_);
+	if (expKey != paintedExpKey_)
+	{
+		PaintExpBar_();
+	}
+
+	const int gold = GameStatsCodex::GetCurrency();
+	if (gold != paintedCurrency_)
+	{
+		PaintCurrency_();
+		SyncTransforms_();
+	}
+}
+
 void UI_CombatHud::PaintText_(Canvas2D& canvas, const std::string& text, float fontSize, int& paintedKey, int key)
 {
 	if (paintedKey == key)
@@ -230,6 +322,9 @@ void UI_CombatHud::SyncTransforms_() noexcept
 	const float timerY = 72.0f;
 	const float hpX = 16.0f + static_cast<float>(kHpBarW_) * 0.5f;
 	const float hpY = 16.0f + static_cast<float>(kHpBarH_) * 0.5f;
+	const float expY = 16.0f + static_cast<float>(kHpBarH_) + 4.0f + static_cast<float>(kExpBarH_) * 0.5f;
+	const float currencyY =
+		16.0f + static_cast<float>(kHpBarH_) + 4.0f + static_cast<float>(kExpBarH_) + 4.0f + 12.0f;
 
 	if (waveText_ != nullptr)
 	{
@@ -242,5 +337,14 @@ void UI_CombatHud::SyncTransforms_() noexcept
 	if (hpBar_ != nullptr)
 	{
 		hpBar_->SetPosition(DirectX::XMFLOAT3{ hpX, hpY, 0.0f });
+	}
+	if (expBar_ != nullptr)
+	{
+		expBar_->SetPosition(DirectX::XMFLOAT3{ hpX, expY, 0.0f });
+	}
+	if (currencyText_ != nullptr)
+	{
+		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
+		currencyText_->SetPosition(DirectX::XMFLOAT3{ 16.0f + halfW, currencyY, 0.0f });
 	}
 }

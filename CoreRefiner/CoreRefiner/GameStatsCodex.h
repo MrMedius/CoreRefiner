@@ -84,24 +84,65 @@ struct CurrencyData
     }
 };
 
+struct ExpData
+{
+    int exp{ 0 };
+    int level{ 0 };
+
+    static constexpr int kBase = 3;
+    static constexpr int kStep = 2;
+    static constexpr int kLevelsPerTier = 5;
+    static constexpr int kCurrencyPerLevel = 2;
+
+    void Reset() noexcept
+    {
+        exp = 0;
+        level = 0;
+    }
+
+    // exp require = 3 + (level / 5) * 2
+    [[nodiscard]] int ExpToNext() const noexcept
+    {
+        const int lv = (std::max)(level, 0);
+        return kBase + (lv / kLevelsPerTier) * kStep;
+    }
+
+    int Add(int amount) noexcept
+    {
+        if (amount <= 0)
+        {
+            return 0;
+        }
+        exp += amount;
+        int grants = 0;
+        while (exp >= ExpToNext())
+        {
+            exp -= ExpToNext();
+            ++level;
+            ++grants;
+        }
+        return grants;
+    }
+};
 
 class GameStatsCodex
 {
 public:
-    // read only
-    static const PerformanceData& Get() noexcept { return Get_().pData; }
-
     // write
     static void Reset() noexcept 
     { 
         Get_().pData.Reset(); 
         Get_().tData.Reset();
         Get_().cData.Reset();
+        Get_().eData.Reset();
     }
 
     /////////////////////////////////////////////////////////
     // PerformanceData
     /////////////////////////////////////////////////////////
+    // read only
+    static const PerformanceData& Get() noexcept { return Get_().pData; }
+
     static bool GetIsTutorial(void) noexcept     { return Get_().tData.isTutorial; }
     static void SetFinishTutorial(void) noexcept { Get_().tData.isTutorial = false; }
 
@@ -170,6 +211,7 @@ public:
     static void AddOutputDamage(float d) noexcept { if (!Get_().tData.isTutorial) if (d > 0) Get_().pData.outputDamage += d; }
     static void AddInputDamage(float d) noexcept  { if (!Get_().tData.isTutorial) if (d > 0) Get_().pData.inputDamage += d; }
 
+
     /////////////////////////////////////////////////////////
     // CurrencyData (not gated by isTutorial)
     /////////////////////////////////////////////////////////
@@ -201,6 +243,33 @@ public:
         return true;
     }
 
+    /////////////////////////////////////////////////////////
+    // ExpData (not gated by isTutorial)
+    /////////////////////////////////////////////////////////
+    [[nodiscard]] static int GetExp() noexcept
+    {
+        return Get_().eData.exp;
+    }
+
+    [[nodiscard]] static int GetLevel() noexcept
+    {
+        return Get_().eData.level;
+    }
+
+    [[nodiscard]] static int GetExpToNext() noexcept
+    {
+        return Get_().eData.ExpToNext();
+    }
+
+    static void AddExp(int amount) noexcept
+    {
+        const int grants = Get_().eData.Add(amount);
+        if (grants > 0)
+        {
+            AddCurrency(grants * ExpData::kCurrencyPerLevel);
+        }
+    }
+
     static void SpawnWindow()
     {
         const auto& s = GameStatsCodex::Get();
@@ -211,6 +280,11 @@ public:
         {
             GameStatsCodex::Reset();
         }
+        ImGui::SameLine();
+        if (ImGui::Button("AddExp(3)"))
+        {
+            GameStatsCodex::AddExp(ExpData::kBase);
+        }
 
         ImGui::Separator();
 
@@ -218,6 +292,7 @@ public:
         {
             ImGui::Text("Score: %d", s.score);
             ImGui::Text("Currency: %d", GameStatsCodex::GetCurrency());
+            ImGui::Text("Exp: %d / %d  (Lv %d)", GameStatsCodex::GetExp(), GameStatsCodex::GetExpToNext(), GameStatsCodex::GetLevel());
             ImGui::Text("GameClear: %s", s.gameClear ? "true" : "false");
             ImGui::Text("LifeTime: %.2f sec", s.lifeTime);
         }
@@ -272,4 +347,5 @@ private:
     PerformanceData pData;
     TutorialData tData;
     CurrencyData cData;
+    ExpData eData;
 };
