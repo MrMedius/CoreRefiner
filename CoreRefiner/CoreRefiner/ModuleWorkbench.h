@@ -51,7 +51,10 @@ public:
 	void EndLayoutEdit();
 	void UpdateLayoutEdit(float dt, Window* hostWindow);
 
-	void Submit();
+	/** @brief 战斗叠层：只交 Field 底板与棋子。 */
+	void SubmitField();
+	/** @brief 战备页：Field + Shop + Warehouse + 编辑器。 */
+	void SubmitPrep();
 
 private:
 	void PlaceDemoField_();

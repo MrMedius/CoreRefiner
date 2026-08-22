@@ -14,8 +14,10 @@
 #include "EnvironmentManager.h"
 #include "EnemyManager.h"
 
+#include "ModuleWorkbench.h"
 #include "UI_Title.h"
-#include "UI_Game.h"
+#include "UI_Prep.h"
+#include "UI_CombatHud.h"
 #include "UI_Sample.h"
 #include "WaveDirector.h"
 
@@ -36,20 +38,22 @@ public:
 private:
 	void Update(float dt);
 	void Draw(void);
-	/**
-	 * @brief Switch scene with leave/enter discipline (does nothing if same scene).
-	 */
+	void UpdateGameScene_(float dt);
+	void UpdateCombat_(float dt);
+	void UpdateVacuum_(float dt);
+	void UpdatePrep_(float dt);
+	void SyncCombatHud_();
+
+
 	void SetScene(SCENE scene);
 	void LeaveScene(SCENE scene);
 	void EnterScene(SCENE scene);
 	void EnterCombatPresentation_();
 	void EnterPrepPresentation_();
-	/** @brief 停刷怪、清敌人与弹幕，并让残留金币强制飞向玩家。 */
 	void BeginVacuumSweep_();
-	/** @brief 金币吸完或超时后 FinishWave。 */
 	void TryFinishVacuum_(float dt);
-	/** @brief Combat / Vacuum 都要画世界。 */
 	[[nodiscard]] bool IsCombatWorld_() const noexcept;
+
 	/********************************/
 	/*         Game Related         */
 	/********************************/
@@ -85,7 +89,9 @@ private:
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager;
 	std::unique_ptr<EnemyManager> pEnemyManager;
 
+	std::unique_ptr<ModuleWorkbench> moduleWorkbench;
 	std::unique_ptr<UI_Title> uiTitle;
-	std::unique_ptr<UI_Game> uiGame;
+	std::unique_ptr<UI_Prep> uiPrep;
+	std::unique_ptr<UI_CombatHud> uiCombatHud;
 	std::unique_ptr<UI_Sample> uiSample;
 };

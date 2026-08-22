@@ -10,18 +10,18 @@ void ModuleField::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	if (canvas_ == nullptr)
 	{
-		constexpr float side = ModuleFieldCanvas::kDefaultFieldSide;
 		canvas_ = std::make_unique<ModuleFieldCanvas>(gfx, 300u, 300u);
-		canvas_->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
 		canvas_->LinkTechniques(rg);
 	}
 	canvas_->SetPosition(origin_);
+	ApplyDisplayScale_();
 
 	for (auto& n : nodes_)
 	{
 		if (n != nullptr)
 		{
 			n->InitVisual(gfx, rg, origin_);
+			n->SetZoneVisualScale(DisplayScale_());
 		}
 	}
 }
@@ -42,6 +42,53 @@ void ModuleField::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	}
 }
 
+void ModuleField::SetVisualScale(float scale) noexcept
+{
+	visualScale_ = (scale > 0.0f) ? scale : 1.0f;
+	ApplyDisplayScale_();
+	for (auto& n : nodes_)
+	{
+		if (n != nullptr)
+		{
+			n->SetZoneVisualScale(visualScale_);
+		}
+	}
+	SyncAllVisuals();
+}
+
+void ModuleField::ApplyDisplayScale_() noexcept
+{
+	if (canvas_ == nullptr)
+	{
+		return;
+	}
+	const float side = ModuleFieldCanvas::kDefaultFieldSide * DisplayScale_();
+	canvas_->SetScale(DirectX::XMFLOAT3{ side, side, 1.0f });
+}
+
+float ModuleField::DisplayScale_() const noexcept
+{
+	return (visualScale_ > 0.0f) ? visualScale_ : 1.0f;
+}
+
+DirectX::XMFLOAT2 ModuleField::WorldToLocal_(DirectX::XMFLOAT2 world) const noexcept
+{
+	const float s = DisplayScale_();
+	return DirectX::XMFLOAT2{
+		(world.x - origin_.x) / s,
+		(world.y - origin_.y) / s
+	};
+}
+
+DirectX::XMFLOAT2 ModuleField::LocalToWorld_(DirectX::XMFLOAT2 local) const noexcept
+{
+	const float s = DisplayScale_();
+	return DirectX::XMFLOAT2{
+		origin_.x + local.x * s,
+		origin_.y + local.y * s
+	};
+}
+
 bool ModuleField::TryAcceptDrop(
 	std::unique_ptr<IModuleNode>& node,
 	DirectX::XMFLOAT2 localPos)
@@ -54,6 +101,7 @@ bool ModuleField::TryAcceptDrop(
 	IModuleNode* raw = node.get();
 	raw->SetLocalPos(localPos);
 	raw->SetZoneOrigin(origin_);
+	raw->SetZoneVisualScale(DisplayScale_());
 	nodes_.push_back(std::move(node));
 	raw->SyncVisual();
 	return true;
@@ -73,10 +121,7 @@ DropResult ModuleField::EvalDrop(
 		return result;
 	}
 
-	DirectX::XMFLOAT2 local{
-		worldPos.x - origin_.x,
-		worldPos.y - origin_.y
-	};
+	DirectX::XMFLOAT2 local = WorldToLocal_(worldPos);
 	local = ClampLocalForRadius(local, radius);
 	result.localPos = local;
 	if (WouldOverlap(node, local))
@@ -122,8 +167,9 @@ void ModuleField::SubmitNodes()
 ModuleField::BoundsWorld ModuleField::GetBoundsWorld() const noexcept
 {
 	BoundsWorld b{};
+	const float s = DisplayScale_();
 	b.center = DirectX::XMFLOAT2{ origin_.x, origin_.y };
-	b.half = DirectX::XMFLOAT2{ kHalfExtent, kHalfExtent };
+	b.half = DirectX::XMFLOAT2{ kHalfExtent * s, kHalfExtent * s };
 	return b;
 }
 
@@ -135,8 +181,9 @@ bool ModuleField::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) co
 	{
 		return false;
 	}
-	const float lx = worldCenter.x - origin_.x;
-	const float ly = worldCenter.y - origin_.y;
+	const DirectX::XMFLOAT2 local = WorldToLocal_(worldCenter);
+	const float lx = local.x;
+	const float ly = local.y;
 	return std::fabs(lx) <= usable && std::fabs(ly) <= usable;
 }
 
@@ -183,11 +230,8 @@ IModuleNode* ModuleField::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) n
 			continue;
 		}
 		const DirectX::XMFLOAT2 local = node->GetLocalPos();
-		const DirectX::XMFLOAT2 world{
-			origin_.x + local.x,
-			origin_.y + local.y
-		};
-		const Collider2D::CircleCollider hit{ world, node->GetHitRadius() };
+		const DirectX::XMFLOAT2 world = LocalToWorld_(local);
+		const Collider2D::CircleCollider hit{ world, node->GetHitRadius() * DisplayScale_() };
 		const Collider2D::PointCollider pt{ worldPos };
 		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
 		{

@@ -16,12 +16,20 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
-	// Single source for the layout origins used by combat + pause edit.
-	combatFieldOrigin_ = DirectX::XMFLOAT3{ 200.0f, 200.0f, 0.0f };
+	// 战斗 Field：0.5 Scale 后视觉半宽 75，贴右下，边距 32。
+	constexpr float kCombatMargin = 32.0f;
+	const float combatHalf =
+		ModuleField::kHalfExtent * ModuleField::kCombatVisualScale;
+	combatFieldOrigin_ = DirectX::XMFLOAT3{
+		static_cast<float>(SCREEN_WIDTH) - kCombatMargin - combatHalf,
+		static_cast<float>(SCREEN_HEIGHT) - kCombatMargin - combatHalf,
+		0.0f
+	};
 	ComputeLayout_();
 
 	PlaceDemoField_();
 	field_.InitAllVisuals(gfx_, rg_, combatFieldOrigin_);
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
 
 	PlaceDemoWarehouse_();
 	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
@@ -177,6 +185,7 @@ void ModuleWorkbench::BeginLayoutEdit()
 	assembler_.Reset();
 	field_.ClearWaves();
 	field_.ResetAllCooldowns();
+	field_.SetVisualScale(1.0f);
 
 	std::array<IModuleZone*, ZoneCount()> zones{};
 	zones[ToIndex(ZoneId::Field)] = &field_;
@@ -193,6 +202,7 @@ void ModuleWorkbench::BeginLayoutEdit()
 
 void ModuleWorkbench::EndLayoutEdit()
 {
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
 	layoutEditor_.End();
 }
 
@@ -201,9 +211,14 @@ void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
 	layoutEditor_.Update(dt, hostWindow);
 }
 
-void ModuleWorkbench::Submit()
+void ModuleWorkbench::SubmitField()
 {
-	// Global order: all zone backgrounds → all zone nodes → editor overlay.
+	field_.SubmitBackground();
+	field_.SubmitNodes();
+}
+
+void ModuleWorkbench::SubmitPrep()
+{
 	field_.SubmitBackground();
 	if (layoutEditor_.IsActive())
 	{
@@ -211,13 +226,14 @@ void ModuleWorkbench::Submit()
 		shop_.SubmitBackground();
 	}
 	field_.SubmitNodes();
-	if (layoutEditor_.IsActive())
+	if (!layoutEditor_.IsActive())
 	{
-		warehouse_.SubmitNodes();
-		shop_.SubmitNodes();
-		shop_.SubmitHud();
-		layoutEditor_.SubmitOverlay();
+		return;
 	}
+	warehouse_.SubmitNodes();
+	shop_.SubmitNodes();
+	shop_.SubmitHud();
+	layoutEditor_.SubmitOverlay();
 }
 
 void ModuleWorkbench::SyncFieldWaves_()

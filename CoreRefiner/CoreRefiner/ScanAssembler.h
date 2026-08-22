@@ -37,7 +37,7 @@ struct FireBatch
 
 /**
  * @brief Parallel scan sessions driving independent DeployContexts.
- * @note FireRoots ownership remains with UI_Game via TakeAllPendingFires().
+ * @note FireRoots ownership remains with ModuleWorkbench via TakeAllPendingFires().
  * @note Session mutation during Update uses indices so Detach push_back cannot dangle refs.
  */
 class ScanAssembler

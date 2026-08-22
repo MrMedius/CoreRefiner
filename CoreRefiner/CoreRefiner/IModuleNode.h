@@ -115,6 +115,8 @@ public:
 
 	void SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept;
 
+	void SetZoneVisualScale(float scale) noexcept;
+
 	void SyncVisual();
 
 	void SubmitVisual();
@@ -155,6 +157,7 @@ protected:
 	std::unique_ptr<Canvas2D> icon_;
 	std::unique_ptr<Canvas2DSpriteUV> mask_;
 	DirectX::XMFLOAT3 zoneOrigin_{ 0.0f, 0.0f, 0.0f };
+	float zoneVisualScale_{ 1.0f };
 	bool visualReady_{ false };
 	bool layoutGhostActive_{ false };
 	DirectX::XMFLOAT2 layoutGhostLocalPos_{ 0.0f, 0.0f };

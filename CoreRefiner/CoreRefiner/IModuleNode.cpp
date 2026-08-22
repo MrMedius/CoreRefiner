@@ -58,6 +58,15 @@ void IModuleNode::SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept
 	}
 }
 
+void IModuleNode::SetZoneVisualScale(float scale) noexcept
+{
+	zoneVisualScale_ = (scale > 0.0f) ? scale : 1.0f;
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
 void IModuleNode::BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept
 {
 	layoutGhostActive_ = true;
@@ -135,18 +144,19 @@ void IModuleNode::ApplyVisualTransform_()
 		return;
 	}
 
-	const float iconSide = GetIconRadius() * 2.0f;
-	const float maskSide = GetVisualRadius() * 2.0f;
+	const float s = (zoneVisualScale_ > 0.0f) ? zoneVisualScale_ : 1.0f;
+	const float iconSide = GetIconRadius() * 2.0f * s;
+	const float maskSide = GetVisualRadius() * 2.0f * s;
 
 	const DirectX::XMFLOAT3 iconPos = (
-		V(zoneOrigin_) + Vec3{ localPos_.x, localPos_.y, 0.0f }
+		V(zoneOrigin_) + Vec3{ localPos_.x * s, localPos_.y * s, 0.0f }
 	).ToFloat3();
 	icon_->SetPosition(iconPos);
 	icon_->SetScale(DirectX::XMFLOAT3{ iconSide, iconSide, 1.0f });
 
 	const DirectX::XMFLOAT2 maskLocal = layoutGhostActive_ ? layoutGhostLocalPos_ : localPos_;
 	const DirectX::XMFLOAT3 maskPos = (
-		V(zoneOrigin_) + Vec3{ maskLocal.x, maskLocal.y, 0.0f }
+		V(zoneOrigin_) + Vec3{ maskLocal.x * s, maskLocal.y * s, 0.0f }
 	).ToFloat3();
 	mask_->SetPosition(maskPos);
 	mask_->SetScale(DirectX::XMFLOAT3{ maskSide, maskSide, 1.0f });

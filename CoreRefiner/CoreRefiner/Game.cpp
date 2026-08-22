@@ -34,10 +34,11 @@ Game::Game(const std::string& commandLine)
 
 
 	// UI
+	moduleWorkbench = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG);
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
-	uiGame = std::make_unique<UI_Game>(wnd.Gfx(), gameRG);
-	uiGame->SetAttackManager(pAttackManager.get());
+	uiPrep = std::make_unique<UI_Prep>(*moduleWorkbench);
+	uiCombatHud = std::make_unique<UI_CombatHud>(wnd.Gfx(), gameRG, &moduleWorkbench->GetField());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
 	waveDirector_.onWaveStart = [this](const WaveSpec& spec)
@@ -132,13 +133,13 @@ void Game::LeaveScene(SCENE scene)
 	case SCENE_GAME:
 		waveDirector_.Reset();
 		// Discard in-progress assemble (standby/pending) before live attack list.
-		if (uiGame != nullptr)
+		if (moduleWorkbench != nullptr)
 		{
-			if (uiGame->GetWorkbench().IsLayoutEditActive())
+			if (moduleWorkbench->IsLayoutEditActive())
 			{
-				uiGame->EndLayoutEdit();
+				moduleWorkbench->EndLayoutEdit();
 			}
-			uiGame->Reset();
+			moduleWorkbench->Reset();
 		}
 		pAttackManager->Reset();
 		pEnemyManager->Reset();
@@ -178,23 +179,23 @@ void Game::EnterScene(SCENE scene)
 
 void Game::EnterCombatPresentation_()
 {
-	if (uiGame != nullptr && uiGame->GetWorkbench().IsLayoutEditActive())
+	if (moduleWorkbench != nullptr && moduleWorkbench->IsLayoutEditActive())
 	{
-		uiGame->EndLayoutEdit();
+		moduleWorkbench->EndLayoutEdit();
 	}
 }
 
 void Game::EnterPrepPresentation_()
 {
 	wnd.EnableCursor();
-	if (uiGame == nullptr)
+	if (uiPrep == nullptr)
 	{
 		return;
 	}
-	uiGame->SetHostWindow(&wnd);
-	if (!uiGame->GetWorkbench().IsLayoutEditActive())
+	uiPrep->SetHostWindow(&wnd);
+	if (!uiPrep->IsLayoutEditActive())
 	{
-		uiGame->BeginLayoutEdit();
+		uiPrep->BeginLayoutEdit();
 	}
 }
 
@@ -223,6 +224,96 @@ bool Game::IsCombatWorld_() const noexcept
 	return phase == GamePhase::Combat || phase == GamePhase::Vacuum;
 }
 
+void Game::SyncCombatHud_()
+{
+	if (uiCombatHud == nullptr)
+	{
+		return;
+	}
+	uiCombatHud->SetWave(waveDirector_.GetWaveIndex());
+	uiCombatHud->SetRemain(waveDirector_.GetRemainSec());
+	if (pPlayer != nullptr)
+	{
+		uiCombatHud->SetHpRatio(pPlayer->GetHpDrawParameter());
+	}
+}
+
+void Game::UpdateGameScene_(float dt)
+{
+	if (InputCodex::Get().KeyTriggered(KK_P))
+	{
+		waveDirector_.DebugSkipPhase();
+	}
+
+	if (Pause)
+	{
+		return;
+	}
+
+	waveDirector_.Update(dt);
+	switch (waveDirector_.GetPhase())
+	{
+	case GamePhase::Combat:
+		UpdateCombat_(dt);
+		break;
+	case GamePhase::Vacuum:
+		UpdateVacuum_(dt);
+		break;
+	case GamePhase::Prep:
+		UpdatePrep_(dt);
+		break;
+	case GamePhase::Defeat:
+	case GamePhase::Victory:
+	default:
+		break;
+	}
+}
+
+void Game::UpdateCombat_(float dt)
+{
+	auto playerPos = pPlayer->GetPosition();
+	cameras.Update(dt, playerPos, &wnd);
+	if (!cameras.GetScreenFroze())
+	{
+		light.Update(dt, playerPos);
+
+		pPlayer->Update(dt);
+		pAttackManager->Update(dt);
+		pEnvironmentManager->Update(dt);
+		pEnemyManager->Update(dt);
+	}
+	gameRG.Update(dt);
+	SoundCodex::Get().SetListenerPosition(playerPos);
+
+	if (moduleWorkbench != nullptr)
+	{
+		moduleWorkbench->Update(dt, pAttackManager.get());
+	}
+	SyncCombatHud_();
+}
+
+void Game::UpdateVacuum_(float dt)
+{
+	auto playerPos = pPlayer->GetPosition();
+	cameras.Update(dt, playerPos, &wnd);
+	if (!cameras.GetScreenFroze())
+	{
+		light.Update(dt, playerPos);
+		pPlayer->Update(dt);
+		pEnvironmentManager->Update(dt);
+	}
+	gameRG.Update(dt);
+	SoundCodex::Get().SetListenerPosition(playerPos);
+	SyncCombatHud_();
+	TryFinishVacuum_(dt);
+}
+
+void Game::UpdatePrep_(float dt)
+{
+	uiPrep->SetHostWindow(&wnd);
+	uiPrep->UpdateLayoutEdit(dt);
+}
+
 void Game::Update(float dt)
 {
 #ifdef _DEBUG
@@ -245,60 +336,7 @@ void Game::Update(float dt)
 		uiTitle->Update(dt);
 		break;
 	case SCENE_GAME:
-		if (InputCodex::Get().KeyTriggered(KK_P))
-		{
-			waveDirector_.DebugSkipPhase();
-		}
-
-		if (!Pause)
-		{
-			waveDirector_.Update(dt);
-			switch (waveDirector_.GetPhase())
-			{
-			case GamePhase::Combat:
-			{
-				auto playerPos = pPlayer->GetPosition();
-				cameras.Update(dt, playerPos, &wnd);
-				if (!cameras.GetScreenFroze())
-				{
-					light.Update(dt, playerPos);
-
-					pPlayer->Update(dt);
-					pAttackManager->Update(dt);
-					pEnvironmentManager->Update(dt);
-					pEnemyManager->Update(dt);
-				}
-				gameRG.Update(dt);
-				SoundCodex::Get().SetListenerPosition(playerPos);
-
-				uiGame->Update(dt);
-				break;
-			}
-			case GamePhase::Vacuum:
-			{
-				auto playerPos = pPlayer->GetPosition();
-				cameras.Update(dt, playerPos, &wnd);
-				if (!cameras.GetScreenFroze())
-				{
-					light.Update(dt, playerPos);
-					pPlayer->Update(dt);
-					pEnvironmentManager->Update(dt);
-				}
-				gameRG.Update(dt);
-				SoundCodex::Get().SetListenerPosition(playerPos);
-				TryFinishVacuum_(dt);
-				break;
-			}
-			case GamePhase::Prep:
-				uiGame->SetHostWindow(&wnd);
-				uiGame->UpdateLayoutEdit(dt);
-				break;
-			case GamePhase::Defeat:
-			case GamePhase::Victory:
-			default:
-				break;
-			}
-		}
+		UpdateGameScene_(dt);
 		break;
 	case SCENE_RESULT:
 		uiSample->Update(dt);
@@ -307,8 +345,6 @@ void Game::Update(float dt)
 
 	// Frame-end: deferred Deactivate (RequestDisable / SetDestroy equivalent)
 	DeferredDisableQueue::Get().Flush();
-
-	//UpdateCanvasDemo(dt);
 }
 
 void Game::Draw()
@@ -339,8 +375,21 @@ void Game::Draw()
 			pPlayer->Submit();
 		}
 
-		// Prep: layout UI only (field / rings / overlays); no world Submit.
-		uiGame->Submit();
+		if (waveDirector_.GetPhase() == GamePhase::Prep)
+		{
+			if (uiPrep != nullptr)
+			{
+				uiPrep->Submit();
+			}
+		}
+		else if (uiCombatHud != nullptr)
+		{
+			uiCombatHud->SubmitField();
+			if (!Pause && IsCombatWorld_())
+			{
+				uiCombatHud->SubmitHud();
+			}
+		}
 
 		gameRG.Execute(wnd.Gfx());
 

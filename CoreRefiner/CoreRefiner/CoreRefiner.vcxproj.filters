@@ -655,9 +655,6 @@
     <ClCompile Include="SphereColliderComponent.cpp">
       <Filter>Object\Components\Colliders</Filter>
     </ClCompile>
-    <ClCompile Include="UI_Game.h">
-      <Filter>UI</Filter>
-    </ClCompile>
     <ClCompile Include="Canvas2DRipples.cpp">
       <Filter>Framework\Graphics\Drawable\Canvas</Filter>
     </ClCompile>
@@ -699,6 +696,9 @@
     </ClCompile>
     <ClCompile Include="DeferredDisableQueue.cpp">
       <Filter>Tool\GameArrangement</Filter>
+    </ClCompile>
+    <ClCompile Include="UI_CombatHud.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1442,6 +1442,12 @@
     </ClInclude>
     <ClInclude Include="HierarchySpawn.h">
       <Filter>Tool\GameArrangement</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_CombatHud.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_Prep.h">
+      <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
