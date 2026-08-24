@@ -158,9 +158,6 @@ void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
 		visual->Update(dt);
 	}
 
-	// 攻撃をカウントダウン
-	owner->DoAttackCountDown();
-
 	if (owner->GetHpCurrent() == 0)	owner->SetIsDeath(true);
 	else owner->SetIsHurt(false);
 }

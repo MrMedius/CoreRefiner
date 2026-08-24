@@ -410,9 +410,6 @@ void Player_IdleState::Update(Player* owner,  float dt)
 	// 遷移判断
 	const auto& in = owner->Input();
 	if (in.attack)	owner->SetIsAttack(true);
-
-	// 攻撃をカウントダウン
-	owner->DoAttackCountDown();
 }
 
 
@@ -431,9 +428,6 @@ void Player_MoveState::Update(Player* owner, float dt)
 
 	// 移動
 	owner->DoMove(1.0f);
-
-	// 攻撃をカウントダウン
-	owner->DoAttackCountDown();
 }
 
 

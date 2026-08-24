@@ -69,7 +69,7 @@ public:
 	}
 	bool CheckIsAttack(void)	// 攻撃するかどうかを判断
 	{
-		if (IsInAttackArea && AttackCountDown == 0) SetIsAttack(true);
+		if (IsInAttackArea) SetIsAttack(true);
 		return IsAttack;
 	}
 	/**

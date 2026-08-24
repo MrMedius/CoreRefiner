@@ -227,7 +227,7 @@ void Character::MapItemCollide(void)
 
 				float UpOrDown = (c->GetPosition().z - PositionOld.z > 0.0f) ? 1.0f : -1.0f;
 				float RightOrLeft = (c->GetPosition().x - PositionOld.x > 0.0f) ? 1.0f : -1.0f;
-				c->CalculateMoveVelocity(MoveAccel* push_rate* RightOrLeft, 0.0f, MoveAccel* push_rate* UpOrDown);
+				c->CalculateMoveVelocity(GetMoveAccel() * push_rate * RightOrLeft, 0.0f, GetMoveAccel() * push_rate * UpOrDown);
 
 				// 地面に乗っている
 				OnFloor = true;
@@ -249,7 +249,7 @@ void Character::MapItemCollide(void)
 				setPosComponent('x', ItemLeft - CollHalf.x - 0.1f); // 場所を固定
 
 				float UpOrDown = (c->GetPosition().z - PositionOld.z > 0.0f) ? 1.0f : -1.0f;
-				c->CalculateMoveVelocity(MoveAccel* push_rate, 0.0f, MoveAccel* push_rate_half * UpOrDown);
+				c->CalculateMoveVelocity(GetMoveAccel() * push_rate, 0.0f, GetMoveAccel() * push_rate_half * UpOrDown);
 
 				continue;
 			}
@@ -259,7 +259,7 @@ void Character::MapItemCollide(void)
 				setPosComponent('x', ItemRight + CollHalf.x + 0.1f); // 場所を固定
 
 				float UpOrDown = (c->GetPosition().z - PositionOld.z > 0.0f) ? 1.0f : -1.0f;
-				c->CalculateMoveVelocity(-MoveAccel * push_rate, 0.0f, MoveAccel* push_rate_half * UpOrDown);
+				c->CalculateMoveVelocity(-GetMoveAccel() * push_rate, 0.0f, GetMoveAccel() * push_rate_half * UpOrDown);
 
 				continue;
 			}
@@ -269,7 +269,7 @@ void Character::MapItemCollide(void)
 				setPosComponent('z', ItemFront - CollHalf.z - 0.1f); // 場所を固定
 
 				float RightOrLeft = (c->GetPosition().x - PositionOld.x > 0.0f) ? 1.0f : -1.0f;
-				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, MoveAccel * push_rate);
+				c->CalculateMoveVelocity(GetMoveAccel() * push_rate_half * RightOrLeft, 0.0f, GetMoveAccel() * push_rate);
 
 				continue;
 			}
@@ -279,7 +279,7 @@ void Character::MapItemCollide(void)
 				setPosComponent('z', ItemBack + CollHalf.z + 0.1f); // 場所を固定
 
 				float RightOrLeft = (c->GetPosition().x - PositionOld.x > 0.0f) ? 1.0f : -1.0f;
-				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, -MoveAccel * push_rate);
+				c->CalculateMoveVelocity(GetMoveAccel() * push_rate_half * RightOrLeft, 0.0f, -GetMoveAccel() * push_rate);
 
 				continue;
 			}

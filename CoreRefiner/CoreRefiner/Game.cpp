@@ -189,6 +189,10 @@ void Game::EnterCombatPresentation_()
 	{
 		moduleWorkbench->EndLayoutEdit();
 	}
+	if (pPlayer != nullptr)
+	{
+		pPlayer->ApplyWaveStart();
+	}
 }
 
 void Game::EnterPrepPresentation_()

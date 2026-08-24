@@ -1449,6 +1449,9 @@
     <ClInclude Include="UI_Prep.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="CharacterStats.h">
+      <Filter>Object\Character</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

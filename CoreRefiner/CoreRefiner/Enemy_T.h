@@ -25,7 +25,6 @@ public:
 		SetHpMax(1.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.01f);
-		SetAttackInterval(2.5f);
 
 		// graphics init — VisualComponent owns the Drawable
 		{

@@ -73,7 +73,6 @@ public:
 		SetHpMax(30.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.035f);
-		SetAttackInterval(1.5f);
 
 		// graphics init — VisualComponent owns each Drawable (shape scale independent; syncScale=false)
 		{
@@ -137,7 +136,7 @@ public:
 	{
 		if (HpDraw != HpCurrent)
 			HpDraw += (HpCurrent - HpDraw) * 0.2f;
-		return HpDraw / HpMax;
+		return HpDraw / GetHpMax();
 	}
 	void SetIsGameOver(bool state) { IsGameOver = state; }
 	bool GetIsGameOver(void) const { return IsGameOver; }
@@ -151,6 +150,15 @@ public:
 	/** @brief Hurt 离场：关掉闪烁隐藏。 */
 	void EndHurtIFrames();
 	[[nodiscard]] bool IsHurtFlashHidden() const noexcept { return hurtFlashHide_; }
+	/**
+	 * @brief 波次开始：重算属性上限，再按 kWaveStartHealRatio 回血。
+	 * @note 1 = 回满；改成 0.3 即回 30% MaxHP。
+	 */
+	void ApplyWaveStart()
+	{
+		RecalcStats();
+		CalculateHpCurrent(GetHpMax() * kWaveStartHealRatio);
+	}
 protected:
 	/**
 	 * @brief Player collision resolve via Capsule + TrySeparate (not Character AABB).
@@ -170,6 +178,8 @@ private:
 	bool hurtFlashHide_{ false };
 	static constexpr float kHurtIFrameSec_ = 0.55f;
 	static constexpr float kHurtFlashPeriod_ = 0.07f;
+	/** @brief 波次开始回复 MaxHP 的比例（1 = 回满）。 */
+	static constexpr float kWaveStartHealRatio = 1.0f;
 
 // input related
 	struct PlayerInputSnapshot
