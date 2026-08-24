@@ -38,6 +38,7 @@ Game::Game(const std::string& commandLine)
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
 	uiPrep = std::make_unique<UI_Prep>(*moduleWorkbench);
+	uiPrep->SetOnFight([this] { waveDirector_.RequestStartWave(); });
 	uiCombatHud = std::make_unique<UI_CombatHud>(wnd.Gfx(), gameRG, &moduleWorkbench->GetField());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
@@ -311,7 +312,8 @@ void Game::UpdateVacuum_(float dt)
 void Game::UpdatePrep_(float dt)
 {
 	uiPrep->SetHostWindow(&wnd);
-	uiPrep->UpdateLayoutEdit(dt);
+	uiPrep->SetNextWave(waveDirector_.GetNextWaveIndex());
+	uiPrep->Update(dt);
 }
 
 void Game::Update(float dt)

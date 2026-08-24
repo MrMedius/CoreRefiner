@@ -1,5 +1,6 @@
 #include "ModuleWorkbench.h"
 #include "AttackManager.h"
+#include "ButtonCanvasComponent.h"
 #include "Channels.h"
 #include "Graphics.h"
 #include "ModuleNodes.h"
@@ -7,9 +8,13 @@
 #include "InputCodex.h"
 #include "ObjectCodex.h"
 #include "Player.h"
+#include "TextTypes.h"
+#include "UiRoot.h"
 #include "Win.h"
 #include "Window.h"
+
 #include <array>
+#include <string>
 
 ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
@@ -35,7 +40,10 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
 
 	shop_.InitAllVisuals(gfx_, rg_, shopOrigin_);
+	InitFightButton_();
 }
+
+ModuleWorkbench::~ModuleWorkbench() = default;
 
 void ModuleWorkbench::ComputeLayout_() noexcept
 {
@@ -62,7 +70,8 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 	const float warehouseOuterW = warehouseOuterHalfX * 2.0f;
 	const float rightOuterW = (fieldOuterW > warehouseOuterW) ? fieldOuterW : warehouseOuterW;
 
-	const float gap = (screenH - fieldOuterH - warehouseOuterH) / 3.0f;
+	/** 顶 / Field–仓 / 仓–按钮 / 底，以及左右与列间，共用同一 gap。 */
+	const float gap = (screenH - fieldOuterH - warehouseOuterH - kFightBtnH) * 0.25f;
 	const float rightLeft = screenW - gap - rightOuterW;
 	const float rightCx = rightLeft + rightOuterW * 0.5f;
 
@@ -79,10 +88,21 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 		0.0f
 	};
 
+	const float warehouseShellBottom = warehouseShellTop + warehouseOuterH;
+	fightBtnCenter_ = DirectX::XMFLOAT2{
+		rightCx,
+		warehouseShellBottom + gap + kFightBtnH * 0.5f
+	};
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SetLayoutLogicalCenterSize(
+			fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH);
+	}
+
 	const float shopLeft = gap;
 	const float shopRight = rightLeft - gap;
 	const float shopTop = gap;
-	const float shopBottom = screenH - gap;
+	const float shopBottom = fightBtnCenter_.y + kFightBtnH * 0.5f;
 	const float shopHalfX = (shopRight - shopLeft) * 0.5f;
 	const float shopHalfY = (shopBottom - shopTop) * 0.5f;
 	shopOrigin_ = DirectX::XMFLOAT3{
@@ -91,6 +111,43 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 		0.0f
 	};
 	shop_.SetShellExtent(shopHalfX, shopHalfY);
+}
+
+void ModuleWorkbench::InitFightButton_()
+{
+	Ui::ButtonCanvasStyle style{};
+	style.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+	style.fontSize = 22.0f;
+
+	fightBtn_ = std::make_unique<Ui::ButtonCanvasComponent>(
+		gfx_, 601u, fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH, style);
+	fightBtn_->Button().SetLabel("战斗！(第 1 波)");
+	fightBtn_->Button().SetOnClick([this] {
+		if (onFight_)
+		{
+			onFight_();
+		}
+	});
+
+	uiRoot_ = std::make_unique<Ui::UiRoot>();
+	uiRoot_->Clear();
+	fightBtn_->RegisterTo(*uiRoot_);
+	uiRoot_->RebuildTabOrder();
+	uiRoot_->InitLinkTechniques(rg_);
+}
+
+void ModuleWorkbench::SetNextWave(int wave)
+{
+	if (wave < 1)
+	{
+		wave = 1;
+	}
+	if (wave == paintedWave_ || fightBtn_ == nullptr)
+	{
+		return;
+	}
+	paintedWave_ = wave;
+	fightBtn_->Button().SetLabel("战斗！(第 " + std::to_string(wave) + " 波)");
 }
 
 void ModuleWorkbench::PlaceDemoField_()
@@ -208,6 +265,10 @@ void ModuleWorkbench::EndLayoutEdit()
 
 void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
 {
+	if (uiRoot_ != nullptr)
+	{
+		uiRoot_->UpdateAfterInput();
+	}
 	layoutEditor_.Update(dt, hostWindow);
 }
 
@@ -226,14 +287,17 @@ void ModuleWorkbench::SubmitPrep()
 		shop_.SubmitBackground();
 	}
 	field_.SubmitNodes();
-	if (!layoutEditor_.IsActive())
+	if (layoutEditor_.IsActive())
 	{
-		return;
+		warehouse_.SubmitNodes();
+		shop_.SubmitNodes();
+		shop_.SubmitHud();
+		layoutEditor_.SubmitOverlay();
 	}
-	warehouse_.SubmitNodes();
-	shop_.SubmitNodes();
-	shop_.SubmitHud();
-	layoutEditor_.SubmitOverlay();
+	if (uiRoot_ != nullptr)
+	{
+		uiRoot_->Submit(Chan::ui);
+	}
 }
 
 void ModuleWorkbench::SyncFieldWaves_()

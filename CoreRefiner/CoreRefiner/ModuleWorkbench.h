@@ -4,7 +4,10 @@
 #include "ModuleWarehouse.h"
 #include "ScanAssembler.h"
 #include "ZoneLayoutEditor.h"
+
 #include <DirectXMath.h>
+#include <functional>
+#include <memory>
 
 class AttackManager;
 class Graphics;
@@ -15,11 +18,17 @@ namespace Rgph
 	class RenderGraph;
 }
 
+namespace Ui
+{
+	class ButtonCanvasComponent;
+	class UiRoot;
+}
+
 class ModuleWorkbench
 {
 public:
 	ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg);
-	~ModuleWorkbench() = default;
+	~ModuleWorkbench();
 
 	ModuleWorkbench(const ModuleWorkbench&) = delete;
 	ModuleWorkbench& operator=(const ModuleWorkbench&) = delete;
@@ -43,6 +52,10 @@ public:
 	[[nodiscard]] DirectX::XMFLOAT3 GetWarehouseOrigin() const noexcept { return warehouseOrigin_; }
 	[[nodiscard]] DirectX::XMFLOAT3 GetShopOrigin() const noexcept { return shopOrigin_; }
 
+	void SetOnFight(std::function<void()> cb) { onFight_ = std::move(cb); }
+	/** @brief 刷新 [战斗！] 文案；波次不变则不重绘。 */
+	void SetNextWave(int wave);
+
 	void Reset();
 
 	void Update(float dt, AttackManager* attackManager);
@@ -53,14 +66,18 @@ public:
 
 	/** @brief 战斗叠层：只交 Field 底板与棋子。 */
 	void SubmitField();
-	/** @brief 战备页：Field + Shop + Warehouse + 编辑器。 */
+	/** @brief 战备页：Field + Shop + Warehouse + 编辑器 + 战斗按钮。 */
 	void SubmitPrep();
 
 private:
+	static constexpr float kFightBtnW = 240.0f;
+	static constexpr float kFightBtnH = 48.0f;
+
 	void PlaceDemoField_();
 	void PlaceDemoWarehouse_();
 	void SyncFieldWaves_();
-	/** @brief 按统一缝隙计算暂停布局：左 Shop、右上 Field、右下 Warehouse。 */
+	void InitFightButton_();
+	/** @brief 战备布局：左 Shop、右列 Field / Warehouse / 战斗按钮，统一缝隙。 */
 	void ComputeLayout_() noexcept;
 
 	Graphics& gfx_;
@@ -70,10 +87,16 @@ private:
 	DirectX::XMFLOAT3 layoutFieldOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 warehouseOrigin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 shopOrigin_{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT2 fightBtnCenter_{ 0.0f, 0.0f };
 
 	ModuleField field_;
 	ModuleWarehouse warehouse_;
 	ModuleShop shop_;
 	ScanAssembler assembler_;
 	ZoneLayoutEditor layoutEditor_;
+
+	std::unique_ptr<Ui::UiRoot> uiRoot_;
+	std::unique_ptr<Ui::ButtonCanvasComponent> fightBtn_;
+	std::function<void()> onFight_{};
+	int paintedWave_{ -1 };
 };
