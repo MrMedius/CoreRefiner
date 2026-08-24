@@ -35,11 +35,10 @@ void Player::Update(float dt)
 
 	// 重力
 	if (!OnFloor) 
-		MoveVelocity.y -= GRAVITY * dt;
+		MoveVelocity.y -= GetGravity() * dt;
 
-	// 抵抗力
-	MoveVelocity.x -= MoveVelocity.x * FORCE_RATE;
-	MoveVelocity.z -= MoveVelocity.z * FORCE_RATE;
+	MoveVelocity.x -= MoveVelocity.x * GetMoveFriction();
+	MoveVelocity.z -= MoveVelocity.z * GetMoveFriction();
 
 	// 移動
 	{

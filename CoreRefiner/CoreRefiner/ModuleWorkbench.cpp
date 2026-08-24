@@ -282,6 +282,7 @@ void ModuleWorkbench::BeginLayoutEdit()
 	origins[ToIndex(ZoneId::Shop)] = shopOrigin_;
 
 	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
+	shop_.BeginVisit();
 }
 
 void ModuleWorkbench::EndLayoutEdit()

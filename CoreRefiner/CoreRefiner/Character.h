@@ -39,6 +39,8 @@ public:
 	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }
 	void SetMoveAccel(float accel) { stats_.moveAccel.base = accel; }
 	float GetMoveAccel(void) const { return stats_.moveAccel.Final(); }
+	[[nodiscard]] float GetGravity() const noexcept { return stats_.gravity.Final(); }
+	[[nodiscard]] float GetMoveFriction() const noexcept { return stats_.moveFriction.Final(); }
 	void SetIsAttack(bool state)	{ IsAttack = state; }
 	bool GetIsAttack(void) const	{ return IsAttack; }
 	void SetIsHurt(bool state)		{ IsHurt = state; }
@@ -67,8 +69,6 @@ protected:
 	}
 	void ResetHpCurrent(void) { HpCurrent = GetHpMax(); }
 protected:
-	static constexpr float GRAVITY = 1.0f;
-	static constexpr float FORCE_RATE = 0.1f;
 	CharacterStats stats_{};
 	float HpCurrent{ 0.0f };
 	XMFLOAT3 PositionOld{ GetPosition() };

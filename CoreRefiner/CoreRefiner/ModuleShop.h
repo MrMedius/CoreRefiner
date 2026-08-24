@@ -55,6 +55,8 @@ public:
 	{
 		std::unique_ptr<IModuleNode> node;
 		bool sold{ false };
+		/** @brief 锁定且未卖时刷新跳过此格。 */
+		bool locked{ false };
 		int price{ 0 };
 	};
 
@@ -90,6 +92,9 @@ public:
 
 	void FillStock();
 
+	/** @brief 进店：刷新费归零，未锁定格重新随机（锁定格保留）。 */
+	void BeginVisit();
+
 	[[nodiscard]] bool TryRefresh();
 
 	void ResetVisit();
@@ -99,6 +104,10 @@ public:
 	void SubmitHud();
 
 	[[nodiscard]] bool HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	/** @brief 鼠标是否在未售出格的卡下锁按钮上。 */
+	[[nodiscard]] bool HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	/** @brief 命中则切换该格锁定并重绘；未命中返回 false。 */
+	bool ToggleLockAt(DirectX::XMFLOAT2 worldPos);
 	[[nodiscard]] int GetRefreshCost() const noexcept;
 
 	void MarkSold(std::size_t index);
@@ -140,6 +149,23 @@ private:
 	void EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintSlotCard_(std::size_t index);
 	void SyncSlotCardTransforms_() noexcept;
+	/** @brief 为每格创建/对齐卡下正方形锁按钮画布。 */
+	void EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
+	/** @brief 按锁定状态绘制开锁/闭锁图标与方框；SOLD 或空格清空。 */
+	void PaintLockButton_(std::size_t index);
+	void SyncLockButtonTransforms_() noexcept;
+	/** @brief 商品卡正下方锁按钮中心（世界坐标）。 */
+	[[nodiscard]] DirectX::XMFLOAT2 LockButtonCenter_(std::size_t index) const noexcept;
+	/** @brief 命中的锁按钮下标；未命中为 kSlotCount。 */
+	[[nodiscard]] std::size_t HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
+	/**
+	 * @brief 用指定种类覆盖一格：清锁、未售、重造节点并按需 InitVisual。
+	 */
+	void RestockSlot_(std::size_t index, ModuleNodeLabel label);
+	/** @brief 是否存在刷新时会被替换的格子（未锁定、已售或空格）。 */
+	[[nodiscard]] bool HasRerollableSlot_() const noexcept;
+	/** @brief 刷新失败：闪红，不扣费。 */
+	void DenyRefresh_();
 	void RerollStock_();
 	void EnsureHudVisuals_();
 	void PaintHudIcons_();
@@ -159,18 +185,27 @@ private:
 
 	std::array<Slot, kSlotCount> slots_{};
 	std::array<std::unique_ptr<Canvas2D>, kSlotCount> slotCards_{};
+	std::array<std::unique_ptr<Canvas2D>, kSlotCount> lockButtons_{};
 	DirectX::XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT2 shellHalf_{ kFrozenShellHalfX, kFrozenShellHalfY };
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
-	/** @brief 买卖框底板。 */
 	std::unique_ptr<Canvas2D> panel_;
-	/** @brief Function2 / Function3 占位板；仅绘制，不参与拖放。 */
 	static constexpr std::size_t kReserveCount_ = 2;
 	std::array<std::unique_ptr<Canvas2D>, kReserveCount_> reservePanels_{};
 
 	static constexpr float kHudIconWorld_{ 24.0f };
 	static constexpr float kHudHitPad_{ 4.0f };
+	/** @brief 商品卡底边到锁按钮顶边的间隙。 */
+	static constexpr float kLockButtonGap_{ 6.0f };
+	/** @brief 锁按钮画布边长（像素）；Scale 缩小，不砍画布分辨率。 */
+	static constexpr unsigned kLockButtonPixels_{ 48u };
+	/** @brief 屏幕边长 = 像素 × 0.75；48/36 = 4/3。 */
+	static constexpr float kLockButtonWorld_{ 36.0f };
+	/** @brief 画布描边像素。须为 4 的倍数，缩到 36 后四边都是整数屏像素。 */
+	static constexpr unsigned kLockBorderTexels_{ 4u };
+	/** @brief 16×16 锁标放大倍数。 */
+	static constexpr unsigned kLockIconScale_{ 2u };
 	static constexpr int kRefreshBaseCost_{ 1 };
 	static constexpr int kRefreshCostStep_{ 1 };
 

@@ -16,11 +16,10 @@ void Enemy_T::Update(float dt)
 	FSM->Update(dt);
 
 	// 重力
-	if (!OnFloor) MoveVelocity.y -= GRAVITY * dt;
+	if (!OnFloor) MoveVelocity.y -= GetGravity() * dt;
 
-	// 抵抗力
-	MoveVelocity.x -= MoveVelocity.x * FORCE_RATE;
-	MoveVelocity.z -= MoveVelocity.z * FORCE_RATE;
+	MoveVelocity.x -= MoveVelocity.x * GetMoveFriction();
+	MoveVelocity.z -= MoveVelocity.z * GetMoveFriction();
 
 	// 移動
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);

@@ -48,6 +48,40 @@ namespace
 		}
 		(void)LoadModuleNodeInfoCopy("CoreRefiner/CoreRefiner/ModuleNodeInfoCopy.json");
 	}
+
+	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
+	{
+		if (scale == 0u)
+		{
+			return;
+		}
+
+		const int glyph = static_cast<int>(16u * scale);
+		const int ox = (static_cast<int>(canvas.GetCanvasWidth()) - glyph) / 2;
+		const int oy = (static_cast<int>(canvas.GetCanvasHeight()) - glyph) / 2;
+		for (unsigned y = 0u; y < 16u; ++y)
+		{
+			const std::uint16_t row = bits[y];
+			for (unsigned x = 0u; x < 16u; ++x)
+			{
+				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
+				{
+					continue;
+				}
+				for (unsigned sy = 0u; sy < scale; ++sy)
+				{
+					for (unsigned sx = 0u; sx < scale; ++sx)
+					{
+						CanvasPixelDraw::PutPixelClamped(
+							canvas,
+							ox + static_cast<int>(x * scale + sx),
+							oy + static_cast<int>(y * scale + sy),
+							color);
+					}
+				}
+			}
+		}
+	}
 }
 
 ModuleShop::BoundsWorld ModuleShop::ShellInnerRect_() const noexcept
@@ -172,6 +206,7 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	RelayoutSlots_();
 	SyncPanelTransform_();
 	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
 	SyncReserveTransforms_();
 }
 
@@ -194,23 +229,55 @@ void ModuleShop::FillStock()
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
 		const ModuleNodeLabel label = static_cast<ModuleNodeLabel>(i % ModuleNodeLabelCount());
-		slots_[i].node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(i));
-		slots_[i].sold = false;
-		slots_[i].price = (slots_[i].node != nullptr)
-			? ModuleNodePrice::GetBuyPrice(label)
-			: 0;
-	}
-	if (gfx_ != nullptr && rg_ != nullptr)
-	{
-		for (Slot& slot : slots_)
-		{
-			if (slot.node != nullptr)
-			{
-				slot.node->InitVisual(*gfx_, *rg_, origin_);
-			}
-		}
+		RestockSlot_(i, label);
 	}
 	RelayoutSlots_();
+}
+
+void ModuleShop::BeginVisit()
+{
+	ResetVisit();
+	RerollStock_();
+}
+
+void ModuleShop::RestockSlot_(std::size_t index, ModuleNodeLabel label)
+{
+	if (index >= kSlotCount)
+	{
+		return;
+	}
+
+	Slot& slot = slots_[index];
+	slot.node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(index));
+	slot.sold = false;
+	slot.locked = false;
+	slot.price = (slot.node != nullptr)
+		? ModuleNodePrice::GetBuyPrice(label)
+		: 0;
+
+	if (gfx_ != nullptr && rg_ != nullptr && slot.node != nullptr)
+	{
+		slot.node->InitVisual(*gfx_, *rg_, origin_);
+	}
+}
+
+bool ModuleShop::HasRerollableSlot_() const noexcept
+{
+	for (const Slot& slot : slots_)
+	{
+		const bool keepLocked = slot.locked && !slot.sold && slot.node != nullptr;
+		if (!keepLocked)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ModuleShop::DenyRefresh_()
+{
+	refreshDeniedSec_ = 0.35f;
+	PaintHudIcons_();
 }
 
 int ModuleShop::GetRefreshCost() const noexcept
@@ -244,11 +311,16 @@ void ModuleShop::TickHud(float dt)
 
 bool ModuleShop::TryRefresh()
 {
+	if (!HasRerollableSlot_())
+	{
+		DenyRefresh_();
+		return false;
+	}
+
 	const int cost = GetRefreshCost();
 	if (!GameStatsCodex::TrySpendCurrency(cost))
 	{
-		refreshDeniedSec_ = 0.35f;
-		PaintHudIcons_();
+		DenyRefresh_();
 		return false;
 	}
 	++refreshCount_;
@@ -262,22 +334,12 @@ void ModuleShop::RerollStock_()
 {
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		const ModuleNodeLabel label = PickRandomShopLabel_();
-		slots_[i].node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(i));
-		slots_[i].sold = false;
-		slots_[i].price = (slots_[i].node != nullptr)
-			? ModuleNodePrice::GetBuyPrice(label)
-			: 0;
-	}
-	if (gfx_ != nullptr && rg_ != nullptr)
-	{
-		for (Slot& slot : slots_)
+		const Slot& slot = slots_[i];
+		if (slot.locked && !slot.sold && slot.node != nullptr)
 		{
-			if (slot.node != nullptr)
-			{
-				slot.node->InitVisual(*gfx_, *rg_, origin_);
-			}
+			continue;
 		}
+		RestockSlot_(i, PickRandomShopLabel_());
 	}
 	RelayoutSlots_();
 }
@@ -320,6 +382,44 @@ bool ModuleShop::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
 	const DirectX::XMFLOAT2 c = RefreshButtonCenter_();
 	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
 	return std::fabs(worldPos.x - c.x) <= half && std::fabs(worldPos.y - c.y) <= half;
+}
+
+std::size_t ModuleShop::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const float half = kLockButtonWorld_ * 0.5f + kHudHitPad_;
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		const Slot& slot = slots_[i];
+		if (slot.sold || slot.node == nullptr)
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
+		if (std::fabs(worldPos.x - c.x) <= half && std::fabs(worldPos.y - c.y) <= half)
+		{
+			return i;
+		}
+	}
+	return kSlotCount;
+}
+
+bool ModuleShop::HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return HitLockSlotIndex_(worldPos) < kSlotCount;
+}
+
+bool ModuleShop::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
+{
+	const std::size_t i = HitLockSlotIndex_(worldPos);
+	if (i >= kSlotCount)
+	{
+		return false;
+	}
+
+	slots_[i].locked = !slots_[i].locked;
+	PaintSlotCard_(i);
+	PaintLockButton_(i);
+	return true;
 }
 
 void ModuleShop::EnsureHudVisuals_()
@@ -487,6 +587,19 @@ void ModuleShop::SubmitHud()
 	{
 		refreshIcon_->Submit(Chan::ui);
 	}
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		if (lockButtons_[i] == nullptr)
+		{
+			continue;
+		}
+		const Slot& slot = slots_[i];
+		if (slot.sold || slot.node == nullptr)
+		{
+			continue;
+		}
+		lockButtons_[i]->Submit(Chan::ui);
+	}
 }
 
 void ModuleShop::MarkSold(std::size_t index)
@@ -496,6 +609,7 @@ void ModuleShop::MarkSold(std::size_t index)
 		return;
 	}
 	slots_[index].sold = true;
+	slots_[index].locked = false;
 	slots_[index].node.reset();
 	RefreshSlotCards_();
 }
@@ -602,12 +716,15 @@ void ModuleShop::RefreshSlotCards_()
 	if (gfx_ != nullptr && rg_ != nullptr)
 	{
 		EnsureSlotCardVisuals_(*gfx_, *rg_);
+		EnsureLockButtonVisuals_(*gfx_, *rg_);
 	}
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
 		PaintSlotCard_(i);
+		PaintLockButton_(i);
 	}
 	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
 	SyncHud();
 }
 
@@ -642,18 +759,24 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 	const bool empty = slot.sold || slot.node == nullptr;
 
 	constexpr Color kCardBg{ 42u, 56u, 78u, 190u };
+	constexpr Color kCardBgLocked{ 22u, 30u, 42u, 230u };
 	constexpr Color kEmptyBg{ 28u, 36u, 52u, 150u };
 	constexpr Color kFrame{ 170u, 190u, 210u, 150u };
+	constexpr Color kFrameLocked{ 88u, 104u, 124u, 210u };
 	constexpr Color kPrice{ 255u, 220u, 90u, 255u };
 
-	canvas.Clear(empty ? kEmptyBg : kCardBg);
+	const bool lockedLook = !empty && slot.locked;
+	const Color bg = empty ? kEmptyBg : (lockedLook ? kCardBgLocked : kCardBg);
+	const Color frame = lockedLook ? kFrameLocked : kFrame;
+
+	canvas.Clear(bg);
 	const int cw = static_cast<int>(canvas.GetCanvasWidth());
 	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	CanvasPixelDraw::DrawRectOutline(canvas, 1, 1, cw - 2, ch - 2, kFrame);
+	CanvasPixelDraw::DrawRectOutline(canvas, 1, 1, cw - 2, ch - 2, frame);
 
 	const int iconZoneH = static_cast<int>(std::lround(
 		kCardIconPad + kStoredVisualRadius * 2.0f + kCardIconPad));
-	CanvasPixelDraw::DrawHLine(canvas, 8, cw - 9, iconZoneH, kFrame);
+	CanvasPixelDraw::DrawHLine(canvas, 8, cw - 9, iconZoneH, frame);
 
 	auto drawText = [&](const std::string& text, float fontSize, float offsetY,
 		DWRITE_TEXT_ALIGNMENT align, Color color, bool wrap, const std::vector<Text::Span>& spans,
@@ -745,6 +868,89 @@ void ModuleShop::SyncSlotCardTransforms_() noexcept
 			kCardHeight,
 			1.0f
 		});
+	}
+}
+
+DirectX::XMFLOAT2 ModuleShop::LockButtonCenter_(std::size_t index) const noexcept
+{
+	const DirectX::XMFLOAT2 slot = SlotLocalPos_(index);
+	const float cardBottom = origin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
+	return DirectX::XMFLOAT2{
+		std::round(origin_.x + slot.x),
+		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
+	};
+}
+
+void ModuleShop::EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	const unsigned size = kLockButtonPixels_;
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		if (lockButtons_[i] == nullptr)
+		{
+			lockButtons_[i] = std::make_unique<Canvas2D>(gfx, size, size);
+			lockButtons_[i]->LinkTechniques(rg);
+			lockButtons_[i]->SetScale(DirectX::XMFLOAT3{
+				kLockButtonWorld_,
+				kLockButtonWorld_,
+				1.0f
+			});
+			continue;
+		}
+		if (lockButtons_[i]->GetCanvasWidth() != size || lockButtons_[i]->GetCanvasHeight() != size)
+		{
+			lockButtons_[i]->Resize(size, size);
+		}
+	}
+}
+
+void ModuleShop::PaintLockButton_(std::size_t index)
+{
+	if (index >= kSlotCount || lockButtons_[index] == nullptr)
+	{
+		return;
+	}
+
+	Canvas2D& canvas = *lockButtons_[index];
+	const Slot& slot = slots_[index];
+	if (slot.sold || slot.node == nullptr)
+	{
+		canvas.Clear(Colors::None);
+		canvas.NotifyPixelsChanged();
+		return;
+	}
+
+	constexpr Color kBtnBg{ 42u, 56u, 78u, 255u };
+	constexpr Color kBtnBgLocked{ 22u, 30u, 42u, 255u };
+	constexpr Color kBtnFrame{ 170u, 190u, 210u, 255u };
+	constexpr Color kBtnFrameLocked{ 88u, 104u, 124u, 255u };
+	constexpr Color kIcon{ 200u, 214u, 230u, 255u };
+
+	canvas.Clear(slot.locked ? kBtnBgLocked : kBtnBg);
+	const int cw = static_cast<int>(canvas.GetCanvasWidth());
+	const int ch = static_cast<int>(canvas.GetCanvasHeight());
+	BlitLockIconCentered_(
+		canvas,
+		UiIconAtlas::Get(slot.locked ? UiIconId::LockClosed : UiIconId::LockOpen),
+		kIcon,
+		kLockIconScale_);
+	const Color frame = slot.locked ? kBtnFrameLocked : kBtnFrame;
+	CanvasPixelDraw::DrawRectBorder(canvas, 0u, 0u, static_cast<unsigned>(cw) - 1u, static_cast<unsigned>(ch) - 1u, kLockBorderTexels_, frame);
+	canvas.NotifyPixelsChanged();
+}
+
+void ModuleShop::SyncLockButtonTransforms_() noexcept
+{
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		Canvas2D* canvas = lockButtons_[i].get();
+		if (canvas == nullptr)
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
+		canvas->SetPosition(DirectX::XMFLOAT3{ c.x, c.y, 0.0f });
+		canvas->SetScale(DirectX::XMFLOAT3{ kLockButtonWorld_, kLockButtonWorld_, 1.0f });
 	}
 }
 
@@ -924,6 +1130,7 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	EnsureModuleNodeInfoCopyLoaded_();
 	EnsurePanelVisual_(gfx, rg);
 	EnsureSlotCardVisuals_(gfx, rg);
+	EnsureLockButtonVisuals_(gfx, rg);
 	EnsureReserveVisuals_(gfx, rg);
 	FillStock();
 	for (Slot& slot : slots_)
@@ -936,6 +1143,7 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	RelayoutSlots_();
 	SyncPanelTransform_();
 	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
 	SyncReserveTransforms_();
 }
 
@@ -943,6 +1151,7 @@ void ModuleShop::SyncZoneTransforms_()
 {
 	SyncPanelTransform_();
 	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
 	SyncReserveTransforms_();
 	for (Slot& slot : slots_)
 	{

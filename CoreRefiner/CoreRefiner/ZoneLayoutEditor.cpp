@@ -66,11 +66,6 @@ void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::a
 		zone->SetOrigin(origins[i]);
 		zone->SyncAllVisuals();
 	}
-
-	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
-	{
-		shop->ResetVisit();
-	}
 }
 
 void ZoneLayoutEditor::End()
@@ -83,11 +78,6 @@ void ZoneLayoutEditor::End()
 	ClearActiveDrag_();
 	ClearAllLayoutGhosts_();
 	infoPanel_.Hide();
-
-	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
-	{
-		shop->ResetVisit();
-	}
 
 	hover_ = nullptr;
 	hoverSource_ = kNoZone_;
@@ -145,6 +135,15 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		if (input.MouseLeftTriggered())
 		{
 			(void)shop->TryRefresh();
+		}
+	}
+	else if (shop != nullptr && shop->HitLockButton(mouseGame))
+	{
+		hover_ = nullptr;
+		hoverSource_ = kNoZone_;
+		if (input.MouseLeftTriggered())
+		{
+			(void)shop->ToggleLockAt(mouseGame);
 		}
 	}
 	else

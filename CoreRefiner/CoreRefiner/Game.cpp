@@ -272,10 +272,12 @@ void Game::SyncCombatHud_()
 
 void Game::UpdateGameScene_(float dt)
 {
+#ifdef _DEBUG
 	if (InputCodex::Get().KeyTriggered(KK_P))
 	{
 		waveDirector_.DebugSkipPhase();
 	}
+#endif
 
 	if (Pause)
 	{

@@ -174,6 +174,8 @@ enum class UiIconId : unsigned char
 {
 	Currency,
 	Refresh,
+	LockOpen,
+	LockClosed,
 	Count
 };
 
@@ -223,11 +225,53 @@ namespace UiIconAtlas
 			0b0000111111000000,
 			0b0000000000000000,
 		};
+
+		/** @brief 开锁：锁梁右开，与锁体不相接。 */
+		inline constexpr IconAtlas::IconBits kLockOpen{
+			0b0000000011110000,
+			0b0000001100011000,
+			0b0000001000001000,
+			0b0000001000001000,
+			0b0000001000001000,
+			0b0000001000000000,
+			0b0011111111111100,
+			0b0011000000001100,
+			0b0011000110001100,
+			0b0011000110001100,
+			0b0011000000001100,
+			0b0011000110001100,
+			0b0011000000001100,
+			0b0011111111111100,
+			0b0000000000000000,
+			0b0000000000000000,
+		};
+
+		/** @brief 闭锁：锁梁扣在锁体上。 */
+		inline constexpr IconAtlas::IconBits kLockClosed{
+			0b0000011111100000,
+			0b0000110000110000,
+			0b0000100000010000,
+			0b0000100000010000,
+			0b0000100000010000,
+			0b0000100000010000,
+			0b0011111111111100,
+			0b0011000000001100,
+			0b0011000110001100,
+			0b0011000110001100,
+			0b0011000000001100,
+			0b0011000110001100,
+			0b0011000000001100,
+			0b0011111111111100,
+			0b0000000000000000,
+			0b0000000000000000,
+		};
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, UiIconIdCount()> kUiIcons{
 		detail::kCurrency,
 		detail::kRefresh,
+		detail::kLockOpen,
+		detail::kLockClosed,
 	};
 
 	[[nodiscard]] inline const IconAtlas::IconBits& Get(UiIconId id) noexcept
