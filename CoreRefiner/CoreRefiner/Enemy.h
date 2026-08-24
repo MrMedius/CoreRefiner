@@ -77,6 +77,10 @@ public:
 	 */
 	bool AttackCollide(float damage, XMFLOAT3 repel) override
 	{
+		if (AttackTarget == nullptr)
+		{
+			return false;
+		}
 		auto* selfCol = GetComponent<ColliderComponentBase>();
 		auto* targetCol = AttackTarget->GetComponent<ColliderComponentBase>();
 		if (selfCol == nullptr || targetCol == nullptr || !targetCol->IsEnabled())
@@ -102,6 +106,16 @@ public:
 			}
 		}
 		return false;
+	}
+
+	/** @brief 贴身碰撞伤害 + 击退；Hurt 期间由玩家无敌帧挡住连击。 */
+	void TryContactHit()
+	{
+		if (GetIsDeath() || GetIsHurt())
+		{
+			return;
+		}
+		AttackCollide(kContactHpDelta_, kContactRepel_);
 	}
 	void SetWasHurt(bool state) { WasHurt = state; }
 	bool GetWasHurt(void) 
@@ -136,6 +150,10 @@ protected:
 private:
 	void SetupTransitions(void) override = 0;
 protected:
+	/** @brief 碰撞扣血（CalculateHpCurrent 的偏移，负数为受伤）。 */
+	static constexpr float kContactHpDelta_ = -5.0f;
+	/** @brief 水平击退 + 小幅上抬。 */
+	static constexpr XMFLOAT3 kContactRepel_{ 0.40f, 0.01f, 0.40f };
 	ENEMY_TYPE_ID Type{ ENEMY_TYPE_NONE };	// 敵の種類
 	Player* AttackTarget;					// ターゲット
 	BoxCollider searchCollider;				// 検査のコリジョン

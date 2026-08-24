@@ -176,9 +176,36 @@ void ModuleWorkbench::PlaceDemoWarehouse_()
 void ModuleWorkbench::Reset()
 {
 	assembler_.Reset();
+
+	while (field_.GetNodeCount() > 0)
+	{
+		(void)field_.TakeNode(static_cast<std::size_t>(0));
+	}
+	PlaceDemoField_();
+	for (std::size_t i = 0; i < field_.GetNodeCount(); ++i)
+	{
+		IModuleNode* node = field_.GetNode(i);
+		if (node != nullptr)
+		{
+			node->InitVisual(gfx_, rg_, field_.GetOrigin());
+		}
+	}
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
 	field_.ResetAllCooldowns();
-	field_.SyncAllVisuals();
 	field_.ClearWaves();
+	field_.SyncAllVisuals();
+
+	for (std::size_t i = 0; i < ModuleWarehouse::kMaxSlots; ++i)
+	{
+		(void)warehouse_.TakeNode(i);
+	}
+	warehouse_.SetEnabledSlotCount(ModuleWarehouse::kInitialEnabledSlots);
+
+	shop_.FillStock();
+	shop_.ResetVisit();
+
+	paintedWave_ = -1;
+	SetNextWave(1);
 }
 
 void ModuleWorkbench::Update(float dt, AttackManager* attackManager)

@@ -162,6 +162,11 @@ void Game::EnterScene(SCENE scene)
 	switch (scene)
 	{
 	case SCENE_GAME:
+		GameStatsCodex::Reset();
+		if (uiCombatHud != nullptr)
+		{
+			uiCombatHud->Invalidate();
+		}
 		pEnvironmentManager->EnterGame();
 		if (pPlayer != nullptr)
 		{
@@ -219,6 +224,28 @@ void Game::TryFinishVacuum_(float dt)
 	waveDirector_.FinishWave();
 }
 
+void Game::TryNotifyPlayerDead_()
+{
+	if (pPlayer == nullptr || !pPlayer->GetIsGameOver())
+	{
+		return;
+	}
+	waveDirector_.NotifyPlayerDead();
+}
+
+void Game::TryEnterResultIfTerminal_()
+{
+	if (!waveDirector_.IsTerminalPhase())
+	{
+		return;
+	}
+	if (waveDirector_.GetPhase() == GamePhase::Victory)
+	{
+		GameStatsCodex::SetGameClear();
+	}
+	SetScene(SCENE_RESULT);
+}
+
 bool Game::IsCombatWorld_() const noexcept
 {
 	const GamePhase phase = waveDirector_.GetPhase();
@@ -268,6 +295,8 @@ void Game::UpdateGameScene_(float dt)
 	default:
 		break;
 	}
+	TryNotifyPlayerDead_();
+	TryEnterResultIfTerminal_();
 }
 
 void Game::UpdateCombat_(float dt)

@@ -184,7 +184,7 @@ void Player::MapItemCollide(void)
 	OnFloor = grounded;
 
 	/*------------------------------------------------------------------------------
-	   MapCharacter
+	   MapCharacter — 玩家与敌人的位置分离只在此解算（敌人侧不再推开）。
 	------------------------------------------------------------------------------*/
 	std::vector<Character*> mapCharacters;
 	for (auto tag : { character_Player, character_Enemy_T })
@@ -225,7 +225,39 @@ void Player::Submit(void)
 	{
 		pCollider_->SetDebugDraw(!IsDeath);
 	}
+	if (hurtFlashHide_)
+	{
+		return;
+	}
 	ObjectBase::Submit();
+}
+
+void Player::BeginHurtIFrames()
+{
+	hurtElapsed_ = 0.0f;
+	hurtFlashHide_ = false;
+}
+
+void Player::TickHurtIFrames(float dt)
+{
+	hurtElapsed_ += dt;
+	hurtFlashHide_ = (static_cast<int>(hurtElapsed_ / kHurtFlashPeriod_) % 2) != 0;
+	if (GetHpCurrent() <= 0.0f)
+	{
+		SetIsDeath(true);
+		SetIsGameOver(true);
+		return;
+	}
+	if (hurtElapsed_ >= kHurtIFrameSec_)
+	{
+		SetIsHurt(false);
+	}
+}
+
+void Player::EndHurtIFrames()
+{
+	hurtElapsed_ = 0.0f;
+	hurtFlashHide_ = false;
 }
 
 void Player::DoMove(float ratio)
@@ -263,6 +295,20 @@ void Player::AttackCameraShake(int frames, float minRange, float maxRange)
 
 void Player::SetupTransitions(void)
 {
+	// Hurt 优先于移动/攻击，否则碰撞伤害进不了受击。
+	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
+		auto player = static_cast<Player*>(owner);
+		return player->IsHurt;
+		});
+	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
+		auto player = static_cast<Player*>(owner);
+		return player->IsHurt;
+		});
+	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
+		auto player = static_cast<Player*>(owner);
+		return player->IsHurt;
+		});
+
 	// 状態の遷移条件を増加する
 	// PLAYER_IDLE → PLAYER_MOVE
 	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_MOVE], [](Character* owner) {
@@ -413,10 +459,10 @@ void Player_AttackState::Update(Player* owner, float dt)
 ------------------------------------------------------------------------------*/
 void Player_HurtState::OnEnter(Player* owner)
 {
-	// anime set
+	owner->BeginHurtIFrames();
 	if (auto* col = owner->GetComponent<ColliderComponentBase>())
 	{
-		col->SetEnabled(false); // コリジュンを閉じる
+		col->SetEnabled(false);
 	}
 
 	SoundCodex::Get().PlaySE(SndPath::SE_Player_Hurt);
@@ -425,15 +471,20 @@ void Player_HurtState::OnEnter(Player* owner)
 
 void Player_HurtState::OnExit(Player* owner)
 {
-	owner->SetIsHurt(false); // DeathStateに遷移するかも、も一回IsHurtをリセットする
-	if (auto* col = owner->GetComponent<ColliderComponentBase>())
+	owner->SetIsHurt(false);
+	owner->EndHurtIFrames();
+	if (!owner->GetIsDeath())
 	{
-		col->SetEnabled(true); // コリジュンを開ける
+		if (auto* col = owner->GetComponent<ColliderComponentBase>())
+		{
+			col->SetEnabled(true);
+		}
 	}
 }
 
 void Player_HurtState::Update(Player* owner, float dt)
 {
+	owner->TickHurtIFrames(dt);
 }
 
 
@@ -442,7 +493,13 @@ void Player_HurtState::Update(Player* owner, float dt)
 ------------------------------------------------------------------------------*/
 void Player_DeathState::OnEnter(Player* owner)
 {
-	// anime set
+	owner->SetIsDeath(true);
+	owner->SetIsGameOver(true);
+	owner->EndHurtIFrames();
+	if (auto* col = owner->GetComponent<ColliderComponentBase>())
+	{
+		col->SetEnabled(false);
+	}
 }
 
 void Player_DeathState::Update(Player* owner, float dt)

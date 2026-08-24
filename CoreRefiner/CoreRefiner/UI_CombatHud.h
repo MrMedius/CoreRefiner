@@ -25,6 +25,8 @@ public:
 	void SetWave(int wave);
 	void SetRemain(float remainSec);
 	void SetHpRatio(float ratio);
+	/** @brief 开局清量化 key，避免与上一局数值相同而不重绘。 */
+	void Invalidate();
 	/** @brief 提交战斗 Field（底板 + 棋子）。 */
 	void SubmitField();
 	/** @brief 提交波次 / 倒计时 / 血条 / 经验条 / 资源。 */

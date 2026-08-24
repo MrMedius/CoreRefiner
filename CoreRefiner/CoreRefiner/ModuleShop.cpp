@@ -200,6 +200,16 @@ void ModuleShop::FillStock()
 			? ModuleNodePrice::GetBuyPrice(label)
 			: 0;
 	}
+	if (gfx_ != nullptr && rg_ != nullptr)
+	{
+		for (Slot& slot : slots_)
+		{
+			if (slot.node != nullptr)
+			{
+				slot.node->InitVisual(*gfx_, *rg_, origin_);
+			}
+		}
+	}
 	RelayoutSlots_();
 }
 

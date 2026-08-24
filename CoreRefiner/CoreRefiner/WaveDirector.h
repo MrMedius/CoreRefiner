@@ -47,6 +47,8 @@ public:
 	void NotifyPlayerDead();
 	/** @brief Vacuum 相结束本波，进入 Prep 或 Victory。 */
 	void FinishWave();
+	/** @brief Defeat / Victory，应离开对局进结算。 */
+	[[nodiscard]] bool IsTerminalPhase() const noexcept;
 
 	/**
 	 * @brief 调试用强制切相：Combat → Vacuum，Vacuum → 结束本波，Prep → 开下一波。

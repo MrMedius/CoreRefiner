@@ -25,11 +25,16 @@ void Enemy_T::Update(float dt)
 	// 移動
 	Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 
-	// collider must be current before MapItemCollide (full component drive runs after resolve)
+	// collider must be current before hit test / MapItemCollide (full component drive runs after resolve)
 	if (pCollider_ != nullptr)
 	{
 		pCollider_->SyncFromOwner();
 	}
+	/**
+	 * @brief 贴身伤害必须在本帧 Transform 之后、被 MapItemCollide 推开之前测，
+	 *        否则读到的是上一帧已经分离的位置，永远 overlap 不上。
+	 */
+	TryContactHit();
 	// Enemy intentionally keeps Character::MapItemCollide (Box AABB env + character push).
 	MapItemCollide();
 
@@ -112,7 +117,7 @@ void Enemy_T_ChaseState::OnEnter(Enemy_T* owner)
 void Enemy_T_ChaseState::Update(Enemy_T* owner, float dt)
 {
 	// general jobs
-	owner->DoChase();			// ターゲットを追いかける
+	owner->DoChase();
 }
 
 

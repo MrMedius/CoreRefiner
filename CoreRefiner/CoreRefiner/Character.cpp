@@ -179,17 +179,16 @@ void Character::MapItemCollide(void)
 
 		if (isCollide)
 		{
-			// Non-Box peers (e.g. Capsule Player): separate this Box host via MTV + skin.
+			/**
+			 * @brief 对胶囊玩家只消朝向速度，位置分离交给 Player::MapItemCollide，
+			 *        避免两侧各推一次把接触缝拉到判定永远 miss。
+			 */
 			if (cCol->GetCollideType() != Collider3D::CollideType::Box)
 			{
-				constexpr float kSkinVsNonBox = 0.02f;
 				DirectX::XMFLOAT3 n{};
 				float depth = 0.0f;
 				if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
 				{
-					const float push = (std::max)(depth, 0.0f) + kSkinVsNonBox;
-					SetPosition(V(GetPosition()) + V(n) * push);
-					selfCol->SyncFromOwner();
 					const float vn = Dot(V(MoveVelocity), V(n));
 					if (vn < 0.0f)
 					{
@@ -283,6 +282,27 @@ void Character::MapItemCollide(void)
 				c->CalculateMoveVelocity(MoveAccel * push_rate_half * RightOrLeft, 0.0f, -MoveAccel * push_rate);
 
 				continue;
+			}
+
+			/**
+			 * @brief 扫边未命中（已叠着 / 斜向挤入 / 出生重叠）时用 MTV 兜底。
+			 *        双方各自 MapItemCollide，每边只推一半深度。
+			 */
+			DirectX::XMFLOAT3 n{};
+			float depth = 0.0f;
+			if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
+			{
+				const float push = (std::max)(depth, 0.0f) * 0.5f;
+				if (push > 0.0f)
+				{
+					SetPosition(V(GetPosition()) + V(n) * push);
+					selfCol->SyncFromOwner();
+				}
+				const float vn = Dot(V(MoveVelocity), V(n));
+				if (vn < 0.0f)
+				{
+					MoveVelocity = (V(MoveVelocity) - V(n) * vn).ToFloat3();
+				}
 			}
 		}
 	}

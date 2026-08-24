@@ -32,11 +32,12 @@ class Player_DeathState;
 
 /**
  * @brief Player Capsule feel / debug knobs (tune here only; MapItemCollide reads the same values).
- * @note Mapped from legacy Box full size {1.5, 5, 2}: radius = max(1.5,2)/2, height = 5.
+ * @note Height 5 沿用旧 Box；半径按身体视觉半宽略放大，让贴身与判定更接近。
  */
 namespace PlayerCapsuleTuning
 {
-	constexpr float kRadius = 1.0f;
+	/** @brief 接近身体视觉半径（Pyramid base 0.5 × size 3 ≈ 1.5）。 */
+	constexpr float kRadius = 1.25f;
 	constexpr float kTotalHeight = 5.0f;
 	/** @brief World Y offset from Player::GetPosition() to capsule center. */
 	constexpr float kCenterOffsetY = 1.0f;
@@ -120,9 +121,15 @@ public:
 		SetPosition(XMFLOAT3(0.0f, 5.0f, 0.0f));
 		MoveVelocity = { 0.0f,0.0f,0.0f };
 		ResetHpCurrent();
+		HpDraw = HpCurrent;
+		SetIsHurt(false);
 		SetIsDeath(false);
 		SetIsGameOver(false);
-		IsGameOver = false;
+		EndHurtIFrames();
+		if (pCollider_ != nullptr)
+		{
+			pCollider_->SetEnabled(true);
+		}
 	}
 	void Update(float dt) override;
 	void Submit(void) override;
@@ -137,6 +144,13 @@ public:
 	void DoMove(float ratio);
 	bool AttackCollide(float damage, XMFLOAT3 repel) override;
 	void AttackCameraShake(int frames, float minRange, float maxRange);
+	/** @brief Hurt 入场：重置无敌计时与闪烁。 */
+	void BeginHurtIFrames();
+	/** @brief Hurt 每帧：闪烁、HP 归零则死亡，否则到时解除 Hurt。 */
+	void TickHurtIFrames(float dt);
+	/** @brief Hurt 离场：关掉闪烁隐藏。 */
+	void EndHurtIFrames();
+	[[nodiscard]] bool IsHurtFlashHidden() const noexcept { return hurtFlashHide_; }
 protected:
 	/**
 	 * @brief Player collision resolve via Capsule + TrySeparate (not Character AABB).
@@ -152,6 +166,10 @@ private:
 	std::unique_ptr<StateMachine<Player>> FSM;
 	float HpDraw{ 0.0f };
 	bool IsGameOver{ false };
+	float hurtElapsed_{ 0.0f };
+	bool hurtFlashHide_{ false };
+	static constexpr float kHurtIFrameSec_ = 0.55f;
+	static constexpr float kHurtFlashPeriod_ = 0.07f;
 
 // input related
 	struct PlayerInputSnapshot

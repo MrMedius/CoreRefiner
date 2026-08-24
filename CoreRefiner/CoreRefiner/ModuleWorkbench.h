@@ -56,6 +56,7 @@ public:
 	/** @brief 刷新 [战斗！] 文案；波次不变则不重绘。 */
 	void SetNextWave(int wave);
 
+	/** @brief 新开一局：Field 回到演示布局，仓清空，商店重进货并清刷新次数。 */
 	void Reset();
 
 	void Update(float dt, AttackManager* attackManager);

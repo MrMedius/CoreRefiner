@@ -79,6 +79,15 @@ void UI_CombatHud::SetHpRatio(float ratio)
 	PaintHpBar_();
 }
 
+void UI_CombatHud::Invalidate()
+{
+	paintedWave_ = -1;
+	paintedRemainSec_ = -1;
+	paintedHpKey_ = -1;
+	paintedExpKey_ = -1;
+	paintedCurrency_ = -1;
+}
+
 void UI_CombatHud::SubmitField()
 {
 	if (field_ == nullptr)

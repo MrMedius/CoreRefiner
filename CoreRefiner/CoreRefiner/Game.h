@@ -48,10 +48,13 @@ private:
 	void SetScene(SCENE scene);
 	void LeaveScene(SCENE scene);
 	void EnterScene(SCENE scene);
+
 	void EnterCombatPresentation_();
 	void EnterPrepPresentation_();
 	void BeginVacuumSweep_();
 	void TryFinishVacuum_(float dt);
+	void TryNotifyPlayerDead_();
+	void TryEnterResultIfTerminal_();
 	[[nodiscard]] bool IsCombatWorld_() const noexcept;
 
 	/********************************/

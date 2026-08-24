@@ -59,6 +59,11 @@ void WaveDirector::NotifyPlayerDead()
 	remainSec_ = 0.0f;
 }
 
+bool WaveDirector::IsTerminalPhase() const noexcept
+{
+	return phase_ == GamePhase::Defeat || phase_ == GamePhase::Victory;
+}
+
 void WaveDirector::FinishWave()
 {
 	if (phase_ != GamePhase::Vacuum)
