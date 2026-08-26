@@ -1,47 +1,11 @@
 #pragma once
 #include <algorithm>
 #include "imgui/imgui.h"
+#include "ModuleNodeInfoCopy.h"
 
-struct PerformanceData
+struct GlobalData
 {
-    int score{ 0 };
-
-    int totalDefeat{ 0 };
-    int rDefeat{ 0 };
-    int gDefeat{ 0 };
-    int bDefeat{ 0 };
-
-    int rHighestCombo{ 0 };
-    int gHighestCombo{ 0 };
-    int bHighestCombo{ 0 };
-
-    int totalWeapon{ 0 };
-    int rWeapon{ 0 };
-    int gWeapon{ 0 };
-    int bWeapon{ 0 };
-
-    float lifeTime{ 0.0f };
-    bool gameClear{ false };
-
-    float outputDamage{ 0.0f };
-    float inputDamage{ 0.0f };
-
-    void Reset() noexcept
-    {
-        score = 0;
-
-        totalDefeat = rDefeat = gDefeat = bDefeat = 0;
-
-        rHighestCombo = gHighestCombo = bHighestCombo = 0;
-
-        totalWeapon = rWeapon = gWeapon = bWeapon = 0;
-
-        lifeTime = 0.0f;
-        gameClear = false;
-
-        outputDamage = 0.0f;
-        inputDamage = 0.0f;
-    }
+    ModuleNodeInfoLanguage language{ ModuleNodeInfoLanguage::Zh };
 };
 
 struct TutorialData
@@ -74,55 +38,119 @@ struct TutorialData
     }
 };
 
-struct CurrencyData
+// InGame
+namespace
 {
-    int amount{ 0 };
+    struct PerformanceData
+    {
+        int score{ 0 };
+
+        int totalDefeat{ 0 };
+        int rDefeat{ 0 };
+        int gDefeat{ 0 };
+        int bDefeat{ 0 };
+
+        int rHighestCombo{ 0 };
+        int gHighestCombo{ 0 };
+        int bHighestCombo{ 0 };
+
+        int totalWeapon{ 0 };
+        int rWeapon{ 0 };
+        int gWeapon{ 0 };
+        int bWeapon{ 0 };
+
+        float lifeTime{ 0.0f };
+        bool gameClear{ false };
+
+        float outputDamage{ 0.0f };
+        float inputDamage{ 0.0f };
+
+        void Reset() noexcept
+        {
+            score = 0;
+
+            totalDefeat = rDefeat = gDefeat = bDefeat = 0;
+
+            rHighestCombo = gHighestCombo = bHighestCombo = 0;
+
+            totalWeapon = rWeapon = gWeapon = bWeapon = 0;
+
+            lifeTime = 0.0f;
+            gameClear = false;
+
+            outputDamage = 0.0f;
+            inputDamage = 0.0f;
+        }
+    };
+
+    struct CurrencyData
+    {
+        int amount{ 0 };
+
+        void Reset() noexcept
+        {
+            amount = 0;
+        }
+    };
+
+    struct ExpData
+    {
+        int exp{ 0 };
+        int level{ 0 };
+
+        static constexpr int kBase = 3;
+        static constexpr int kStep = 2;
+        static constexpr int kLevelsPerTier = 5;
+        static constexpr int kCurrencyPerLevel = 2;
+
+        void Reset() noexcept
+        {
+            exp = 0;
+            level = 0;
+        }
+
+        // exp require = 3 + (level / 5) * 2
+        [[nodiscard]] int ExpToNext() const noexcept
+        {
+            const int lv = (std::max)(level, 0);
+            return kBase + (lv / kLevelsPerTier) * kStep;
+        }
+
+        int Add(int amount) noexcept
+        {
+            if (amount <= 0)
+            {
+                return 0;
+            }
+            exp += amount;
+            int grants = 0;
+            while (exp >= ExpToNext())
+            {
+                exp -= ExpToNext();
+                ++level;
+                ++grants;
+            }
+            return grants;
+        }
+    };
+}
+struct InGameData
+{
+    PerformanceData performance;
+    CurrencyData currency;
+    ExpData exp;
 
     void Reset() noexcept
     {
-        amount = 0;
+        performance.Reset();
+        currency.Reset();
+        exp.Reset();
     }
 };
 
-struct ExpData
+struct CareerData
 {
-    int exp{ 0 };
-    int level{ 0 };
 
-    static constexpr int kBase = 3;
-    static constexpr int kStep = 2;
-    static constexpr int kLevelsPerTier = 5;
-    static constexpr int kCurrencyPerLevel = 2;
-
-    void Reset() noexcept
-    {
-        exp = 0;
-        level = 0;
-    }
-
-    // exp require = 3 + (level / 5) * 2
-    [[nodiscard]] int ExpToNext() const noexcept
-    {
-        const int lv = (std::max)(level, 0);
-        return kBase + (lv / kLevelsPerTier) * kStep;
-    }
-
-    int Add(int amount) noexcept
-    {
-        if (amount <= 0)
-        {
-            return 0;
-        }
-        exp += amount;
-        int grants = 0;
-        while (exp >= ExpToNext())
-        {
-            exp -= ExpToNext();
-            ++level;
-            ++grants;
-        }
-        return grants;
-    }
 };
 
 class GameStatsCodex
@@ -131,17 +159,30 @@ public:
     // write
     static void Reset() noexcept 
     { 
-        Get_().pData.Reset(); 
+        Get_().igData.Reset();
         Get_().tData.Reset();
-        Get_().cData.Reset();
-        Get_().eData.Reset();
     }
+
+    /////////////////////////////////////////////////////////
+    // GlobalData (not cleared by Reset)
+    /////////////////////////////////////////////////////////
+    [[nodiscard]] static ModuleNodeInfoLanguage GetLanguage() noexcept
+    {
+        return Get_().gData.language;
+    }
+
+    static void SetLanguage(ModuleNodeInfoLanguage lang) noexcept
+    {
+        Get_().gData.language = lang;
+        SetModuleNodeInfoLanguage(lang);
+    }
+
 
     /////////////////////////////////////////////////////////
     // PerformanceData
     /////////////////////////////////////////////////////////
     // read only
-    static const PerformanceData& Get() noexcept { return Get_().pData; }
+    static const PerformanceData& Get() noexcept { return Get_().igData.performance; }
 
     static bool GetIsTutorial(void) noexcept     { return Get_().tData.isTutorial; }
     static void SetFinishTutorial(void) noexcept { Get_().tData.isTutorial = false; }
@@ -170,46 +211,43 @@ public:
     static bool GetIsFinishPart(void) noexcept { return Get_().tData.isFinishPart; }
     static void SetFinishPart(void) noexcept { Get_().tData.isFinishPart = true; }
 
-
-
-
     /////////////////////////////////////////////////////////
     // PerformanceData
     /////////////////////////////////////////////////////////
     static void UpdateLifeTime(float dt) noexcept
     {
         if (dt > 0.0f && !Get_().tData.isTutorial)
-            Get_().pData.lifeTime += dt;
+            Get_().igData.performance.lifeTime += dt;
     }
 
-    static void AddScore(int s) noexcept { if (!Get_().tData.isTutorial) Get_().pData.score += s; }
-    static void SetGameClear() noexcept  { if (!Get_().tData.isTutorial) Get_().pData.gameClear = true; }
+    static void AddScore(int s) noexcept { if (!Get_().tData.isTutorial) Get_().igData.performance.score += s; }
+    static void SetGameClear() noexcept  { if (!Get_().tData.isTutorial) Get_().igData.performance.gameClear = true; }
 
-    static void AddTotalDefeat(int c = 1) noexcept { if (!Get_().tData.isTutorial) Get_().pData.totalDefeat += c; }
-    static void AddRedDefeat(int c = 1) noexcept   { if (!Get_().tData.isTutorial) Get_().pData.rDefeat += c; }
-    static void AddGreenDefeat(int c = 1) noexcept { if (!Get_().tData.isTutorial) Get_().pData.gDefeat += c; }
-    static void AddBlueDefeat(int c = 1) noexcept  { if (!Get_().tData.isTutorial) Get_().pData.bDefeat += c; }
+    static void AddTotalDefeat(int c = 1) noexcept { if (!Get_().tData.isTutorial) Get_().igData.performance.totalDefeat += c; }
+    static void AddRedDefeat(int c = 1) noexcept   { if (!Get_().tData.isTutorial) Get_().igData.performance.rDefeat += c; }
+    static void AddGreenDefeat(int c = 1) noexcept { if (!Get_().tData.isTutorial) Get_().igData.performance.gDefeat += c; }
+    static void AddBlueDefeat(int c = 1) noexcept  { if (!Get_().tData.isTutorial) Get_().igData.performance.bDefeat += c; }
 
     static void ReportRedCombo(int v) noexcept
     {
-        if (!Get_().tData.isTutorial) if (v >= 0) Get_().pData.rHighestCombo = std::max(Get_().pData.rHighestCombo, v);
+        if (!Get_().tData.isTutorial) if (v >= 0) Get_().igData.performance.rHighestCombo = std::max(Get_().igData.performance.rHighestCombo, v);
     }
     static void ReportGreenCombo(int v) noexcept
     {
-        if (!Get_().tData.isTutorial) if (v >= 0) Get_().pData.gHighestCombo = std::max(Get_().pData.gHighestCombo, v);
+        if (!Get_().tData.isTutorial) if (v >= 0) Get_().igData.performance.gHighestCombo = std::max(Get_().igData.performance.gHighestCombo, v);
     }
     static void ReportBlueCombo(int v) noexcept
     {
-        if (!Get_().tData.isTutorial) if (v >= 0) Get_().pData.bHighestCombo = std::max(Get_().pData.bHighestCombo, v);
+        if (!Get_().tData.isTutorial) if (v >= 0) Get_().igData.performance.bHighestCombo = std::max(Get_().igData.performance.bHighestCombo, v);
     }
 
-    static void AddTotalWeapon(int c = 1) noexcept  { if (!Get_().tData.isTutorial) Get_().pData.totalWeapon += c; }
-    static void AddRedWeapon(int c = 1) noexcept    { if (!Get_().tData.isTutorial) Get_().pData.rWeapon += c; }
-    static void AddGreenWeapon(int c = 1) noexcept  { if (!Get_().tData.isTutorial) Get_().pData.gWeapon += c; }
-    static void AddBlueWeapon(int c = 1) noexcept   { if (!Get_().tData.isTutorial) Get_().pData.bWeapon += c; }
+    static void AddTotalWeapon(int c = 1) noexcept  { if (!Get_().tData.isTutorial) Get_().igData.performance.totalWeapon += c; }
+    static void AddRedWeapon(int c = 1) noexcept    { if (!Get_().tData.isTutorial) Get_().igData.performance.rWeapon += c; }
+    static void AddGreenWeapon(int c = 1) noexcept  { if (!Get_().tData.isTutorial) Get_().igData.performance.gWeapon += c; }
+    static void AddBlueWeapon(int c = 1) noexcept   { if (!Get_().tData.isTutorial) Get_().igData.performance.bWeapon += c; }
 
-    static void AddOutputDamage(float d) noexcept { if (!Get_().tData.isTutorial) if (d > 0) Get_().pData.outputDamage += d; }
-    static void AddInputDamage(float d) noexcept  { if (!Get_().tData.isTutorial) if (d > 0) Get_().pData.inputDamage += d; }
+    static void AddOutputDamage(float d) noexcept { if (!Get_().tData.isTutorial) if (d > 0) Get_().igData.performance.outputDamage += d; }
+    static void AddInputDamage(float d) noexcept  { if (!Get_().tData.isTutorial) if (d > 0) Get_().igData.performance.inputDamage += d; }
 
 
     /////////////////////////////////////////////////////////
@@ -217,14 +255,14 @@ public:
     /////////////////////////////////////////////////////////
     [[nodiscard]] static int GetCurrency() noexcept
     {
-        return Get_().cData.amount;
+        return Get_().igData.currency.amount;
     }
 
     static void AddCurrency(int amount) noexcept
     {
         if (amount > 0)
         {
-            Get_().cData.amount += amount;
+            Get_().igData.currency.amount += amount;
         }
     }
 
@@ -234,7 +272,7 @@ public:
         {
             return false;
         }
-        CurrencyData& wallet = Get_().cData;
+        CurrencyData& wallet = Get_().igData.currency;
         if (wallet.amount < amount)
         {
             return false;
@@ -243,27 +281,28 @@ public:
         return true;
     }
 
+
     /////////////////////////////////////////////////////////
     // ExpData (not gated by isTutorial)
     /////////////////////////////////////////////////////////
     [[nodiscard]] static int GetExp() noexcept
     {
-        return Get_().eData.exp;
+        return Get_().igData.exp.exp;
     }
 
     [[nodiscard]] static int GetLevel() noexcept
     {
-        return Get_().eData.level;
+        return Get_().igData.exp.level;
     }
 
     [[nodiscard]] static int GetExpToNext() noexcept
     {
-        return Get_().eData.ExpToNext();
+        return Get_().igData.exp.ExpToNext();
     }
 
     static void AddExp(int amount) noexcept
     {
-        const int grants = Get_().eData.Add(amount);
+        const int grants = Get_().igData.exp.Add(amount);
         if (grants > 0)
         {
             AddCurrency(grants * ExpData::kCurrencyPerLevel);
@@ -344,8 +383,8 @@ private:
     }
 
 private:
-    PerformanceData pData;
+    GlobalData gData;
     TutorialData tData;
-    CurrencyData cData;
-    ExpData eData;
+    InGameData igData;
+    CareerData cData;
 };

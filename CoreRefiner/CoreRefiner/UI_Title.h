@@ -21,6 +21,7 @@
 #include <functional>
 
 #include "SoundCodex.h"
+#include "GameStatsCodex.h"
 
 class UI_Title
 {
@@ -174,38 +175,38 @@ public:
 			const float dropdownW = static_cast<float>(btnWidth) * 2.0f;
 			const float dropdownH = static_cast<float>(btnHeight);
 			const float dropdownX = static_cast<float>(centerX);
-			const float qualityY = toggleY + static_cast<float>(spacingY) * 6.5f;
-			const float qualityX = dropdownX + static_cast<float>(btnWidth) * 2.0f;
+			const float langY = toggleY + static_cast<float>(spacingY) * 6.5f;
+			const float langX = dropdownX + static_cast<float>(btnWidth) * 2.0f;
 
-			qualityOptions_ = std::make_unique<Ui::UiOptionList>();
-			qualityOptions_->SetOptions({
-				{.label = "Ultra" },
-				{.label = "Very Low" },
-				{.label = "Very Very Low" },
+			languageOptions_ = std::make_unique<Ui::UiOptionList>();
+			languageOptions_->SetOptions({
+				{.label = "中文" },
+				{.label = "日本語" },
+				{.label = "English" },
 				});
-			qualityOptions_->SetOnSelectionChanged([this](int, const std::string& label) {
-				btnB_->Button().SetLabel("Quality: " + label);
-				stepperQuality_->Stepper().SetLabel(label);
-				stepperQuality_->Stepper().SetValue(
-					static_cast<float>(qualityOptions_->GetSelectedIndex()), false);
+
+			const float stepperLangTextW = dropdownW;
+			const float stepperLangTotalW = dropdownH * 2.0f + stepperLangTextW;
+			stepperLanguage_ = std::make_unique<Ui::StepperCanvasComponent>(
+				gfx, 517u, langX, langY, stepperLangTotalW, dropdownH);
+			stepperLanguage_->Stepper().SetRange(0.0f, static_cast<float>(languageOptions_->Count() - 1));
+			stepperLanguage_->Stepper().SetStep(1.0f);
+
+			languageOptions_->SetSelectedIndex(static_cast<int>(GameStatsCodex::GetLanguage()), false);
+			const std::string langLabel = languageOptions_->GetSelectedLabel();
+			stepperLanguage_->Stepper().SetLabel(langLabel);
+			stepperLanguage_->Stepper().SetValue(static_cast<float>(languageOptions_->GetSelectedIndex()), false);
+			btnB_->Button().SetLabel(langLabel);
+			GameStatsCodex::SetLanguage(static_cast<ModuleNodeInfoLanguage>(languageOptions_->GetSelectedIndex()));
+
+			languageOptions_->SetOnSelectionChanged([this](int index, const std::string& label) {
+				btnB_->Button().SetLabel(label);
+				stepperLanguage_->Stepper().SetLabel(label);
+				stepperLanguage_->Stepper().SetValue(static_cast<float>(index), false);
+				GameStatsCodex::SetLanguage(static_cast<ModuleNodeInfoLanguage>(index));
 			});
-
-
-
-
-
-			const float stepperQualityTextW = dropdownW;
-			const float stepperQualityTotalW = dropdownH * 2.0f + stepperQualityTextW;
-			stepperQuality_ = std::make_unique<Ui::StepperCanvasComponent>(
-				gfx, 517u, qualityX, qualityY, stepperQualityTotalW, dropdownH);
-			stepperQuality_->Stepper().SetLabel(qualityOptions_->GetSelectedLabel());
-			stepperQuality_->Stepper().SetRange(
-				0.0f, static_cast<float>(qualityOptions_->Count() - 1));
-			stepperQuality_->Stepper().SetStep(1.0f);
-			stepperQuality_->Stepper().SetValue(
-				static_cast<float>(qualityOptions_->GetSelectedIndex()));
-			stepperQuality_->Stepper().SetOnValueChanged([this](float v) {
-				qualityOptions_->SetSelectedIndex(static_cast<int>(v));
+			stepperLanguage_->Stepper().SetOnValueChanged([this](float v) {
+				languageOptions_->SetSelectedIndex(static_cast<int>(v));
 			});
 
 
@@ -232,7 +233,7 @@ public:
 			const float textFieldW = static_cast<float>(btnWidth) * 2.5f;
 			const float textFieldH = static_cast<float>(btnHeight);
 			const float textFieldX = static_cast<float>(centerX);
-			const float textFieldY = qualityY + static_cast<float>(spacingY) * 2.0f;
+			const float textFieldY = langY + static_cast<float>(spacingY) * 2.0f;
 			textField_ = std::make_unique<Ui::TextFieldCanvasComponent>(
 				gfx, 518u, textFieldX, textFieldY, textFieldW, textFieldH);
 			textField_->Field().SetPlaceholder("Enter name...");
@@ -262,7 +263,7 @@ public:
 
 			stepperSlider_->RegisterTo(*uiRoot);
 			stepperDemo_->RegisterTo(*uiRoot);
-			stepperQuality_->RegisterTo(*uiRoot);
+			stepperLanguage_->RegisterTo(*uiRoot);
 			textField_->RegisterTo(*uiRoot);
 
 			uiRoot->RebuildTabOrder();
@@ -305,14 +306,14 @@ private:
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleSound_{};
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
 
-	std::unique_ptr<Ui::UiOptionList> qualityOptions_{};
+	std::unique_ptr<Ui::UiOptionList> languageOptions_{};
 	std::unique_ptr<Ui::UiOptionList> customOptions_{};
 
 	std::unique_ptr<Ui::DropdownCanvasComponent> dropdownCustom_{};
 
 	std::unique_ptr<Ui::StepperCanvasComponent> stepperSlider_{};
 	std::unique_ptr<Ui::StepperCanvasComponent> stepperDemo_{};
-	std::unique_ptr<Ui::StepperCanvasComponent> stepperQuality_{};
+	std::unique_ptr<Ui::StepperCanvasComponent> stepperLanguage_{};
 	std::unique_ptr<Ui::TextFieldCanvasComponent> textField_{};
 
 	std::function<void()> onNewGame_{};
