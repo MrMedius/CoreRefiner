@@ -227,6 +227,7 @@
     <ClCompile Include="DynamicVertexBuffer.cpp" />
     <ClCompile Include="Enemy_T.cpp" />
     <ClCompile Include="UI_CombatHud.cpp" />
+    <ClCompile Include="UI_Pause.cpp" />
     <ClCompile Include="VisualComponent.cpp" />
     <ClCompile Include="ColliderComponentBase.cpp" />
     <ClCompile Include="BoxColliderComponent.cpp" />
@@ -477,6 +478,7 @@
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="DeferredDisableQueue.h" />
     <ClInclude Include="UI_CombatHud.h" />
+    <ClInclude Include="UI_Pause.h" />
     <ClInclude Include="UI_Prep.h" />
     <ClInclude Include="VisualComponent.h" />
     <ClInclude Include="ColliderComponentBase.h" />

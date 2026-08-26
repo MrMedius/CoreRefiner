@@ -700,6 +700,9 @@
     <ClCompile Include="UI_CombatHud.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="UI_Pause.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1451,6 +1454,9 @@
     </ClInclude>
     <ClInclude Include="CharacterStats.h">
       <Filter>Object\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_Pause.h">
+      <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

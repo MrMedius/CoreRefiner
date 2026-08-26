@@ -39,6 +39,9 @@ Game::Game(const std::string& commandLine)
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
 	uiPrep = std::make_unique<UI_Prep>(*moduleWorkbench);
 	uiPrep->SetOnFight([this] { waveDirector_.RequestStartWave(); });
+	uiPause = std::make_unique<UI_Pause>(wnd.Gfx(), gameRG);
+	uiPause->SetOnContinue([this] { ClosePauseMenu_(); });
+	uiPause->SetOnQuit([this] { ClosePauseMenu_(); SetScene(SCENE_TITLE); });
 	uiCombatHud = std::make_unique<UI_CombatHud>(wnd.Gfx(), gameRG, &moduleWorkbench->GetField());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
@@ -146,7 +149,7 @@ void Game::LeaveScene(SCENE scene)
 		pEnemyManager->Reset();
 		pEnvironmentManager->Reset();
 		DeferredDisableQueue::Get().Flush();
-		Pause = false;
+		ClosePauseMenu_();
 		wnd.EnableCursor();
 		// Player remains AcquirePersistent — not Deactivated here
 		break;
@@ -256,6 +259,34 @@ bool Game::IsCombatWorld_() const noexcept
 	return phase == GamePhase::Combat || phase == GamePhase::Vacuum;
 }
 
+void Game::ClosePauseMenu_() noexcept
+{
+	if (uiPause != nullptr)
+	{
+		uiPause->Hide();
+	}
+	Pause = false;
+}
+
+void Game::TryTogglePauseMenu_() noexcept
+{
+	if (uiPause == nullptr || waveDirector_.IsTerminalPhase())
+	{
+		return;
+	}
+	if (uiPause->IsOpen())
+	{
+		uiPause->Hide();
+	}
+	else
+	{
+		uiPause->Show();
+		wnd.EnableCursor();
+	}
+	Pause = uiPause->IsOpen();
+	InputCodex::Get().FlushKeyboard();
+}
+
 void Game::SyncCombatHud_()
 {
 	if (uiCombatHud == nullptr)
@@ -272,17 +303,30 @@ void Game::SyncCombatHud_()
 
 void Game::UpdateGameScene_(float dt)
 {
+	const bool wasOpen = (uiPause != nullptr && uiPause->IsOpen());
+
+	if (InputCodex::Get().KeyTriggered(VK_ESCAPE))
+	{
+		TryTogglePauseMenu_();
+	}
+
+	if (uiPause != nullptr)
+	{
+		uiPause->Update(dt);
+	}
+
+	Pause = (uiPause != nullptr && uiPause->IsOpen());
+	if (Pause || wasOpen)
+	{
+		return;
+	}
+
 #ifdef _DEBUG
 	if (InputCodex::Get().KeyTriggered(KK_P))
 	{
 		waveDirector_.DebugSkipPhase();
 	}
 #endif
-
-	if (Pause)
-	{
-		return;
-	}
 
 	waveDirector_.Update(dt);
 	switch (waveDirector_.GetPhase())
@@ -400,7 +444,7 @@ void Game::Draw()
 		light.Bind(wnd.Gfx(), cameras->GetMatrix());
 		gameRG.BindMainCamera(cameras.GetActiveCamera());
 
-		if (!Pause && IsCombatWorld_())
+		if (IsCombatWorld_())
 		{
 #ifdef _DEBUG
 			light.Submit(Chan::main);
@@ -422,10 +466,15 @@ void Game::Draw()
 		else if (uiCombatHud != nullptr)
 		{
 			uiCombatHud->SubmitField();
-			if (!Pause && IsCombatWorld_())
+			if (IsCombatWorld_())
 			{
 				uiCombatHud->SubmitHud();
 			}
+		}
+
+		if (uiPause != nullptr)
+		{
+			uiPause->Submit();
 		}
 
 		gameRG.Execute(wnd.Gfx());

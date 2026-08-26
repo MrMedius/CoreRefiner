@@ -17,6 +17,7 @@
 #include "ModuleWorkbench.h"
 #include "UI_Title.h"
 #include "UI_Prep.h"
+#include "UI_Pause.h"
 #include "UI_CombatHud.h"
 #include "UI_Sample.h"
 #include "WaveDirector.h"
@@ -56,6 +57,8 @@ private:
 	void TryNotifyPlayerDead_();
 	void TryEnterResultIfTerminal_();
 	[[nodiscard]] bool IsCombatWorld_() const noexcept;
+	void ClosePauseMenu_() noexcept;
+	void TryTogglePauseMenu_() noexcept;
 
 	/********************************/
 	/*         Game Related         */
@@ -95,6 +98,7 @@ private:
 	std::unique_ptr<ModuleWorkbench> moduleWorkbench;
 	std::unique_ptr<UI_Title> uiTitle;
 	std::unique_ptr<UI_Prep> uiPrep;
+	std::unique_ptr<UI_Pause> uiPause;
 	std::unique_ptr<UI_CombatHud> uiCombatHud;
 	std::unique_ptr<UI_Sample> uiSample;
 };
