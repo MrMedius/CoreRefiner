@@ -68,6 +68,8 @@ public:
 	void TickCursorAutoHide() noexcept;
 	// screen related
 	void ToggleFullscreen() noexcept;
+	void SetFullscreen(bool enable) noexcept;
+	void SetWindowedClientSize(int clientWidth, int clientHeight) noexcept;
 	bool IsFullscreen() const noexcept;
 	static std::optional<int> ProcessMessages() noexcept;
 	Graphics& Gfx();
@@ -80,6 +82,8 @@ private:
 	void EnableImGuiMouse() noexcept;
 	void DisableImGuiMouse() noexcept;
 	bool MapClientToGame(int cx, int cy, int& outX, int& outY) noexcept;
+	void RememberWindowedClientSize_(int clientWidth, int clientHeight) noexcept;
+	void ApplyWindowedClientSize_(int clientWidth, int clientHeight) noexcept;
 	static LRESULT CALLBACK HandleMsgSetup( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noexcept;
 	static LRESULT CALLBACK HandleMsgThunk( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noexcept;
 	LRESULT HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noexcept;

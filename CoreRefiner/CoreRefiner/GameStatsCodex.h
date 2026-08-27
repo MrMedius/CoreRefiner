@@ -1,11 +1,22 @@
 #pragma once
 #include <algorithm>
 #include "imgui/imgui.h"
-#include "ModuleNodeInfoCopy.h"
+#include "JsonTextCopy.h"
 
 struct GlobalData
 {
-    ModuleNodeInfoLanguage language{ ModuleNodeInfoLanguage::Zh };
+    Language language{ Language::Zh };
+
+    // ALL Volume 0–1
+    float masterVolume{ 0.5f };
+    // BGM Volume 0–1
+    float bgmVolume{ 0.5f };
+    // SE Volume 0–1
+    float seVolume{ 0.5f };
+    bool muted{ false };
+    bool fullscreen{ false };
+    // 0=1280x720，1=1600x900，2=1920x1080
+    int windowSizeIndex{ 0 };
 };
 
 struct TutorialData
@@ -166,15 +177,77 @@ public:
     /////////////////////////////////////////////////////////
     // GlobalData (not cleared by Reset)
     /////////////////////////////////////////////////////////
-    [[nodiscard]] static ModuleNodeInfoLanguage GetLanguage() noexcept
+    [[nodiscard]] static Language GetLanguage() noexcept
     {
         return Get_().gData.language;
     }
 
-    static void SetLanguage(ModuleNodeInfoLanguage lang) noexcept
+    static void SetLanguage(Language lang) noexcept
     {
         Get_().gData.language = lang;
-        SetModuleNodeInfoLanguage(lang);
+    }
+
+    [[nodiscard]] static float GetMasterVolume() noexcept
+    {
+        return Get_().gData.masterVolume;
+    }
+
+    static void SetMasterVolume(float vol) noexcept
+    {
+        Get_().gData.masterVolume = std::clamp(vol, 0.0f, 1.0f);
+    }
+
+    [[nodiscard]] static float GetBgmVolume() noexcept
+    {
+        return Get_().gData.bgmVolume;
+    }
+
+    static void SetBgmVolume(float vol) noexcept
+    {
+        Get_().gData.bgmVolume = std::clamp(vol, 0.0f, 1.0f);
+    }
+
+    [[nodiscard]] static float GetSeVolume() noexcept
+    {
+        return Get_().gData.seVolume;
+    }
+
+    static void SetSeVolume(float vol) noexcept
+    {
+        Get_().gData.seVolume = std::clamp(vol, 0.0f, 1.0f);
+    }
+
+    [[nodiscard]] static bool GetMuted() noexcept
+    {
+        return Get_().gData.muted;
+    }
+
+    static void SetMuted(bool muted) noexcept
+    {
+        Get_().gData.muted = muted;
+    }
+
+    [[nodiscard]] static bool GetFullscreen() noexcept
+    {
+        return Get_().gData.fullscreen;
+    }
+
+    static void SetFullscreen(bool fullscreen) noexcept
+    {
+        Get_().gData.fullscreen = fullscreen;
+    }
+
+    static constexpr int kWindowSizeCount = 3;
+
+    // 0=1280x720，1=1600x900，2=1920x1080。
+    [[nodiscard]] static int GetWindowSizeIndex() noexcept
+    {
+        return Get_().gData.windowSizeIndex;
+    }
+
+    static void SetWindowSizeIndex(int index) noexcept
+    {
+        Get_().gData.windowSizeIndex = std::clamp(index, 0, kWindowSizeCount - 1);
     }
 
 

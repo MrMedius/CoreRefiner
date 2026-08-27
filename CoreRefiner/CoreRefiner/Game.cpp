@@ -6,6 +6,7 @@
 #include "GameStatsCodex.h"
 #include "InputCodex.h"
 #include "SoundCodex.h"
+#include "UiCopy.h"
 #include "ObjectCodex.h"
 #include "TimeCodex.h"
 #include "DeferredDisableQueue.h"
@@ -32,8 +33,8 @@ Game::Game(const std::string& commandLine)
 	pEnvironmentManager = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG);
 	pEnemyManager = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG);
 
-
 	// UI
+	(void)LoadUiCopy(); // LoadJsonTexts
 	moduleWorkbench = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG);
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
@@ -66,8 +67,9 @@ Game::Game(const std::string& commandLine)
 
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
-	SoundCodex::Get().SetBgmVolume(0.1f);
-	SoundCodex::Get().SetSeVolume(1.0f);
+	SoundCodex::Get().SetMasterVolume(GameStatsCodex::GetMasterVolume());
+	SoundCodex::Get().SetBgmVolume(GameStatsCodex::GetBgmVolume());
+	SoundCodex::Get().SetSeVolume(GameStatsCodex::GetSeVolume());
 	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
 }
 

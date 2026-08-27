@@ -200,6 +200,7 @@
     <ClCompile Include="ModuleWorkbench.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
+    <ClCompile Include="UiCopy.cpp" />
     <ClCompile Include="UiToggle.cpp" />
     <ClCompile Include="UiDropdown.cpp" />
     <ClCompile Include="UiOptionList.cpp" />
@@ -367,6 +368,7 @@
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="Attribute_Lifetime_Module.h" />
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
+    <ClInclude Include="JsonTextCopy.h" />
     <ClInclude Include="ModuleNodeFactory.h" />
     <ClInclude Include="ModuleNodeInfoCopy.h" />
     <ClInclude Include="ModuleNodePrice.h" />
@@ -386,6 +388,7 @@
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />
+    <ClInclude Include="UiCopy.h" />
     <ClInclude Include="UiToggle.h" />
     <ClInclude Include="DropdownCanvasTypes.h" />
     <ClInclude Include="DropdownViewModel.h" />
@@ -1455,6 +1458,7 @@
     <None Include="Time.hlsli" />
     <None Include="Transform.hlsli" />
     <None Include="Transform2D.hlsli" />
+    <None Include="UiCopy.json" />
     <None Include="VShadow.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

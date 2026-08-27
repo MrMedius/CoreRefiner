@@ -3,6 +3,7 @@
 #include "Canvas2D.h"
 #include "Channels.h"
 #include "Colors.h"
+#include "GameStatsCodex.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "TextCodex.h"
@@ -72,7 +73,7 @@ void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameX
 		maxWidthPx = kMaxWidthPx_;
 	}
 
-	const ModuleNodeInfoLanguage lang = GetModuleNodeInfoLanguage();
+	const Language lang = GameStatsCodex::GetLanguage();
 	const bool contentDirty =
 		!cachedLabel_.has_value()
 		|| !cachedLanguage_.has_value()

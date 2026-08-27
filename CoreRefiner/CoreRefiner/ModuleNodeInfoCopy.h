@@ -1,18 +1,11 @@
 #pragma once
+#include "JsonTextCopy.h"
 #include "ModuleNodeLabel.h"
 #include "TextTypes.h"
 
 #include <filesystem>
 #include <string>
 #include <vector>
-
-
-enum class ModuleNodeInfoLanguage : unsigned char
-{
-	Zh,
-	Ja,
-	En,
-};
 
 struct ModuleNodeInfoEntry
 {
@@ -34,16 +27,16 @@ struct ModuleNodeInfoEntry
 	}
 };
 
-void SetModuleNodeInfoLanguage(ModuleNodeInfoLanguage lang) noexcept;
-
-[[nodiscard]] ModuleNodeInfoLanguage GetModuleNodeInfoLanguage() noexcept;
-
 bool LoadModuleNodeInfoCopy(const std::filesystem::path& path);
 
 [[nodiscard]] bool IsModuleNodeInfoCopyLoaded() noexcept;
 
+// 按 GameStatsCodex::GetLanguage() 取词条；缺则回退 En、Zh
 [[nodiscard]] const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label);
 
 [[nodiscard]] const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept;
 
-[[nodiscard]] const char* ToModuleNodeInfoLanguageKey(ModuleNodeInfoLanguage lang) noexcept;
+[[nodiscard]] inline const char* ToModuleNodeInfoLanguageKey(Language lang) noexcept
+{
+	return ToLanguageKey(lang);
+}

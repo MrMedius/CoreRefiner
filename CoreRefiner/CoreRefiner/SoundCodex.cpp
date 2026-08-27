@@ -3,13 +3,9 @@
 #include <cstring>
 #include <cmath>
 #include "Util.h"
+#include "Math.h"
 #include "imgui/imgui.h"
 #include "XMath.h"
-
-static inline float clamp01(float v)
-{
-    return std::clamp(v, 0.0f, 1.0f);
-}
 
 bool SoundCodex::Init(HWND hWnd)
 {

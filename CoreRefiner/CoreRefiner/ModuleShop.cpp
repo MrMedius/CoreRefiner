@@ -38,15 +38,7 @@ namespace
 		{
 			return;
 		}
-		if (LoadModuleNodeInfoCopy("ModuleNodeInfoCopy.json"))
-		{
-			return;
-		}
-		if (LoadModuleNodeInfoCopy("CoreRefiner/ModuleNodeInfoCopy.json"))
-		{
-			return;
-		}
-		(void)LoadModuleNodeInfoCopy("CoreRefiner/CoreRefiner/ModuleNodeInfoCopy.json");
+		(void)TryLoadCopyWithFallback("ModuleNodeInfoCopy.json", &LoadModuleNodeInfoCopy);
 	}
 
 	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)

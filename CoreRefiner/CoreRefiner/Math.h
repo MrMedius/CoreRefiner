@@ -11,6 +11,18 @@ constexpr auto sq( const T& x ) noexcept
 }
 
 template<typename T>
+constexpr T clamp(T v, T lo, T hi) noexcept
+{
+	return v < lo ? lo : (v > hi ? hi : v);
+}
+
+template<typename T>
+constexpr T clamp01(T v) noexcept
+{
+	return clamp(v, T(0), T(1));
+}
+
+template<typename T>
 T wrap_angle( T theta ) noexcept
 {
 	constexpr T twoPi = (T)2 * (T)PI_D;
@@ -48,65 +60,55 @@ constexpr T gauss( T x,T sigma ) noexcept
 template<typename T>
 constexpr T ease_in_back(T t, T backPortion, T sharpness = (T)0) noexcept
 {
-    // clamp01(t)
-    if (t < (T)0) t = (T)0;
-    if (t > (T)1) t = (T)1;
+	t = clamp01(t);
+	backPortion = clamp(backPortion, (T)0.0001, (T)0.9999);
 
-    // clamp backPortion to avoid div0
-    if (backPortion < (T)0.0001) backPortion = (T)0.0001;
-    if (backPortion > (T)0.9999) backPortion = (T)0.9999;
+	auto hump = [](T u) noexcept
+	{
+		return (T)4 * u * ((T)1 - u); // u in [0,1] => [0,1]
+	};
 
-    auto clamp01 = [](T x) noexcept
-        {
-            return x < (T)0 ? (T)0 : (x > (T)1 ? (T)1 : x);
-        };
+	const T k = sharpness;
+	const T wDash = (T)pow(2.0, (double)k);   // sharpness > 0 bigger dash
+	const T wBack = (T)pow(2.0, (double)(-k)); // sharpness < 0 bigger back
 
-    auto hump = [](T u) noexcept
-        {
-            return (T)4 * u * ((T)1 - u); // u¸[0,1] => [0,1]
-        };
+	auto toExponent = [](T w) noexcept
+	{
+		return (T)2 / w;
+	};
 
-    const T k = sharpness;
-    const T wDash = (T)pow(2.0, (double)k);   // sharpness > 0 bigger dash
-    const T wBack = (T)pow(2.0, (double)(-k)); // sharpness < 0 bigger back
+	const T pBack = toExponent(wBack);
+	const T pDash = toExponent(wDash);
 
-    auto toExponent = [](T w) noexcept
-        {
-            return (T)2 / w;
-        };
+	auto pow01 = [&](T x, T p) noexcept
+	{
+		x = clamp01(x);
+		if (p <= (T)0) p = (T)1;
+		return (T)pow((double)x, (double)p);
+	};
 
-    const T pBack = toExponent(wBack);
-    const T pDash = toExponent(wDash);
-
-    auto pow01 = [&](T x, T p) noexcept
-        {
-            x = clamp01(x);
-            if (p <= (T)0) p = (T)1;
-            return (T)pow((double)x, (double)p);
-        };
-
-    if (t <= backPortion)
-    {
-        T u = t / backPortion;     // 0..1
-        u = pow01(u, pBack);       // back
-        return -hump(u);           // minus accel
-    }
-    else
-    {
-        T u = (t - backPortion) / ((T)1 - backPortion);
-        u = pow01(u, pDash);       // dash
-        return +hump(u);           // plus accel
-    }
+	if (t <= backPortion)
+	{
+		T u = t / backPortion;     // 0..1
+		u = pow01(u, pBack);       // back
+		return -hump(u);           // minus accel
+	}
+	else
+	{
+		T u = (t - backPortion) / ((T)1 - backPortion);
+		u = pow01(u, pDash);       // dash
+		return +hump(u);           // plus accel
+	}
 }
 
 template<typename T>
 constexpr T ease_in_pow(T t, T exponent) noexcept
 {
-    return (T)pow((double)t, (double)exponent);
+	return (T)pow((double)t, (double)exponent);
 }
 
-template<typename T> 
+template<typename T>
 constexpr T ease_out_pow(T t, T exponent) noexcept
 {
-    return (T)1 - (T)pow((double)(1 - t), (double)exponent);
+	return (T)1 - (T)pow((double)(1 - t), (double)exponent);
 }

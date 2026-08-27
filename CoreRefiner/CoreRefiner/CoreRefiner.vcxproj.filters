@@ -703,6 +703,9 @@
     <ClCompile Include="UI_Pause.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="UiCopy.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1458,6 +1461,12 @@
     <ClInclude Include="UI_Pause.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="UiCopy.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="JsonTextCopy.h">
+      <Filter>Framework\Helpers\Text</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
@@ -1690,6 +1699,9 @@
     </None>
     <None Include="ModuleNodeInfoCopy.json">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </None>
+    <None Include="UiCopy.json">
+      <Filter>UI</Filter>
     </None>
   </ItemGroup>
 </Project>

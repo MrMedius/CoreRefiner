@@ -197,13 +197,13 @@ public:
 			stepperLanguage_->Stepper().SetLabel(langLabel);
 			stepperLanguage_->Stepper().SetValue(static_cast<float>(languageOptions_->GetSelectedIndex()), false);
 			btnB_->Button().SetLabel(langLabel);
-			GameStatsCodex::SetLanguage(static_cast<ModuleNodeInfoLanguage>(languageOptions_->GetSelectedIndex()));
+			GameStatsCodex::SetLanguage(static_cast<Language>(languageOptions_->GetSelectedIndex()));
 
 			languageOptions_->SetOnSelectionChanged([this](int index, const std::string& label) {
 				btnB_->Button().SetLabel(label);
 				stepperLanguage_->Stepper().SetLabel(label);
 				stepperLanguage_->Stepper().SetValue(static_cast<float>(index), false);
-				GameStatsCodex::SetLanguage(static_cast<ModuleNodeInfoLanguage>(index));
+				GameStatsCodex::SetLanguage(static_cast<Language>(index));
 			});
 			stepperLanguage_->Stepper().SetOnValueChanged([this](float v) {
 				languageOptions_->SetSelectedIndex(static_cast<int>(v));

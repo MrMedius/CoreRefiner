@@ -20,15 +20,7 @@ namespace
 		{
 			return;
 		}
-		if (LoadModuleNodeInfoCopy("ModuleNodeInfoCopy.json"))
-		{
-			return;
-		}
-		if (LoadModuleNodeInfoCopy("CoreRefiner/ModuleNodeInfoCopy.json"))
-		{
-			return;
-		}
-		(void)LoadModuleNodeInfoCopy("CoreRefiner/CoreRefiner/ModuleNodeInfoCopy.json");
+		(void)TryLoadCopyWithFallback("ModuleNodeInfoCopy.json", &LoadModuleNodeInfoCopy);
 	}
 
 	[[nodiscard]] bool IsBoundZoneId_(ZoneId id) noexcept

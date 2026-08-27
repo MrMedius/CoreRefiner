@@ -50,7 +50,7 @@ private:
 
 	bool visible_{ false };
 	std::optional<ModuleNodeLabel> cachedLabel_;
-	std::optional<ModuleNodeInfoLanguage> cachedLanguage_;
+	std::optional<Language> cachedLanguage_;
 	Anchor anchor_{ Anchor::Above };
 	float maxWidthPx_{ kMaxWidthPx_ };
 	unsigned contentW_{ 1u };

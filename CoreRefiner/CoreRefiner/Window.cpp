@@ -268,6 +268,78 @@ bool Window::IsFullscreen() const noexcept
 	return isFullscreen;
 }
 
+void Window::SetFullscreen(bool enable) noexcept
+{
+	if (enable == isFullscreen)
+	{
+		return;
+	}
+	ToggleFullscreen();
+}
+
+void Window::SetWindowedClientSize(int clientWidth, int clientHeight) noexcept
+{
+	if (clientWidth <= 0 || clientHeight <= 0)
+	{
+		return;
+	}
+	width = clientWidth;
+	height = clientHeight;
+	if (isFullscreen)
+	{
+		RememberWindowedClientSize_(clientWidth, clientHeight);
+		return;
+	}
+	ApplyWindowedClientSize_(clientWidth, clientHeight);
+}
+
+void Window::RememberWindowedClientSize_(int clientWidth, int clientHeight) noexcept
+{
+	RECT wr{};
+	wr.right = clientWidth;
+	wr.bottom = clientHeight;
+	if (AdjustWindowRectEx(&wr, windowedStyle, FALSE, windowedExStyle) == 0)
+	{
+		return;
+	}
+	const int outerW = wr.right - wr.left;
+	const int outerH = wr.bottom - wr.top;
+	windowedRect.right = windowedRect.left + outerW;
+	windowedRect.bottom = windowedRect.top + outerH;
+}
+
+void Window::ApplyWindowedClientSize_(int clientWidth, int clientHeight) noexcept
+{
+	if (hWnd == nullptr || pGfx == nullptr)
+	{
+		return;
+	}
+	const DWORD style = static_cast<DWORD>(GetWindowLong(hWnd, GWL_STYLE));
+	const DWORD exStyle = static_cast<DWORD>(GetWindowLong(hWnd, GWL_EXSTYLE));
+	RECT wr{};
+	wr.right = clientWidth;
+	wr.bottom = clientHeight;
+	if (AdjustWindowRectEx(&wr, style, FALSE, exStyle) == 0)
+	{
+		return;
+	}
+	RECT cur{};
+	GetWindowRect(hWnd, &cur);
+	SetWindowPos(
+		hWnd,
+		nullptr,
+		cur.left,
+		cur.top,
+		wr.right - wr.left,
+		wr.bottom - wr.top,
+		SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+	UINT cw = 0;
+	UINT ch = 0;
+	GetClientSize(hWnd, cw, ch);
+	pGfx->OnWindowResize(cw, ch);
+}
+
 std::optional<int> Window::ProcessMessages() noexcept
 {
 	MSG msg;

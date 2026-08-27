@@ -1,9 +1,9 @@
 #include "ModuleNodeInfoCopy.h"
 
+#include "GameStatsCodex.h"
 #include "json.hpp"
 
 #include <array>
-#include <fstream>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -12,17 +12,10 @@ namespace
 {
 	using json = nlohmann::json;
 
-	ModuleNodeInfoLanguage g_language{ ModuleNodeInfoLanguage::Zh };
 	bool g_loaded{ false };
 
-	/** @brief Per-language map: ModuleNodeLabel index → entry. */
 	using LabelTable = std::unordered_map<std::size_t, ModuleNodeInfoEntry>;
-	std::array<LabelTable, 3> g_tables{};
-
-	[[nodiscard]] constexpr std::size_t LangIndex(ModuleNodeInfoLanguage lang) noexcept
-	{
-		return static_cast<std::size_t>(lang);
-	}
+	std::array<LabelTable, LanguageCount()> g_tables{};
 
 	[[nodiscard]] const ModuleNodeInfoEntry& BakedDefault_()
 	{
@@ -55,23 +48,6 @@ namespace
 		if (name == "Other_Child")
 		{
 			return ModuleNodeLabel::Other_Child;
-		}
-		return std::nullopt;
-	}
-
-	[[nodiscard]] std::optional<ModuleNodeInfoLanguage> ParseLanguageKey_(std::string_view key) noexcept
-	{
-		if (key == "zh")
-		{
-			return ModuleNodeInfoLanguage::Zh;
-		}
-		if (key == "ja")
-		{
-			return ModuleNodeInfoLanguage::Ja;
-		}
-		if (key == "en")
-		{
-			return ModuleNodeInfoLanguage::En;
 		}
 		return std::nullopt;
 	}
@@ -142,14 +118,14 @@ namespace
 	}
 
 	[[nodiscard]] const ModuleNodeInfoEntry* TryGet_(
-		ModuleNodeInfoLanguage lang,
+		Language lang,
 		ModuleNodeLabel label) noexcept
 	{
 		if (label == ModuleNodeLabel::Count)
 		{
 			return nullptr;
 		}
-		const LabelTable& table = g_tables[LangIndex(lang)];
+		const LabelTable& table = g_tables[ToIndex(lang)];
 		const auto it = table.find(ToIndex(label));
 		if (it == table.end())
 		{
@@ -157,16 +133,6 @@ namespace
 		}
 		return &it->second;
 	}
-}
-
-void SetModuleNodeInfoLanguage(ModuleNodeInfoLanguage lang) noexcept
-{
-	g_language = lang;
-}
-
-ModuleNodeInfoLanguage GetModuleNodeInfoLanguage() noexcept
-{
-	return g_language;
 }
 
 const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
@@ -183,17 +149,6 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	return "";
 }
 
-const char* ToModuleNodeInfoLanguageKey(ModuleNodeInfoLanguage lang) noexcept
-{
-	switch (lang)
-	{
-	case ModuleNodeInfoLanguage::Zh: return "zh";
-	case ModuleNodeInfoLanguage::Ja: return "ja";
-	case ModuleNodeInfoLanguage::En: return "en";
-	}
-	return "zh";
-}
-
 bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 {
 	for (auto& table : g_tables)
@@ -202,38 +157,17 @@ bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 	}
 	g_loaded = false;
 
-	std::ifstream in(path);
-	if (!in.is_open())
-	{
-		return false;
-	}
-
 	json top;
-	try
-	{
-		in >> top;
-	}
-	catch (...)
-	{
-		return false;
-	}
-
-	if (!top.is_object())
+	if (!ReadCopyJson(path, top))
 	{
 		return false;
 	}
 
 	bool any = false;
-	for (auto it = top.begin(); it != top.end(); ++it)
+	ForEachLanguageObject(top, [&](Language lang, const json& langObj)
 	{
-		const auto langOpt = ParseLanguageKey_(it.key());
-		if (!langOpt.has_value() || !it.value().is_object())
-		{
-			continue;
-		}
-
-		LabelTable& table = g_tables[LangIndex(*langOpt)];
-		for (auto lit = it.value().begin(); lit != it.value().end(); ++lit)
+		LabelTable& table = g_tables[ToIndex(lang)];
+		for (auto lit = langObj.begin(); lit != langObj.end(); ++lit)
 		{
 			const auto labelOpt = ParseModuleNodeLabel_(lit.key());
 			if (!labelOpt.has_value() || !lit.value().is_object())
@@ -243,7 +177,7 @@ bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 			table[ToIndex(*labelOpt)] = ParseEntry_(lit.value());
 			any = true;
 		}
-	}
+	});
 
 	g_loaded = any;
 	return any;
@@ -256,13 +190,13 @@ bool IsModuleNodeInfoCopyLoaded() noexcept
 
 const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label)
 {
-	const ModuleNodeInfoLanguage order[] = {
-		g_language,
-		ModuleNodeInfoLanguage::En,
-		ModuleNodeInfoLanguage::Zh,
+	const Language order[] = {
+		GameStatsCodex::GetLanguage(),
+		Language::En,
+		Language::Zh,
 	};
 
-	for (ModuleNodeInfoLanguage lang : order)
+	for (Language lang : order)
 	{
 		if (const ModuleNodeInfoEntry* e = TryGet_(lang, label))
 		{
