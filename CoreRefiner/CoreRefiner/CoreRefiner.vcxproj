@@ -198,6 +198,7 @@
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ModuleWorkbench.cpp" />
+    <ClCompile Include="SettingsStore.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
     <ClCompile Include="UiCopy.cpp" />
@@ -229,6 +230,7 @@
     <ClCompile Include="Enemy_T.cpp" />
     <ClCompile Include="UI_CombatHud.cpp" />
     <ClCompile Include="UI_Pause.cpp" />
+    <ClCompile Include="UI_Setting.cpp" />
     <ClCompile Include="VisualComponent.cpp" />
     <ClCompile Include="ColliderComponentBase.cpp" />
     <ClCompile Include="BoxColliderComponent.cpp" />
@@ -385,6 +387,7 @@
     <ClInclude Include="NodeInfoPanel.h" />
     <ClInclude Include="ModuleFieldCanvas.h" />
     <ClInclude Include="IconAtlas.h" />
+    <ClInclude Include="SettingsStore.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />

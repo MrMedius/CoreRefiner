@@ -1,116 +1,70 @@
 #pragma once
-#include "Graphics.h"
-#include "ButtonCanvasComponent.h"
-#include "ToggleCanvasComponent.h"
-#include "UiRoot.h"
 #include "Canvas2D.h"
-#include "TextCodex.h"
 
-#include "Channels.h"
+#include "UiRoot.h"
+#include "ButtonCanvasComponent.h"
+#include "SliderCanvasComponent.h"
+#include "StepperCanvasComponent.h"
+#include "ToggleCanvasComponent.h"
 
-#include <memory>
+#include <array>
 #include <functional>
+#include <memory>
+
+namespace Rgph
+{
+	class RenderGraph;
+}
 
 class UI_Setting
 {
 public:
-	UI_Setting(Graphics& gfx, Rgph::RenderGraph& rg)
-	{
-		// Center of the screen
-		unsigned centerX = SCREEN_WIDTH / 2u;
-		unsigned centerY = SCREEN_HEIGHT / 2u;
-
-		// Title
-		{
-			unsigned titleWidth = SCREEN_WIDTH / 2u;
-			unsigned titleHeight = SCREEN_HEIGHT / 3u;
-			titleCanvas = std::make_unique<Canvas2D>(gfx, titleWidth, titleHeight);
-			titleCanvas->SetPosition(DirectX::XMFLOAT3{ centerX, centerY / 2u, 0.0f });
-			titleCanvas->SetScale(DirectX::XMFLOAT3{ titleWidth, titleHeight, 1.0f });
-
-			std::string Title = "CORE REFINER";
-			auto ctx = TextCodex::Get().BeginDraw();
-			auto& rq = ctx.Request();
-			rq.text = Title;
-			rq.canvasMode = Text::CanvasMode::Fixed;
-			rq.clearMode = Text::ClearMode::NoClear;
-			rq.primaryFont = Text::FontSource::File(L"asset\\Fonts\\ZiKuXingQiuFeiYangTi-2.ttf");
-			rq.style.fontSize = 40.0f;
-			rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
-			rq.style.wordWrapEnabled = false;
-			rq.spans = { Text::Span{.start = 0, .length = static_cast<UINT32>(Title.length()), .weight = DWRITE_FONT_WEIGHT_BOLD } };
-			rq.maxWidthPx = titleWidth;
-			rq.paddingPx = titleHeight;
-			rq.defaultColor = Colors::White;
-			rq.backgroundColor = Colors::None;
-			ctx.Render(*titleCanvas);
-		}
-		// Buttons
-		{
-			unsigned spacingY = SCREEN_HEIGHT / 20u;
-
-			unsigned btnWidth = SCREEN_WIDTH / 10u;
-			unsigned btnHeight = SCREEN_HEIGHT / 15u;
-
-			btnA_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 501u, centerX, centerY + spacingY * 2u, btnWidth, btnHeight);
-			btnB_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 502u, centerX, centerY + spacingY * 4u, btnWidth, btnHeight);
-			btnC_ = std::make_unique<Ui::ButtonCanvasComponent>(gfx, 503u, centerX, centerY + spacingY * 6u, btnWidth, btnHeight);
-
-			btnA_->Button().SetLabel("New Game");
-			btnB_->Button().SetLabel("Settings");
-			btnC_->Button().SetLabel("Quit");
-
-			btnA_->Button().SetOnClick([this] {	if (onNewGame_)	onNewGame_();});
-			btnB_->Button().SetOnClick([this] { btnB_->Button().SetLabel("Btn B | clicks 1"); });
-			btnC_->Button().SetOnClick([this] { PostQuitMessage(0); });
-
-			const float toggleSize = static_cast<float>(btnHeight);
-			const float toggleY = static_cast<float>(centerY + spacingY * 8u);
-			toggleSound_ = std::make_unique<Ui::ToggleCanvasComponent>(
-				gfx, 511u, static_cast<float>(centerX), toggleY, toggleSize);
-			toggleSound_->Toggle().SetIsOn(true, false);
-
-			toggleFullscreen_ = std::make_unique<Ui::ToggleCanvasComponent>(
-				gfx, 512u, static_cast<float>(centerX) + toggleSize * 1.5f, toggleY, toggleSize * 1.25f);
-
-			uiRoot = std::make_unique<Ui::UiRoot>();
-			uiRoot->Clear();
-			btnA_->RegisterTo(*uiRoot);
-			btnB_->RegisterTo(*uiRoot);
-			btnC_->RegisterTo(*uiRoot);
-			toggleSound_->RegisterTo(*uiRoot);
-			toggleFullscreen_->RegisterTo(*uiRoot);
-			uiRoot->RebuildTabOrder();
-			uiRoot->InitLinkTechniques(rg);
-		}
-	}
+	UI_Setting(Graphics& gfx, Rgph::RenderGraph& rg);
 	~UI_Setting() = default;
 
-	void Update(float dt)
-	{
-		uiRoot->UpdateAfterInput();
-	}
+	UI_Setting(const UI_Setting&) = delete;
+	UI_Setting& operator=(const UI_Setting&) = delete;
 
-	void Submit(void)
-	{
-		uiRoot->Submit(Chan::ui);
+	void SetOnBack(std::function<void()> cb);
+	void SetOnFullscreenChanged(std::function<void(bool)> cb);
+	void SetOnWindowSizeIndex(std::function<void(int)> cb);
 
-		titleCanvas->Submit(Chan::ui);
-	}
+	void Show();
+	void Hide() noexcept;
+	[[nodiscard]] bool IsOpen() const noexcept;
 
-	void SetOnNewGame(std::function<void()> cb) { onNewGame_ = std::move(cb); }
+	void RefreshLabels();
+
+	void Update(float dt);
+	void Submit();
 
 private:
-	// Title
-	std::unique_ptr<Canvas2D> titleCanvas;
+	void SyncFromCodex_();
+	void ApplySoundToDevice_() const;
+	void RefreshLanguageStepperLabel_();
+	void RefreshWindowStepperLabel_();
 
-	// Buttons
-	std::unique_ptr<Ui::UiRoot> uiRoot;
-	std::unique_ptr<Ui::ButtonCanvasComponent> btnA_{};
-	std::unique_ptr<Ui::ButtonCanvasComponent> btnB_{};
-	std::unique_ptr<Ui::ButtonCanvasComponent> btnC_{};
-	std::unique_ptr<Ui::ToggleCanvasComponent> toggleSound_{};
+	std::unique_ptr<Canvas2D> bg_;
+	std::unique_ptr<Ui::UiRoot> uiRoot_;
+
+	std::unique_ptr<Ui::ButtonCanvasComponent> title_{};
+	std::array<std::unique_ptr<Ui::ButtonCanvasComponent>, 7> rowLabels_{};
+
+	std::unique_ptr<Ui::StepperCanvasComponent> stepperLanguage_{};
+	
+	std::unique_ptr<Ui::SliderCanvasComponent> sliderMaster_{};
+	std::unique_ptr<Ui::SliderCanvasComponent> sliderBgm_{};
+	std::unique_ptr<Ui::SliderCanvasComponent> sliderSe_{};
+	std::unique_ptr<Ui::ToggleCanvasComponent> toggleMute_{};
+	
 	std::unique_ptr<Ui::ToggleCanvasComponent> toggleFullscreen_{};
+	std::function<void(bool)> onFullscreenChanged_{};
 
-	std::function<void()> onNewGame_{};
+	std::unique_ptr<Ui::StepperCanvasComponent> stepperWindow_{};
+	std::function<void(int)> onWindowSizeIndex_{};
+
+	std::unique_ptr<Ui::ButtonCanvasComponent> btnBack_{};
+	std::function<void()> onBack_{};
+
+	bool open_{ false };
 };

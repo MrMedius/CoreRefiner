@@ -18,6 +18,7 @@
 #include "UI_Title.h"
 #include "UI_Prep.h"
 #include "UI_Pause.h"
+#include "UI_Setting.h"
 #include "UI_CombatHud.h"
 #include "UI_Sample.h"
 #include "WaveDirector.h"
@@ -60,6 +61,18 @@ private:
 	void ClosePauseMenu_() noexcept;
 	void TryTogglePauseMenu_() noexcept;
 
+	enum class SettingsReturn : unsigned char
+	{
+		Title,
+		Pause
+	};
+	void OpenSettings_(SettingsReturn from);
+	void CloseSettings_();
+	void DismissSettings_() noexcept;
+
+	void ApplyFullscreen_(bool enable);
+	void ApplyWindowSizeIndex_(int index);
+
 	/********************************/
 	/*         Game Related         */
 	/********************************/
@@ -99,6 +112,8 @@ private:
 	std::unique_ptr<UI_Title> uiTitle;
 	std::unique_ptr<UI_Prep> uiPrep;
 	std::unique_ptr<UI_Pause> uiPause;
+	std::unique_ptr<UI_Setting> uiSetting;
+	SettingsReturn settingsReturn_{ SettingsReturn::Title };
 	std::unique_ptr<UI_CombatHud> uiCombatHud;
 	std::unique_ptr<UI_Sample> uiSample;
 };

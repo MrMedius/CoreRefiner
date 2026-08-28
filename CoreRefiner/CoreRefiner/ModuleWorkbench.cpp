@@ -9,6 +9,7 @@
 #include "ObjectCodex.h"
 #include "Player.h"
 #include "TextTypes.h"
+#include "UiCopy.h"
 #include "UiRoot.h"
 #include "Win.h"
 #include "Window.h"
@@ -121,7 +122,6 @@ void ModuleWorkbench::InitFightButton_()
 
 	fightBtn_ = std::make_unique<Ui::ButtonCanvasComponent>(
 		gfx_, 601u, fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH, style);
-	fightBtn_->Button().SetLabel("战斗！(第 1 波)");
 	fightBtn_->Button().SetOnClick([this] {
 		if (onFight_)
 		{
@@ -134,6 +134,7 @@ void ModuleWorkbench::InitFightButton_()
 	fightBtn_->RegisterTo(*uiRoot_);
 	uiRoot_->RebuildTabOrder();
 	uiRoot_->InitLinkTechniques(rg_);
+	SetNextWave(1);
 }
 
 void ModuleWorkbench::SetNextWave(int wave)
@@ -147,7 +148,17 @@ void ModuleWorkbench::SetNextWave(int wave)
 		return;
 	}
 	paintedWave_ = wave;
-	fightBtn_->Button().SetLabel("战斗！(第 " + std::to_string(wave) + " 波)");
+	RefreshFightLabel();
+}
+
+void ModuleWorkbench::RefreshFightLabel()
+{
+	if (fightBtn_ == nullptr)
+	{
+		return;
+	}
+	const int wave = (paintedWave_ < 1) ? 1 : paintedWave_;
+	fightBtn_->Button().SetLabel(GetUiCopy("prep.fight", wave));
 }
 
 void ModuleWorkbench::PlaceDemoField_()

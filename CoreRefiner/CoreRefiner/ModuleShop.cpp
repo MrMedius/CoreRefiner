@@ -703,6 +703,11 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 	return taken;
 }
 
+void ModuleShop::RefreshCopy()
+{
+	RefreshSlotCards_();
+}
+
 void ModuleShop::RefreshSlotCards_()
 {
 	if (gfx_ != nullptr && rg_ != nullptr)

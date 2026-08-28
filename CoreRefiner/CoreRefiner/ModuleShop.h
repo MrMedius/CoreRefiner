@@ -99,6 +99,9 @@ public:
 
 	void ResetVisit();
 
+	/** @brief 按当前语言重绘商品卡说明（不重新进货）。 */
+	void RefreshCopy();
+
 	void TickHud(float dt);
 	void SyncHud();
 	void SubmitHud();

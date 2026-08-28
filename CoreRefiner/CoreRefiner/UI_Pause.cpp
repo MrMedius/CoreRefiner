@@ -4,11 +4,13 @@
 #include "Colors.h"
 #include "RenderGraph.h"
 #include "TextTypes.h"
+#include "UiCopy.h"
 
 namespace
 {
 	constexpr Color kDimColor{ 32u, 32u, 36u, 160u };
 	constexpr Ui::FocusHandle kContinueFocus{ 601u };
+	constexpr Ui::FocusHandle kSettingsFocus{ 603u };
 	constexpr Ui::FocusHandle kQuitFocus{ 602u };
 }
 
@@ -47,12 +49,10 @@ UI_Pause::UI_Pause(Graphics& gfx, Rgph::RenderGraph& rg)
 		btnContinue_ = std::make_unique<Ui::ButtonCanvasComponent>(
 			gfx, kContinueFocus,
 			static_cast<float>(centerX),
-			static_cast<float>(centerY),
+			static_cast<float>(centerY - spacingY * 2u),
 			static_cast<float>(btnWidth),
 			static_cast<float>(btnHeight),
 			style);
-
-		btnContinue_->Button().SetLabel("继续");
 
 		btnContinue_->Button().SetOnClick([this] {
 			if (onContinue_)
@@ -62,6 +62,26 @@ UI_Pause::UI_Pause(Graphics& gfx, Rgph::RenderGraph& rg)
 			});
 
 		btnContinue_->RegisterTo(*uiRoot_);
+	}
+
+	// Button Settings
+	{
+		btnSettings_ = std::make_unique<Ui::ButtonCanvasComponent>(
+			gfx, kSettingsFocus,
+			static_cast<float>(centerX),
+			static_cast<float>(centerY),
+			static_cast<float>(btnWidth),
+			static_cast<float>(btnHeight),
+			style);
+
+		btnSettings_->Button().SetOnClick([this] {
+			if (onSettings_)
+			{
+				onSettings_();
+			}
+			});
+
+		btnSettings_->RegisterTo(*uiRoot_);
 	}
 
 	// Button Quit
@@ -74,8 +94,6 @@ UI_Pause::UI_Pause(Graphics& gfx, Rgph::RenderGraph& rg)
 			static_cast<float>(btnHeight),
 			style);
 
-		btnQuit_->Button().SetLabel("退出");
-
 		btnQuit_->Button().SetOnClick([this] {
 			if (onQuit_)
 			{
@@ -87,6 +105,7 @@ UI_Pause::UI_Pause(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	uiRoot_->RebuildTabOrder();
 	uiRoot_->InitLinkTechniques(rg);
+	RefreshLabels();
 }
 
 void UI_Pause::SetOnContinue(std::function<void()> cb)
@@ -94,14 +113,20 @@ void UI_Pause::SetOnContinue(std::function<void()> cb)
 	onContinue_ = std::move(cb);
 }
 
+void UI_Pause::SetOnSettings(std::function<void()> cb)
+{
+	onSettings_ = std::move(cb);
+}
+
 void UI_Pause::SetOnQuit(std::function<void()> cb)
 {
 	onQuit_ = std::move(cb);
 }
 
-void UI_Pause::Show() noexcept
+void UI_Pause::Show()
 {
 	open_ = true;
+	RefreshLabels();
 }
 
 void UI_Pause::Hide() noexcept
@@ -112,6 +137,22 @@ void UI_Pause::Hide() noexcept
 bool UI_Pause::IsOpen() const noexcept
 {
 	return open_;
+}
+
+void UI_Pause::RefreshLabels()
+{
+	if (btnContinue_ != nullptr)
+	{
+		btnContinue_->Button().SetLabel(GetUiCopy("pause.continue"));
+	}
+	if (btnSettings_ != nullptr)
+	{
+		btnSettings_->Button().SetLabel(GetUiCopy("pause.settings"));
+	}
+	if (btnQuit_ != nullptr)
+	{
+		btnQuit_->Button().SetLabel(GetUiCopy("pause.quit"));
+	}
 }
 
 void UI_Pause::Update(float dt)

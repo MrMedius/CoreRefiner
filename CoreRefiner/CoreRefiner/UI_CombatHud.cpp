@@ -6,6 +6,7 @@
 #include "GameStatsCodex.h"
 #include "ModuleField.h"
 #include "TextCodex.h"
+#include "UiCopy.h"
 
 #include <algorithm>
 #include <cmath>
@@ -174,7 +175,7 @@ void UI_CombatHud::PaintWave_()
 	}
 	PaintText_(
 		*waveText_,
-		"WAVE " + std::to_string(wave_),
+		GetUiCopy("hud.wave", wave_),
 		kWaveFontSize_,
 		paintedWave_,
 		wave_);

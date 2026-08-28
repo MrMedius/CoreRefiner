@@ -6,6 +6,7 @@
 #include "GameStatsCodex.h"
 #include "InputCodex.h"
 #include "SoundCodex.h"
+#include "SettingsStore.h"
 #include "UiCopy.h"
 #include "ObjectCodex.h"
 #include "TimeCodex.h"
@@ -27,6 +28,10 @@ Game::Game(const std::string& commandLine)
 	light.LinkTechniques(gameRG);
 	cameras.LinkTechniques(gameRG);
 
+	(void)LoadSettings();
+	ApplyWindowSizeIndex_(GameStatsCodex::GetWindowSizeIndex());
+	ApplyFullscreen_(GameStatsCodex::GetFullscreen());
+
 	// Persistent player (survives scene leave)
 	pPlayer = ObjectCodex::AcquirePersistent<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,5.0f,0.0f });
 	pAttackManager = std::make_unique<AttackManager>(wnd.Gfx(), gameRG);
@@ -38,11 +43,24 @@ Game::Game(const std::string& commandLine)
 	moduleWorkbench = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG);
 	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
+	uiTitle->SetOnSettings([this] { OpenSettings_(SettingsReturn::Title); });
 	uiPrep = std::make_unique<UI_Prep>(*moduleWorkbench);
 	uiPrep->SetOnFight([this] { waveDirector_.RequestStartWave(); });
 	uiPause = std::make_unique<UI_Pause>(wnd.Gfx(), gameRG);
 	uiPause->SetOnContinue([this] { ClosePauseMenu_(); });
+	uiPause->SetOnSettings([this] {
+		if (uiPause != nullptr)
+		{
+			uiPause->Hide();
+		}
+		Pause = true;
+		OpenSettings_(SettingsReturn::Pause);
+		});
 	uiPause->SetOnQuit([this] { ClosePauseMenu_(); SetScene(SCENE_TITLE); });
+	uiSetting = std::make_unique<UI_Setting>(wnd.Gfx(), UIRG);
+	uiSetting->SetOnBack([this] { CloseSettings_(); });
+	uiSetting->SetOnFullscreenChanged([this](bool on) { ApplyFullscreen_(on); });
+	uiSetting->SetOnWindowSizeIndex([this](int index) { ApplyWindowSizeIndex_(index); });
 	uiCombatHud = std::make_unique<UI_CombatHud>(wnd.Gfx(), gameRG, &moduleWorkbench->GetField());
 	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
 
@@ -67,14 +85,17 @@ Game::Game(const std::string& commandLine)
 
 	// Sound Base Setting
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
-	SoundCodex::Get().SetMasterVolume(GameStatsCodex::GetMasterVolume());
+	SoundCodex::Get().SetMasterVolume(
+		GameStatsCodex::GetMuted() ? 0.0f : GameStatsCodex::GetMasterVolume());
 	SoundCodex::Get().SetBgmVolume(GameStatsCodex::GetBgmVolume());
 	SoundCodex::Get().SetSeVolume(GameStatsCodex::GetSeVolume());
 	SoundCodex::Get().SetListenerTransform(0.0f, 0.0f, 0.0f, 0, 0, 1, 0, 1, 0);
 }
 
 Game::~Game()
-{}
+{
+	(void)SaveSettings();
+}
 
 int Game::RunGame()
 {
@@ -127,6 +148,7 @@ void Game::SetScene(SCENE scene)
 	{
 		return;
 	}
+	DismissSettings_();
 	LeaveScene(Scene);
 	Scene = scene;
 	EnterScene(Scene);
@@ -276,6 +298,10 @@ void Game::TryTogglePauseMenu_() noexcept
 	{
 		return;
 	}
+	if (uiSetting != nullptr && uiSetting->IsOpen())
+	{
+		return;
+	}
 	if (uiPause->IsOpen())
 	{
 		uiPause->Hide();
@@ -287,6 +313,85 @@ void Game::TryTogglePauseMenu_() noexcept
 	}
 	Pause = uiPause->IsOpen();
 	InputCodex::Get().FlushKeyboard();
+}
+
+void Game::OpenSettings_(SettingsReturn from)
+{
+	if (uiSetting == nullptr)
+	{
+		return;
+	}
+	settingsReturn_ = from;
+	wnd.EnableCursor();
+	uiSetting->Show();
+	InputCodex::Get().FlushKeyboard();
+}
+
+void Game::CloseSettings_()
+{
+	if (uiSetting == nullptr || !uiSetting->IsOpen())
+	{
+		return;
+	}
+	uiSetting->Hide();
+
+	if (moduleWorkbench != nullptr)
+	{
+		moduleWorkbench->RefreshFightLabel();
+		moduleWorkbench->GetShop().RefreshCopy();
+	}
+	if (uiCombatHud != nullptr)
+	{
+		uiCombatHud->Invalidate();
+	}
+	if (uiTitle != nullptr)
+	{
+		uiTitle->RefreshLabels();
+	}
+	if (uiPause != nullptr)
+	{
+		uiPause->RefreshLabels();
+	}
+	uiSetting->RefreshLabels();
+
+	if (settingsReturn_ == SettingsReturn::Pause && uiPause != nullptr)
+	{
+		uiPause->Show();
+		Pause = true;
+	}
+	(void)SaveSettings();
+	InputCodex::Get().FlushKeyboard();
+}
+
+void Game::DismissSettings_() noexcept
+{
+	if (uiSetting != nullptr)
+	{
+		uiSetting->Hide();
+	}
+}
+
+void Game::ApplyFullscreen_(bool enable)
+{
+	wnd.SetFullscreen(enable);
+	GameStatsCodex::SetFullscreen(wnd.IsFullscreen());
+}
+
+void Game::ApplyWindowSizeIndex_(int index)
+{
+	GameStatsCodex::SetWindowSizeIndex(index);
+	switch (GameStatsCodex::GetWindowSizeIndex())
+	{
+	case 1:
+		wnd.SetWindowedClientSize(1600, 900);
+		break;
+	case 2:
+		wnd.SetWindowedClientSize(1920, 1080);
+		break;
+	default:
+		wnd.SetWindowedClientSize(1280, 720);
+		break;
+	}
 }
 
 void Game::SyncCombatHud_()
@@ -399,12 +504,28 @@ void Game::UpdatePrep_(float dt)
 
 void Game::Update(float dt)
 {
+	const bool settingsOpen = (uiSetting != nullptr && uiSetting->IsOpen());
+
 #ifdef _DEBUG
-	if( InputCodex::Get().KeyTriggered( VK_F11 ) )
+	if (!settingsOpen && InputCodex::Get().KeyTriggered(VK_F11))
 	{
-		wnd.ToggleFullscreen();
+		ApplyFullscreen_(!wnd.IsFullscreen());
 	}
 #endif
+
+	if (settingsOpen)
+	{
+		if (InputCodex::Get().KeyTriggered(VK_ESCAPE))
+		{
+			CloseSettings_();
+		}
+		if (uiSetting != nullptr && uiSetting->IsOpen())
+		{
+			uiSetting->Update(dt);
+		}
+		DeferredDisableQueue::Get().Flush();
+		return;
+	}
 
 	// Simple scene-cycle test: Shift → TITLE → GAME → RESULT → TITLE ...
 	if (InputCodex::Get().KeyTriggered(VK_SHIFT))
@@ -436,13 +557,26 @@ void Game::Draw()
 	{
 	case SCENE_TITLE:
 	{
-		uiTitle->Submit();
-
+		if (uiSetting != nullptr && uiSetting->IsOpen())
+		{
+			uiSetting->Submit();
+		}
+		else
+		{
+			uiTitle->Submit();
+		}
 		UIRG.Execute(wnd.Gfx());
 		break;
 	}
 	case SCENE_GAME:
 	{
+		if (uiSetting != nullptr && uiSetting->IsOpen())
+		{
+			uiSetting->Submit();
+			UIRG.Execute(wnd.Gfx());
+			break;
+		}
+
 		light.Bind(wnd.Gfx(), cameras->GetMatrix());
 		gameRG.BindMainCamera(cameras.GetActiveCamera());
 

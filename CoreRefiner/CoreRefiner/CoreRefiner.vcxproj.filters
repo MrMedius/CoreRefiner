@@ -203,6 +203,9 @@
     <Filter Include="Tool\Managers">
       <UniqueIdentifier>{23a5047b-d01b-4eb1-b7ca-3ff05f5b0ea3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Tool\Art">
+      <UniqueIdentifier>{e88c6988-acb6-44fd-809b-e543f7983bd6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -706,6 +709,12 @@
     <ClCompile Include="UiCopy.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="UI_Setting.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="SettingsStore.cpp">
+      <Filter>Tool</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -939,9 +948,6 @@
     <ClInclude Include="EnemyManager.h">
       <Filter>Tool\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="AnimationInfo.h">
-      <Filter>Tool</Filter>
-    </ClInclude>
     <ClInclude Include="BindableCodex.h">
       <Filter>Framework\Graphics\Bindable</Filter>
     </ClInclude>
@@ -1061,9 +1067,6 @@
     </ClInclude>
     <ClInclude Include="Enemy_T.h">
       <Filter>Object\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="FSM.h">
-      <Filter>Tool</Filter>
     </ClInclude>
     <ClInclude Include="Field.h">
       <Filter>Object\Environment</Filter>
@@ -1404,9 +1407,6 @@
     <ClInclude Include="ScanWave.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
-    <ClInclude Include="IconAtlas.h">
-      <Filter>Tool</Filter>
-    </ClInclude>
     <ClInclude Include="IModuleZone.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
@@ -1433,9 +1433,6 @@
     </ClInclude>
     <ClInclude Include="ModuleShop.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
-    </ClInclude>
-    <ClInclude Include="CanvasPixelDraw.h">
-      <Filter>Tool</Filter>
     </ClInclude>
     <ClInclude Include="WaveRules.h">
       <Filter>Tool\GameArrangement</Filter>
@@ -1466,6 +1463,21 @@
     </ClInclude>
     <ClInclude Include="JsonTextCopy.h">
       <Filter>Framework\Helpers\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="IconAtlas.h">
+      <Filter>Tool\Art</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationInfo.h">
+      <Filter>Tool\Art</Filter>
+    </ClInclude>
+    <ClInclude Include="CanvasPixelDraw.h">
+      <Filter>Tool\Art</Filter>
+    </ClInclude>
+    <ClInclude Include="FSM.h">
+      <Filter>Tool\Art</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingsStore.h">
+      <Filter>Tool</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
