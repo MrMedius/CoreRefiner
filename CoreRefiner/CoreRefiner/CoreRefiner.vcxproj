@@ -200,7 +200,10 @@
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ModuleWorkbench.cpp" />
+    <ClCompile Include="ResultScene.cpp" />
+    <ClCompile Include="SceneDirector.cpp" />
     <ClCompile Include="SettingsStore.cpp" />
+    <ClCompile Include="TitleScene.cpp" />
     <ClCompile Include="ToggleCanvasComponent.cpp" />
     <ClCompile Include="ToggleCanvasView.cpp" />
     <ClCompile Include="UiCopy.cpp" />
@@ -381,6 +384,7 @@
     <ClInclude Include="ModuleNodes.h" />
     <ClInclude Include="ModuleShop.h" />
     <ClInclude Include="ModuleWarehouse.h" />
+    <ClInclude Include="ResultScene.h" />
     <ClInclude Include="Rule_Orbit_Module.h" />
     <ClInclude Include="AttackDeployer.h" />
     <ClInclude Include="ModuleNodeLabel.h" />
@@ -391,7 +395,9 @@
     <ClInclude Include="NodeInfoPanel.h" />
     <ClInclude Include="ModuleFieldCanvas.h" />
     <ClInclude Include="IconAtlas.h" />
+    <ClInclude Include="SceneDirector.h" />
     <ClInclude Include="SettingsStore.h" />
+    <ClInclude Include="TitleScene.h" />
     <ClInclude Include="ToggleCanvasComponent.h" />
     <ClInclude Include="ToggleCanvasView.h" />
     <ClInclude Include="ToggleViewModel.h" />

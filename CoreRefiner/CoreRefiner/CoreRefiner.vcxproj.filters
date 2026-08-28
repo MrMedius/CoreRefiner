@@ -209,6 +209,9 @@
     <Filter Include="Scene">
       <UniqueIdentifier>{23f339cf-3aaa-4a47-af91-e227aadc772c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Core">
+      <UniqueIdentifier>{93ee0b2c-46ca-41b5-890e-ebf14623128d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -712,14 +715,23 @@
     <ClCompile Include="SettingsStore.cpp">
       <Filter>Tool</Filter>
     </ClCompile>
-    <ClCompile Include="DisplaySettings.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
     <ClCompile Include="GameRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
     <ClCompile Include="UserInterfaceRenderGraph.cpp">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
+    </ClCompile>
+    <ClCompile Include="TitleScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="ResultScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="DisplaySettings.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneDirector.cpp">
+      <Filter>Scene\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1479,17 +1491,26 @@
     <ClInclude Include="SettingsStore.h">
       <Filter>Tool</Filter>
     </ClInclude>
-    <ClInclude Include="IScene.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="DisplaySettings.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
     <ClInclude Include="GameRenderGraph.h">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
     <ClInclude Include="UserInterfaceRenderGraph.h">
       <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
+    </ClInclude>
+    <ClInclude Include="TitleScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplaySettings.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="IScene.h">
+      <Filter>Scene\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneDirector.h">
+      <Filter>Scene\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
