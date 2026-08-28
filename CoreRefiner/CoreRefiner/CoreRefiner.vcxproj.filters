@@ -206,6 +206,9 @@
     <Filter Include="Tool\Art">
       <UniqueIdentifier>{e88c6988-acb6-44fd-809b-e543f7983bd6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{23f339cf-3aaa-4a47-af91-e227aadc772c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui_widgets.cpp">
@@ -312,12 +315,6 @@
     </ClCompile>
     <ClCompile Include="Source.cpp">
       <Filter>Framework\Graphics\GraphPass\PassLib\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="InGameRenderGraph.cpp">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
-    </ClCompile>
-    <ClCompile Include="InUserInterfaceRenderGraph.cpp">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClCompile>
     <ClCompile Include="CubeWireframe.cpp">
       <Filter>Framework\Graphics\Drawable</Filter>
@@ -715,6 +712,15 @@
     <ClCompile Include="SettingsStore.cpp">
       <Filter>Tool</Filter>
     </ClCompile>
+    <ClCompile Include="DisplaySettings.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="GameRenderGraph.cpp">
+      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
+    </ClCompile>
+    <ClCompile Include="UserInterfaceRenderGraph.cpp">
+      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -806,9 +812,6 @@
     </ClInclude>
     <ClInclude Include="HorizontalBlurPass.h">
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
-    </ClInclude>
-    <ClInclude Include="InGameRenderGraph.h">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
     <ClInclude Include="Source.h">
       <Filter>Framework\Graphics\GraphPass\PassLib\Base</Filter>
@@ -929,9 +932,6 @@
     </ClInclude>
     <ClInclude Include="Transform2DCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="InUserInterfaceRenderGraph.h">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
     <ClInclude Include="Environment.h">
       <Filter>Object\Environment</Filter>
@@ -1478,6 +1478,18 @@
     </ClInclude>
     <ClInclude Include="SettingsStore.h">
       <Filter>Tool</Filter>
+    </ClInclude>
+    <ClInclude Include="IScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplaySettings.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="GameRenderGraph.h">
+      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
+    </ClInclude>
+    <ClInclude Include="UserInterfaceRenderGraph.h">
+      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

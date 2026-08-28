@@ -5,10 +5,10 @@ class Graphics;
 
 namespace Rgph
 {
-	class InUserInterfaceRenderGraph : public RenderGraph
+	class UserInterfaceRenderGraph : public RenderGraph
 	{
 	public:
-		InUserInterfaceRenderGraph(Graphics& gfx);
+		UserInterfaceRenderGraph(Graphics& gfx);
 		void Interaction() override {};
 	};
 }

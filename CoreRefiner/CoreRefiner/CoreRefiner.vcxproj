@@ -190,6 +190,8 @@
     <ClCompile Include="Attack.cpp" />
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
+    <ClCompile Include="DisplaySettings.cpp" />
+    <ClCompile Include="GameRenderGraph.cpp" />
     <ClCompile Include="IModuleNode.cpp" />
     <ClCompile Include="IModuleZone.cpp" />
     <ClCompile Include="ModuleNodeFactory.cpp" />
@@ -231,6 +233,7 @@
     <ClCompile Include="UI_CombatHud.cpp" />
     <ClCompile Include="UI_Pause.cpp" />
     <ClCompile Include="UI_Setting.cpp" />
+    <ClCompile Include="UserInterfaceRenderGraph.cpp" />
     <ClCompile Include="VisualComponent.cpp" />
     <ClCompile Include="ColliderComponentBase.cpp" />
     <ClCompile Include="BoxColliderComponent.cpp" />
@@ -250,14 +253,12 @@
     <ClCompile Include="Blender.cpp" />
     <ClCompile Include="Gamepad.cpp" />
     <ClCompile Include="GamepadUiInputAdapter.cpp" />
-    <ClCompile Include="InGameRenderGraph.cpp" />
     <ClCompile Include="BufferClearPass.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraContainer.cpp" />
     <ClCompile Include="CameraIndicator.cpp" />
     <ClCompile Include="ExceptionBase.cpp" />
     <ClCompile Include="InputCodex.cpp" />
-    <ClCompile Include="InUserInterfaceRenderGraph.cpp" />
     <ClCompile Include="KeyboardUiInputAdapter.cpp" />
     <ClCompile Include="MouseUiInputAdapter.cpp" />
     <ClCompile Include="SliderCanvasComponent.cpp" />
@@ -365,11 +366,14 @@
     <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="CanvasPixelDraw.h" />
     <ClInclude Include="CharacterStats.h" />
+    <ClInclude Include="DisplaySettings.h" />
+    <ClInclude Include="GameRenderGraph.h" />
     <ClInclude Include="IModuleNode.h" />
     <ClInclude Include="IModuleZone.h" />
     <ClInclude Include="IProjectileModule.h" />
     <ClInclude Include="Attribute_Lifetime_Module.h" />
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
+    <ClInclude Include="IScene.h" />
     <ClInclude Include="JsonTextCopy.h" />
     <ClInclude Include="ModuleNodeFactory.h" />
     <ClInclude Include="ModuleNodeInfoCopy.h" />
@@ -456,7 +460,6 @@
     <ClInclude Include="IUiPopupConsumer.h" />
     <ClInclude Include="IUiLogic.h" />
     <ClInclude Include="IUiView.h" />
-    <ClInclude Include="InGameRenderGraph.h" />
     <ClInclude Include="BufferClearPass.h" />
     <ClInclude Include="BufferResource.h" />
     <ClInclude Include="Camera.h" />
@@ -466,7 +469,6 @@
     <ClInclude Include="ExceptionBase.h" />
     <ClInclude Include="HrUtils.h" />
     <ClInclude Include="InputCodex.h" />
-    <ClInclude Include="InUserInterfaceRenderGraph.h" />
     <ClInclude Include="KeyboardUiInputAdapter.h" />
     <ClInclude Include="LambertianTransparentPass.h" />
     <ClInclude Include="MouseUiInputAdapter.h" />
@@ -486,6 +488,7 @@
     <ClInclude Include="UI_CombatHud.h" />
     <ClInclude Include="UI_Pause.h" />
     <ClInclude Include="UI_Prep.h" />
+    <ClInclude Include="UserInterfaceRenderGraph.h" />
     <ClInclude Include="VisualComponent.h" />
     <ClInclude Include="ColliderComponentBase.h" />
     <ClInclude Include="BoxColliderComponent.h" />

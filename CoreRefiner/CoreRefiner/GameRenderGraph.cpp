@@ -1,4 +1,4 @@
-#include "InGameRenderGraph.h"
+#include "GameRenderGraph.h"
 #include "Sink.h"
 #include "Source.h"
 #include "RenderTarget.h"
@@ -21,7 +21,7 @@
 
 namespace Rgph
 {
-	InGameRenderGraph::InGameRenderGraph(Graphics& gfx)
+	GameRenderGraph::GameRenderGraph(Graphics& gfx)
 		:
 		RenderGraph(gfx)
 	{
@@ -131,7 +131,7 @@ namespace Rgph
 		Finalize();
 	}
 
-	void InGameRenderGraph::SetKernelGauss(int radius, float sigma) noxnd
+	void GameRenderGraph::SetKernelGauss(int radius, float sigma) noxnd
 	{
 		assert(radius <= maxRadius);
 		auto k = blurKernel->GetBuffer();
@@ -152,7 +152,7 @@ namespace Rgph
 		blurKernel->SetBuffer(k);
 	}
 
-	void InGameRenderGraph::SetKernelBox(int radius) noxnd
+	void GameRenderGraph::SetKernelBox(int radius) noxnd
 	{
 		assert(radius <= maxRadius);
 		auto k = blurKernel->GetBuffer();
@@ -166,13 +166,13 @@ namespace Rgph
 		blurKernel->SetBuffer(k);
 	}
 
-	void InGameRenderGraph::RenderWindows(Graphics& gfx)
+	void GameRenderGraph::RenderWindows(Graphics& gfx)
 	{
 		RenderShadowWindow(gfx);
 		RenderKernelWindow(gfx);
 	}
 
-	void InGameRenderGraph::RenderKernelWindow(Graphics& gfx)
+	void GameRenderGraph::RenderKernelWindow(Graphics& gfx)
 	{
 		if (ImGui::Begin("Kernel"))
 		{
@@ -223,7 +223,7 @@ namespace Rgph
 		}
 		ImGui::End();
 	}
-	void Rgph::InGameRenderGraph::RenderShadowWindow(Graphics& gfx)
+	void Rgph::GameRenderGraph::RenderShadowWindow(Graphics& gfx)
 	{
 		if (ImGui::Begin("Shadow"))
 		{
@@ -237,24 +237,24 @@ namespace Rgph
 		}
 		ImGui::End();
 	}
-	void Rgph::InGameRenderGraph::BindMainCamera(Camera& cam)
+	void Rgph::GameRenderGraph::BindMainCamera(Camera& cam)
 	{
 		dynamic_cast<LambertianPass&>(FindPassByName("lambertian")).BindMainCamera(cam);
 		dynamic_cast<SkyboxPass&>(FindPassByName("skybox")).BindMainCamera(cam);
 		dynamic_cast<LambertianTransparentPass&>(FindPassByName("lambertianTrans")).BindMainCamera(cam);
 	}
-	void Rgph::InGameRenderGraph::BindShadowCamera(Camera& cam)
+	void Rgph::GameRenderGraph::BindShadowCamera(Camera& cam)
 	{
 		dynamic_cast<ShadowMappingPass&>(FindPassByName("shadowMap")).BindShadowCamera(cam);
 		dynamic_cast<LambertianPass&>(FindPassByName("lambertian")).BindShadowCamera(cam);
 		dynamic_cast<LambertianTransparentPass&>(FindPassByName("lambertianTrans")).BindShadowCamera(cam);
 	}
-	void Rgph::InGameRenderGraph::DumpShadowMap(Graphics& gfx, const std::string& path)
+	void Rgph::GameRenderGraph::DumpShadowMap(Graphics& gfx, const std::string& path)
 	{
 		dynamic_cast<ShadowMappingPass&>(FindPassByName("shadowMap")).DumpShadowMap(gfx, path);
 	}
 
-	void InGameRenderGraph::Update(float dt) noxnd
+	void GameRenderGraph::Update(float dt) noxnd
 	{
 		if (sigma > 10.0f)
 		{
@@ -268,7 +268,7 @@ namespace Rgph
 		}
 	}
 
-	void Rgph::InGameRenderGraph::Interaction()
+	void Rgph::GameRenderGraph::Interaction()
 	{
 		if (sigma < 50.0f)
 		{

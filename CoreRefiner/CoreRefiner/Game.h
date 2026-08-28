@@ -6,8 +6,8 @@
 #include "PointLight.h"
 #include "ScriptCommander.h"
 
-#include "InGameRenderGraph.h"
-#include "InUserInterfaceRenderGraph.h"
+#include "GameRenderGraph.h"
+#include "UserInterfaceRenderGraph.h"
 
 #include "Player.h"
 #include "AttackManager.h"
@@ -70,9 +70,6 @@ private:
 	void CloseSettings_();
 	void DismissSettings_() noexcept;
 
-	void ApplyFullscreen_(bool enable);
-	void ApplyWindowSizeIndex_(int index);
-
 	/********************************/
 	/*         Game Related         */
 	/********************************/
@@ -95,8 +92,8 @@ private:
 	// Renender
 	PointLight light;
 	CameraContainer cameras{ wnd.Gfx() };
-	Rgph::InGameRenderGraph gameRG{ wnd.Gfx() };
-	Rgph::InUserInterfaceRenderGraph UIRG{ wnd.Gfx() };
+	Rgph::GameRenderGraph gameRG{ wnd.Gfx() };
+	Rgph::UserInterfaceRenderGraph uiRG{ wnd.Gfx() };
 	// GameArramgement
 	bool Pause{ false };
 	WaveDirector waveDirector_;

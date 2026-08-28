@@ -16,10 +16,13 @@ namespace Bind
 
 namespace Rgph
 {
-	class InGameRenderGraph : public RenderGraph
+	/**
+	 * @brief 局内管线：阴影、Lambert、天空盒、描边模糊、线框，末尾 UIPass。
+	 */
+	class GameRenderGraph : public RenderGraph
 	{
 	public:
-		InGameRenderGraph(Graphics& gfx);
+		GameRenderGraph(Graphics& gfx);
 		void RenderWindows(Graphics& gfx);
 		void DumpShadowMap(Graphics& gfx, const std::string& path);
 		void BindMainCamera(Camera& cam);

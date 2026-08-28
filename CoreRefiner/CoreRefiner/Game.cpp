@@ -7,6 +7,7 @@
 #include "InputCodex.h"
 #include "SoundCodex.h"
 #include "SettingsStore.h"
+#include "DisplaySettings.h"
 #include "UiCopy.h"
 #include "ObjectCodex.h"
 #include "TimeCodex.h"
@@ -29,8 +30,8 @@ Game::Game(const std::string& commandLine)
 	cameras.LinkTechniques(gameRG);
 
 	(void)LoadSettings();
-	ApplyWindowSizeIndex_(GameStatsCodex::GetWindowSizeIndex());
-	ApplyFullscreen_(GameStatsCodex::GetFullscreen());
+	ApplyWindowSizeIndex(wnd, GameStatsCodex::GetWindowSizeIndex());
+	ApplyFullscreen(wnd, GameStatsCodex::GetFullscreen());
 
 	// Persistent player (survives scene leave)
 	pPlayer = ObjectCodex::AcquirePersistent<Player>(character_Player, wnd.Gfx(), gameRG, &cameras, XMFLOAT3{ 0.0f,5.0f,0.0f });
@@ -41,7 +42,7 @@ Game::Game(const std::string& commandLine)
 	// UI
 	(void)LoadUiCopy(); // LoadJsonTexts
 	moduleWorkbench = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG);
-	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), UIRG);
+	uiTitle = std::make_unique<UI_Title>(wnd.Gfx(), uiRG);
 	uiTitle->SetOnNewGame([this] { SetScene(SCENE_GAME); });
 	uiTitle->SetOnSettings([this] { OpenSettings_(SettingsReturn::Title); });
 	uiPrep = std::make_unique<UI_Prep>(*moduleWorkbench);
@@ -57,12 +58,12 @@ Game::Game(const std::string& commandLine)
 		OpenSettings_(SettingsReturn::Pause);
 		});
 	uiPause->SetOnQuit([this] { ClosePauseMenu_(); SetScene(SCENE_TITLE); });
-	uiSetting = std::make_unique<UI_Setting>(wnd.Gfx(), UIRG);
+	uiSetting = std::make_unique<UI_Setting>(wnd.Gfx(), uiRG);
 	uiSetting->SetOnBack([this] { CloseSettings_(); });
-	uiSetting->SetOnFullscreenChanged([this](bool on) { ApplyFullscreen_(on); });
-	uiSetting->SetOnWindowSizeIndex([this](int index) { ApplyWindowSizeIndex_(index); });
+	uiSetting->SetOnFullscreenChanged([this](bool on) { ApplyFullscreen(wnd, on); });
+	uiSetting->SetOnWindowSizeIndex([this](int index) { ApplyWindowSizeIndex(wnd, index); });
 	uiCombatHud = std::make_unique<UI_CombatHud>(wnd.Gfx(), gameRG, &moduleWorkbench->GetField());
-	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), UIRG);
+	uiSample = std::make_unique<UI_Sample>(wnd.Gfx(), uiRG);
 
 	waveDirector_.onWaveStart = [this](const WaveSpec& spec)
 	{
@@ -136,7 +137,7 @@ int Game::RunGame()
 			Draw();
 			wnd.Gfx().EndFrame(); // present
 			gameRG.Reset();
-			UIRG.Reset();
+			uiRG.Reset();
 			/********************************/
 		}
 	}
@@ -371,29 +372,6 @@ void Game::DismissSettings_() noexcept
 	}
 }
 
-void Game::ApplyFullscreen_(bool enable)
-{
-	wnd.SetFullscreen(enable);
-	GameStatsCodex::SetFullscreen(wnd.IsFullscreen());
-}
-
-void Game::ApplyWindowSizeIndex_(int index)
-{
-	GameStatsCodex::SetWindowSizeIndex(index);
-	switch (GameStatsCodex::GetWindowSizeIndex())
-	{
-	case 1:
-		wnd.SetWindowedClientSize(1600, 900);
-		break;
-	case 2:
-		wnd.SetWindowedClientSize(1920, 1080);
-		break;
-	default:
-		wnd.SetWindowedClientSize(1280, 720);
-		break;
-	}
-}
-
 void Game::SyncCombatHud_()
 {
 	if (uiCombatHud == nullptr)
@@ -506,13 +484,6 @@ void Game::Update(float dt)
 {
 	const bool settingsOpen = (uiSetting != nullptr && uiSetting->IsOpen());
 
-#ifdef _DEBUG
-	if (!settingsOpen && InputCodex::Get().KeyTriggered(VK_F11))
-	{
-		ApplyFullscreen_(!wnd.IsFullscreen());
-	}
-#endif
-
 	if (settingsOpen)
 	{
 		if (InputCodex::Get().KeyTriggered(VK_ESCAPE))
@@ -565,7 +536,7 @@ void Game::Draw()
 		{
 			uiTitle->Submit();
 		}
-		UIRG.Execute(wnd.Gfx());
+		uiRG.Execute(wnd.Gfx());
 		break;
 	}
 	case SCENE_GAME:
@@ -573,7 +544,7 @@ void Game::Draw()
 		if (uiSetting != nullptr && uiSetting->IsOpen())
 		{
 			uiSetting->Submit();
-			UIRG.Execute(wnd.Gfx());
+			uiRG.Execute(wnd.Gfx());
 			break;
 		}
 
@@ -631,7 +602,7 @@ void Game::Draw()
 	{
 		uiSample->Submit();
 
-		UIRG.Execute(wnd.Gfx());
+		uiRG.Execute(wnd.Gfx());
 		break;
 	}
 	}

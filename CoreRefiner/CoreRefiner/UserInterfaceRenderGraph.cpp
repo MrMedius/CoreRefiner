@@ -1,11 +1,11 @@
-#include "InUserInterfaceRenderGraph.h"
+#include "UserInterfaceRenderGraph.h"
 
 #include "BufferClearPass.h"
 #include "UIPass.h"
 
 namespace Rgph
 {
-	InUserInterfaceRenderGraph::InUserInterfaceRenderGraph(Graphics& gfx)
+	UserInterfaceRenderGraph::UserInterfaceRenderGraph(Graphics& gfx)
 		:
 		RenderGraph(gfx)
 	{
