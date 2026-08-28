@@ -9,8 +9,7 @@ ResultScene::ResultScene(Window& wnd, Rgph::RenderGraph& uiRG)
 	wnd_(wnd),
 	uiRG_(uiRG),
 	uiSample_(std::make_unique<UI_Sample>(wnd.Gfx(), uiRG))
-{
-}
+{}
 
 ResultScene::~ResultScene() = default;
 

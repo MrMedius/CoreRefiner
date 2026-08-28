@@ -1,4 +1,4 @@
-#include "Game.h"
+#include "LoopMain.h"
 #include "ComRuntime.h"
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -6,7 +6,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	try
 	{
 		ComRuntime com{ ComRuntime::Model::STA };
-		return Game{ lpCmdLine }.RunGame();
+		return LoopMain{ lpCmdLine }.Run();
 	}
 	catch (const ExceptionBase& e)
 	{

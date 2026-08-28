@@ -472,9 +472,6 @@
     <ClCompile Include="Sprite.cpp">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="Game.cpp">
-      <Filter>Framework\Main</Filter>
-    </ClCompile>
     <ClCompile Include="WinMain.cpp">
       <Filter>Framework\Main</Filter>
     </ClCompile>
@@ -733,6 +730,12 @@
     <ClCompile Include="SceneDirector.cpp">
       <Filter>Scene\Core</Filter>
     </ClCompile>
+    <ClCompile Include="GameScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="LoopMain.cpp">
+      <Filter>Framework\Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -869,9 +872,6 @@
     </ClInclude>
     <ClInclude Include="BlurOutlineDrawingPass.h">
       <Filter>Framework\Graphics\GraphPass\PassLib</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGraph.h">
-      <Filter>Framework\Graphics\GraphPass\GraphLib</Filter>
     </ClInclude>
     <ClInclude Include="DynamicVertex.h">
       <Filter>Framework\Graphics\Bindable\ShaderDynamics</Filter>
@@ -1121,9 +1121,6 @@
     </ClInclude>
     <ClInclude Include="Sprite3D.h">
       <Filter>Framework\Graphics\Drawable\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.h">
-      <Filter>Framework\Main</Filter>
     </ClInclude>
     <ClInclude Include="ComRuntime.h">
       <Filter>Framework\Main</Filter>
@@ -1511,6 +1508,15 @@
     </ClInclude>
     <ClInclude Include="SceneDirector.h">
       <Filter>Scene\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GameScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="LoopMain.h">
+      <Filter>Framework\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGraph.h">
+      <Filter>Framework\Graphics\GraphPass</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

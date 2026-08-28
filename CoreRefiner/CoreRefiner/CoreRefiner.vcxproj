@@ -192,8 +192,10 @@
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="DisplaySettings.cpp" />
     <ClCompile Include="GameRenderGraph.cpp" />
+    <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="IModuleNode.cpp" />
     <ClCompile Include="IModuleZone.cpp" />
+    <ClCompile Include="LoopMain.cpp" />
     <ClCompile Include="ModuleNodeFactory.cpp" />
     <ClCompile Include="ModuleNodeInfoCopy.cpp" />
     <ClCompile Include="ModuleShop.cpp" />
@@ -251,7 +253,6 @@
     <ClCompile Include="Enemy_T_Shape.cpp" />
     <ClCompile Include="EnvironmentManager.cpp" />
     <ClCompile Include="FocusManager.cpp" />
-    <ClCompile Include="Game.cpp" />
     <ClCompile Include="BindingPass.cpp" />
     <ClCompile Include="Blender.cpp" />
     <ClCompile Include="Gamepad.cpp" />
@@ -371,6 +372,7 @@
     <ClInclude Include="CharacterStats.h" />
     <ClInclude Include="DisplaySettings.h" />
     <ClInclude Include="GameRenderGraph.h" />
+    <ClInclude Include="GameScene.h" />
     <ClInclude Include="IModuleNode.h" />
     <ClInclude Include="IModuleZone.h" />
     <ClInclude Include="IProjectileModule.h" />
@@ -378,6 +380,7 @@
     <ClInclude Include="Attribute_SpeedRate_Module.h" />
     <ClInclude Include="IScene.h" />
     <ClInclude Include="JsonTextCopy.h" />
+    <ClInclude Include="LoopMain.h" />
     <ClInclude Include="ModuleNodeFactory.h" />
     <ClInclude Include="ModuleNodeInfoCopy.h" />
     <ClInclude Include="ModuleNodePrice.h" />
@@ -452,7 +455,6 @@
     <ClInclude Include="FocusManager.h" />
     <ClInclude Include="FocusTypes.h" />
     <ClInclude Include="FSM.h" />
-    <ClInclude Include="Game.h" />
     <ClInclude Include="Bindable.h" />
     <ClInclude Include="BindableCodex.h" />
     <ClInclude Include="BindableCommon.h" />

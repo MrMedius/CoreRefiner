@@ -1,12 +1,17 @@
 #include "SceneDirector.h"
 
-SceneDirector::SceneDirector(Window& wnd, Rgph::GameRenderGraph& gameRG, Rgph::UserInterfaceRenderGraph& uiRG)
-	:
-	wnd_(wnd),
-	gameRG_(gameRG),
-	uiRG_(uiRG)
+void SceneDirector::Adopt(SceneId id, std::unique_ptr<IScene> scene)
 {
-	// Title / Game / Result 在对应场景类落地后于此处构造。
+	if (id >= SceneId::Count || scene == nullptr)
+	{
+		return;
+	}
+	auto& slot = bases_[static_cast<std::size_t>(id)];
+	if (slot != nullptr)
+	{
+		return;
+	}
+	slot = std::move(scene);
 }
 
 void SceneDirector::RequestScene(SceneId id)
@@ -20,6 +25,10 @@ void SceneDirector::RequestScene(SceneId id)
 		return;
 	}
 	pending_ = id;
+	if (current_ == SceneId::Count)
+	{
+		ApplyPending_();
+	}
 }
 
 void SceneDirector::Update(float dt)

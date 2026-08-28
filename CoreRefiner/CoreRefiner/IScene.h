@@ -1,5 +1,4 @@
 #pragma once
-
 enum class SceneId : unsigned char
 {
 	Title,
