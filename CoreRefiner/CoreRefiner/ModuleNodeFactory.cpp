@@ -15,16 +15,17 @@ namespace ModuleNodeFactory
 	{
 		switch (label)
 		{
-		case ModuleNodeLabel::Spawn_Ball:
-			return std::make_unique<ModuleNode_Spawn_Ball>(localPos);
-		case ModuleNodeLabel::Attribute_Lifetime:
-			return std::make_unique<ModuleNode_Attribute_Lifetime>(localPos, kLifetimeSeconds);
-		case ModuleNodeLabel::Attribute_SpeedRate:
-			return std::make_unique<ModuleNode_Attribute_SpeedRate>(localPos, kSpeedRate);
-		case ModuleNodeLabel::Rule_Orbit:
-			return std::make_unique<ModuleNode_Rule_Orbit>(localPos);
-		case ModuleNodeLabel::Other_Child:
-			return std::make_unique<ModuleNode_Other_Child>(localPos);
+		case ModuleNodeLabel::Core_Ball:				return std::make_unique<ModuleNode_Spawn_Ball_Core>(localPos);
+		case ModuleNodeLabel::Spawn_Ball:				return std::make_unique<ModuleNode_Spawn_Ball>(localPos);
+		case ModuleNodeLabel::Attribute_Lifetime:		return std::make_unique<ModuleNode_Attribute_Lifetime>(localPos, kLifetimeSeconds);
+		case ModuleNodeLabel::Attribute_SpeedRate:		return std::make_unique<ModuleNode_Attribute_SpeedRate>(localPos, kSpeedRate);
+		case ModuleNodeLabel::Rule_Orbit:				return std::make_unique<ModuleNode_Rule_Orbit>(localPos);
+		case ModuleNodeLabel::Other_Child:				return std::make_unique<ModuleNode_Other_Child>(localPos);
+		case ModuleNodeLabel::Attribute_SizeRate:
+		case ModuleNodeLabel::Attribute_DamageRate:
+		case ModuleNodeLabel::Rule_Return:
+		case ModuleNodeLabel::Passive_DamageFix:
+		case ModuleNodeLabel::Other_Revive:
 		case ModuleNodeLabel::Count:
 		default:
 			return nullptr;

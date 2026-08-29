@@ -3,9 +3,6 @@
 #include "Attack.h"
 #include "XMath.h"
 
-/**
- * @brief Scales owner MoveAccel once when armed (after SpawnAt writes aim velocity).
- */
 class Attribute_SpeedRate_Module : public IProjectileModule
 {
 public:

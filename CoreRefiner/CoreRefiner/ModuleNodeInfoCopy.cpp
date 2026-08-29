@@ -29,6 +29,10 @@ namespace
 
 	[[nodiscard]] std::optional<ModuleNodeLabel> ParseModuleNodeLabel_(std::string_view name) noexcept
 	{
+		if (name == "Core_Ball")
+		{
+			return ModuleNodeLabel::Core_Ball;
+		}
 		if (name == "Spawn_Ball")
 		{
 			return ModuleNodeLabel::Spawn_Ball;
@@ -41,13 +45,33 @@ namespace
 		{
 			return ModuleNodeLabel::Attribute_SpeedRate;
 		}
+		if (name == "Attribute_SizeRate")
+		{
+			return ModuleNodeLabel::Attribute_SizeRate;
+		}
+		if (name == "Attribute_DamageRate")
+		{
+			return ModuleNodeLabel::Attribute_DamageRate;
+		}
 		if (name == "Rule_Orbit")
 		{
 			return ModuleNodeLabel::Rule_Orbit;
 		}
+		if (name == "Rule_Return")
+		{
+			return ModuleNodeLabel::Rule_Return;
+		}
+		if (name == "Passive_DamageFix")
+		{
+			return ModuleNodeLabel::Passive_DamageFix;
+		}
 		if (name == "Other_Child")
 		{
 			return ModuleNodeLabel::Other_Child;
+		}
+		if (name == "Other_Revive")
+		{
+			return ModuleNodeLabel::Other_Revive;
 		}
 		return std::nullopt;
 	}
@@ -139,11 +163,17 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 {
 	switch (label)
 	{
+	case ModuleNodeLabel::Core_Ball: return "Core_Ball";
 	case ModuleNodeLabel::Spawn_Ball: return "Spawn_Ball";
 	case ModuleNodeLabel::Attribute_Lifetime: return "Attribute_Lifetime";
 	case ModuleNodeLabel::Attribute_SpeedRate: return "Attribute_SpeedRate";
+	case ModuleNodeLabel::Attribute_SizeRate: return "Attribute_SizeRate";
+	case ModuleNodeLabel::Attribute_DamageRate: return "Attribute_DamageRate";
 	case ModuleNodeLabel::Rule_Orbit: return "Rule_Orbit";
+	case ModuleNodeLabel::Rule_Return: return "Rule_Return";
+	case ModuleNodeLabel::Passive_DamageFix: return "Passive_DamageFix";
 	case ModuleNodeLabel::Other_Child: return "Other_Child";
+	case ModuleNodeLabel::Other_Revive: return "Other_Revive";
 	case ModuleNodeLabel::Count: return "";
 	}
 	return "";

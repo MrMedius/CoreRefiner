@@ -20,12 +20,22 @@
 #include <utility>
 #include <vector>
 
+[[nodiscard]] static bool IsShopOfferedLabel_(ModuleNodeLabel label) noexcept
+{
+	return label != ModuleNodeLabel::Core_Ball && label < ModuleNodeLabel::Count;
+}
+
 [[nodiscard]] static ModuleNodeLabel PickRandomShopLabel_()
 {
 	static std::mt19937 rng{ std::random_device{}() };
 	static std::uniform_int_distribution<int> dist(
 		0, static_cast<int>(ModuleNodeLabelCount()) - 1);
-	return static_cast<ModuleNodeLabel>(dist(rng));
+	ModuleNodeLabel label = ModuleNodeLabel::Spawn_Ball;
+	do
+	{
+		label = static_cast<ModuleNodeLabel>(dist(rng));
+	} while (!IsShopOfferedLabel_(label));
+	return label;
 }
 
 static_assert(ModuleShop::kSlotCount >= 1);
@@ -218,10 +228,16 @@ void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
 
 void ModuleShop::FillStock()
 {
-	for (std::size_t i = 0; i < kSlotCount; ++i)
+	std::size_t slot = 0;
+	for (std::size_t n = 0; slot < kSlotCount && n < ModuleNodeLabelCount() * kSlotCount; ++n)
 	{
-		const ModuleNodeLabel label = static_cast<ModuleNodeLabel>(i % ModuleNodeLabelCount());
-		RestockSlot_(i, label);
+		const auto label = static_cast<ModuleNodeLabel>(n % ModuleNodeLabelCount());
+		if (!IsShopOfferedLabel_(label))
+		{
+			continue;
+		}
+		RestockSlot_(slot, label);
+		++slot;
 	}
 	RelayoutSlots_();
 }

@@ -151,12 +151,20 @@ namespace NodeIconAtlas
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
-		detail::kSpawnBall,
-		detail::kAttributeLifetime,
-		detail::kAttributeSpeedRate,
-		detail::kRuleOrbit,
-		detail::kOtherChild,
+		detail::kSpawnBall,           // Core_Ball
+		detail::kSpawnBall,           // Spawn_Ball
+		detail::kAttributeLifetime,   // Attribute_Lifetime
+		detail::kAttributeSpeedRate,  // Attribute_SpeedRate
+		detail::kRoundFrame,          // Attribute_SizeRate
+		detail::kRoundFrame,          // Attribute_DamageRate
+		detail::kRuleOrbit,           // Rule_Orbit
+		detail::kRoundFrame,          // Rule_Return
+		detail::kRoundFrame,          // Passive_DamageFix
+		detail::kOtherChild,          // Other_Child
+		detail::kRoundFrame,          // Other_Revive
 	};
+
+	static_assert(kNodeIcons.size() == ModuleNodeLabelCount());
 
 	[[nodiscard]] inline const IconAtlas::IconBits& Get(ModuleNodeLabel id) noexcept
 	{

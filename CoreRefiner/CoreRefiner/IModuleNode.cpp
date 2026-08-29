@@ -11,11 +11,12 @@ std::uint32_t IModuleNode::s_nextInstanceId_ = 0;
 
 Color IModuleNode::GetReadyFillColor() const noexcept
 {
-	if (isCore_)
+	const std::size_t i = ToIndex(GetKind());
+	if (i >= ModuleNodeKindCount())
 	{
-		return Color(255u, 210u, 60u, 255u);
+		return ModuleNodeKindFill::kFill[ToIndex(ModuleNodeKind::Other)];
 	}
-	return Color(120u, 200u, 255u, 255u);
+	return ModuleNodeKindFill::kFill[i];
 }
 
 void IModuleNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin)

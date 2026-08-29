@@ -74,7 +74,7 @@ public:
 		}
 		{
 			unsigned spacingY = SCREEN_HEIGHT / 20u;
-			unsigned btnWidth = SCREEN_WIDTH / 10u;
+			unsigned btnWidth = SCREEN_WIDTH / 8u;
 			unsigned btnHeight = SCREEN_HEIGHT / 15u;
 
 			Ui::ButtonCanvasStyle style{};

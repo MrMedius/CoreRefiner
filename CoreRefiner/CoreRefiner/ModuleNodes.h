@@ -33,6 +33,11 @@ public:
 		return ModuleNodeLabel::Spawn_Ball;
 	}
 
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Spawn;
+	}
+
 protected:
 	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
 	bool enableCollider_{ true };
@@ -48,9 +53,18 @@ public:
 		:
 		ModuleNode_Spawn_Ball(localPos, scale, enableCollider)
 	{
-		isCore_ = true;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Core_Ball;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Core;
 	}
 };
 
@@ -74,6 +88,11 @@ public:
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
 		return ModuleNodeLabel::Other_Child;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Other;
 	}
 };
 
@@ -99,6 +118,11 @@ public:
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
 		return ModuleNodeLabel::Attribute_Lifetime;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Attribute;
 	}
 
 private:
@@ -127,6 +151,11 @@ public:
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
 		return ModuleNodeLabel::Attribute_SpeedRate;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Attribute;
 	}
 
 private:
@@ -161,6 +190,11 @@ public:
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
 		return ModuleNodeLabel::Rule_Orbit;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Rule;
 	}
 
 private:

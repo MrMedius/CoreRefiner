@@ -19,7 +19,7 @@ UI_Pause::UI_Pause(Graphics& gfx, Rgph::RenderGraph& rg)
 	const unsigned centerX = SCREEN_WIDTH / 2u;
 	const unsigned centerY = SCREEN_HEIGHT / 2u;
 	const unsigned spacingY = SCREEN_HEIGHT / 20u;
-	const unsigned btnWidth = SCREEN_WIDTH / 10u;
+	const unsigned btnWidth = SCREEN_WIDTH / 8u;
 	const unsigned btnHeight = SCREEN_HEIGHT / 15u;
 
 	// Background

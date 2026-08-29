@@ -24,6 +24,20 @@ enum class ModuleReadyState : unsigned char
 	Cooling,
 };
 
+namespace ModuleNodeKindFill
+{
+	inline constexpr Color kFill[] = {
+		Color(255u, 255u,   0u, 255u), // Core
+		Color(255u, 180u,  60u, 255u), // Spawn
+		Color(120u, 200u, 255u, 255u), // Attribute
+		Color(140u, 220u, 130u, 255u), // Rule
+		Color(255u, 150u,  70u, 255u), // Passive
+		Color(200u, 160u, 255u, 255u), // Other
+	};
+
+	static_assert(sizeof(kFill) / sizeof(kFill[0]) == ModuleNodeKindCount(), "ModuleNodeKindFill::kFill size must match ModuleNodeKindCount");
+}
+
 class IModuleNode
 {
 public:
@@ -72,7 +86,7 @@ public:
 	}
 
 	[[nodiscard]] ModuleReadyState GetState() const noexcept { return state_; }
-	[[nodiscard]] bool IsCore() const noexcept { return isCore_; }
+	[[nodiscard]] bool IsCore() const noexcept { return GetKind() == ModuleNodeKind::Core; }
 	[[nodiscard]] bool IsReady() const noexcept { return state_ == ModuleReadyState::Ready; }
 
 	[[nodiscard]] float GetCooldownRemaining() const noexcept { return cooldownRemaining_; }
@@ -129,6 +143,11 @@ public:
 
 	virtual void ApplyTo(DeployContext& ctx) = 0;
 	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
+	/** @brief 大类；默认 Other。未覆写的新节点会走 Other 色。 */
+	[[nodiscard]] virtual ModuleNodeKind GetKind() const noexcept
+	{
+		return ModuleNodeKind::Other;
+	}
 
 protected:
 	IModuleNode() noexcept
@@ -152,7 +171,6 @@ protected:
 	float cooldownDuration_{ 3.0f };
 	float scanMaxRadius_{ 140.0f };
 	float scanExpandSpeed_{ 100.0f };
-	bool isCore_{ false };
 
 	std::unique_ptr<Canvas2D> icon_;
 	std::unique_ptr<Canvas2DSpriteUV> mask_;

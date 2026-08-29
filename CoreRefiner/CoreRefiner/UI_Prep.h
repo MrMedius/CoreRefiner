@@ -5,9 +5,6 @@
 
 class Window;
 
-/**
- * @brief 战备阶段门面：转发 Workbench 的布局编辑与 [战斗！] 接线。不拥有 ModuleWorkbench。
- */
 class UI_Prep
 {
 public:
