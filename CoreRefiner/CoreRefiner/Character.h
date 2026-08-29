@@ -1,7 +1,7 @@
 #pragma once
 #include "ObjectBase.h"
 #include "Collision3D.h"
-#include "CharacterStats.h"
+#include "Stats.h"
 #include "FSM.h"
 
 #include <algorithm>

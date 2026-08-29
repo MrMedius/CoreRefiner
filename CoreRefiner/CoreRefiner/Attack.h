@@ -2,6 +2,7 @@
 #include "ObjectBase.h"
 #include "Character.h"
 #include "IProjectileModule.h"
+#include "Stats.h"
 
 #include <memory>
 #include <type_traits>
@@ -54,7 +55,12 @@ public:
 			}
 		}
 		modules_.clear();
+		stats_.ResetMods();
 	}
+
+	/** @brief 本弹数值袋（damage / size / speed）。 */
+	[[nodiscard]] AttackStats& Stats() noexcept { return stats_; }
+	[[nodiscard]] const AttackStats& Stats() const noexcept { return stats_; }
 
 	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
 
@@ -199,4 +205,5 @@ protected:
 private:
 	/** @brief Gameplay modules; independent from ObjectBase IComponent list. */
 	std::vector<std::unique_ptr<IProjectileModule>> modules_;
+	AttackStats stats_{};
 };

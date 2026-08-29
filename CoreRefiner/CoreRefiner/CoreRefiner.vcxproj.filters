@@ -1461,9 +1461,6 @@
     <ClInclude Include="UI_Prep.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="CharacterStats.h">
-      <Filter>Object\Character</Filter>
-    </ClInclude>
     <ClInclude Include="UI_Pause.h">
       <Filter>UI</Filter>
     </ClInclude>
@@ -1517,6 +1514,9 @@
     </ClInclude>
     <ClInclude Include="RenderGraph.h">
       <Filter>Framework\Graphics\GraphPass</Filter>
+    </ClInclude>
+    <ClInclude Include="Stats.h">
+      <Filter>Object</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

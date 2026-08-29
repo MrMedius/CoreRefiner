@@ -369,7 +369,7 @@
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="CanvasPixelDraw.h" />
-    <ClInclude Include="CharacterStats.h" />
+    <ClInclude Include="Stats.h" />
     <ClInclude Include="DisplaySettings.h" />
     <ClInclude Include="GameRenderGraph.h" />
     <ClInclude Include="GameScene.h" />

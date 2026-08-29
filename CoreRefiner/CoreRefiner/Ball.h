@@ -50,10 +50,22 @@ class Ball : public Attack
 	}
 
 	/**
-	 * @brief Reset pose/motion; keep Deployer presentation; arm self and flat children.
+	 * @brief 取缩放三分量绝对值最大者（与 ApplyPresentation 半径约定一致）。
+	 */
+	[[nodiscard]] static float MaxScaleComponent(XMFLOAT3 scale) noexcept
+	{
+		return (scale.x > scale.y)
+			? ((scale.x > scale.z) ? scale.x : scale.z)
+			: ((scale.y > scale.z) ? scale.y : scale.z);
+	}
+
+	/**
+	 * @brief Reset pose/motion; arm modules; apply size/speed from AttackStats.
+	 * @note size.base 取当前组装缩放，避免把 Deployer 的 ApplyPresentation 冲回 1。
 	 */
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
+		Stats().ResetMods();
 		SetPosition(pos);
 		SetMoveAccel(dir);
 		ResetMoveVelocity();
@@ -64,14 +76,33 @@ class Ball : public Attack
 			pCollider_->SyncFromOwner();
 		}
 
+		const float assembled = MaxScaleComponent(GetSize());
+		Stats().size.base = (assembled > 0.0f) ? assembled : 1.0f;
+
 		ArmModules();
+
+		SetMoveAccel((V(GetMoveAccel()) * Stats().speed.Final()).ToFloat3());
+		const float sz = Stats().size.Final();
+		ApplyPresentation({ sz, sz, sz }, true);
 
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
 		{
 			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));
 				childAtk != nullptr && childAtk->IsActive())
 			{
+				childAtk->Stats().ResetMods();
+				if (auto* childBall = dynamic_cast<Ball*>(childAtk))
+				{
+					const float childAssembled = MaxScaleComponent(childBall->GetSize());
+					childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
+				}
 				childAtk->ArmModules();
+				if (auto* childBall = dynamic_cast<Ball*>(childAtk))
+				{
+					childBall->SetMoveAccel((V(childBall->GetMoveAccel()) * childBall->Stats().speed.Final()).ToFloat3());
+					const float childSz = childBall->Stats().size.Final();
+					childBall->ApplyPresentation({ childSz, childSz, childSz }, true);
+				}
 			}
 		}
 	}
@@ -110,7 +141,7 @@ class Ball : public Attack
 		{
 			e->SetIsHurt(true);
 			e->SetWasHurt(true);
-			e->CalculateHpCurrent(-1.0f);
+			e->CalculateHpCurrent(-Stats().damage.Final());
 
 			const auto selfPos = GetPosition();
 			const Vec3 d = V(e->GetPosition()) - V(selfPos);
