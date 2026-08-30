@@ -4,6 +4,7 @@
 #include "IProjectileModule.h"
 #include "Stats.h"
 
+#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -63,11 +64,37 @@ public:
 		modules_.clear();
 		stats_.ResetMods();
 		awaitingManagerAdopt_ = false;
+		launchPosLocked_ = false;
+		adoptLive_ = {};
 	}
 
 	/** @brief 本弹数值袋（damage / size / speed）。 */
 	[[nodiscard]] AttackStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const AttackStats& Stats() const noexcept { return stats_; }
+
+	/**
+	 * @brief 锁发射点；Return 等后续 Node 读，Revive 放弹时置位。本步 FireRoots 仍 SpawnAt。
+	 */
+	void SetLaunchPosLocked(bool locked) noexcept { launchPosLocked_ = locked; }
+	[[nodiscard]] bool IsLaunchPosLocked() const noexcept { return launchPosLocked_; }
+
+	/**
+	 * @brief 登记「把停放弹纳入活体列表」的回调（FireRoots / AttackManager::AdoptLive 挂上）。
+	 */
+	void SetAdoptLive(std::function<void(Attack*)> fn)
+	{
+		adoptLive_ = std::move(fn);
+	}
+	/**
+	 * @brief 把 @p live 交给已登记回调；未登记则 no-op。
+	 */
+	void AdoptLive(Attack* live)
+	{
+		if (adoptLive_)
+		{
+			adoptLive_(live);
+		}
+	}
 
 	/** @brief 父弹卸下后等待 AttackManager 收进更新列表。 */
 	void SetAwaitingManagerAdopt(bool awaiting) noexcept { awaitingManagerAdopt_ = awaiting; }
@@ -179,6 +206,17 @@ protected:
 			}
 		}
 	}
+	/** @brief Run OnOwnerWillDisable on all bound modules（ClearModules 之前）。 */
+	void DispatchOnOwnerWillDisable()
+	{
+		for (auto& module : modules_)
+		{
+			if (module != nullptr)
+			{
+				module->OnOwnerWillDisable();
+			}
+		}
+	}
 
 	/**
 	 * @brief Update active hierarchy children (ObjectBase::Update is virtual).
@@ -218,6 +256,8 @@ private:
 	std::vector<std::unique_ptr<IProjectileModule>> modules_;
 	AttackStats stats_{};
 	bool awaitingManagerAdopt_{ false };
+	bool launchPosLocked_{ false };
+	std::function<void(Attack*)> adoptLive_{};
 
 	/**
 	 * @brief 卸下仍存活的子弹：烘焙世界坐标、继承本弹速度、ClearParent。

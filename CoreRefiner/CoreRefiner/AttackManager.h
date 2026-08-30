@@ -24,6 +24,11 @@ public:
 		DirectX::XMFLOAT3 vel);
 
 	/**
+	 * @brief 把已组装、未走 FireRoots 的弹纳入更新列表（停放转活体；不 SpawnAt）。
+	 */
+	void AdoptLive(Attack* attack);
+
+	/**
 	 * @brief Mouse aim on player Y plane → horizontal shot velocity.
 	 */
 	[[nodiscard]] bool TryGetAimVelocity(

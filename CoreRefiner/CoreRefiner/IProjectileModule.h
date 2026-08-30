@@ -16,6 +16,8 @@ public:
 	virtual void OnUpdate(float dt) { (void)dt; }
 	virtual void OnHit(Character* other) { (void)other; }
 	virtual void OnRecycle() {}
+	/** @brief 宿主即将 Disable / ClearModules；Revive 在此放弹。默认空。 */
+	virtual void OnOwnerWillDisable() {}
 
 	[[nodiscard]] virtual bool HasModuleNodeLabel() const noexcept { return false; }
 	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept

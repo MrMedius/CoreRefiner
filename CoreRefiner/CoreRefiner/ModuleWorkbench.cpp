@@ -17,6 +17,28 @@
 #include <array>
 #include <string>
 
+namespace
+{
+	/**
+	 * @brief 仓内占用节点对 @p atk 及其子树调用 ApplyWarehouseBonus（当前默认空）。
+	 */
+	void ApplyWarehouseBonusesToTree(ModuleWarehouse& warehouse, Attack* atk)
+	{
+		if (atk == nullptr)
+		{
+			return;
+		}
+		warehouse.ForEach([&](IModuleNode& node)
+		{
+			node.ApplyWarehouseBonus(*atk);
+		});
+		for (std::size_t i = 0; i < atk->GetChildCount(); ++i)
+		{
+			ApplyWarehouseBonusesToTree(warehouse, dynamic_cast<Attack*>(atk->GetChild(i)));
+		}
+	}
+}
+
 ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
 	gfx_(gfx),
@@ -219,7 +241,7 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 		{
 			attackManager->TryGetAimVelocity(spawnPos, aimVel);
 		}
-		assembler_.Begin(field_, gfx_, rg_, spawnPos, aimVel);
+		assembler_.Begin(field_, gfx_, rg_, spawnPos, aimVel, player);
 	}
 
 	assembler_.Update(dt, field_);
@@ -229,6 +251,11 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	{
 		if (attackManager != nullptr && player != nullptr)
 		{
+			for (Attack* root : batch.roots)
+			{
+				ApplyWarehouseBonusesToTree(warehouse_, root);
+			}
+
 			const DirectX::XMFLOAT3 pos = player->GetPosition();
 			DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
 			attackManager->TryGetAimVelocity(pos, vel);

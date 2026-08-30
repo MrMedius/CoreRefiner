@@ -17,6 +17,7 @@ namespace Rgph
 }
 
 struct DeployContext;
+class Attack;
 
 enum class ModuleReadyState : unsigned char
 {
@@ -142,6 +143,13 @@ public:
 	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
 
 	virtual void ApplyTo(DeployContext& ctx) = 0;
+	/**
+	 * @brief 开火前仓内被动加算。默认空；Passive 节点覆写。
+	 */
+	virtual void ApplyWarehouseBonus(Attack& attack)
+	{
+		(void)attack;
+	}
 	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
 	/** @brief 大类；默认 Other。未覆写的新节点会走 Other 色。 */
 	[[nodiscard]] virtual ModuleNodeKind GetKind() const noexcept

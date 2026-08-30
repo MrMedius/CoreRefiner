@@ -88,7 +88,8 @@ public:
 		Graphics& gfx,
 		Rgph::RenderGraph& rg,
 		DirectX::XMFLOAT3 spawnPos,
-		DirectX::XMFLOAT3 aimVel)
+		DirectX::XMFLOAT3 aimVel,
+		Player* player)
 	{
 		if (!CanStart(field))
 		{
@@ -107,6 +108,7 @@ public:
 		session.ctx.standby.gfx = &gfx;
 		session.ctx.standby.rg = &rg;
 		session.ctx.standby.spawnPos = spawnPos;
+		session.ctx.standby.player = player;
 		session.spawnPos = spawnPos;
 		session.aimVel = aimVel;
 		session.pendingFire = false;

@@ -36,6 +36,8 @@ struct AttackStandby
 	Attack* parent{ nullptr };
 	std::vector<Attack*> children;
 	Attack* host{ nullptr };
+	/** @brief 发射者；Orbit 主体绕玩家等后续 Node 用。本步不改 Orbit 行为。 */
+	Player* player{ nullptr };
 };
 
 struct DeployContext
@@ -399,6 +401,7 @@ public:
 		ctx.standby.gfx = &gfx;
 		ctx.standby.rg = &rg;
 		ctx.standby.spawnPos = pos;
+		ctx.standby.player = player;
 
 		for (const auto& step : recipe.steps)
 		{

@@ -71,6 +71,28 @@ bool AttackManager::TryGetAimVelocity(XMFLOAT3 playerPos, XMFLOAT3& outVel) cons
 	return true;
 }
 
+void AttackManager::AdoptLive(Attack* attack)
+{
+	if (attack == nullptr)
+	{
+		return;
+	}
+	bool tracked = false;
+	for (Attack* existing : attacks)
+	{
+		if (existing == attack)
+		{
+			tracked = true;
+			break;
+		}
+	}
+	if (!tracked)
+	{
+		attacks.push_back(attack);
+	}
+	attack->SetAdoptLive([this](Attack* live) { AdoptLive(live); });
+}
+
 void AttackManager::FireRoots(
 	const std::vector<Attack*>& roots,
 	XMFLOAT3 pos,
@@ -82,7 +104,7 @@ void AttackManager::FireRoots(
 		{
 			continue;
 		}
-		attacks.push_back(root);
+		AdoptLive(root);
 		root->SpawnAt(pos, vel);
 		playerRemote++;
 	}
@@ -113,19 +135,7 @@ void AttackManager::AdoptUnparentedAttacks_()
 			continue;
 		}
 		a->SetAwaitingManagerAdopt(false);
-		bool tracked = false;
-		for (Attack* existing : attacks)
-		{
-			if (existing == a)
-			{
-				tracked = true;
-				break;
-			}
-		}
-		if (!tracked)
-		{
-			attacks.push_back(a);
-		}
+		AdoptLive(a);
 	}
 }
 
