@@ -62,10 +62,12 @@ public:
 	 *       Attack overrides to ClearModules after the base cascade.
 	 */
 	virtual void Deactivate();
+
 	/**
-	 * @brief Mark inactive for queries, cascade RequestDisable to children, queue Deactivate at frame end.
+	 * @brief Mark inactive for queries, cascade RequestDisable to remaining children, queue Deactivate at frame end.
+	 * @note Attack overrides: first detaches living Attack children so they keep flying.
 	 */
-	void RequestDisable();
+	virtual void RequestDisable();
 
 	/**
 	 * @brief Local position (≈ Unity localPosition; ≡ world when unparented).

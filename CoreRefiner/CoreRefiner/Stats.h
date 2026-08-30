@@ -40,7 +40,7 @@ struct AttackStats
 {
 	StatMod damage{ 1.0f, 0.0f, 1.0f, 0.0f };
 	StatMod size{ 1.0f, 0.0f, 1.0f, 0.0f };
-	StatMod speed{ 1.0f, 0.0f, 1.0f, 0.0f };
+	StatMod speed{ 0.1f, 0.0f, 1.0f, 0.0f };
 
 	void ResetMods() noexcept
 	{

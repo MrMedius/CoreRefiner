@@ -28,7 +28,6 @@ enum class SlotEntityKind : unsigned char
 struct PendingOrbit
 {
 	float radius{ 2.0f };
-	float angularSpeed{ 3.5f };
 	float phase{ 0.0f };
 };
 
@@ -128,7 +127,7 @@ struct BuildContext
 
 		for (const PendingOrbit& o : slot.pendingOrbits)
 		{
-			ball->AddModule<Rule_Orbit_Module>(o.radius, o.angularSpeed, o.phase);
+			ball->AddModule<Rule_Orbit_Module>(o.radius, o.phase);
 		}
 		for (const PendingLifetime& life : slot.pendingLifetimes)
 		{

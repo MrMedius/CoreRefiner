@@ -168,11 +168,9 @@ public:
 	ModuleNode_Rule_Orbit(
 		DirectX::XMFLOAT2 localPos,
 		float radius = 2.0f,
-		float angularSpeed = 3.5f,
 		float phase = -1.0f) noexcept
 		:
 		orbitRadius_(radius),
-		orbitAngularSpeed_(angularSpeed),
 		orbitPhase_(phase)
 	{
 		localPos_ = localPos;
@@ -184,7 +182,7 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		AttackNodeStep_Rule_Orbit::Make(orbitRadius_, orbitAngularSpeed_, orbitPhase_)->Apply(ctx);
+		AttackNodeStep_Rule_Orbit::Make(orbitRadius_, orbitPhase_)->Apply(ctx);
 	}
 
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
@@ -199,6 +197,5 @@ public:
 
 private:
 	float orbitRadius_{ 2.0f };
-	float orbitAngularSpeed_{ 3.5f };
 	float orbitPhase_{ -1.0f };
 };

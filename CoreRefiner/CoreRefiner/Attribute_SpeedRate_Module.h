@@ -1,7 +1,6 @@
 #pragma once
 #include "IProjectileModule.h"
 #include "Attack.h"
-#include "XMath.h"
 
 class Attribute_SpeedRate_Module : public IProjectileModule
 {
@@ -25,8 +24,7 @@ public:
 		{
 			return;
 		}
-		const XMFLOAT3 acc = owner->GetMoveAccel();
-		owner->SetMoveAccel(V(acc) * speedRate_);
+		owner->Stats().speed.mul = speedRate_;
 	}
 
 	void OnRecycle() override {}

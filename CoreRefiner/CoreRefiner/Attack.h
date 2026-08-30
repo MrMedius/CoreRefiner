@@ -24,8 +24,14 @@ public:
 
 	/**
 	 * @brief Immediate disable: cascade hierarchy, then recycle projectile modules.
+	 * @note Reset / 池回收仍级联子物体；玩法销毁请走 RequestDisable。
 	 */
 	void Deactivate() override;
+
+	/**
+	 * @brief 先把仍存活的子弹卸下并继承速度，再排队销毁自身（不级联子弹）。
+	 */
+	void RequestDisable() override;
 
 	/**
 	 * @brief Attach a projectile module owned by this Attack.
@@ -56,11 +62,16 @@ public:
 		}
 		modules_.clear();
 		stats_.ResetMods();
+		awaitingManagerAdopt_ = false;
 	}
 
 	/** @brief 本弹数值袋（damage / size / speed）。 */
 	[[nodiscard]] AttackStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const AttackStats& Stats() const noexcept { return stats_; }
+
+	/** @brief 父弹卸下后等待 AttackManager 收进更新列表。 */
+	void SetAwaitingManagerAdopt(bool awaiting) noexcept { awaitingManagerAdopt_ = awaiting; }
+	[[nodiscard]] bool IsAwaitingManagerAdopt() const noexcept { return awaitingManagerAdopt_; }
 
 	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
 
@@ -206,4 +217,10 @@ private:
 	/** @brief Gameplay modules; independent from ObjectBase IComponent list. */
 	std::vector<std::unique_ptr<IProjectileModule>> modules_;
 	AttackStats stats_{};
+	bool awaitingManagerAdopt_{ false };
+
+	/**
+	 * @brief 卸下仍存活的子弹：烘焙世界坐标、继承本弹速度、ClearParent。
+	 */
+	void ReleaseLivingChildren_();
 };

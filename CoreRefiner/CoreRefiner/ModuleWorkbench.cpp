@@ -57,14 +57,9 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 	const float fieldOuterH = fieldOuterHalf * 2.0f;
 	const float fieldOuterW = fieldOuterH;
 
-	const float warehouseHalfX =
-		(static_cast<float>(ModuleWarehouse::kColumns - 1) * 0.5f) * ModuleWarehouse::kSlotPitch
-		+ ModuleWarehouse::kBoundsPad;
-	const float warehouseHalfY =
-		(static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch
-		+ ModuleWarehouse::kBoundsPad;
-	const float warehouseSpanY =
-		(static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch;
+	const float warehouseHalfX = (static_cast<float>(ModuleWarehouse::kColumns - 1) * 0.5f) * ModuleWarehouse::kSlotPitch + ModuleWarehouse::kBoundsPad;
+	const float warehouseHalfY = (static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch + ModuleWarehouse::kBoundsPad;
+	const float warehouseSpanY = (static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch;
 	const float warehouseOuterHalfX = warehouseHalfX + kShellPad;
 	const float warehouseOuterHalfY = warehouseHalfY + kShellPad;
 	const float warehouseOuterH = warehouseOuterHalfY * 2.0f;
@@ -76,28 +71,16 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 	const float rightLeft = screenW - gap - rightOuterW;
 	const float rightCx = rightLeft + rightOuterW * 0.5f;
 
-	layoutFieldOrigin_ = DirectX::XMFLOAT3{
-		rightCx,
-		gap + fieldOuterHalf,
-		0.0f
-	};
+	layoutFieldOrigin_ = DirectX::XMFLOAT3{ rightCx, gap + fieldOuterHalf, 0.0f };
 
 	const float warehouseShellTop = gap + fieldOuterH + gap;
-	warehouseOrigin_ = DirectX::XMFLOAT3{
-		rightCx,
-		warehouseShellTop + warehouseOuterHalfY - warehouseSpanY,
-		0.0f
-	};
+	warehouseOrigin_ = DirectX::XMFLOAT3{ rightCx, warehouseShellTop + warehouseOuterHalfY - warehouseSpanY, 0.0f };
 
 	const float warehouseShellBottom = warehouseShellTop + warehouseOuterH;
-	fightBtnCenter_ = DirectX::XMFLOAT2{
-		rightCx,
-		warehouseShellBottom + gap + kFightBtnH * 0.5f
-	};
+	fightBtnCenter_ = DirectX::XMFLOAT2{ rightCx, warehouseShellBottom + gap + kFightBtnH * 0.5f };
 	if (fightBtn_ != nullptr)
 	{
-		fightBtn_->SetLayoutLogicalCenterSize(
-			fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH);
+		fightBtn_->SetLayoutLogicalCenterSize(fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH);
 	}
 
 	const float shopLeft = gap;
@@ -106,11 +89,7 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 	const float shopBottom = fightBtnCenter_.y + kFightBtnH * 0.5f;
 	const float shopHalfX = (shopRight - shopLeft) * 0.5f;
 	const float shopHalfY = (shopBottom - shopTop) * 0.5f;
-	shopOrigin_ = DirectX::XMFLOAT3{
-		shopLeft + shopHalfX,
-		shopTop + shopHalfY,
-		0.0f
-	};
+	shopOrigin_ = DirectX::XMFLOAT3{ shopLeft + shopHalfX, shopTop + shopHalfY, 0.0f };
 	shop_.SetShellExtent(shopHalfX, shopHalfY);
 }
 
@@ -177,7 +156,7 @@ void ModuleWorkbench::PlaceDemoField_()
 	field_.AddNode<ModuleNode_Attribute_Lifetime>(DirectX::XMFLOAT2{ 80.0f, 0.0f }, 2.0f);
 	field_.AddNode<ModuleNode_Attribute_Lifetime>(DirectX::XMFLOAT2{ -110.0f, 0.0f }, 2.0f);
 
-	field_.AddNode<ModuleNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ 30.0f, 90.0f }, 0.5f);
+	field_.AddNode<ModuleNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ 30.0f, 90.0f }, 5.0f);
 	field_.AddNode<ModuleNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ -50.0f, 90.0f }, 0.2f);
 }
 

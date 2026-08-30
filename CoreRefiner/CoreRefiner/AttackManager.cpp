@@ -100,6 +100,33 @@ void AttackManager::Update(float dt)
 			i--;
 		}
 	}
+	AdoptUnparentedAttacks_();
+}
+
+void AttackManager::AdoptUnparentedAttacks_()
+{
+	const std::vector<Attack*> live = ObjectCodex::FindActiveObjectsByTag<Attack>(attack_Ball);
+	for (Attack* a : live)
+	{
+		if (a == nullptr || !a->IsActive() || !a->IsAwaitingManagerAdopt())
+		{
+			continue;
+		}
+		a->SetAwaitingManagerAdopt(false);
+		bool tracked = false;
+		for (Attack* existing : attacks)
+		{
+			if (existing == a)
+			{
+				tracked = true;
+				break;
+			}
+		}
+		if (!tracked)
+		{
+			attacks.push_back(a);
+		}
+	}
 }
 
 void AttackManager::Submit(void)
@@ -114,6 +141,14 @@ void AttackManager::Reset(void)
 	for (int i = 0; i < attacks.size(); i++)
 		if (attacks[i]->IsActive())
 			attacks[i]->Deactivate();
+
+	for (Attack* a : ObjectCodex::FindActiveObjectsByTag<Attack>(attack_Ball))
+	{
+		if (a != nullptr && a->IsActive())
+		{
+			a->Deactivate();
+		}
+	}
 
 	attacks.clear();
 	playerRemote = 0;

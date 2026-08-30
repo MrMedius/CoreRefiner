@@ -14,7 +14,9 @@
 #include "XMath.h"
 
 #include <cmath>
+#include <functional>
 #include <memory>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -40,6 +42,8 @@ struct DeployContext
 {
 	AttackStandby standby;
 	std::vector<Attack*> shots;
+	// 当前空子坑上等待 host 填入后再执行的安装
+	std::vector<std::function<void(DeployContext&)>> pitQueue;
 
 	void FlushStandby()
 	{
@@ -50,8 +54,53 @@ struct DeployContext
 		standby.parent = nullptr;
 		standby.children.clear();
 		standby.host = nullptr;
+		pitQueue.clear();
+	}
+
+	
+	//把安装动作挂到当前空子坑；球体填坑后 DrainPitQueue 再跑。
+	void EnqueueOnEmptyPit(std::function<void(DeployContext&)> job)
+	{
+		pitQueue.push_back(std::move(job));
+	}
+
+	//对当前 host 执行坑队列（先移出再跑，避免 Drain 中再次入队套娃）。
+	void DrainPitQueue()
+	{
+		auto jobs = std::move(pitQueue);
+		pitQueue.clear();
+		for (auto& job : jobs)
+		{
+			if (job)
+			{
+				job(*this);
+			}
+		}
 	}
 };
+
+// 打 standby.host
+// host 空且已开子坑则入队，等填坑后再装。
+template <typename T, typename... Args>
+T* AddToFocus(DeployContext& ctx, Args&&... args)
+{
+	if (ctx.standby.host == nullptr)
+	{
+		if (ctx.standby.parent != nullptr)
+		{
+			ctx.EnqueueOnEmptyPit(
+				[captured = std::make_tuple(std::forward<Args>(args)...)](DeployContext& c) mutable
+				{
+					std::apply([&c](auto&&... a)
+					{
+						AddToFocus<T>(c, std::forward<decltype(a)>(a)...);
+					}, std::move(captured));
+				});
+		}
+		return nullptr;
+	}
+	return ctx.standby.host->AddModule<T>(std::forward<Args>(args)...);
+}
 
 class IAttackNodeStep
 {
@@ -162,6 +211,7 @@ public:
 		ball->SetParent(s.parent);
 		s.children.push_back(ball);
 		s.host = ball;
+		ctx.DrainPitQueue();
 		RedistributeChildrenEvenly(s);
 	}
 
@@ -220,14 +270,11 @@ public:
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_Lifetime"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
-		if (ctx.standby.parent != nullptr)
-		{
-			ctx.standby.parent->AddModule<Attribute_Lifetime_Module>(durationSeconds_);
-		}
+		AddToFocus<Attribute_Lifetime_Module>(ctx, durationSeconds_);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Attribute_Lifetime> Make(float durationSeconds)
@@ -252,14 +299,11 @@ public:
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SpeedRate"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
-		if (ctx.standby.parent != nullptr)
-		{
-			ctx.standby.parent->AddModule<Attribute_SpeedRate_Module>(speedRate_);
-		}
+		AddToFocus<Attribute_SpeedRate_Module>(ctx, speedRate_);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Attribute_SpeedRate> Make(float speedRate)
@@ -274,10 +318,9 @@ private:
 class AttackNodeStep_Rule_Orbit final : public IAttackNodeStep
 {
 public:
-	AttackNodeStep_Rule_Orbit(float radius, float angularSpeed, float phase = -1.0f) noexcept
+	AttackNodeStep_Rule_Orbit(float radius, float phase = -1.0f) noexcept
 		:
 		orbitRadius_(radius),
-		orbitAngularSpeed_(angularSpeed),
 		orbitPhase_(phase)
 	{}
 
@@ -291,13 +334,26 @@ public:
 	void Apply(DeployContext& ctx) override
 	{
 		AttackStandby& s = ctx.standby;
-		if (s.host == nullptr || s.host == s.parent)
+		if (s.host == s.parent && s.host != nullptr)
 		{
+			return;
+		}
+		if (s.host == nullptr)
+		{
+			if (s.parent == nullptr)
+			{
+				return;
+			}
+			const float radius = orbitRadius_;
+			const float phase = orbitPhase_;
+			ctx.EnqueueOnEmptyPit([radius, phase](DeployContext& c)
+			{
+				AttackNodeStep_Rule_Orbit(radius, phase).Apply(c);
+			});
 			return;
 		}
 
 		s.childDistributeRadius = orbitRadius_;
-
 		float phase = orbitPhase_;
 		if (phase < 0.0f)
 		{
@@ -314,21 +370,18 @@ public:
 				}
 			}
 		}
-
-		s.host->AddModule<Rule_Orbit_Module>(orbitRadius_, orbitAngularSpeed_, phase);
+		s.host->AddModule<Rule_Orbit_Module>(orbitRadius_, phase);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Rule_Orbit> Make(
 		float radius,
-		float angularSpeed,
 		float phase = -1.0f)
 	{
-		return std::make_unique<AttackNodeStep_Rule_Orbit>(radius, angularSpeed, phase);
+		return std::make_unique<AttackNodeStep_Rule_Orbit>(radius, phase);
 	}
 
 private:
 	float orbitRadius_{ 2.0f };
-	float orbitAngularSpeed_{ 3.5f };
 	float orbitPhase_{ -1.0f };
 };
 

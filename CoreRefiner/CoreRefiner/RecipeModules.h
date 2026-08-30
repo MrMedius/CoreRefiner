@@ -103,10 +103,9 @@ public:
 class OrbitRecipeModule final : public IRecipeModule
 {
 public:
-	OrbitRecipeModule(float radius, float angularSpeed, float phase) noexcept
+	OrbitRecipeModule(float radius, float phase) noexcept
 		:
 		radius_(radius),
-		angularSpeed_(angularSpeed),
 		phase_(phase)
 	{}
 
@@ -118,17 +117,16 @@ public:
 		{
 			return;
 		}
-		ctx.focus->pendingOrbits.push_back(PendingOrbit{ radius_, angularSpeed_, phase_ });
+		ctx.focus->pendingOrbits.push_back(PendingOrbit{ radius_, phase_ });
 	}
 
-	static std::unique_ptr<OrbitRecipeModule> Make(float radius, float angularSpeed, float phase)
+	static std::unique_ptr<OrbitRecipeModule> Make(float radius, float phase)
 	{
-		return std::make_unique<OrbitRecipeModule>(radius, angularSpeed, phase);
+		return std::make_unique<OrbitRecipeModule>(radius, phase);
 	}
 
 private:
 	float radius_{ 2.0f };
-	float angularSpeed_{ 3.5f };
 	float phase_{ 0.0f };
 };
 

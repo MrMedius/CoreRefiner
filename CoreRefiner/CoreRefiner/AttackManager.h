@@ -38,4 +38,7 @@ private:
 	int playerRemote{ 0 };
 
 	Player* pPlayer;
+
+	/** @brief 只收养「父弹卸下时打了标记」的弹，不收组装中的主体。 */
+	void AdoptUnparentedAttacks_();
 };

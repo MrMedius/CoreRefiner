@@ -5,23 +5,15 @@
 
 #include <cmath>
 
-/**
- * @brief Update(+Spawn) module: orbit owner in local XZ about parent origin.
- */
+// 绕父物体本地 XZ 公转；角速度 = owner.Stats().speed.Final()。
+// 无父物体时不改位置（父弹销毁后子弹按自身速度继续飞）。
 class Rule_Orbit_Module : public IProjectileModule
 {
 public:
-	/**
-	 * @param owner Injected by Attack::AddModule.
-	 * @param radius Local XZ orbit radius.
-	 * @param angularSpeed Radians per second about parent Y.
-	 * @param phase0 Initial angle in radians.
-	 */
-	Rule_Orbit_Module(Attack* owner, float radius, float angularSpeed, float phase0) noexcept
+	Rule_Orbit_Module(Attack* owner, float radius, float phase0) noexcept
 		:
 		IProjectileModule(owner),
 		radius_(radius),
-		angularSpeed_(angularSpeed),
 		phase0_(phase0),
 		angle_(phase0)
 	{}
@@ -40,7 +32,13 @@ public:
 
 	void OnUpdate(float dt) override
 	{
-		angle_ += angularSpeed_ * dt;
+		Attack* owner = GetOwner();
+		if (owner == nullptr || owner->GetParent() == nullptr)
+		{
+			return;
+		}
+		const float omega = 1.0f + owner->Stats().speed.Final();
+		angle_ += omega * dt;
 		ApplyLocalPose_();
 	}
 
@@ -66,7 +64,7 @@ private:
 	void ApplyLocalPose_()
 	{
 		Attack* owner = GetOwner();
-		if (owner == nullptr)
+		if (owner == nullptr || owner->GetParent() == nullptr)
 		{
 			return;
 		}
@@ -78,7 +76,6 @@ private:
 	}
 
 	float radius_{ 2.0f };
-	float angularSpeed_{ 3.5f };
 	float phase0_{ 0.0f };
 	float angle_{ 0.0f };
 };
