@@ -23,11 +23,11 @@ LoopMain::LoopMain(const std::string& commandLine)
 	wnd(1280, 720, "CR"),
 	scriptCommander(TokenizeQuoted(commandLine))
 {
-	ApplyWindowSizeIndex(wnd, GameStatsCodex::GetWindowSizeIndex());
-	ApplyFullscreen(wnd, GameStatsCodex::GetFullscreen());
-
 	(void)LoadSettings();
 	(void)LoadUiCopy();
+
+	ApplyWindowSizeIndex(wnd, GameStatsCodex::GetWindowSizeIndex());
+	ApplyFullscreen(wnd, GameStatsCodex::GetFullscreen());
 
 	SoundCodex::Get().PlayBGM(SndPath::BGM_Title, -1);
 	SoundCodex::Get().SetMasterVolume(GameStatsCodex::GetMuted() ? 0.0f : GameStatsCodex::GetMasterVolume());

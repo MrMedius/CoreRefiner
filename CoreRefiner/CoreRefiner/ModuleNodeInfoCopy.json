@@ -21,6 +21,13 @@
         { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
       ]
     },
+    "Attribute_SizeRate": {
+      "title": "尺寸倍率",
+      "body": "加算弹体外形尺寸倍率。正值变大，负值变小。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
     "Rule_Orbit": {
       "title": "环绕规则",
       "body": "为弹道附加环绕运动规则，改变其相对父节点的运行轨迹。",
@@ -58,6 +65,13 @@
         { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
       ]
     },
+    "Attribute_SizeRate": {
+      "title": "サイズ倍率",
+      "body": "弾の外形サイズ倍率を加算する。正で大きく、負で小さく。",
+      "spans": [
+        { "start": 0, "length": 6, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
     "Rule_Orbit": {
       "title": "周回ルール",
       "body": "弾に周回運動を付与し、親からの相対軌道を変える。",
@@ -93,6 +107,13 @@
       "body": "Scales projectile speed. Values above 1 speed up; below 1 slow down.",
       "spans": [
         { "start": 0, "length": 10, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_SizeRate": {
+      "title": "Size Rate",
+      "body": "Adds to projectile size rate. Positive grows; negative shrinks.",
+      "spans": [
+        { "start": 0, "length": 9, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
       ]
     },
     "Rule_Orbit": {

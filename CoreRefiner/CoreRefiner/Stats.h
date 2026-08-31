@@ -4,18 +4,18 @@ struct StatMod
 {
 	float base{ 0.0f };
 	float add{ 0.0f };
-	float mul{ 1.0f };
+	float rate{ 1.0f };
 	float fix{ 0.0f };
 
 	[[nodiscard]] float Final() const noexcept
 	{
-		return (base + add) * mul + fix;
+		return (base + add) * rate + fix;
 	}
 
 	void ResetMods() noexcept
 	{
 		add = 0.0f;
-		mul = 1.0f;
+		rate = 1.0f;
 		fix = 0.0f;
 	}
 };

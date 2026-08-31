@@ -1518,6 +1518,9 @@
     <ClInclude Include="Stats.h">
       <Filter>Object</Filter>
     </ClInclude>
+    <ClInclude Include="Attribute_SizeRate_Module.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

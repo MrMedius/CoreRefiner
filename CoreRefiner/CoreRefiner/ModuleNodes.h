@@ -162,6 +162,39 @@ private:
 	float speedRate_{ 1.0f };
 };
 
+class ModuleNode_Attribute_SizeRate final : public IModuleNode
+{
+public:
+	ModuleNode_Attribute_SizeRate(DirectX::XMFLOAT2 localPos, float sizeRate = 0.5f) noexcept
+		:
+		sizeRate_(sizeRate)
+	{
+		localPos_ = localPos;
+		hitRadius_ = 12.0f;
+		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Attribute_SizeRate::Make(sizeRate_)->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Attribute_SizeRate;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Attribute;
+	}
+
+private:
+	float sizeRate_{ 0.5f };
+};
+
 class ModuleNode_Rule_Orbit final : public IModuleNode
 {
 public:

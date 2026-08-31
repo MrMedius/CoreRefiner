@@ -180,6 +180,9 @@ void ModuleWorkbench::PlaceDemoField_()
 
 	field_.AddNode<ModuleNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ 30.0f, 90.0f }, 5.0f);
 	field_.AddNode<ModuleNode_Attribute_SpeedRate>(DirectX::XMFLOAT2{ -50.0f, 90.0f }, 0.2f);
+
+	field_.AddNode<ModuleNode_Attribute_SizeRate>(DirectX::XMFLOAT2{ 30.0f, -120.0f }, 2.0f);
+	field_.AddNode<ModuleNode_Attribute_SizeRate>(DirectX::XMFLOAT2{ -50.0f, -120.0f }, -0.5f);
 }
 
 void ModuleWorkbench::PlaceDemoWarehouse_()

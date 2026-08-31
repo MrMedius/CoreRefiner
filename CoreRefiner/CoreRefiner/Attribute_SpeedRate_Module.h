@@ -17,6 +17,7 @@ public:
 		return ModuleNodeLabel::Attribute_SpeedRate;
 	}
 
+	// 把配置倍率加进 speed.mul；直线弹 SpawnAt、公转 OnUpdate 都读 Final()。
 	void OnSpawn() override
 	{
 		Attack* owner = GetOwner();
@@ -24,7 +25,7 @@ public:
 		{
 			return;
 		}
-		owner->Stats().speed.mul = speedRate_;
+		owner->Stats().speed.rate += speedRate_;
 	}
 
 	void OnRecycle() override {}

@@ -111,6 +111,25 @@ namespace NodeIconAtlas
 			0b0000001111000000,
 		};
 
+		inline constexpr IconAtlas::IconBits kAttributeSizeRate{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000000000100,
+			0b0100111001110010,
+			0b0100110000110010,
+			0b1000101001010001,
+			0b1000000100000001,
+			0b1000000010000001,
+			0b1000101001010001,
+			0b0100110000110010,
+			0b0100111001110010,
+			0b0010000000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+
 		inline constexpr IconAtlas::IconBits kRuleOrbit{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -155,7 +174,7 @@ namespace NodeIconAtlas
 		detail::kSpawnBall,           // Spawn_Ball
 		detail::kAttributeLifetime,   // Attribute_Lifetime
 		detail::kAttributeSpeedRate,  // Attribute_SpeedRate
-		detail::kRoundFrame,          // Attribute_SizeRate
+		detail::kAttributeSizeRate,   // Attribute_SizeRate
 		detail::kRoundFrame,          // Attribute_DamageRate
 		detail::kRuleOrbit,           // Rule_Orbit
 		detail::kRoundFrame,          // Rule_Return
