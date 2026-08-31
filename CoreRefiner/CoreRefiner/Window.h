@@ -81,9 +81,12 @@ private:
 	void HideCursor() noexcept;
 	void EnableImGuiMouse() noexcept;
 	void DisableImGuiMouse() noexcept;
+	// MapClient
 	bool MapClientToGame(int cx, int cy, int& outX, int& outY) noexcept;
 	void RememberWindowedClientSize_(int clientWidth, int clientHeight) noexcept;
 	void ApplyWindowedClientSize_(int clientWidth, int clientHeight) noexcept;
+	void ClampToWorkArea_() noexcept;
+	// Message
 	static LRESULT CALLBACK HandleMsgSetup( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noexcept;
 	static LRESULT CALLBACK HandleMsgThunk( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noexcept;
 	LRESULT HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam ) noexcept;

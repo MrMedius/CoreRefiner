@@ -254,12 +254,13 @@ void Window::ToggleFullscreen() noexcept
 			windowedRect.bottom - windowedRect.top,
 			SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE );
 
+		isFullscreen = false;
+		ClampToWorkArea_();
+
 		// Restore Graphics Size
 		UINT cw, ch;
 		GetClientSize(hWnd, cw, ch);
 		pGfx->OnWindowResize(cw, ch);
-
-		isFullscreen = false;
 	}
 }
 
@@ -334,10 +335,77 @@ void Window::ApplyWindowedClientSize_(int clientWidth, int clientHeight) noexcep
 		wr.bottom - wr.top,
 		SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
+	ClampToWorkArea_();
+
 	UINT cw = 0;
 	UINT ch = 0;
 	GetClientSize(hWnd, cw, ch);
 	pGfx->OnWindowResize(cw, ch);
+}
+
+void Window::ClampToWorkArea_() noexcept
+{
+	if (hWnd == nullptr || isFullscreen)
+	{
+		return;
+	}
+
+	MONITORINFO mi{ sizeof(MONITORINFO) };
+	if (GetMonitorInfo(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) == 0)
+	{
+		return;
+	}
+
+	RECT cur{};
+	if (GetWindowRect(hWnd, &cur) == 0)
+	{
+		return;
+	}
+
+	const int wndW = cur.right - cur.left;
+	const int wndH = cur.bottom - cur.top;
+	const RECT& work = mi.rcWork;
+	const int workW = work.right - work.left;
+	const int workH = work.bottom - work.top;
+
+	int x = cur.left;
+	int y = cur.top;
+	if (wndW >= workW)
+	{
+		x = work.left;
+	}
+	else
+	{
+		if (x < work.left)
+		{
+			x = work.left;
+		}
+		if (x + wndW > work.right)
+		{
+			x = work.right - wndW;
+		}
+	}
+	if (wndH >= workH)
+	{
+		y = work.top;
+	}
+	else
+	{
+		if (y < work.top)
+		{
+			y = work.top;
+		}
+		if (y + wndH > work.bottom)
+		{
+			y = work.bottom - wndH;
+		}
+	}
+
+	if (x == cur.left && y == cur.top)
+	{
+		return;
+	}
+	SetWindowPos(hWnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 std::optional<int> Window::ProcessMessages() noexcept

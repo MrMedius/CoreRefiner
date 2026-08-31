@@ -213,6 +213,15 @@ bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 	return any;
 }
 
+bool LoadModuleNodeInfoCopy()
+{
+	if (g_loaded)
+	{
+		return true;
+	}
+	return TryLoadCopyWithFallback("ModuleNodeInfoCopy.json", static_cast<bool(*)(const std::filesystem::path&)>(&LoadModuleNodeInfoCopy));
+}
+
 bool IsModuleNodeInfoCopyLoaded() noexcept
 {
 	return g_loaded;

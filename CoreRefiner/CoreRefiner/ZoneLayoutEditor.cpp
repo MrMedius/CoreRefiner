@@ -1,6 +1,5 @@
 #include "ZoneLayoutEditor.h"
 #include "ModuleShop.h"
-#include "ModuleNodeInfoCopy.h"
 #include "ModuleNodePrice.h"
 #include "GameStatsCodex.h"
 #include "InputCodex.h"
@@ -14,15 +13,6 @@
 
 namespace
 {
-	void EnsureModuleNodeInfoCopyLoaded_()
-	{
-		if (IsModuleNodeInfoCopyLoaded())
-		{
-			return;
-		}
-		(void)TryLoadCopyWithFallback("ModuleNodeInfoCopy.json", &LoadModuleNodeInfoCopy);
-	}
-
 	[[nodiscard]] bool IsBoundZoneId_(ZoneId id) noexcept
 	{
 		return ToIndex(id) < ZoneCount();
@@ -35,7 +25,6 @@ void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::a
 	zones_ = zones;
 
 	EnsureRingVisual_(gfx, rg);
-	EnsureModuleNodeInfoCopyLoaded_();
 	infoPanel_.Ensure(gfx, rg);
 	infoPanel_.Hide();
 

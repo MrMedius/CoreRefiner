@@ -15,6 +15,7 @@
 #include "TitleScene.h"
 
 #include "UiCopy.h"
+#include "ModuleNodeInfoCopy.h"
 #include "Util.h"
 
 LoopMain::LoopMain(const std::string& commandLine)
@@ -25,6 +26,7 @@ LoopMain::LoopMain(const std::string& commandLine)
 {
 	(void)LoadSettings();
 	(void)LoadUiCopy();
+	(void)LoadModuleNodeInfoCopy();
 
 	ApplyWindowSizeIndex(wnd, GameStatsCodex::GetWindowSizeIndex());
 	ApplyFullscreen(wnd, GameStatsCodex::GetFullscreen());

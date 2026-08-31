@@ -29,6 +29,8 @@ struct ModuleNodeInfoEntry
 
 bool LoadModuleNodeInfoCopy(const std::filesystem::path& path);
 
+bool LoadModuleNodeInfoCopy();
+
 [[nodiscard]] bool IsModuleNodeInfoCopyLoaded() noexcept;
 
 // 按 GameStatsCodex::GetLanguage() 取词条；缺则回退 En、Zh

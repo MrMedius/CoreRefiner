@@ -42,15 +42,6 @@ static_assert(ModuleShop::kSlotCount >= 1);
 
 namespace
 {
-	void EnsureModuleNodeInfoCopyLoaded_()
-	{
-		if (IsModuleNodeInfoCopyLoaded())
-		{
-			return;
-		}
-		(void)TryLoadCopyWithFallback("ModuleNodeInfoCopy.json", &LoadModuleNodeInfoCopy);
-	}
-
 	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
 	{
 		if (scale == 0u)
@@ -1140,7 +1131,6 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	gfx_ = &gfx;
 	rg_ = &rg;
-	EnsureModuleNodeInfoCopyLoaded_();
 	EnsurePanelVisual_(gfx, rg);
 	EnsureSlotCardVisuals_(gfx, rg);
 	EnsureLockButtonVisuals_(gfx, rg);
