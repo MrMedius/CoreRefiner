@@ -16,25 +16,34 @@
 
 #include <array>
 #include <string>
+#include <vector>
 
 namespace
 {
 	/**
-	 * @brief 仓内占用节点对 @p atk 及其子树调用 ApplyWarehouseBonus（当前默认空）。
+	 * @brief 仓内占用节点对 @p atk 调用 ApplyWarehouseBonus。
 	 */
-	void ApplyWarehouseBonusesToTree(ModuleWarehouse& warehouse, Attack* atk)
+	void ApplyWarehouseBonuses(ModuleWarehouse& warehouse, Attack& atk)
+	{
+		warehouse.ForEach([&](IModuleNode& node)
+		{
+			node.ApplyWarehouseBonus(atk);
+		});
+	}
+
+	/**
+	 * @brief 开火前拍平主体与子弹（公转弹随后会卸父子，仍要吃到仓被动）。
+	 */
+	void CollectAttackTree(Attack* atk, std::vector<Attack*>& out)
 	{
 		if (atk == nullptr)
 		{
 			return;
 		}
-		warehouse.ForEach([&](IModuleNode& node)
-		{
-			node.ApplyWarehouseBonus(*atk);
-		});
+		out.push_back(atk);
 		for (std::size_t i = 0; i < atk->GetChildCount(); ++i)
 		{
-			ApplyWarehouseBonusesToTree(warehouse, dynamic_cast<Attack*>(atk->GetChild(i)));
+			CollectAttackTree(dynamic_cast<Attack*>(atk->GetChild(i)), out);
 		}
 	}
 }
@@ -185,7 +194,9 @@ void ModuleWorkbench::PlaceDemoField_()
 }
 
 void ModuleWorkbench::PlaceDemoWarehouse_()
-{}
+{
+	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f }, 1.0f);
+}
 
 void ModuleWorkbench::Reset()
 {
@@ -214,6 +225,8 @@ void ModuleWorkbench::Reset()
 		(void)warehouse_.TakeNode(i);
 	}
 	warehouse_.SetEnabledSlotCount(ModuleWarehouse::kInitialEnabledSlots);
+	PlaceDemoWarehouse_();
+	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
 
 	shop_.FillStock();
 	shop_.ResetVisit();
@@ -253,15 +266,24 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	{
 		if (attackManager != nullptr && player != nullptr)
 		{
+			std::vector<Attack*> bonusAtks;
 			for (Attack* root : batch.roots)
 			{
-				ApplyWarehouseBonusesToTree(warehouse_, root);
+				CollectAttackTree(root, bonusAtks);
 			}
 
 			const DirectX::XMFLOAT3 pos = player->GetPosition();
 			DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
 			attackManager->TryGetAimVelocity(pos, vel);
-			attackManager->FireRoots(std::move(batch.roots), pos, vel);
+			attackManager->FireRoots(batch.roots, pos, vel);
+
+			for (Attack* atk : bonusAtks)
+			{
+				if (atk != nullptr && atk->IsActive())
+				{
+					ApplyWarehouseBonuses(warehouse_, *atk);
+				}
+			}
 		}
 		else
 		{

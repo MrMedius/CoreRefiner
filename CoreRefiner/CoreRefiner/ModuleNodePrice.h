@@ -47,5 +47,6 @@ namespace ModuleNodePrice
 	static_assert(GetSellPrice(ModuleNodeLabel::Attribute_SpeedRate) < GetBuyPrice(ModuleNodeLabel::Attribute_SpeedRate));
 	static_assert(GetSellPrice(ModuleNodeLabel::Rule_Orbit) < GetBuyPrice(ModuleNodeLabel::Rule_Orbit));
 	static_assert(GetSellPrice(ModuleNodeLabel::Rule_Return) < GetBuyPrice(ModuleNodeLabel::Rule_Return));
+	static_assert(GetSellPrice(ModuleNodeLabel::Passive_DamageFix) < GetBuyPrice(ModuleNodeLabel::Passive_DamageFix));
 	static_assert(GetSellPrice(ModuleNodeLabel::Other_Child) < GetBuyPrice(ModuleNodeLabel::Other_Child));
 }

@@ -293,3 +293,41 @@ public:
 		return ModuleNodeKind::Rule;
 	}
 };
+
+class ModuleNode_Passive_DamageFix final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Passive_DamageFix(DirectX::XMFLOAT2 localPos, float damageFix = 1.0f) noexcept
+		:
+		damageFix_(damageFix)
+	{
+		localPos_ = localPos;
+		hitRadius_ = 16.0f;
+		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		(void)ctx;
+	}
+
+	void ApplyWarehouseBonus(Attack& attack) override
+	{
+		attack.Stats().damage.fix += damageFix_;
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Passive_DamageFix;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Passive;
+	}
+
+private:
+	float damageFix_{ 1.0f };
+};

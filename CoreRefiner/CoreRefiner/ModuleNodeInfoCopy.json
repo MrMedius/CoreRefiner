@@ -49,6 +49,13 @@
         { "start": 0, "length": 4, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
       ]
     },
+    "Passive_DamageFix": {
+      "title": "伤害固定",
+      "body": "放在仓库中时，开火给弹体伤害加算固定值。放在战场上扫描无效。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 192, "g": 192, "b": 192, "a": 255, "weight": "bold" }
+      ]
+    },
     "Other_Child": {
       "title": "子弹",
       "body": "作为附加子节点挂接，扩展弹道树的结构与表现。",
@@ -107,6 +114,13 @@
         { "start": 0, "length": 5, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
       ]
     },
+    "Passive_DamageFix": {
+      "title": "固定ダメージ",
+      "body": "倉庫にあるとき、発射時に弾のダメージへ固定値を加算する。フィールド上のスキャンでは無効。",
+      "spans": [
+        { "start": 0, "length": 6, "r": 192, "g": 192, "b": 192, "a": 255, "weight": "bold" }
+      ]
+    },
     "Other_Child": {
       "title": "子弾",
       "body": "追加の子ノードとして接続し、弾ツリーの構造と見た目を拡張する。",
@@ -163,6 +177,13 @@
       "body": "Spawns at the mouse ground point and flies toward the player. Locked spawn points keep their position.",
       "spans": [
         { "start": 0, "length": 11, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Passive_DamageFix": {
+      "title": "Damage Fix",
+      "body": "While in the warehouse, adds a flat amount to projectile damage on fire. Scanning it on the field does nothing.",
+      "spans": [
+        { "start": 0, "length": 10, "r": 192, "g": 192, "b": 192, "a": 255, "weight": "bold" }
       ]
     },
     "Other_Child": {

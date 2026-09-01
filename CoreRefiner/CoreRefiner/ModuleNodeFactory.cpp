@@ -9,6 +9,7 @@ namespace ModuleNodeFactory
 		constexpr float kSpeedRate = 0.5f;
 		constexpr float kSizeRate = 0.5f;
 		constexpr float kDamageRate = 0.5f;
+		constexpr float kDamageFix = 1.0f;
 	}
 
 	std::unique_ptr<IModuleNode> MakeModuleNode(
@@ -25,8 +26,8 @@ namespace ModuleNodeFactory
 		case ModuleNodeLabel::Attribute_DamageRate:		return std::make_unique<ModuleNode_Attribute_DamageRate>(localPos, kDamageRate);
 		case ModuleNodeLabel::Rule_Orbit:				return std::make_unique<ModuleNode_Rule_Orbit>(localPos);
 		case ModuleNodeLabel::Rule_Return:				return std::make_unique<ModuleNode_Rule_Return>(localPos);
+		case ModuleNodeLabel::Passive_DamageFix:		return std::make_unique<ModuleNode_Passive_DamageFix>(localPos, kDamageFix);
 		case ModuleNodeLabel::Other_Child:				return std::make_unique<ModuleNode_Other_Child>(localPos);
-		case ModuleNodeLabel::Passive_DamageFix:
 		case ModuleNodeLabel::Other_Revive:
 		case ModuleNodeLabel::Count:
 		default:

@@ -28,12 +28,12 @@ enum class ModuleReadyState : unsigned char
 namespace ModuleNodeKindFill
 {
 	inline constexpr Color kFill[] = {
-		Color(255u, 255u,   0u, 255u), // Core
-		Color(255u, 180u,  60u, 255u), // Spawn
-		Color(120u, 200u, 255u, 255u), // Attribute
-		Color(140u, 220u, 130u, 255u), // Rule
-		Color(255u, 150u,  70u, 255u), // Passive
-		Color(200u, 160u, 255u, 255u), // Other
+		Color(255u, 255u,   0u, 255u), // Core      RGB(255,255,  0) #FFFF00 纯黄
+		Color(255u, 180u,  60u, 255u), // Spawn     RGB(255,180, 60) #FFB43C 橙
+		Color(120u, 200u, 255u, 255u), // Attribute RGB(120,200,255) #78C8FF 青
+		Color(140u, 220u, 130u, 255u), // Rule      RGB(140,220,130) #8CDC82 绿
+		Color(192u, 192u, 192u, 255u), // Passive   RGB(192,192,192) #C0C0C0 银
+		Color(200u, 160u, 255u, 255u), // Other     RGB(200,160,255) #C8A0FF 紫
 	};
 
 	static_assert(sizeof(kFill) / sizeof(kFill[0]) == ModuleNodeKindCount(), "ModuleNodeKindFill::kFill size must match ModuleNodeKindCount");

@@ -187,6 +187,25 @@ namespace NodeIconAtlas
 			0b0000001111000000,
 		};
 
+		inline constexpr IconAtlas::IconBits kPassiveDamageFix{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000000100100,
+			0b0100000000100010,
+			0b0100000011111010,
+			0b1000000000100001,
+			0b1000001110100001,
+			0b1000000110000001,
+			0b1000101010000001,
+			0b0100010000000010,
+			0b0100101000000010,
+			0b0010000000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+
 		inline constexpr IconAtlas::IconBits kOtherChild{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -216,7 +235,7 @@ namespace NodeIconAtlas
 		detail::kAttributeDamageRate, // Attribute_DamageRate
 		detail::kRuleOrbit,           // Rule_Orbit
 		detail::kRuleReturn,          // Rule_Return
-		detail::kRoundFrame,          // Passive_DamageFix
+		detail::kPassiveDamageFix,    // Passive_DamageFix
 		detail::kOtherChild,          // Other_Child
 		detail::kRoundFrame,          // Other_Revive
 	};
