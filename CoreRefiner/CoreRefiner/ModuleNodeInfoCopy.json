@@ -28,6 +28,13 @@
         { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
       ]
     },
+    "Attribute_DamageRate": {
+      "title": "伤害倍率",
+      "body": "加算弹体伤害倍率。正值提高伤害，负值降低。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
     "Rule_Orbit": {
       "title": "环绕规则",
       "body": "为弹道附加环绕运动规则，改变其相对父节点的运行轨迹。",
@@ -72,6 +79,13 @@
         { "start": 0, "length": 6, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
       ]
     },
+    "Attribute_DamageRate": {
+      "title": "ダメージ倍率",
+      "body": "弾のダメージ倍率を加算する。正で増加、負で減少。",
+      "spans": [
+        { "start": 0, "length": 7, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
     "Rule_Orbit": {
       "title": "周回ルール",
       "body": "弾に周回運動を付与し、親からの相対軌道を変える。",
@@ -114,6 +128,13 @@
       "body": "Adds to projectile size rate. Positive grows; negative shrinks.",
       "spans": [
         { "start": 0, "length": 9, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Attribute_DamageRate": {
+      "title": "Damage Rate",
+      "body": "Adds to projectile damage rate. Positive increases; negative decreases.",
+      "spans": [
+        { "start": 0, "length": 11, "r": 120, "g": 200, "b": 255, "a": 255, "weight": "bold" }
       ]
     },
     "Rule_Orbit": {

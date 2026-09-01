@@ -7,6 +7,7 @@
 #include "Attribute_Lifetime_Module.h"
 #include "Attribute_SpeedRate_Module.h"
 #include "Attribute_SizeRate_Module.h"
+#include "Attribute_DamageRate_Module.h"
 
 #include "ObjectCodex.h"
 #include "Graphics.h"
@@ -345,6 +346,35 @@ public:
 
 private:
 	float sizeRate_{ 0.0f };
+};
+
+class AttackNodeStep_Attribute_DamageRate final : public IAttackNodeStep
+{
+public:
+	explicit AttackNodeStep_Attribute_DamageRate(float damageRate) noexcept
+		: damageRate_{ damageRate }
+	{}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Attribute_DamageRate;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_DamageRate"; }
+	[[nodiscard]] bool HasModule() const noexcept override { return true; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
+
+	void Apply(DeployContext& ctx) override
+	{
+		AddToFocus<Attribute_DamageRate_Module>(ctx, damageRate_);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Attribute_DamageRate> Make(float damageRate)
+	{
+		return std::make_unique<AttackNodeStep_Attribute_DamageRate>(damageRate);
+	}
+
+private:
+	float damageRate_{ 0.0f };
 };
 
 class AttackNodeStep_Rule_Orbit final : public IAttackNodeStep

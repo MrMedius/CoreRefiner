@@ -22,7 +22,7 @@ public:
 		// parameters init
 		SetPosition(position);
 		SetSize({ 2.0f, 2.0f, 2.0f });
-		SetHpMax(1.0f);
+		SetHpMax(3.0f);
 		ResetHpCurrent();
 		SetMoveAccel(0.01f);
 

@@ -366,6 +366,7 @@
     <ClInclude Include="AnimationInfo.h" />
     <ClInclude Include="Attack.h" />
     <ClInclude Include="AttackManager.h" />
+    <ClInclude Include="Attribute_DamageRate_Module.h" />
     <ClInclude Include="Attribute_SizeRate_Module.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
