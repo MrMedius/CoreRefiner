@@ -74,6 +74,9 @@ public:
 	/** @brief 内容框世界包围盒（命中与布局用）。 */
 	[[nodiscard]] virtual BoundsWorld GetBoundsWorld() const noexcept = 0;
 
+	/** @brief 外壳相对内容框四周各扩的边距（逻辑像素，不随 visualScale 缩放）。 */
+	static constexpr float kShellPad = 12.0f;
+
 	/** @brief 外壳世界包围盒（仅绘制）；默认 = 内容框四周外扩 kShellPad。 */
 	[[nodiscard]] virtual BoundsWorld GetShellBoundsWorld() const noexcept;
 
@@ -159,9 +162,6 @@ public:
 protected:
 	IModuleZone() = default;
 
-	/** @brief 外壳相对内容框四周各扩的边距。 */
-	static constexpr float kShellPad = 12.0f;
-
 	/** @brief 子类初始化自身内容视觉（不含外壳）。 */
 	virtual void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) = 0;
 	/** @brief 子类同步自身内容变换（不含外壳）。 */
@@ -171,9 +171,13 @@ protected:
 
 private:
 	void EnsureShell_(Graphics& gfx, Rgph::RenderGraph& rg);
+	/** @brief 外壳世界尺寸与画布像素不一致时 Resize 并重画，避免 1px 描边被 Scale 采没。 */
+	void RebuildShellIfNeeded_();
 	void PaintShell_();
 	void SyncShellTransform_() noexcept;
 	void SubmitShell_();
+	/** @brief 按当前外壳世界包围盒取画布像素宽高（至少 1）。 */
+	void GetShellPixelSize_(unsigned& w, unsigned& h) const noexcept;
 
 	std::unique_ptr<Canvas2D> shell_;
 };

@@ -84,6 +84,22 @@ namespace CanvasPixelDraw
 		DrawVLine(canvas, x1, y0, y1, c);
 	}
 
+	/**
+	 * @brief 轴对齐矩形描边，thickness 圈向内加厚。
+	 * @param thickness 线宽（像素）；小于 1 时不画。
+	 */
+	inline void DrawRectOutlineThick(Canvas& canvas, int x0, int y0, int x1, int y1, int thickness, Color c)
+	{
+		if (thickness < 1)
+		{
+			return;
+		}
+		for (int i = 0; i < thickness; ++i)
+		{
+			DrawRectOutline(canvas, x0 + i, y0 + i, x1 - i, y1 - i, c);
+		}
+	}
+
 	/** @brief 轴对齐实心矩形；坐标钳到画布内。 */
 	inline void FillRect(Canvas& canvas, unsigned x0, unsigned y0, unsigned x1, unsigned y1, Color c)
 	{

@@ -16,20 +16,47 @@ IModuleZone::BoundsWorld IModuleZone::GetShellBoundsWorld() const noexcept
 	return b;
 }
 
+void IModuleZone::GetShellPixelSize_(unsigned& w, unsigned& h) const noexcept
+{
+	const BoundsWorld b = GetShellBoundsWorld();
+	w = (std::max)(1u, static_cast<unsigned>(std::lround(b.half.x * 2.0f)));
+	h = (std::max)(1u, static_cast<unsigned>(std::lround(b.half.y * 2.0f)));
+}
+
 void IModuleZone::EnsureShell_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	if (shell_ != nullptr)
 	{
+		RebuildShellIfNeeded_();
 		return;
 	}
 
-	const BoundsWorld b = GetShellBoundsWorld();
-	const unsigned w = static_cast<unsigned>(std::lround(b.half.x * 2.0f));
-	const unsigned h = static_cast<unsigned>(std::lround(b.half.y * 2.0f));
-	shell_ = std::make_unique<Canvas2D>(gfx, (std::max)(1u, w), (std::max)(1u, h));
+	unsigned w = 1u;
+	unsigned h = 1u;
+	GetShellPixelSize_(w, h);
+	shell_ = std::make_unique<Canvas2D>(gfx, w, h);
 	PaintShell_();
 	shell_->LinkTechniques(rg);
 	SyncShellTransform_();
+}
+
+void IModuleZone::RebuildShellIfNeeded_()
+{
+	if (shell_ == nullptr)
+	{
+		return;
+	}
+
+	unsigned w = 1u;
+	unsigned h = 1u;
+	GetShellPixelSize_(w, h);
+	if (shell_->GetCanvasWidth() == w && shell_->GetCanvasHeight() == h)
+	{
+		return;
+	}
+
+	shell_->Resize(w, h);
+	PaintShell_();
 }
 
 void IModuleZone::PaintShell_()
@@ -42,13 +69,31 @@ void IModuleZone::PaintShell_()
 	constexpr Color kBg{ 18u, 22u, 32u, 200u };
 	constexpr Color kOuter{ 210u, 220u, 235u, 180u };
 	constexpr Color kInner{ 150u, 165u, 185u, 120u };
+	constexpr int kOuterThickness = 3;
+	constexpr int kInnerThickness = 2;
+	constexpr int kOuterInset = 1;
+	constexpr int kInnerInset = 6;
 
 	shell_->Clear(kBg);
 
 	const int w = static_cast<int>(shell_->GetCanvasWidth());
 	const int h = static_cast<int>(shell_->GetCanvasHeight());
-	CanvasPixelDraw::DrawRectOutline(*shell_, 1, 1, w - 2, h - 2, kOuter);
-	CanvasPixelDraw::DrawRectOutline(*shell_, 4, 4, w - 5, h - 5, kInner);
+	CanvasPixelDraw::DrawRectOutlineThick(
+		*shell_,
+		kOuterInset,
+		kOuterInset,
+		w - 1 - kOuterInset,
+		h - 1 - kOuterInset,
+		kOuterThickness,
+		kOuter);
+	CanvasPixelDraw::DrawRectOutlineThick(
+		*shell_,
+		kInnerInset,
+		kInnerInset,
+		w - 1 - kInnerInset,
+		h - 1 - kInnerInset,
+		kInnerThickness,
+		kInner);
 	shell_->NotifyPixelsChanged();
 }
 
@@ -86,6 +131,7 @@ void IModuleZone::InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::
 
 void IModuleZone::SyncAllVisuals()
 {
+	RebuildShellIfNeeded_();
 	SyncShellTransform_();
 	SyncZoneTransforms_();
 }

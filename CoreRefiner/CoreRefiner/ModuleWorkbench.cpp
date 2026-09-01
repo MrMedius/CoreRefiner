@@ -53,13 +53,13 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
-	// 战斗 Field：0.5 Scale 后视觉半宽 75，贴右下，边距 32。
+	// 战斗 Field：0.5 Scale 后内容半宽 75，外壳再外扩 kShellPad；原点按外壳半宽贴右下。
 	constexpr float kCombatMargin = 32.0f;
-	const float combatHalf =
-		ModuleField::kHalfExtent * ModuleField::kCombatVisualScale;
+	const float combatShellHalf =
+		ModuleField::kHalfExtent * ModuleField::kCombatVisualScale + IModuleZone::kShellPad;
 	combatFieldOrigin_ = DirectX::XMFLOAT3{
-		static_cast<float>(SCREEN_WIDTH) - kCombatMargin - combatHalf,
-		static_cast<float>(SCREEN_HEIGHT) - kCombatMargin - combatHalf,
+		static_cast<float>(SCREEN_WIDTH) - kCombatMargin - combatShellHalf,
+		static_cast<float>(SCREEN_HEIGHT) - kCombatMargin - combatShellHalf,
 		0.0f
 	};
 	ComputeLayout_();
@@ -81,18 +81,15 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 {
 	const float screenW = static_cast<float>(SCREEN_WIDTH);
 	const float screenH = static_cast<float>(SCREEN_HEIGHT);
-	/** 与 IModuleZone::kShellPad 相同；基类该常量是 protected。 */
-	constexpr float kShellPad = 12.0f;
-
-	const float fieldOuterHalf = ModuleField::kHalfExtent + kShellPad;
+	const float fieldOuterHalf = ModuleField::kHalfExtent + IModuleZone::kShellPad;
 	const float fieldOuterH = fieldOuterHalf * 2.0f;
 	const float fieldOuterW = fieldOuterH;
 
 	const float warehouseHalfX = (static_cast<float>(ModuleWarehouse::kColumns - 1) * 0.5f) * ModuleWarehouse::kSlotPitch + ModuleWarehouse::kBoundsPad;
 	const float warehouseHalfY = (static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch + ModuleWarehouse::kBoundsPad;
 	const float warehouseSpanY = (static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch;
-	const float warehouseOuterHalfX = warehouseHalfX + kShellPad;
-	const float warehouseOuterHalfY = warehouseHalfY + kShellPad;
+	const float warehouseOuterHalfX = warehouseHalfX + IModuleZone::kShellPad;
+	const float warehouseOuterHalfY = warehouseHalfY + IModuleZone::kShellPad;
 	const float warehouseOuterH = warehouseOuterHalfY * 2.0f;
 	const float warehouseOuterW = warehouseOuterHalfX * 2.0f;
 	const float rightOuterW = (fieldOuterW > warehouseOuterW) ? fieldOuterW : warehouseOuterW;
