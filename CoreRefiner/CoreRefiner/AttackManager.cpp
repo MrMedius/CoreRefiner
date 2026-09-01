@@ -7,44 +7,12 @@
 
 #include "Ball.h"
 
+#include <cmath>
 #include <cstddef>
 
 namespace
 {
 	constexpr int kBallWarmup = 48;
-
-	bool ScreenToWorldXZ(Graphics& gfx, float sx, float sy, float targetY, XMFLOAT3& outWorld)
-	{
-		using namespace DirectX;
-
-		float ndcX = sx * 2.0f / (float)SCREEN_WIDTH - 1.0f;
-		float ndcY = 1.0f - sy * 2.0f / (float)SCREEN_HEIGHT;
-
-		XMVECTOR nearNDC = XMVectorSet(ndcX, ndcY, 0.0f, 1.0f);
-		XMVECTOR farNDC = XMVectorSet(ndcX, ndcY, 1.0f, 1.0f);
-
-		XMMATRIX viewProj = gfx.GetCamera() * gfx.GetProjection();
-		XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
-
-		XMVECTOR nearWorld = XMVector3TransformCoord(nearNDC, invViewProj);
-		XMVECTOR farWorld = XMVector3TransformCoord(farNDC, invViewProj);
-
-		XMFLOAT3 rayOrigin, rayDir3;
-		XMStoreFloat3(&rayOrigin, nearWorld);
-		XMStoreFloat3(&rayDir3, XMVector3Normalize(farWorld - nearWorld));
-
-		if (fabsf(rayDir3.y) < 1e-6f)
-			return false;
-
-		float t = (targetY - rayOrigin.y) / rayDir3.y;
-		if (t < 0.0f)
-			return false;
-
-		outWorld.x = rayOrigin.x + t * rayDir3.x;
-		outWorld.y = targetY;
-		outWorld.z = rayOrigin.z + t * rayDir3.z;
-		return true;
-	}
 }
 
 AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -58,16 +26,59 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
 }
 
-bool AttackManager::TryGetAimVelocity(XMFLOAT3 playerPos, XMFLOAT3& outVel) const
+bool AttackManager::TryScreenToWorldXZ(
+	Graphics& gfx,
+	float sx,
+	float sy,
+	float targetY,
+	XMFLOAT3& outWorld)
 {
-	auto mouse = InputCodex::Get().MousePos();
-	XMFLOAT3 worldXZ{};
-	if (!ScreenToWorldXZ(gfx, (float)mouse.first, (float)mouse.second, playerPos.y, worldXZ))
+	using namespace DirectX;
+
+	const float ndcX = sx * 2.0f / static_cast<float>(SCREEN_WIDTH) - 1.0f;
+	const float ndcY = 1.0f - sy * 2.0f / static_cast<float>(SCREEN_HEIGHT);
+
+	const XMVECTOR nearNDC = XMVectorSet(ndcX, ndcY, 0.0f, 1.0f);
+	const XMVECTOR farNDC = XMVectorSet(ndcX, ndcY, 1.0f, 1.0f);
+
+	const XMMATRIX viewProj = gfx.GetCamera() * gfx.GetProjection();
+	const XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
+
+	const XMVECTOR nearWorld = XMVector3TransformCoord(nearNDC, invViewProj);
+	const XMVECTOR farWorld = XMVector3TransformCoord(farNDC, invViewProj);
+
+	XMFLOAT3 rayOrigin{};
+	XMFLOAT3 rayDir3{};
+	XMStoreFloat3(&rayOrigin, nearWorld);
+	XMStoreFloat3(&rayDir3, XMVector3Normalize(farWorld - nearWorld));
+
+	if (fabsf(rayDir3.y) < 1e-6f)
 	{
 		return false;
 	}
 
-	outVel = ((V(worldXZ) - V(playerPos)).NormalizedXZ() * 0.05f).ToFloat3();
+	const float t = (targetY - rayOrigin.y) / rayDir3.y;
+	if (t < 0.0f)
+	{
+		return false;
+	}
+
+	outWorld.x = rayOrigin.x + t * rayDir3.x;
+	outWorld.y = targetY;
+	outWorld.z = rayOrigin.z + t * rayDir3.z;
+	return true;
+}
+
+bool AttackManager::TryGetAimVelocity(XMFLOAT3 playerPos, XMFLOAT3& outVel) const
+{
+	auto mouse = InputCodex::Get().MousePos();
+	XMFLOAT3 worldXZ{};
+	if (!TryScreenToWorldXZ(gfx, (float)mouse.first, (float)mouse.second, playerPos.y, worldXZ))
+	{
+		return false;
+	}
+
+	outVel = ((V(worldXZ) - V(playerPos)).NormalizedXZ() * kAimSpeed).ToFloat3();
 	return true;
 }
 

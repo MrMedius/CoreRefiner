@@ -168,6 +168,25 @@ namespace NodeIconAtlas
 			0b0000001111000000,
 		};
 
+		inline constexpr IconAtlas::IconBits kRuleReturn{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000000000100,
+			0b0100000000010010,
+			0b0100000100100010,
+			0b1000000101000001,
+			0b1000000110000001,
+			0b1000010111100001,
+			0b1000000000000001,
+			0b0101111100000010,
+			0b0100111000000010,
+			0b0010010000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+
 		inline constexpr IconAtlas::IconBits kOtherChild{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -196,7 +215,7 @@ namespace NodeIconAtlas
 		detail::kAttributeSizeRate,   // Attribute_SizeRate
 		detail::kAttributeDamageRate, // Attribute_DamageRate
 		detail::kRuleOrbit,           // Rule_Orbit
-		detail::kRoundFrame,          // Rule_Return
+		detail::kRuleReturn,          // Rule_Return
 		detail::kRoundFrame,          // Passive_DamageFix
 		detail::kOtherChild,          // Other_Child
 		detail::kRoundFrame,          // Other_Revive

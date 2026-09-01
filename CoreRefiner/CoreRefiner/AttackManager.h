@@ -29,6 +29,21 @@ public:
 	void AdoptLive(Attack* attack);
 
 	/**
+	 * @brief 瞄准平面上的基准水平速度（再乘 speed.Final()）。
+	 */
+	static constexpr float kAimSpeed{ 0.05f };
+
+	/**
+	 * @brief 屏幕像素 → 指定高度水平面的世界坐标。
+	 */
+	[[nodiscard]] static bool TryScreenToWorldXZ(
+		Graphics& gfx,
+		float sx,
+		float sy,
+		float targetY,
+		DirectX::XMFLOAT3& outWorld);
+
+	/**
 	 * @brief Mouse aim on player Y plane → horizontal shot velocity.
 	 */
 	[[nodiscard]] bool TryGetAimVelocity(

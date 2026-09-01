@@ -1524,6 +1524,9 @@
     <ClInclude Include="Attribute_DamageRate_Module.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
+    <ClInclude Include="Rule_Return_Module.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

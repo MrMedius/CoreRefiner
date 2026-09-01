@@ -1,6 +1,7 @@
 #pragma once
 #include "IProjectileModule.h"
 #include "Attack.h"
+#include "AttackManager.h"
 #include "ColliderComponentBase.h"
 #include "Player.h"
 #include "XMath.h"
@@ -10,13 +11,13 @@
 
 /**
  * @brief 绕圆心公转：圆心只是指针，模块不改父子。
- * @note 实际半径 = max(节点半径, 圆心半径 + 自身半径 + 余量)。圆心是玩家时从 0 扩径。
+ * @note 实际半径 = max(节点半径, 圆心半径 + 自身半径 + 余量)。
+ *       绕玩家时从出生极径边转到目标半径；径向加速度与普通发射相同。
  */
 class Rule_Orbit_Module : public IProjectileModule
 {
 public:
-	static constexpr float kClearance{ 2.0f };
-	static constexpr float kExpandSeconds{ 0.3f };
+	static constexpr float kClearance{ 0.0f };
 
 	/**
 	 * @param center 公转圆心（玩家或主弹）；空则不公转。
@@ -47,10 +48,21 @@ public:
 		}
 
 		angle_ = phase0_;
-		expandFromZero_ = IsPlayerCenter_();
-		currentRadius_ = expandFromZero_ ? 0.0f : ComputeTargetRadius_(*owner);
+		if (IsPlayerCenter_())
+		{
+			pendingRadialStart_ = true;
+			interpolating_ = true;
+			currentRadius_ = 0.0f;
+			radialVel_ = 0.0f;
+			SetOwnerColliderEnabled_(false);
+			return;
+		}
+
+		pendingRadialStart_ = false;
+		interpolating_ = false;
+		currentRadius_ = ComputeTargetRadius_(*owner);
 		ApplyWorldPose_();
-		RefreshColliderForExpand_();
+		SetOwnerColliderEnabled_(true);
 	}
 
 	void OnUpdate(float dt) override
@@ -66,34 +78,47 @@ public:
 			return;
 		}
 
+		if (pendingRadialStart_)
+		{
+			SampleRadialStart_(*owner);
+			pendingRadialStart_ = false;
+		}
+
 		const float omega = 1.0f + owner->Stats().speed.Final();
 		angle_ += omega * dt;
 
 		const float target = ComputeTargetRadius_(*owner);
-		if (expandFromZero_ && currentRadius_ < target)
+		if (interpolating_)
 		{
-			const float speed = (kExpandSeconds > 0.0f) ? (target / kExpandSeconds) : target;
-			currentRadius_ += speed * dt;
-			if (currentRadius_ >= target)
+			const float shotAccel = AttackManager::kAimSpeed * owner->Stats().speed.Final();
+			radialVel_ += shotAccel;
+			const float diff = target - currentRadius_;
+			if (std::abs(diff) <= radialVel_ || radialVel_ <= 0.0f)
 			{
 				currentRadius_ = target;
-				expandFromZero_ = false;
+				interpolating_ = false;
+				radialVel_ = 0.0f;
+			}
+			else
+			{
+				currentRadius_ += (diff > 0.0f) ? radialVel_ : -radialVel_;
 			}
 		}
 		else
 		{
 			currentRadius_ = target;
-			expandFromZero_ = false;
 		}
 		ApplyWorldPose_();
-		RefreshColliderForExpand_();
+		SetOwnerColliderEnabled_(!(interpolating_ && currentRadius_ < target));
 	}
 
 	void OnRecycle() override
 	{
 		angle_ = phase0_;
 		currentRadius_ = 0.0f;
-		expandFromZero_ = false;
+		radialVel_ = 0.0f;
+		interpolating_ = false;
+		pendingRadialStart_ = false;
 		center_ = nullptr;
 		SetOwnerColliderEnabled_(true);
 	}
@@ -108,6 +133,8 @@ public:
 		phase0_ = phase0;
 		angle_ = phase0;
 	}
+
+	[[nodiscard]] float GetRadius() const noexcept { return radius_; }
 
 private:
 	[[nodiscard]] bool IsCenterLive_() const noexcept
@@ -141,6 +168,31 @@ private:
 		return (std::max)(radius_, floorR);
 	}
 
+	/**
+	 * @brief 用当前世界坐标当极径起点（脚边→扩出，远处→收回）。
+	 */
+	void SampleRadialStart_(const Attack& owner)
+	{
+		const XMFLOAT3 c = center_->GetWorldPosition();
+		const XMFLOAT3 p = owner.GetWorldPosition();
+		const float dx = p.x - c.x;
+		const float dz = p.z - c.z;
+		currentRadius_ = std::sqrt(dx * dx + dz * dz);
+		if (currentRadius_ > 1.0e-4f)
+		{
+			angle_ = std::atan2(dz, dx);
+		}
+		else
+		{
+			angle_ = phase0_;
+			currentRadius_ = 0.0f;
+		}
+
+		const float target = ComputeTargetRadius_(owner);
+		interpolating_ = std::abs(currentRadius_ - target) > 1.0e-4f;
+		radialVel_ = 0.0f;
+	}
+
 	void ApplyWorldPose_()
 	{
 		Attack* owner = GetOwner();
@@ -154,11 +206,6 @@ private:
 			c.y,
 			c.z + currentRadius_ * std::sin(angle_)
 		});
-	}
-
-	void RefreshColliderForExpand_()
-	{
-		SetOwnerColliderEnabled_(!expandFromZero_);
 	}
 
 	void SetOwnerColliderEnabled_(bool enabled)
@@ -178,6 +225,8 @@ private:
 	float phase0_{ 0.0f };
 	float angle_{ 0.0f };
 	float currentRadius_{ 0.0f };
-	bool expandFromZero_{ false };
+	float radialVel_{ 0.0f };
+	bool interpolating_{ false };
+	bool pendingRadialStart_{ false };
 	ObjectBase* center_{ nullptr };
 };

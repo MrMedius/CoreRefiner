@@ -42,6 +42,13 @@
         { "start": 0, "length": 4, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
       ]
     },
+    "Rule_Return": {
+      "title": "返还规则",
+      "body": "从鼠标指向的地面生成，速度朝向玩家。生成点锁定时不改位置。",
+      "spans": [
+        { "start": 0, "length": 4, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
     "Other_Child": {
       "title": "子弹",
       "body": "作为附加子节点挂接，扩展弹道树的结构与表现。",
@@ -89,6 +96,13 @@
     "Rule_Orbit": {
       "title": "周回ルール",
       "body": "弾に周回運動を付与し、親からの相対軌道を変える。",
+      "spans": [
+        { "start": 0, "length": 5, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Rule_Return": {
+      "title": "帰還ルール",
+      "body": "マウスが指す地面から生成し、速度はプレイヤーへ向く。生成点がロックされていれば位置は変えない。",
       "spans": [
         { "start": 0, "length": 5, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
       ]
@@ -142,6 +156,13 @@
       "body": "Attaches an orbit motion rule that changes the path relative to the parent.",
       "spans": [
         { "start": 0, "length": 10, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Rule_Return": {
+      "title": "Return Rule",
+      "body": "Spawns at the mouse ground point and flies toward the player. Locked spawn points keep their position.",
+      "spans": [
+        { "start": 0, "length": 11, "r": 180, "g": 255, "b": 160, "a": 255, "weight": "bold" }
       ]
     },
     "Other_Child": {

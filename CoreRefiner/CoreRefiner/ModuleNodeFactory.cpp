@@ -24,8 +24,8 @@ namespace ModuleNodeFactory
 		case ModuleNodeLabel::Attribute_SizeRate:		return std::make_unique<ModuleNode_Attribute_SizeRate>(localPos, kSizeRate);
 		case ModuleNodeLabel::Attribute_DamageRate:		return std::make_unique<ModuleNode_Attribute_DamageRate>(localPos, kDamageRate);
 		case ModuleNodeLabel::Rule_Orbit:				return std::make_unique<ModuleNode_Rule_Orbit>(localPos);
+		case ModuleNodeLabel::Rule_Return:				return std::make_unique<ModuleNode_Rule_Return>(localPos);
 		case ModuleNodeLabel::Other_Child:				return std::make_unique<ModuleNode_Other_Child>(localPos);
-		case ModuleNodeLabel::Rule_Return:
 		case ModuleNodeLabel::Passive_DamageFix:
 		case ModuleNodeLabel::Other_Revive:
 		case ModuleNodeLabel::Count:

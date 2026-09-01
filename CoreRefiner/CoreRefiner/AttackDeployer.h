@@ -4,6 +4,7 @@
 #include "ModuleNodeLabel.h"
 
 #include "Rule_Orbit_Module.h"
+#include "Rule_Return_Module.h"
 #include "Attribute_Lifetime_Module.h"
 #include "Attribute_SpeedRate_Module.h"
 #include "Attribute_SizeRate_Module.h"
@@ -33,12 +34,10 @@ struct AttackStandby
 	Graphics* gfx{ nullptr };
 	Rgph::RenderGraph* rg{ nullptr };
 	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
-	float childDistributeRadius{ 2.0f };
 
 	Attack* parent{ nullptr };
 	std::vector<Attack*> children;
 	Attack* host{ nullptr };
-	/** @brief 发射者；Orbit 主体绕玩家等后续 Node 用。本步不改 Orbit 行为。 */
 	Player* player{ nullptr };
 };
 
@@ -134,7 +133,20 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 		return;
 	}
 
-	const float radius = s.childDistributeRadius;
+	constexpr float kDefaultChildRingRadius{ 2.0f };
+	float radius = kDefaultChildRingRadius;
+	for (Attack* child : s.children)
+	{
+		if (child == nullptr)
+		{
+			continue;
+		}
+		if (Rule_Orbit_Module* orbit = child->GetModule<Rule_Orbit_Module>())
+		{
+			radius = orbit->GetRadius();
+		}
+	}
+
 	for (std::size_t i = 0; i < n; ++i)
 	{
 		Attack* child = s.children[i];
@@ -423,7 +435,6 @@ public:
 		float phase = orbitPhase_;
 		if (aroundParentShot)
 		{
-			s.childDistributeRadius = orbitRadius_;
 			if (phase < 0.0f)
 			{
 				phase = 0.0f;
@@ -457,6 +468,37 @@ public:
 private:
 	float orbitRadius_{ 2.0f };
 	float orbitPhase_{ -1.0f };
+};
+
+class AttackNodeStep_Rule_Return final : public IAttackNodeStep
+{
+public:
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Rule_Return;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Return"; }
+	[[nodiscard]] bool HasModule() const noexcept override { return true; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
+
+	void Apply(DeployContext& ctx) override
+	{
+		AttackStandby& s = ctx.standby;
+		if (s.parent == nullptr)
+		{
+			return;
+		}
+		if (s.parent->GetModule<Rule_Return_Module>() != nullptr)
+		{
+			return;
+		}
+		s.parent->AddModule<Rule_Return_Module>(s.gfx, s.player);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Rule_Return> Make()
+	{
+		return std::make_unique<AttackNodeStep_Rule_Return>();
+	}
 };
 
 class AttackDeployer

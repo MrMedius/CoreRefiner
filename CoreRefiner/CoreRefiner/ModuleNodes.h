@@ -265,3 +265,31 @@ private:
 	float orbitRadius_{ 2.0f };
 	float orbitPhase_{ -1.0f };
 };
+
+class ModuleNode_Rule_Return final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Rule_Return(DirectX::XMFLOAT2 localPos) noexcept
+	{
+		localPos_ = localPos;
+		hitRadius_ = 20.0f;
+		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Rule_Return::Make()->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Rule_Return;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Rule;
+	}
+};
