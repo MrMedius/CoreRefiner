@@ -396,10 +396,6 @@ public:
 	void Apply(DeployContext& ctx) override
 	{
 		AttackStandby& s = ctx.standby;
-		if (s.host == s.parent && s.host != nullptr)
-		{
-			return;
-		}
 		if (s.host == nullptr)
 		{
 			if (s.parent == nullptr)
@@ -415,24 +411,40 @@ public:
 			return;
 		}
 
-		s.childDistributeRadius = orbitRadius_;
-		float phase = orbitPhase_;
-		if (phase < 0.0f)
+		const bool aroundParentShot = (s.host != s.parent && s.parent != nullptr);
+		ObjectBase* center = aroundParentShot
+			? static_cast<ObjectBase*>(s.parent)
+			: static_cast<ObjectBase*>(s.player);
+		if (center == nullptr)
 		{
-			phase = 0.0f;
-			const std::size_t n = s.children.size();
-			for (std::size_t i = 0; i < n; ++i)
+			return;
+		}
+
+		float phase = orbitPhase_;
+		if (aroundParentShot)
+		{
+			s.childDistributeRadius = orbitRadius_;
+			if (phase < 0.0f)
 			{
-				if (s.children[i] == s.host)
+				phase = 0.0f;
+				const std::size_t n = s.children.size();
+				for (std::size_t i = 0; i < n; ++i)
 				{
-					phase = (n > 0)
-						? (DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n))
-						: 0.0f;
-					break;
+					if (s.children[i] == s.host)
+					{
+						phase = (n > 0)
+							? (DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n))
+							: 0.0f;
+						break;
+					}
 				}
 			}
 		}
-		s.host->AddModule<Rule_Orbit_Module>(orbitRadius_, phase);
+		else if (phase < 0.0f)
+		{
+			phase = 0.0f;
+		}
+		s.host->AddModule<Rule_Orbit_Module>(orbitRadius_, phase, center);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Rule_Orbit> Make(

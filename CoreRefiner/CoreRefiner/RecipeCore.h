@@ -5,12 +5,12 @@
 #include "ObjectCodex.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
+#include "Player.h"
 
 #include <memory>
 #include <utility>
 #include <vector>
 
-class Player;
 struct BuildContext;
 
 /**
@@ -127,7 +127,10 @@ struct BuildContext
 
 		for (const PendingOrbit& o : slot.pendingOrbits)
 		{
-			ball->AddModule<Rule_Orbit_Module>(o.radius, o.phase);
+			ObjectBase* center = (parentSlot != nullptr && parentSlot->entity != nullptr)
+				? static_cast<ObjectBase*>(parentSlot->entity)
+				: static_cast<ObjectBase*>(player);
+			ball->AddModule<Rule_Orbit_Module>(o.radius, o.phase, center);
 		}
 		for (const PendingLifetime& life : slot.pendingLifetimes)
 		{

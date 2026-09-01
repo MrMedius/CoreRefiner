@@ -163,11 +163,15 @@ public:
 	}
 
 	/**
-	 * @brief DispatchOnSpawn + component sync (no motion).
-	 * @note ModuleDeployer binds modules first; root SpawnAt arms root and flat children.
+	 * @brief 若有模块要求独立，先卸父子，再 DispatchOnSpawn + 组件同步。
+	 * @note 装配树仍由 Spawn_Ball 建立；开火后需要独立世界坐标的弹在此摘下。
 	 */
 	void ArmModules()
 	{
+		if (WantsDetachFromParent_())
+		{
+			DetachSelfFromParent_();
+		}
 		DispatchOnSpawn();
 		ObjectBase::Update(0.0f);
 	}
@@ -258,6 +262,26 @@ private:
 	bool awaitingManagerAdopt_{ false };
 	bool launchPosLocked_{ false };
 	std::function<void(Attack*)> adoptLive_{};
+
+	/**
+	 * @brief 任一模块要求开火时从父物体独立。
+	 */
+	[[nodiscard]] bool WantsDetachFromParent_() const noexcept
+	{
+		for (const auto& module : modules_)
+		{
+			if (module != nullptr && module->WantsDetachFromParent())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * @brief 烘焙世界坐标、继承父弹速度、ClearParent，并交给 AdoptLive / AM 收养标记。
+	 */
+	void DetachSelfFromParent_();
 
 	/**
 	 * @brief 卸下仍存活的子弹：烘焙世界坐标、继承本弹速度、ClearParent。

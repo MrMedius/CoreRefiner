@@ -15,6 +15,27 @@ void Attack::Deactivate()
 	ClearModules();
 }
 
+void Attack::DetachSelfFromParent_()
+{
+	ObjectBase* parent = GetParent();
+	if (parent == nullptr)
+	{
+		return;
+	}
+
+	const XMFLOAT3 world = GetWorldPosition();
+	if (auto* parentAtk = dynamic_cast<Attack*>(parent))
+	{
+		ResetMoveVelocity();
+		CalculateMoveVelocity(parentAtk->GetMoveVelocity());
+		SetMoveAccel(parentAtk->GetMoveAccel());
+		parentAtk->AdoptLive(this);
+	}
+	ClearParent();
+	SetPosition(world);
+	SetAwaitingManagerAdopt(true);
+}
+
 void Attack::ReleaseLivingChildren_()
 {
 	std::vector<Attack*> living;
@@ -29,16 +50,8 @@ void Attack::ReleaseLivingChildren_()
 		}
 	}
 
-	const XMFLOAT3 parentVel = GetMoveVelocity();
-	const XMFLOAT3 parentAccel = GetMoveAccel();
 	for (Attack* child : living)
 	{
-		const XMFLOAT3 world = child->GetWorldPosition();
-		child->ResetMoveVelocity();
-		child->CalculateMoveVelocity(parentVel);
-		child->SetMoveAccel(parentAccel);
-		child->ClearParent();
-		child->SetPosition(world);
-		child->SetAwaitingManagerAdopt(true);
+		child->DetachSelfFromParent_();
 	}
 }

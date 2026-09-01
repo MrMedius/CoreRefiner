@@ -8,6 +8,8 @@
 #include "SphereColliderComponent.h"
 #include "XMath.h"
 
+#include <vector>
+
 class Ball : public Attack
 {
 	public:
@@ -83,26 +85,36 @@ class Ball : public Attack
 
 		SetMoveAccel((V(GetMoveAccel()) * Stats().speed.Final()).ToFloat3());
 		const float sz = Stats().size.Final();
-		ApplyPresentation({ sz, sz, sz }, true);
+		const bool colOn = (pCollider_ != nullptr) ? pCollider_->IsEnabled() : true;
+		ApplyPresentation({ sz, sz, sz }, colOn);
 
+		std::vector<Attack*> kids;
+		kids.reserve(GetChildCount());
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
 		{
 			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));
 				childAtk != nullptr && childAtk->IsActive())
 			{
-				childAtk->Stats().ResetMods();
-				if (auto* childBall = dynamic_cast<Ball*>(childAtk))
-				{
-					const float childAssembled = MaxScaleComponent(childBall->GetSize());
-					childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
-				}
-				childAtk->ArmModules();
-				if (auto* childBall = dynamic_cast<Ball*>(childAtk))
-				{
-					childBall->SetMoveAccel((V(childBall->GetMoveAccel()) * childBall->Stats().speed.Final()).ToFloat3());
-					const float childSz = childBall->Stats().size.Final();
-					childBall->ApplyPresentation({ childSz, childSz, childSz }, true);
-				}
+				kids.push_back(childAtk);
+			}
+		}
+		for (Attack* childAtk : kids)
+		{
+			childAtk->Stats().ResetMods();
+			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
+			{
+				const float childAssembled = MaxScaleComponent(childBall->GetSize());
+				childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
+			}
+			childAtk->ArmModules();
+			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
+			{
+				childBall->SetMoveAccel((V(childBall->GetMoveAccel()) * childBall->Stats().speed.Final()).ToFloat3());
+				const float childSz = childBall->Stats().size.Final();
+				const bool childColOn = (childBall->pCollider_ != nullptr)
+					? childBall->pCollider_->IsEnabled()
+					: true;
+				childBall->ApplyPresentation({ childSz, childSz, childSz }, childColOn);
 			}
 		}
 	}
@@ -133,7 +145,7 @@ class Ball : public Attack
 		{
 			pCollider_->SetEnabled(false);
 		}
-		auto hitPos = other->GetPosition();
+		auto hitPos = other->GetWorldPosition();
 		hitPos.z -= 0.1f;
 		SetPosition(hitPos);
 
@@ -143,8 +155,8 @@ class Ball : public Attack
 			e->SetWasHurt(true);
 			e->CalculateHpCurrent(-Stats().damage.Final());
 
-			const auto selfPos = GetPosition();
-			const Vec3 d = V(e->GetPosition()) - V(selfPos);
+			const auto selfPos = GetWorldPosition();
+			const Vec3 d = V(e->GetWorldPosition()) - V(selfPos);
 			float angle = atan2f(d.x, d.z);
 			XMFLOAT3 repel{ 0.3f,0.1f,0.1f };
 			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
