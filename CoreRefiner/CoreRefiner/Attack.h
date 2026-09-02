@@ -100,6 +100,16 @@ public:
 	void SetAwaitingManagerAdopt(bool awaiting) noexcept { awaitingManagerAdopt_ = awaiting; }
 	[[nodiscard]] bool IsAwaitingManagerAdopt() const noexcept { return awaitingManagerAdopt_; }
 
+	/**
+	 * @brief 停放克隆占用池槽，禁止被 SpawnPooled 复用；放出或丢弃时清掉。
+	 */
+	void SetReviveParked(bool parked) noexcept { reviveParked_ = parked; }
+	[[nodiscard]] bool IsReviveParked() const noexcept { return reviveParked_; }
+	[[nodiscard]] bool IsReusable() const noexcept override
+	{
+		return !IsActive() && !reviveParked_;
+	}
+
 	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
 
 	template <typename T>
@@ -211,13 +221,13 @@ protected:
 		}
 	}
 	/** @brief Run OnOwnerWillDisable on all bound modules（ClearModules 之前）。 */
-	void DispatchOnOwnerWillDisable()
+	void DispatchOnDisable()
 	{
 		for (auto& module : modules_)
 		{
 			if (module != nullptr)
 			{
-				module->OnOwnerWillDisable();
+				module->OnDisable();
 			}
 		}
 	}
@@ -261,6 +271,7 @@ private:
 	AttackStats stats_{};
 	bool awaitingManagerAdopt_{ false };
 	bool launchPosLocked_{ false };
+	bool reviveParked_{ false };
 	std::function<void(Attack*)> adoptLive_{};
 
 	/**

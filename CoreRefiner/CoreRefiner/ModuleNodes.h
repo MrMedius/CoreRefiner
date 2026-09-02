@@ -331,3 +331,31 @@ public:
 private:
 	float damageFix_{ 1.0f };
 };
+
+class ModuleNode_Other_Revive final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Other_Revive(DirectX::XMFLOAT2 localPos) noexcept
+	{
+		localPos_ = localPos;
+		hitRadius_ = 16.0f;
+		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Other_Revive::Make()->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Other_Revive;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Other;
+	}
+};

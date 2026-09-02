@@ -10,7 +10,7 @@ void Attack::RequestDisable()
 
 void Attack::Deactivate()
 {
-	DispatchOnOwnerWillDisable();
+	DispatchOnDisable();
 	ObjectBase::Deactivate();
 	ClearModules();
 }

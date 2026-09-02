@@ -224,6 +224,25 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
+
+		inline constexpr IconAtlas::IconBits kOtherRevive{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000010000100,
+			0b0100000111000010,
+			0b0100000010000010,
+			0b1000011111100001,
+			0b1000000010000001,
+			0b1000000111000001,
+			0b1000000010000001,
+			0b0100000000000010,
+			0b0100000000000010,
+			0b0010000000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
@@ -237,7 +256,7 @@ namespace NodeIconAtlas
 		detail::kRuleReturn,          // Rule_Return
 		detail::kPassiveDamageFix,    // Passive_DamageFix
 		detail::kOtherChild,          // Other_Child
-		detail::kRoundFrame,          // Other_Revive
+		detail::kOtherRevive,         // Other_Revive
 	};
 
 	static_assert(kNodeIcons.size() == ModuleNodeLabelCount());

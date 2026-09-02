@@ -17,7 +17,7 @@ public:
 	virtual void OnHit(Character* other) { (void)other; }
 	virtual void OnRecycle() {}
 	/** @brief 宿主即将 Disable / ClearModules；Revive 在此放弹。默认空。 */
-	virtual void OnOwnerWillDisable() {}
+	virtual void OnDisable() {}
 
 	/**
 	 * @brief 开火 ArmModules 时是否从父物体卸下（独立世界坐标，由 Attack 执行）。

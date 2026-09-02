@@ -469,6 +469,7 @@ private:
 		session.ctx.standby.parent = nullptr;
 		session.ctx.standby.children.clear();
 		session.ctx.standby.host = nullptr;
+		session.ctx.standby.parked = false;
 
 		session.wave.Stop();
 		session.active = false;

@@ -55,6 +55,10 @@ public:
 	 * @brief True when in use and not marked for deferred disable.
 	 */
 	bool IsActive(void) const				{ return IsUse && !pendingDisable_; }
+	/**
+	 * @brief 对象池是否可拿走此实例。默认 = 非 Active；Attack 停放克隆会覆写。
+	 */
+	[[nodiscard]] virtual bool IsReusable() const noexcept { return !IsActive(); }
 	void Activate();
 	/**
 	 * @brief Immediate disable: cascade children, detach hierarchy, OnDisable components.

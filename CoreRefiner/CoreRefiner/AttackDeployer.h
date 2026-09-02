@@ -9,6 +9,7 @@
 #include "Attribute_SpeedRate_Module.h"
 #include "Attribute_SizeRate_Module.h"
 #include "Attribute_DamageRate_Module.h"
+#include "Other_Revive_Module.h"
 
 #include "ObjectCodex.h"
 #include "Graphics.h"
@@ -39,6 +40,8 @@ struct AttackStandby
 	std::vector<Attack*> children;
 	Attack* host{ nullptr };
 	Player* player{ nullptr };
+	/** @brief 当前 parent 是停放克隆，FlushStandby 不得把它当根弹发射。 */
+	bool parked{ false };
 };
 
 struct DeployContext
@@ -50,13 +53,14 @@ struct DeployContext
 
 	void FlushStandby()
 	{
-		if (standby.parent != nullptr)
+		if (standby.parent != nullptr && !standby.parked)
 		{
 			shots.push_back(standby.parent);
 		}
 		standby.parent = nullptr;
 		standby.children.clear();
 		standby.host = nullptr;
+		standby.parked = false;
 		pitQueue.clear();
 	}
 
@@ -498,6 +502,79 @@ public:
 	static std::unique_ptr<AttackNodeStep_Rule_Return> Make()
 	{
 		return std::make_unique<AttackNodeStep_Rule_Return>();
+	}
+};
+
+class AttackNodeStep_Other_Revive final : public IAttackNodeStep
+{
+public:
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Other_Revive;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Revive"; }
+	[[nodiscard]] bool HasModule() const noexcept override { return true; }
+
+	void Apply(DeployContext& ctx) override
+	{
+		AttackStandby& s = ctx.standby;
+		if (s.parked)
+		{
+			return;
+		}
+		if (s.gfx == nullptr || s.rg == nullptr)
+		{
+			return;
+		}
+		if (s.host == nullptr)
+		{
+			if (s.parent == nullptr)
+			{
+				return;
+			}
+			ctx.EnqueueOnEmptyPit([](DeployContext& c)
+			{
+				AttackNodeStep_Other_Revive().Apply(c);
+			});
+			return;
+		}
+		if (s.host->GetModule<Other_Revive_Module>() != nullptr)
+		{
+			return;
+		}
+
+		Attack* a = s.host;
+		const DirectX::XMFLOAT3 scale = a->GetSize();
+		ctx.FlushStandby();
+
+		Ball* b = ObjectCodex::SpawnPooled<Ball>(
+			attack_Ball,
+			*s.gfx,
+			*s.rg,
+			s.spawnPos,
+			DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f });
+		if (b == nullptr)
+		{
+			return;
+		}
+
+		b->ResetHierarchy();
+		b->ClearModules();
+		b->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
+		b->ResetMoveVelocity();
+		b->ApplyPresentation(scale, true);
+		b->Deactivate();
+		b->SetReviveParked(true);
+
+		s.parent = b;
+		s.host = b;
+		s.parked = true;
+		a->AddModule<Other_Revive_Module>(b);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Other_Revive> Make()
+	{
+		return std::make_unique<AttackNodeStep_Other_Revive>();
 	}
 };
 

@@ -49,4 +49,5 @@ namespace ModuleNodePrice
 	static_assert(GetSellPrice(ModuleNodeLabel::Rule_Return) < GetBuyPrice(ModuleNodeLabel::Rule_Return));
 	static_assert(GetSellPrice(ModuleNodeLabel::Passive_DamageFix) < GetBuyPrice(ModuleNodeLabel::Passive_DamageFix));
 	static_assert(GetSellPrice(ModuleNodeLabel::Other_Child) < GetBuyPrice(ModuleNodeLabel::Other_Child));
+	static_assert(GetSellPrice(ModuleNodeLabel::Other_Revive) < GetBuyPrice(ModuleNodeLabel::Other_Revive));
 }

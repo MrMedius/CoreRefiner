@@ -130,7 +130,7 @@ private:
         // Find  a reusable object
         for (auto& obj : pool)
         {
-            if (!obj->IsActive())
+            if (obj->IsReusable())
             {
                 // Type matching is required for use
                 if (auto* typed = dynamic_cast<T*>(obj.get()))

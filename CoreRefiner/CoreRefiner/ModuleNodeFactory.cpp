@@ -28,7 +28,7 @@ namespace ModuleNodeFactory
 		case ModuleNodeLabel::Rule_Return:				return std::make_unique<ModuleNode_Rule_Return>(localPos);
 		case ModuleNodeLabel::Passive_DamageFix:		return std::make_unique<ModuleNode_Passive_DamageFix>(localPos, kDamageFix);
 		case ModuleNodeLabel::Other_Child:				return std::make_unique<ModuleNode_Other_Child>(localPos);
-		case ModuleNodeLabel::Other_Revive:
+		case ModuleNodeLabel::Other_Revive:				return std::make_unique<ModuleNode_Other_Revive>(localPos);
 		case ModuleNodeLabel::Count:
 		default:
 			return nullptr;
