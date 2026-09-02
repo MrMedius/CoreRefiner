@@ -48,19 +48,53 @@ struct DeployContext
 {
 	AttackStandby standby;
 	std::vector<Attack*> shots;
+	/** @brief 当前未 Flush 的流水线 Step；FlushStandby 时封到根弹。 */
+	std::vector<AttackStepRecord> recipe;
 	// 当前空子坑上等待 host 填入后再执行的安装
 	std::vector<std::function<void(DeployContext&)>> pitQueue;
+	/**
+	 * @brief 扫到 Revive 之后为 true：后续 Step 只 Record，不改当前树。
+	 * @note 重放 DeployRecords 使用新的 Context，此标志保持 false。
+	 */
+	bool recordOnly{ false };
+
+	/**
+	 * @brief 记下一条已成功 Apply 的 Step。
+	 */
+	void Record(const AttackStepRecord& rec)
+	{
+		recipe.push_back(rec);
+	}
+
+	/**
+	 * @brief Revive 之后只记账；调用方若得到 true 应立刻 return。
+	 */
+	[[nodiscard]] bool TryRecordOnly(const AttackStepRecord& rec)
+	{
+		if (!recordOnly)
+		{
+			return false;
+		}
+		Record(rec);
+		return true;
+	}
 
 	void FlushStandby()
 	{
-		if (standby.parent != nullptr && !standby.parked)
+		if (standby.parent != nullptr)
 		{
-			shots.push_back(standby.parent);
+			standby.parent->SealAssembledRecipe(std::move(recipe));
+			if (!standby.parked)
+			{
+				shots.push_back(standby.parent);
+			}
 		}
+		recipe.clear();
 		standby.parent = nullptr;
 		standby.children.clear();
 		standby.host = nullptr;
 		standby.parked = false;
+		recordOnly = false;
 		pitQueue.clear();
 	}
 
@@ -89,24 +123,33 @@ struct DeployContext
 // 打 standby.host
 // host 空且已开子坑则入队，等填坑后再装。
 template <typename T, typename... Args>
-T* AddToFocus(DeployContext& ctx, Args&&... args)
+T* AddToFocus(DeployContext& ctx, const AttackStepRecord& rec, Args&&... args)
 {
+	if (ctx.TryRecordOnly(rec))
+	{
+		return nullptr;
+	}
 	if (ctx.standby.host == nullptr)
 	{
 		if (ctx.standby.parent != nullptr)
 		{
 			ctx.EnqueueOnEmptyPit(
-				[captured = std::make_tuple(std::forward<Args>(args)...)](DeployContext& c) mutable
+				[captured = std::make_tuple(std::forward<Args>(args)...), rec](DeployContext& c) mutable
 				{
-					std::apply([&c](auto&&... a)
+					std::apply([&c, rec](auto&&... a)
 					{
-						AddToFocus<T>(c, std::forward<decltype(a)>(a)...);
+						AddToFocus<T>(c, rec, std::forward<decltype(a)>(a)...);
 					}, std::move(captured));
 				});
 		}
 		return nullptr;
 	}
-	return ctx.standby.host->AddModule<T>(std::forward<Args>(args)...);
+	T* raw = ctx.standby.host->AddModule<T>(std::forward<Args>(args)...);
+	if (raw != nullptr)
+	{
+		ctx.Record(rec);
+	}
+	return raw;
 }
 
 class IAttackNodeStep
@@ -193,6 +236,11 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
+		if (ctx.TryRecordOnly(AttackStepRecordMake::SpawnBall(scale_, enableCollider_)))
+		{
+			return;
+		}
+
 		AttackStandby& s = ctx.standby;
 		if (s.gfx == nullptr || s.rg == nullptr)
 		{
@@ -219,18 +267,22 @@ public:
 		ball->ClearModules();
 		ball->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
 		ball->ResetMoveVelocity();
+		ball->SetLifeTime(0.5f);
+		ball->ResetLifeTimer();
 		ball->ApplyPresentation(scale_, enableCollider_);
 
 		if (s.parent == nullptr || ball == s.parent)
 		{
 			s.parent = ball;
 			s.host = ball;
+			ctx.Record(AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
 			return;
 		}
 
 		ball->SetParent(s.parent);
 		s.children.push_back(ball);
 		s.host = ball;
+		ctx.Record(AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
 		ctx.DrainPitQueue();
 		RedistributeChildrenEvenly(s);
 	}
@@ -258,6 +310,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
+		if (ctx.TryRecordOnly(AttackStepRecordMake::OtherChild()))
+		{
+			return;
+		}
 		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
@@ -268,6 +324,7 @@ public:
 			return;
 		}
 		s.host = nullptr;
+		ctx.Record(AttackStepRecordMake::OtherChild());
 	}
 
 	static std::unique_ptr<AttackNodeStep_Other_Child> Make()
@@ -294,7 +351,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
-		AddToFocus<Attribute_Lifetime_Module>(ctx, durationSeconds_);
+		AddToFocus<Attribute_Lifetime_Module>(
+			ctx,
+			AttackStepRecordMake::Lifetime(durationSeconds_),
+			durationSeconds_);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Attribute_Lifetime> Make(float durationSeconds)
@@ -323,7 +383,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
-		AddToFocus<Attribute_SpeedRate_Module>(ctx, speedRate_);
+		AddToFocus<Attribute_SpeedRate_Module>(
+			ctx,
+			AttackStepRecordMake::SpeedRate(speedRate_),
+			speedRate_);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Attribute_SpeedRate> Make(float speedRate)
@@ -352,7 +415,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
-		AddToFocus<Attribute_SizeRate_Module>(ctx, sizeRate_);
+		AddToFocus<Attribute_SizeRate_Module>(
+			ctx,
+			AttackStepRecordMake::SizeRate(sizeRate_),
+			sizeRate_);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Attribute_SizeRate> Make(float sizeRate)
@@ -381,7 +447,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
-		AddToFocus<Attribute_DamageRate_Module>(ctx, damageRate_);
+		AddToFocus<Attribute_DamageRate_Module>(
+			ctx,
+			AttackStepRecordMake::DamageRate(damageRate_),
+			damageRate_);
 	}
 
 	static std::unique_ptr<AttackNodeStep_Attribute_DamageRate> Make(float damageRate)
@@ -411,6 +480,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
+		if (ctx.TryRecordOnly(AttackStepRecordMake::Orbit(orbitRadius_, orbitPhase_)))
+		{
+			return;
+		}
 		AttackStandby& s = ctx.standby;
 		if (s.host == nullptr)
 		{
@@ -460,6 +533,7 @@ public:
 			phase = 0.0f;
 		}
 		s.host->AddModule<Rule_Orbit_Module>(orbitRadius_, phase, center);
+		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, phase));
 	}
 
 	static std::unique_ptr<AttackNodeStep_Rule_Orbit> Make(
@@ -487,6 +561,10 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
+		if (ctx.TryRecordOnly(AttackStepRecordMake::Return()))
+		{
+			return;
+		}
 		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
@@ -497,6 +575,7 @@ public:
 			return;
 		}
 		s.parent->AddModule<Rule_Return_Module>(s.gfx, s.player);
+		ctx.Record(AttackStepRecordMake::Return());
 	}
 
 	static std::unique_ptr<AttackNodeStep_Rule_Return> Make()
@@ -514,11 +593,16 @@ public:
 	}
 	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Revive"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
 
 	void Apply(DeployContext& ctx) override
 	{
+		if (ctx.TryRecordOnly(AttackStepRecordMake::Revive()))
+		{
+			return;
+		}
 		AttackStandby& s = ctx.standby;
-		if (s.parked)
+		if (s.parent == nullptr)
 		{
 			return;
 		}
@@ -526,50 +610,14 @@ public:
 		{
 			return;
 		}
-		if (s.host == nullptr)
-		{
-			if (s.parent == nullptr)
-			{
-				return;
-			}
-			ctx.EnqueueOnEmptyPit([](DeployContext& c)
-			{
-				AttackNodeStep_Other_Revive().Apply(c);
-			});
-			return;
-		}
-		if (s.host->GetModule<Other_Revive_Module>() != nullptr)
+		if (s.parent->GetModule<Other_Revive_Module>() != nullptr)
 		{
 			return;
 		}
 
-		Attack* a = s.host;
-		const DirectX::XMFLOAT3 scale = a->GetSize();
-		ctx.FlushStandby();
-
-		Ball* b = ObjectCodex::SpawnPooled<Ball>(
-			attack_Ball,
-			*s.gfx,
-			*s.rg,
-			s.spawnPos,
-			DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-		if (b == nullptr)
-		{
-			return;
-		}
-
-		b->ResetHierarchy();
-		b->ClearModules();
-		b->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
-		b->ResetMoveVelocity();
-		b->ApplyPresentation(scale, true);
-		b->Deactivate();
-		b->SetReviveParked(true);
-
-		s.parent = b;
-		s.host = b;
-		s.parked = true;
-		a->AddModule<Other_Revive_Module>(b);
+		s.parent->AddModule<Other_Revive_Module>(s.gfx, s.rg, s.player);
+		ctx.Record(AttackStepRecordMake::Revive());
+		ctx.recordOnly = true;
 	}
 
 	static std::unique_ptr<AttackNodeStep_Other_Revive> Make()
@@ -577,6 +625,49 @@ public:
 		return std::make_unique<AttackNodeStep_Other_Revive>();
 	}
 };
+
+/**
+ * @brief 按快照 Apply 一条 Step。
+ * @note Revive 不挂第二层模块，只把 Focus 拨回 ShotRoot；Passive 仍跳过。
+ */
+inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
+{
+	switch (rec.label)
+	{
+	case ModuleNodeLabel::Core_Ball:
+	case ModuleNodeLabel::Spawn_Ball:
+		AttackNodeStep_Spawn_Ball::Make(DirectX::XMFLOAT3{ rec.a, rec.b, rec.c },rec.flag)->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Other_Child:
+		AttackNodeStep_Other_Child::Make()->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Other_Revive:
+		if (ctx.standby.parent != nullptr) { ctx.standby.host = ctx.standby.parent; }
+		break;
+	case ModuleNodeLabel::Attribute_Lifetime:
+		AttackNodeStep_Attribute_Lifetime::Make(rec.a)->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Attribute_SpeedRate:
+		AttackNodeStep_Attribute_SpeedRate::Make(rec.a)->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Attribute_SizeRate:
+		AttackNodeStep_Attribute_SizeRate::Make(rec.a)->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Attribute_DamageRate:
+		AttackNodeStep_Attribute_DamageRate::Make(rec.a)->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Rule_Orbit:
+		AttackNodeStep_Rule_Orbit::Make(rec.a, rec.b)->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Rule_Return:
+		AttackNodeStep_Rule_Return::Make()->Apply(ctx);
+		break;
+	case ModuleNodeLabel::Passive_DamageFix:
+	case ModuleNodeLabel::Count:
+	default:
+		break;
+	}
+}
 
 class AttackDeployer
 {
@@ -615,6 +706,26 @@ public:
 			}
 		}
 
+		return ctx.shots;
+	}
+
+	/**
+	 * @brief 按封存快照装配一棵树；Revive 只把 Focus 拨回主体、不挂第二层。不 SpawnAt，由调用方 AdoptLive 后开火。
+	 */
+	static std::vector<Attack*> DeployRecords(const std::vector<AttackStepRecord>& records, Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 pos, Player* player)
+	{
+		DeployContext ctx{};
+		ctx.standby.gfx = &gfx;
+		ctx.standby.rg = &rg;
+		ctx.standby.spawnPos = pos;
+		ctx.standby.player = player;
+
+		for (const AttackStepRecord& rec : records)
+		{
+			ApplyAttackStepRecord(ctx, rec);
+		}
+
+		ctx.FlushStandby();
 		return ctx.shots;
 	}
 };

@@ -202,6 +202,7 @@
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ModuleWorkbench.cpp" />
+    <ClCompile Include="Other_Revive_Module.cpp" />
     <ClCompile Include="ResultScene.cpp" />
     <ClCompile Include="SceneDirector.cpp" />
     <ClCompile Include="SettingsStore.cpp" />
@@ -366,6 +367,7 @@
     <ClInclude Include="AnimationInfo.h" />
     <ClInclude Include="Attack.h" />
     <ClInclude Include="AttackManager.h" />
+    <ClInclude Include="AttackStepRecord.h" />
     <ClInclude Include="Attribute_DamageRate_Module.h" />
     <ClInclude Include="Attribute_SizeRate_Module.h" />
     <ClInclude Include="Ball.h" />

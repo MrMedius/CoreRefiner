@@ -2,6 +2,7 @@
 #include "ObjectBase.h"
 #include "Character.h"
 #include "IProjectileModule.h"
+#include "AttackStepRecord.h"
 #include "Stats.h"
 
 #include <functional>
@@ -65,7 +66,20 @@ public:
 		stats_.ResetMods();
 		awaitingManagerAdopt_ = false;
 		launchPosLocked_ = false;
+		assembledRecipe_.clear();
 		adoptLive_ = {};
+	}
+
+	/**
+	 * @brief FlushStandby 时把当前流水线 Step 快照封到根弹（池化 ClearModules 会清掉）。
+	 */
+	void SealAssembledRecipe(std::vector<AttackStepRecord> recipe)
+	{
+		assembledRecipe_ = std::move(recipe);
+	}
+	[[nodiscard]] const std::vector<AttackStepRecord>& GetAssembledRecipe() const noexcept
+	{
+		return assembledRecipe_;
 	}
 
 	/** @brief 本弹数值袋（damage / size / speed）。 */
@@ -272,6 +286,7 @@ private:
 	bool awaitingManagerAdopt_{ false };
 	bool launchPosLocked_{ false };
 	bool reviveParked_{ false };
+	std::vector<AttackStepRecord> assembledRecipe_{};
 	std::function<void(Attack*)> adoptLive_{};
 
 	/**
