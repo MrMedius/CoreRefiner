@@ -7,6 +7,7 @@
 #include "VisualComponent.h"
 #include "SphereColliderComponent.h"
 #include "XMath.h"
+#include "AttackManager.h"
 
 #include <vector>
 
@@ -64,6 +65,7 @@ class Ball : public Attack
 	/**
 	 * @brief Reset pose/motion; arm modules; apply size/speed from AttackStats.
 	 * @note size.base 取当前组装缩放，避免把 Deployer 的 ApplyPresentation 冲回 1。
+	 *       子弹从父加速度只取方向，再写成 kAimSpeed × 自身 speed.Final()，避免连乘。
 	 */
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
@@ -109,7 +111,21 @@ class Ball : public Attack
 			childAtk->ArmModules();
 			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
 			{
-				childBall->SetMoveAccel((V(childBall->GetMoveAccel()) * childBall->Stats().speed.Final()).ToFloat3());
+				XMFLOAT3 launch = childBall->GetMoveAccel();
+				if (launch.x == 0.0f && launch.y == 0.0f && launch.z == 0.0f)
+				{
+					launch = childBall->GetMoveVelocity();
+				}
+				if (NormalizeXZ(launch))
+				{
+					launch = (V(launch) * AttackManager::kAimSpeed).ToFloat3();
+					childBall->SetMoveAccel(
+						(V(launch) * childBall->Stats().speed.Final()).ToFloat3());
+				}
+				else
+				{
+					childBall->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
+				}
 				const float childSz = childBall->Stats().size.Final();
 				const bool childColOn = (childBall->pCollider_ != nullptr)
 					? childBall->pCollider_->IsEnabled()
