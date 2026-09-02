@@ -236,20 +236,23 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
+		AttackStandby& s = ctx.standby;
+		/**
+		 * 已有 host = 新主体：先封上一套进 shots（扫描才能立刻开火）。
+		 * 必须在 TryRecordOnly 之前，否则 Revive 后的 Spawn 会被只记账、永远不 Flush。
+		 */
+		if (s.host != nullptr)
+		{
+			ctx.FlushStandby();
+		}
 		if (ctx.TryRecordOnly(AttackStepRecordMake::SpawnBall(scale_, enableCollider_)))
 		{
 			return;
 		}
 
-		AttackStandby& s = ctx.standby;
 		if (s.gfx == nullptr || s.rg == nullptr)
 		{
 			return;
-		}
-
-		if (s.host != nullptr)
-		{
-			ctx.FlushStandby();
 		}
 
 		Ball* ball = ObjectCodex::SpawnPooled<Ball>(

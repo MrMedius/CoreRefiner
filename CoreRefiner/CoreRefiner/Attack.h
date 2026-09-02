@@ -115,13 +115,11 @@ public:
 	[[nodiscard]] bool IsAwaitingManagerAdopt() const noexcept { return awaitingManagerAdopt_; }
 
 	/**
-	 * @brief 停放克隆占用池槽，禁止被 SpawnPooled 复用；放出或丢弃时清掉。
+	 * @brief 对象池可拿走：已非 Active，且玩法模块已清空（OnDisable 尚未 ClearModules 时不可复用）。
 	 */
-	void SetReviveParked(bool parked) noexcept { reviveParked_ = parked; }
-	[[nodiscard]] bool IsReviveParked() const noexcept { return reviveParked_; }
 	[[nodiscard]] bool IsReusable() const noexcept override
 	{
-		return !IsActive() && !reviveParked_;
+		return !IsActive() && modules_.empty();
 	}
 
 	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
@@ -285,7 +283,6 @@ private:
 	AttackStats stats_{};
 	bool awaitingManagerAdopt_{ false };
 	bool launchPosLocked_{ false };
-	bool reviveParked_{ false };
 	std::vector<AttackStepRecord> assembledRecipe_{};
 	std::function<void(Attack*)> adoptLive_{};
 

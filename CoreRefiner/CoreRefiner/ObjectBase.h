@@ -56,7 +56,7 @@ public:
 	 */
 	bool IsActive(void) const				{ return IsUse && !pendingDisable_; }
 	/**
-	 * @brief 对象池是否可拿走此实例。默认 = 非 Active；Attack 停放克隆会覆写。
+	 * @brief 对象池是否可拿走此实例。默认 = 非 Active。
 	 */
 	[[nodiscard]] virtual bool IsReusable() const noexcept { return !IsActive(); }
 	void Activate();

@@ -40,11 +40,13 @@ public:
 	void OnRecycle() override;
 
 private:
-	/** @brief 在消失点按配方装配新树并 AdoptLive + SpawnAt；Revive 只拨回 Focus，发射方向用 kAimSpeed。 */
+	/** @brief 在消失点按配方再 Deploy；发射加速度用 OnSpawn 记下的那份，不跟鼠标。 */
 	void Replay_(Attack* owner);
 
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
 	Player* player_{ nullptr };
+	/** @brief 第一次 SpawnAt/ArmModules 时的发射加速度（尚未乘 speed.Final()）。 */
+	DirectX::XMFLOAT3 launchDir_{ 0.0f, 0.0f, 0.0f };
 	bool armed_{ false };
 };

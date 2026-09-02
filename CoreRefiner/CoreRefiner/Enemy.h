@@ -49,9 +49,23 @@ public:
 	{
 		ResetHpCurrent();
 		SetIsDeath(false);
+		if (auto* col = GetComponent<ColliderComponentBase>())
+		{
+			col->SetEnabled(true);
+		}
 	}
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
+	/**
+	 * @brief 击杀当帧关掉自身碰撞，避免尸体体积再吃下一发（含 Revive 重放弹）。
+	 */
+	void OnHpDepleted_() override
+	{
+		if (auto* col = GetComponent<ColliderComponentBase>())
+		{
+			col->SetEnabled(false);
+		}
+	}
 	void DoChase(void)	// ターゲットを追いかける
 	{
 		if (!IsInAttackArea)

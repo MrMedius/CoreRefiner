@@ -29,8 +29,13 @@ public:
 	virtual void Submit(void) override = 0;
 	void CalculateHpCurrent(float offset)
 	{
+		const float before = HpCurrent;
 		HpCurrent += offset;
 		HpCurrent = std::clamp(HpCurrent, 0.0f, GetHpMax());
+		if (before > 0.0f && HpCurrent <= 0.0f)
+		{
+			OnHpDepleted_();
+		}
 	}
 	float GetHpCurrent(void) const { return HpCurrent; }
 	[[nodiscard]] float GetHpMax() const noexcept { return stats_.hpMax.Final(); }
@@ -62,6 +67,10 @@ protected:
 	 * @brief Default Box AABB resolve (Enemy path). Non-Box hosts must override.
 	 */
 	virtual void MapItemCollide(void);
+	/**
+	 * @brief HP 刚从正值落到 0（击杀当帧）。玩家默认空；敌人在此关碰撞。
+	 */
+	virtual void OnHpDepleted_() {}
 	void SetHpMax(float hp)
 	{
 		stats_.hpMax.base = hp;

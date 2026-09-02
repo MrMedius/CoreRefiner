@@ -5,6 +5,10 @@
 void Other_Revive_Module::OnSpawn()
 {
 	armed_ = true;
+	if (Attack* owner = GetOwner())
+	{
+		launchDir_ = owner->GetMoveAccel();
+	}
 }
 
 void Other_Revive_Module::OnDisable()
@@ -21,6 +25,7 @@ void Other_Revive_Module::OnDisable()
 void Other_Revive_Module::OnRecycle()
 {
 	armed_ = false;
+	launchDir_ = { 0.0f, 0.0f, 0.0f };
 }
 
 void Other_Revive_Module::Replay_(Attack* owner)
@@ -37,29 +42,22 @@ void Other_Revive_Module::Replay_(Attack* owner)
 	}
 
 	const DirectX::XMFLOAT3 pos = owner->GetWorldPosition();
-	DirectX::XMFLOAT3 dir = owner->GetMoveAccel();
-	if (dir.x == 0.0f && dir.y == 0.0f && dir.z == 0.0f)
+	DirectX::XMFLOAT3 dir = launchDir_;
+	if (dir.x == 0.0f && dir.y == 0.0f && dir.z == 0.0f && player_ != nullptr && player_->IsActive())
 	{
-		dir = owner->GetMoveVelocity();
-	}
-	if (NormalizeXZ(dir))
-	{
-		dir = (V(dir) * AttackManager::kAimSpeed).ToFloat3();
-	}
-	else
-	{
-		dir = { 0.0f, 0.0f, 0.0f };
+		dir = (V(pos) - V(player_->GetWorldPosition())).ToFloat3();
+		if (NormalizeXZ(dir))
+		{
+			dir = (V(dir) * AttackManager::kAimSpeed).ToFloat3();
+		}
 	}
 
-	/** 本弹已 pendingDisable，池会当成可复用；重放期间先占住，避免 SpawnPooled 拿到自己。 */
-	owner->SetReviveParked(true);
 	const std::vector<Attack*> roots = AttackDeployer::DeployRecords(
 		records,
 		*gfx_,
 		*rg_,
 		pos,
 		player_);
-	owner->SetReviveParked(false);
 
 	for (Attack* root : roots)
 	{
