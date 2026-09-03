@@ -188,7 +188,6 @@ void ModuleWorkbench::PlaceDemoField_()
 	field_.AddNode<ModuleNode_Attribute_Lifetime>(DirectX::XMFLOAT2{ -110.0f, 0.0f }, 2.0f);
 
 	field_.AddNode<ModuleNode_Attribute_DamageRate>(DirectX::XMFLOAT2{ 110.0f, 50.0f }, 2.0f);
-	field_.AddNode<ModuleNode_Attribute_DamageRate>(DirectX::XMFLOAT2{ -130.0f, 50.0f }, -0.5f);
 }
 
 void ModuleWorkbench::PlaceDemoWarehouse_()

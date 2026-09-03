@@ -54,7 +54,7 @@ struct DeployContext
 	std::vector<std::function<void(DeployContext&)>> pitQueue;
 	/**
 	 * @brief 扫到 Revive 之后为 true：后续 Step 只 Record，不改当前树。
-	 * @note 重放 DeployRecords 使用新的 Context，此标志保持 false。
+	 * @note 由 Other_Revive 的 Apply 置位；新 Context 从 false 开始。
 	 */
 	bool recordOnly{ false };
 
@@ -631,7 +631,7 @@ public:
 
 /**
  * @brief 按快照 Apply 一条 Step。
- * @note Revive 不挂第二层模块，只把 Focus 拨回 ShotRoot；Passive 仍跳过。
+ * @note Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。
  */
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
 {
@@ -645,7 +645,7 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 		AttackNodeStep_Other_Child::Make()->Apply(ctx);
 		break;
 	case ModuleNodeLabel::Other_Revive:
-		if (ctx.standby.parent != nullptr) { ctx.standby.host = ctx.standby.parent; }
+		AttackNodeStep_Other_Revive::Make()->Apply(ctx);
 		break;
 	case ModuleNodeLabel::Attribute_Lifetime:
 		AttackNodeStep_Attribute_Lifetime::Make(rec.a)->Apply(ctx);
@@ -713,7 +713,8 @@ public:
 	}
 
 	/**
-	 * @brief 按封存快照装配一棵树；Revive 只把 Focus 拨回主体、不挂第二层。不 SpawnAt，由调用方 AdoptLive 后开火。
+	 * @brief 按封存快照装配一棵树。不 SpawnAt，由调用方 AdoptLive 后开火。
+	 * @note Revive 世代消耗不在这里；由 Other_Revive_Module::Replay_ 在 Apply 前跳过第一条。
 	 */
 	static std::vector<Attack*> DeployRecords(const std::vector<AttackStepRecord>& records, Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 pos, Player* player)
 	{

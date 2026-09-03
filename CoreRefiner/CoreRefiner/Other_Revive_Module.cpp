@@ -52,14 +52,33 @@ void Other_Revive_Module::Replay_(Attack* owner)
 		}
 	}
 
-	const std::vector<Attack*> roots = AttackDeployer::DeployRecords(
-		records,
-		*gfx_,
-		*rg_,
-		pos,
-		player_);
+	DeployContext ctx{};
+	ctx.standby.gfx = gfx_;
+	ctx.standby.rg = rg_;
+	ctx.standby.spawnPos = pos;
+	ctx.standby.player = player_;
 
-	for (Attack* root : roots)
+	/**
+	 * @brief 消耗封存列表里第一条 Other_Revive：只把 Focus 拨回主体，不 Apply、不记账、不进入 recordOnly。
+	 * @note 其后的 Revive 仍走 ApplyAttackStepRecord（挂一层模块）。Flush 封到新根的是剩余配方。
+	 */
+	bool consumedRevive = false;
+	for (const AttackStepRecord& rec : records)
+	{
+		if (!consumedRevive && rec.label == ModuleNodeLabel::Other_Revive)
+		{
+			consumedRevive = true;
+			if (ctx.standby.parent != nullptr)
+			{
+				ctx.standby.host = ctx.standby.parent;
+			}
+			continue;
+		}
+		ApplyAttackStepRecord(ctx, rec);
+	}
+	ctx.FlushStandby();
+
+	for (Attack* root : ctx.shots)
 	{
 		if (root == nullptr)
 		{
