@@ -183,37 +183,57 @@ void Player::MapItemCollide(void)
 	OnFloor = grounded;
 
 	/*------------------------------------------------------------------------------
-	   MapCharacter — 玩家与敌人的位置分离只在此解算（敌人侧不再推开）。
+	   角色 — 不挪玩家；每个重叠敌人 ShoveXZ（两轮，含叠堆）。
 	------------------------------------------------------------------------------*/
-	std::vector<Character*> mapCharacters;
-	for (auto tag : { character_Player, character_Enemy_T })
+	constexpr float kShoveSkin = 0.02f;
+	std::vector<Enemy*> mapEnemies;
+	for (auto tag : kCharacterTags)
 	{
-		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);
-		mapCharacters.reserve(mapCharacters.size() + found.size());
-		mapCharacters.insert(mapCharacters.end(), found.begin(), found.end());
+		auto found = ObjectCodex::FindActiveObjectsByTag<Enemy>(tag);
+		mapEnemies.reserve(mapEnemies.size() + found.size());
+		mapEnemies.insert(mapEnemies.end(), found.begin(), found.end());
 	}
 
-	for (auto* c : mapCharacters)
+	constexpr int kShovePasses = 2;
+	for (int pass = 0; pass < kShovePasses; ++pass)
 	{
-		auto* cCol = c->GetComponent<ColliderComponentBase>();
-		if (this == c || this->GetIsDeath() || c->GetIsDeath() ||
-			cCol == nullptr || !cCol->IsEnabled())
+		for (auto* enemy : mapEnemies)
 		{
-			continue;
-		}
-		if (!CollisionSystem::IsOverlap(selfCol->GetVolume(), cCol->GetVolume()))
-		{
-			continue;
-		}
-
-		DirectX::XMFLOAT3 n{};
-		float depth = 0.0f;
-		if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
-		{
-			if (applyContact(n, depth))
+			auto* cCol = enemy->GetComponent<ColliderComponentBase>();
+			if (this->GetIsDeath() || enemy->GetIsDeath() ||
+				cCol == nullptr || !cCol->IsEnabled())
 			{
-				OnFloor = true;
+				continue;
 			}
+			if (!CollisionSystem::IsOverlap(selfCol->GetVolume(), cCol->GetVolume()))
+			{
+				continue;
+			}
+
+			DirectX::XMFLOAT3 n{};
+			float depth = 0.0f;
+			if (!CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))
+			{
+				continue;
+			}
+
+			/**
+			 * @brief MTV 把玩家推出敌人；推开敌人用水平反方向。竖直叠压时改用「敌人 − 玩家」。
+			 */
+			XMFLOAT3 shove{ -n.x, 0.0f, -n.z };
+			if (!NormalizeXZ(shove))
+			{
+				const auto ep = enemy->GetPosition();
+				const auto pp = GetPosition();
+				shove.x = ep.x - pp.x;
+				shove.z = ep.z - pp.z;
+				if (!NormalizeXZ(shove))
+				{
+					continue;
+				}
+			}
+			const float push = (std::max)(depth, 0.0f) + kShoveSkin;
+			enemy->ShoveXZ(shove.x * push, shove.z * push);
 		}
 	}
 }
@@ -339,16 +359,28 @@ void Player::SetupTransitions(void)
 		return !player->IsAttack;
 		});
 
-	// PLAYER_HURT → PLAYER_IDLE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
-		auto player = static_cast<Player*>(owner);
-		return !player->IsHurt && !player->IsDeath;
-		});
-
 	// PLAYER_HURT → PLAYER_DEATH
 	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_DEATH], [](Character* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsDeath;
+		});
+
+	// PLAYER_HURT → PLAYER_ATTACK
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
+		auto player = static_cast<Player*>(owner);
+		return player->IsAttack && !player->IsDeath;
+		});
+
+	// PLAYER_HURT → PLAYER_MOVE
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_MOVE], [](Character* owner) {
+		auto player = static_cast<Player*>(owner);
+		return !player->IsHurt && !player->IsDeath && player->Input().moveHeld;
+		});
+
+	// PLAYER_HURT → PLAYER_IDLE
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
+		auto player = static_cast<Player*>(owner);
+		return !player->IsHurt && !player->IsDeath && !player->Input().moveHeld;
 		});
 }
 
@@ -453,11 +485,6 @@ void Player_AttackState::Update(Player* owner, float dt)
 void Player_HurtState::OnEnter(Player* owner)
 {
 	owner->BeginHurtIFrames();
-	if (auto* col = owner->GetComponent<ColliderComponentBase>())
-	{
-		col->SetEnabled(false);
-	}
-
 	SoundCodex::Get().PlaySE(SndPath::SE_Player_Hurt);
 	InputCodex::Get().GP_SetVibrationPulse(owner->boundPadIndex, 0.8f, 0.8f, 30);
 }
@@ -466,18 +493,17 @@ void Player_HurtState::OnExit(Player* owner)
 {
 	owner->SetIsHurt(false);
 	owner->EndHurtIFrames();
-	if (!owner->GetIsDeath())
-	{
-		if (auto* col = owner->GetComponent<ColliderComponentBase>())
-		{
-			col->SetEnabled(true);
-		}
-	}
 }
 
 void Player_HurtState::Update(Player* owner, float dt)
 {
 	owner->TickHurtIFrames(dt);
+	const auto& in = owner->Input();
+	if (in.attack)
+	{
+		owner->SetIsAttack(true);
+	}
+	owner->DoMove(1.0f);
 }
 
 

@@ -21,16 +21,15 @@ Field_Shape::Field_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 		{
 			Step only("lambertianTrans");
 
-			auto pvs = VertexShader::Resolve(gfx, "Solid_VS.cso");
+			auto pvs = VertexShader::Resolve(gfx, "SolidTrans_VS.cso");
 			only.AddBindable(InputLayout::Resolve(gfx, model.vertices.GetLayout(), *pvs));
 			only.AddBindable(std::move(pvs));
 
-			only.AddBindable(PixelShader::Resolve(gfx, "Solid_PS.cso"));
+			only.AddBindable(PixelShader::Resolve(gfx, "SolidTrans_PS.cso"));
 
 			struct PSColorConstant
 			{
-				dx::XMFLOAT3 color = { 0.0f,0.0f,0.5f }; // 纯白色
-				float padding;
+				dx::XMFLOAT4 color = { 0.0f, 0.0f, 0.5f, 0.5f };
 			} colorConst;
 			only.AddBindable(PixelConstantBuffer<PSColorConstant>::Resolve(gfx, colorConst, 1u));
 

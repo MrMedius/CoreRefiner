@@ -745,6 +745,9 @@
     <ClCompile Include="Other_Revive_Module.cpp">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClCompile>
+    <ClCompile Include="Enemy.cpp">
+      <Filter>Object\Character\Enemy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1736,6 +1739,12 @@
     </FxCompile>
     <FxCompile Include="ScanWaveField_VS.hlsl">
       <Filter>Shader\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="SolidTrans_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="SolidTrans_VS.hlsl">
+      <Filter>Shader\3D</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

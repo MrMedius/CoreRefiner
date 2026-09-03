@@ -30,7 +30,7 @@ Player_Head::Player_Head(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 		struct PSColorConstant
 		{
-			dx::XMFLOAT3 color = { 1.0f,0.0f,0.0f }; // 纯白色
+			dx::XMFLOAT3 color = { 1.0f,0.0f,0.0f };
 			float padding;
 		} colorConst;
 		only.AddBindable(PixelConstantBuffer<PSColorConstant>::Resolve(gfx, colorConst, 1u));
@@ -81,7 +81,7 @@ Player_Body::Player_Body(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 		struct PSColorConstant
 		{
-			dx::XMFLOAT3 color = { 1.0f,1.0f,1.0f }; // 纯白色
+			dx::XMFLOAT3 color = { 1.0f,1.0f,1.0f };
 			float padding;
 		} colorConst;
 		only.AddBindable(PixelConstantBuffer<PSColorConstant>::Resolve(gfx, colorConst, 1u));

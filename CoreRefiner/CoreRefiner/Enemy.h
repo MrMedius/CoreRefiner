@@ -131,6 +131,34 @@ public:
 		}
 		AttackCollide(kContactHpDelta_, kContactRepel_);
 	}
+	/**
+	 * @brief 玩家碰撞推开：只改 XZ 并立刻 Sync；消掉朝推开反方向（往玩家钻）的水平速度。
+	 * @param dx 世界 X 增量。
+	 * @param dz 世界 Z 增量。
+	 */
+	void ShoveXZ(float dx, float dz)
+	{
+		auto p = GetPosition();
+		p.x += dx;
+		p.z += dz;
+		SetPosition(p);
+		if (auto* col = GetComponent<ColliderComponentBase>())
+		{
+			col->SyncFromOwner();
+		}
+
+		XMFLOAT3 away{ dx, 0.0f, dz };
+		if (!NormalizeXZ(away))
+		{
+			return;
+		}
+		const float vn = MoveVelocity.x * away.x + MoveVelocity.z * away.z;
+		if (vn < 0.0f)
+		{
+			MoveVelocity.x -= vn * away.x;
+			MoveVelocity.z -= vn * away.z;
+		}
+	}
 	void SetWasHurt(bool state) { WasHurt = state; }
 	bool GetWasHurt(void) 
 	{ 
@@ -146,6 +174,10 @@ public:
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
 protected:
+	/**
+	 * @brief 先 Character 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
+	 */
+	void MapItemCollide() override;
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = (V(area) * 0.5f).ToFloat3(); }
 	XMFLOAT3 GetSearchArea(void) const	  { return searchCollider.half; }

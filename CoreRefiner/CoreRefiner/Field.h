@@ -26,9 +26,7 @@ public:
 
 		// BoxColliderComponent + FromWorldMatrix (do not SetCollisionSize — it would overwrite matrix half)
 		DirectX::XMFLOAT3 localHalf{ 0.5f, 0.5f, 0.5f };
-		pCollider_ = AddComponent<BoxColliderComponent>(
-			ColliderSyncMode::FromWorldMatrix,
-			localHalf);
+		pCollider_ = AddComponent<BoxColliderComponent>(ColliderSyncMode::FromWorldMatrix, localHalf);
 		pCollider_->SetEnabled(onCollision);
 		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(1.0f, 0.0f, 0.0f), "wireFieldBox");
 	}

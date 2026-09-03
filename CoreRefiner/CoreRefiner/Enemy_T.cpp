@@ -34,7 +34,7 @@ void Enemy_T::Update(float dt)
 	 *        否则读到的是上一帧已经分离的位置，永远 overlap 不上。
 	 */
 	TryContactHit();
-	// Enemy intentionally keeps Character::MapItemCollide (Box AABB env + character push).
+	// Enemy::MapItemCollide → Character 场地/对弹 + 怪互挤
 	MapItemCollide();
 
 	// host-driven: sync Visual/Collider to post-collision transform

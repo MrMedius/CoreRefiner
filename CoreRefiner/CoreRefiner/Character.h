@@ -8,6 +8,14 @@
 
 using namespace Collider3D;
 
+/**
+ * @brief 角色间碰撞要扫的 tag。新增敌人类型时在此加一项。
+ */
+inline constexpr Object_Type_Tag kCharacterTags[] = {
+	character_Player,
+	character_Enemy_T,
+};
+
 class Character : public ObjectBase
 {
 public:
@@ -64,7 +72,7 @@ public:
 protected:
 	virtual void SetupTransitions(void) = 0;
 	/**
-	 * @brief Default Box AABB resolve (Enemy path). Non-Box hosts must override.
+	 * @brief Box 对场地 AABB + 对弹。非 Box 宿主必须整段 override（不要调基类）。
 	 */
 	virtual void MapItemCollide(void);
 	/**
@@ -77,7 +85,6 @@ protected:
 		RecalcStats();
 	}
 	void ResetHpCurrent(void) { HpCurrent = GetHpMax(); }
-protected:
 	CharacterStats stats_{};
 	float HpCurrent{ 0.0f };
 	XMFLOAT3 PositionOld{ GetPosition() };
