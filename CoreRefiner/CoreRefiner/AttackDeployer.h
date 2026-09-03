@@ -238,16 +238,20 @@ public:
 	{
 		AttackStandby& s = ctx.standby;
 		/**
-		 * 已有 host = 新主体：先封上一套进 shots（扫描才能立刻开火）。
-		 * 必须在 TryRecordOnly 之前，否则 Revive 后的 Spawn 会被只记账、永远不 Flush。
+		 * Revive 之后只记账：不得先 Flush。否则第二次 Spawn 会把当前树推进 shots，
+		 * Flush 再清掉 recordOnly，后面的 Child 永远无法在重放时开槽。
+		 */
+		if (ctx.TryRecordOnly(AttackStepRecordMake::SpawnBall(scale_, enableCollider_)))
+		{
+			return;
+		}
+		/**
+		 * 非 recordOnly 且已有 host：这是新的根弹，先把上一套封进 shots。
+		 * Child 已把 host 置空时走下面的填坑，不 Flush。
 		 */
 		if (s.host != nullptr)
 		{
 			ctx.FlushStandby();
-		}
-		if (ctx.TryRecordOnly(AttackStepRecordMake::SpawnBall(scale_, enableCollider_)))
-		{
-			return;
 		}
 
 		if (s.gfx == nullptr || s.rg == nullptr)
