@@ -19,6 +19,7 @@ namespace ModuleNodePrice
 		4, // Passive_DamageFix
 		4, // Other_Child
 		4, // Other_Revive
+		4, // Other_Repeat
 	};
 
 	inline constexpr int kSellPriceNumerator = 1;
@@ -50,4 +51,5 @@ namespace ModuleNodePrice
 	static_assert(GetSellPrice(ModuleNodeLabel::Passive_DamageFix) < GetBuyPrice(ModuleNodeLabel::Passive_DamageFix));
 	static_assert(GetSellPrice(ModuleNodeLabel::Other_Child) < GetBuyPrice(ModuleNodeLabel::Other_Child));
 	static_assert(GetSellPrice(ModuleNodeLabel::Other_Revive) < GetBuyPrice(ModuleNodeLabel::Other_Revive));
+	static_assert(GetSellPrice(ModuleNodeLabel::Other_Repeat) < GetBuyPrice(ModuleNodeLabel::Other_Repeat));
 }

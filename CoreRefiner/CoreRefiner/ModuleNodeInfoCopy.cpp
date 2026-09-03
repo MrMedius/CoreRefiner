@@ -73,6 +73,10 @@ namespace
 		{
 			return ModuleNodeLabel::Other_Revive;
 		}
+		if (name == "Other_Repeat")
+		{
+			return ModuleNodeLabel::Other_Repeat;
+		}
 		return std::nullopt;
 	}
 
@@ -174,6 +178,7 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	case ModuleNodeLabel::Passive_DamageFix: return "Passive_DamageFix";
 	case ModuleNodeLabel::Other_Child: return "Other_Child";
 	case ModuleNodeLabel::Other_Revive: return "Other_Revive";
+	case ModuleNodeLabel::Other_Repeat: return "Other_Repeat";
 	case ModuleNodeLabel::Count: return "";
 	}
 	return "";

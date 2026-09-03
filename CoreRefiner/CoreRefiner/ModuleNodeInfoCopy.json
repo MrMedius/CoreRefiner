@@ -69,6 +69,13 @@
       "spans": [
         { "start": 0, "length": 2, "r": 200, "g": 160, "b": 255, "a": 255, "weight": "bold" }
       ]
+    },
+    "Other_Repeat": {
+      "title": "重复",
+      "body": "把上一条装配再执行一次。复制复活等于多买一世。",
+      "spans": [
+        { "start": 0, "length": 2, "r": 200, "g": 180, "b": 255, "a": 255, "weight": "bold" }
+      ]
     }
   },
   "ja": {
@@ -141,6 +148,13 @@
       "spans": [
         { "start": 0, "length": 2, "r": 200, "g": 160, "b": 255, "a": 255, "weight": "bold" }
       ]
+    },
+    "Other_Repeat": {
+      "title": "反復",
+      "body": "直前の組み立てステップをもう一度適用する。蘇生ならもう一世。",
+      "spans": [
+        { "start": 0, "length": 2, "r": 200, "g": 180, "b": 255, "a": 255, "weight": "bold" }
+      ]
     }
   },
   "en": {
@@ -212,6 +226,13 @@
       "body": "The original shot fires as usual. On death it spawns a clone at that point without this node. Later scan steps attach to the clone.",
       "spans": [
         { "start": 0, "length": 6, "r": 200, "g": 160, "b": 255, "a": 255, "weight": "bold" }
+      ]
+    },
+    "Other_Repeat": {
+      "title": "Repeat",
+      "body": "Applies the previous assembly step again. Repeating Revive buys another life.",
+      "spans": [
+        { "start": 0, "length": 6, "r": 200, "g": 180, "b": 255, "a": 255, "weight": "bold" }
       ]
     }
   }

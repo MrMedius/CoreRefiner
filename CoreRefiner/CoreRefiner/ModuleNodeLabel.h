@@ -30,6 +30,7 @@ enum class ModuleNodeLabel : unsigned char
 
 	Other_Child,
 	Other_Revive,
+	Other_Repeat,
 
 	Count
 };
