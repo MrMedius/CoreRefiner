@@ -5,12 +5,12 @@
 class Attack;
 class Character;
 
-class IProjectileModule
+class IModule
 {
 public:
-	IProjectileModule() = delete;
-	explicit IProjectileModule(Attack* owner) noexcept : owner_(owner) {}
-	virtual ~IProjectileModule() = default;
+	IModule() = delete;
+	explicit IModule(Attack* owner) noexcept : owner_(owner) {}
+	virtual ~IModule() = default;
 
 	virtual void OnSpawn() {}
 	virtual void OnUpdate(float dt) { (void)dt; }

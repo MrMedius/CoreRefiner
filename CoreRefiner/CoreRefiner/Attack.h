@@ -1,7 +1,7 @@
 #pragma once
 #include "ObjectBase.h"
 #include "Character.h"
-#include "IProjectileModule.h"
+#include "IModule.h"
 #include "AttackStepRecord.h"
 #include "Stats.h"
 
@@ -37,13 +37,13 @@ public:
 
 	/**
 	 * @brief Attach a projectile module owned by this Attack.
-	 * @tparam T Must derive from IProjectileModule; first ctor arg is always this owner.
+	 * @tparam T Must derive from IModule; first ctor arg is always this owner.
 	 * @return Non-owning pointer to the created module.
 	 */
 	template <typename T, typename... Args>
 	T* AddModule(Args&&... args)
 	{
-		static_assert(std::is_base_of_v<IProjectileModule, T>, "T must inherit from IProjectileModule");
+		static_assert(std::is_base_of_v<IModule, T>, "T must inherit from IModule");
 		auto module = std::make_unique<T>(this, std::forward<Args>(args)...);
 		T* raw = module.get();
 		modules_.push_back(std::move(module));
@@ -127,7 +127,7 @@ public:
 	template <typename T>
 	T* GetModule() noexcept
 	{
-		static_assert(std::is_base_of_v<IProjectileModule, T>, "T must inherit from IProjectileModule");
+		static_assert(std::is_base_of_v<IModule, T>, "T must inherit from IModule");
 		for (auto& module : modules_)
 		{
 			if (T* typed = dynamic_cast<T*>(module.get()))
@@ -140,7 +140,7 @@ public:
 	template <typename T>
 	const T* GetModule() const noexcept
 	{
-		static_assert(std::is_base_of_v<IProjectileModule, T>, "T must inherit from IProjectileModule");
+		static_assert(std::is_base_of_v<IModule, T>, "T must inherit from IModule");
 		for (const auto& module : modules_)
 		{
 			if (const T* typed = dynamic_cast<const T*>(module.get()))
@@ -169,11 +169,11 @@ public:
 	void SetLocalScale(XMFLOAT3 scale) { SetSize(scale); }
 
 	/**
-	 * @brief Shot lifetime seconds (Attribute_Lifetime_Module / recipes).
+	 * @brief Shot lifetime seconds (Module_Attribute_Lifetime / recipes).
 	 */
 	void SetLifeTime(float seconds) { lifeTime = seconds; }
 	[[nodiscard]] float GetLifeTime() const noexcept { return lifeTime; }
-	/** @brief Reset elapsed life clock (call from SpawnAt / Attribute_Lifetime_Module::OnSpawn). */
+	/** @brief Reset elapsed life clock (call from SpawnAt / Module_Attribute_Lifetime::OnSpawn). */
 	void ResetLifeTimer() { lastTime = 0.0f; }
 	/**
 	 * @brief Advance life clock; returns true when expired.
@@ -279,7 +279,7 @@ protected:
 
 private:
 	/** @brief Gameplay modules; independent from ObjectBase IComponent list. */
-	std::vector<std::unique_ptr<IProjectileModule>> modules_;
+	std::vector<std::unique_ptr<IModule>> modules_;
 	AttackStats stats_{};
 	bool awaitingManagerAdopt_{ false };
 	bool launchPosLocked_{ false };

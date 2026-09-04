@@ -1,21 +1,21 @@
 #pragma once
-#include "IProjectileModule.h"
+#include "IModule.h"
 #include "Attack.h"
 
 /**
  * @brief Update module: RequestDisable when owner life timer exceeds SetLifeTime.
  * @note Uses Attack::TickLifeTimer / ResetLifeTimer (same fields as legacy Attack::lifeTime).
  */
-class Attribute_Lifetime_Module : public IProjectileModule
+class Module_Attribute_Lifetime : public IModule
 {
 public:
 	/**
 	 * @param owner Injected by Attack::AddModule.
 	 * @param durationSeconds If &gt; 0, writes owner SetLifeTime; otherwise keeps owner's current lifeTime.
 	 */
-	Attribute_Lifetime_Module(Attack* owner, float durationSeconds = -1.0f) noexcept
+	Module_Attribute_Lifetime(Attack* owner, float durationSeconds = -1.0f) noexcept
 		:
-		IProjectileModule(owner)
+		IModule(owner)
 	{
 		if (durationSeconds > 0.0f && owner != nullptr)
 		{

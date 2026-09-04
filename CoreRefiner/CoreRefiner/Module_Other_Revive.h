@@ -1,5 +1,5 @@
 #pragma once
-#include "IProjectileModule.h"
+#include "IModule.h"
 #include "Attack.h"
 
 class Graphics;
@@ -14,16 +14,16 @@ namespace Rgph
  * @brief 只挂在根弹上：第一次只装配本节点之前的树；死亡时消耗封存配方里第一条 Revive，再 Deploy 剩余列表。
  * @note 剩余列表里若还有 Revive，新根再挂一层（同一发仍最多一层）。Reset / 池回收（owner 仍 Active）时不放弹。
  */
-class Other_Revive_Module : public IProjectileModule
+class Module_Other_Revive : public IModule
 {
 public:
-	Other_Revive_Module(
+	Module_Other_Revive(
 		Attack* owner,
 		Graphics* gfx,
 		Rgph::RenderGraph* rg,
 		Player* player) noexcept
 		:
-		IProjectileModule(owner),
+		IModule(owner),
 		gfx_(gfx),
 		rg_(rg),
 		player_(player)

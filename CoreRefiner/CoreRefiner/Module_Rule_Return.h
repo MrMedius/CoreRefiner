@@ -1,5 +1,5 @@
 #pragma once
-#include "IProjectileModule.h"
+#include "IModule.h"
 #include "Attack.h"
 #include "AttackManager.h"
 #include "InputCodex.h"
@@ -11,12 +11,12 @@
  * @note launchPosLocked 时不改位置（留给 Revive）；仍把速度改成朝向玩家。
  *       与绕玩家 Orbit 同时存在时，由 Orbit 从该起点边转到公转半径。
  */
-class Rule_Return_Module : public IProjectileModule
+class Module_Rule_Return : public IModule
 {
 public:
-	Rule_Return_Module(Attack* owner, Graphics* gfx, Player* player) noexcept
+	Module_Rule_Return(Attack* owner, Graphics* gfx, Player* player) noexcept
 		:
-		IProjectileModule(owner),
+		IModule(owner),
 		gfx_(gfx),
 		player_(player)
 	{}

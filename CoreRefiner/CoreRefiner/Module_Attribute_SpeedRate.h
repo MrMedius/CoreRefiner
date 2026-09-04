@@ -1,13 +1,13 @@
 #pragma once
-#include "IProjectileModule.h"
+#include "IModule.h"
 #include "Attack.h"
 
-class Attribute_SpeedRate_Module : public IProjectileModule
+class Module_Attribute_SpeedRate : public IModule
 {
 public:
-	Attribute_SpeedRate_Module(Attack* owner, float speedRate = 1.0f) noexcept
+	Module_Attribute_SpeedRate(Attack* owner, float speedRate = 1.0f) noexcept
 		:
-		IProjectileModule(owner),
+		IModule(owner),
 		speedRate_(speedRate)
 	{}
 

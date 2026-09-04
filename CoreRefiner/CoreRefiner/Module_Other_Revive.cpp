@@ -1,8 +1,8 @@
-#include "Other_Revive_Module.h"
+#include "Module_Other_Revive.h"
 #include "AttackDeployer.h"
 #include "XMath.h"
 
-void Other_Revive_Module::OnSpawn()
+void Module_Other_Revive::OnSpawn()
 {
 	armed_ = true;
 	if (Attack* owner = GetOwner())
@@ -11,7 +11,7 @@ void Other_Revive_Module::OnSpawn()
 	}
 }
 
-void Other_Revive_Module::OnDisable()
+void Module_Other_Revive::OnDisable()
 {
 	Attack* owner = GetOwner();
 	if (owner == nullptr || !armed_ || owner->IsActive())
@@ -22,13 +22,13 @@ void Other_Revive_Module::OnDisable()
 	Replay_(owner);
 }
 
-void Other_Revive_Module::OnRecycle()
+void Module_Other_Revive::OnRecycle()
 {
 	armed_ = false;
 	launchDir_ = { 0.0f, 0.0f, 0.0f };
 }
 
-void Other_Revive_Module::Replay_(Attack* owner)
+void Module_Other_Revive::Replay_(Attack* owner)
 {
 	if (owner == nullptr || gfx_ == nullptr || rg_ == nullptr)
 	{

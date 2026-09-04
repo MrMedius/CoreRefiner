@@ -212,9 +212,6 @@
     <Filter Include="Scene\Core">
       <UniqueIdentifier>{93ee0b2c-46ca-41b5-890e-ebf14623128d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Object\Attack\AttackMaker">
-      <UniqueIdentifier>{25810130-4d47-44af-bff9-d61d627316be}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Object\Attack\ModuleSystem\AttackMaker">
       <UniqueIdentifier>{3bcc2285-3e7d-4811-b77f-cd151223fcdf}</UniqueIdentifier>
     </Filter>
@@ -742,11 +739,11 @@
     <ClCompile Include="LoopMain.cpp">
       <Filter>Framework\Main</Filter>
     </ClCompile>
-    <ClCompile Include="Other_Revive_Module.cpp">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClCompile>
     <ClCompile Include="Enemy.cpp">
       <Filter>Object\Character\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Module_Other_Revive.cpp">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1389,18 +1386,6 @@
     <ClInclude Include="NodeInfoPanel.h">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
-    <ClInclude Include="Attribute_Lifetime_Module.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
-    <ClInclude Include="Attribute_SpeedRate_Module.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
-    <ClInclude Include="IProjectileModule.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
-    <ClInclude Include="Rule_Orbit_Module.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
     <ClInclude Include="Ball.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
@@ -1521,18 +1506,6 @@
     <ClInclude Include="Stats.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="Attribute_SizeRate_Module.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
-    <ClInclude Include="Attribute_DamageRate_Module.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
-    <ClInclude Include="Other_Revive_Module.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
-    <ClInclude Include="Rule_Return_Module.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClInclude>
     <ClInclude Include="ModuleNodePrice.h">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </ClInclude>
@@ -1544,6 +1517,39 @@
     </ClInclude>
     <ClInclude Include="AttackDeployer.h">
       <Filter>Object\Attack\ModuleSystem\AttackMaker</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackNodeSteps.h">
+      <Filter>Object\Attack\ModuleSystem\AttackMaker</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackContext.h">
+      <Filter>Object\Attack\ModuleSystem\AttackMaker</Filter>
+    </ClInclude>
+    <ClInclude Include="IAttackNodeStep.h">
+      <Filter>Object\Attack\ModuleSystem\AttackMaker</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Rule_Orbit.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Attribute_DamageRate.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Attribute_SizeRate.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Attribute_Lifetime.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Attribute_SpeedRate.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Other_Revive.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Rule_Return.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="IModule.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

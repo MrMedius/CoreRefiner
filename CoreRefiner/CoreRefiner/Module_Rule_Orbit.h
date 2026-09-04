@@ -1,5 +1,5 @@
 #pragma once
-#include "IProjectileModule.h"
+#include "IModule.h"
 #include "Attack.h"
 #include "AttackManager.h"
 #include "ColliderComponentBase.h"
@@ -15,7 +15,7 @@
  *       绕玩家时从出生极径边转到目标半径；径向加速度与普通发射相同。
  *       圆心失效时沿当下切线甩出，并继续沿该切线加速。
  */
-class Rule_Orbit_Module : public IProjectileModule
+class Module_Rule_Orbit : public IModule
 {
 public:
 	static constexpr float kClearance{ 0.0f };
@@ -23,9 +23,9 @@ public:
 	/**
 	 * @param center 公转圆心（玩家或主弹）；空则不公转。
 	 */
-	Rule_Orbit_Module(Attack* owner, float radius, float phase0, ObjectBase* center = nullptr) noexcept
+	Module_Rule_Orbit(Attack* owner, float radius, float phase0, ObjectBase* center = nullptr) noexcept
 		:
-		IProjectileModule(owner),
+		IModule(owner),
 		radius_(radius),
 		phase0_(phase0),
 		angle_(phase0),
