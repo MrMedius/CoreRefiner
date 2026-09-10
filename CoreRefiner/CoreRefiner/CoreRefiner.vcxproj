@@ -376,6 +376,7 @@
     <ClInclude Include="CanvasPixelDraw.h" />
     <ClInclude Include="IAttackNodeStep.h" />
     <ClInclude Include="IModule.h" />
+    <ClInclude Include="ModuleNodeLevel.h" />
     <ClInclude Include="Module_Attribute_DamageRate.h" />
     <ClInclude Include="Module_Attribute_Lifetime.h" />
     <ClInclude Include="Module_Attribute_SizeRate.h" />

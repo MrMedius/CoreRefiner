@@ -1551,6 +1551,9 @@
     <ClInclude Include="IModule.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
+    <ClInclude Include="ModuleNodeLevel.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

@@ -5,6 +5,7 @@
 #include "ModuleNodeLabel.h"
 #include "Colors.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
@@ -39,6 +40,49 @@ namespace ModuleNodeKindFill
 	static_assert(sizeof(kFill) / sizeof(kFill[0]) == ModuleNodeKindCount(), "ModuleNodeKindFill::kFill size must match ModuleNodeKindCount");
 }
 
+struct ModuleNodeLevel
+{
+	static constexpr int kMin = 1;
+	static constexpr int kMax = 3;
+	static constexpr std::size_t kCount = 3;
+
+	int value{ kMin };
+
+	// 把等级夹到 [kMin, kMax] 后写入。
+	void Set(int level) noexcept
+	{
+		value = Clamp(level);
+	}
+
+	[[nodiscard]] int Get() const noexcept
+	{
+		return value;
+	}
+
+	// 当前等级对应的数组下标（0 = 1 级）。
+	[[nodiscard]] std::size_t Index() const noexcept
+	{
+		return static_cast<std::size_t>(Get() - kMin);
+	}
+
+	// 把等级夹到 [kMin, kMax]。
+	[[nodiscard]] static constexpr int Clamp(int level) noexcept
+	{
+		if (level < kMin)
+		{
+			return kMin;
+		}
+		if (level > kMax)
+		{
+			return kMax;
+		}
+		return level;
+	}
+};
+static_assert(ModuleNodeLevel::kCount == static_cast<std::size_t>(ModuleNodeLevel::kMax - ModuleNodeLevel::kMin + 1));
+static_assert(ModuleNodeLevel::Clamp(0) == ModuleNodeLevel::kMin);
+static_assert(ModuleNodeLevel::Clamp(99) == ModuleNodeLevel::kMax);
+
 class IModuleNode
 {
 public:
@@ -54,19 +98,19 @@ public:
 	[[nodiscard]] float GetHitRadius() const noexcept { return hitRadius_; }
 	void SetHitRadius(float r) noexcept { hitRadius_ = r; }
 
-	/** @brief 槽位残影 / 静置图标用半径；未覆盖时与命中半径相同。 */
+	// 槽位残影 / 静置图标用半径；未覆盖时与命中半径相同。
 	[[nodiscard]] float GetVisualRadius() const noexcept
 	{
 		return (visualRadiusOverride_ > 0.0f) ? visualRadiusOverride_ : hitRadius_;
 	}
 
-	/** @brief 当前跟随鼠标的图标半径；拖起时一律用 hitRadius_。 */
+	// 当前跟随鼠标的图标半径；拖起时一律用 hitRadius_。
 	[[nodiscard]] float GetIconRadius() const noexcept
 	{
 		return layoutGhostActive_ ? hitRadius_ : GetVisualRadius();
 	}
 
-	/** @brief 覆盖绘制半径；传入 <= 0 等效于清除覆盖。 */
+	// 覆盖绘制半径；传入 <= 0 等效于清除覆盖。
 	void SetVisualRadiusOverride(float r) noexcept
 	{
 		visualRadiusOverride_ = r;
@@ -76,7 +120,7 @@ public:
 		}
 	}
 
-	/** @brief 取消绘制半径覆盖，恢复为命中半径。 */
+	// 取消绘制半径覆盖，恢复为命中半径。
 	void ClearVisualRadiusOverride() noexcept
 	{
 		visualRadiusOverride_ = 0.0f;
@@ -142,16 +186,33 @@ public:
 
 	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
 
+	[[nodiscard]] int GetLevel() const noexcept
+	{
+		return level_.Get();
+	}
+
+	// 设级并按新等级重算本节点数值；夹在 [1, 3]。
+	// 不在基类构造里调用（派生未完成时虚表不对）。
+	void SetLevel(int level) noexcept
+	{
+		level_.Set(level);
+		ApplyLevelStats_();
+		if (visualReady_)
+		{
+			ApplyVisualTransform_();
+		}
+	}
+
 	virtual void ApplyTo(DeployContext& ctx) = 0;
-	/**
-	 * @brief 开火前仓内被动加算。默认空；Passive 节点覆写。
-	 */
+	
+	// 开火前仓内被动加算。默认空；Passive 节点覆写。
 	virtual void ApplyWarehouseBonus(Attack& attack)
 	{
 		(void)attack;
 	}
 	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
-	/** @brief 大类；默认 Other。未覆写的新节点会走 Other 色。 */
+
+	// 大类；默认 Other。未覆写的新节点会走 Other 色。
 	[[nodiscard]] virtual ModuleNodeKind GetKind() const noexcept
 	{
 		return ModuleNodeKind::Other;
@@ -165,16 +226,24 @@ protected:
 
 	[[nodiscard]] virtual Color GetReadyFillColor() const noexcept;
 
+	// 按 level_ 重算本类数值。默认不成长。
+	virtual void ApplyLevelStats_() {}
+
 	void ApplyVisualTransform_();
 	void SyncMaskUV_();
 	[[nodiscard]] float GetRemainRatio_() const noexcept;
 
 	std::uint32_t instanceId_{ 0 };
+
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
+	ModuleNodeLevel level_{};
+
 	float hitRadius_{ 16.0f };
-	/** @brief <= 0 表示不覆盖，绘制走 hitRadius_。 */
+	// <= 0 表示不覆盖，绘制走 hitRadius_。
 	float visualRadiusOverride_{ 0.0f };
+
 	ModuleReadyState state_{ ModuleReadyState::Ready };
+	
 	float cooldownRemaining_{ 0.0f };
 	float cooldownDuration_{ 3.0f };
 	float scanMaxRadius_{ 140.0f };
