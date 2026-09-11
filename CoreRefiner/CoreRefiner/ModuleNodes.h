@@ -272,7 +272,7 @@ public:
 	explicit ModuleNode_Rule_Return(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 20.0f;
+		hitRadius_ = kHitRadius_[0];
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -292,17 +292,25 @@ public:
 	{
 		return ModuleNodeKind::Rule;
 	}
+
+protected:
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+	}
+
+private:
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 20.0f, 16.0f, 12.0f };
 };
 
 class ModuleNode_Passive_DamageFix final : public IModuleNode
 {
 public:
-	explicit ModuleNode_Passive_DamageFix(DirectX::XMFLOAT2 localPos, float damageFix = 1.0f) noexcept
-		:
-		damageFix_(damageFix)
+	explicit ModuleNode_Passive_DamageFix(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 16.0f;
+		hitRadius_ = kHitRadius_[0];
+		damageFix_ = kDamageFix_[0];
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -328,7 +336,16 @@ public:
 		return ModuleNodeKind::Passive;
 	}
 
+protected:
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+		damageFix_ = kDamageFix_[level_.Index()];
+	}
+
 private:
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 16.0f, 16.0f, 16.0f };
+	static constexpr float kDamageFix_[ModuleNodeLevel::kCount] = { 1.0f, 1.5f, 2.0f };
 	float damageFix_{ 1.0f };
 };
 
@@ -338,7 +355,7 @@ public:
 	explicit ModuleNode_Other_Revive(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 16.0f;
+		hitRadius_ = kHitRadius_[0];
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -358,6 +375,15 @@ public:
 	{
 		return ModuleNodeKind::Other;
 	}
+
+protected:
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+	}
+
+private:
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 16.0f, 14.0f, 12.0f };
 };
 
 class ModuleNode_Other_Repeat final : public IModuleNode
@@ -366,7 +392,7 @@ public:
 	explicit ModuleNode_Other_Repeat(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 16.0f;
+		hitRadius_ = kHitRadius_[0];
 		cooldownDuration_ = 1.5f;
 		scanMaxRadius_ = 140.0f;
 		scanExpandSpeed_ = 100.0f;
@@ -386,4 +412,13 @@ public:
 	{
 		return ModuleNodeKind::Other;
 	}
+
+protected:
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+	}
+
+private:
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 16.0f, 14.0f, 12.0f };
 };

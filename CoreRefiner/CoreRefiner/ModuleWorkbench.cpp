@@ -192,7 +192,7 @@ void ModuleWorkbench::PlaceDemoField_()
 
 void ModuleWorkbench::PlaceDemoWarehouse_()
 {
-	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f }, 1.0f);
+	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
 }
 
 void ModuleWorkbench::Reset()
