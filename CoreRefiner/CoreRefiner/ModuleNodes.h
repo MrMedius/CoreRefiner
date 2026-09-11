@@ -4,6 +4,7 @@
 #include "AttackNodeSteps.h"
 
 #include <DirectXMath.h>
+#include <vector>
 
 class ModuleNode_Spawn_Ball_Core final : public IModuleNode
 {
@@ -417,7 +418,7 @@ protected:
 	}
 
 private:
-	static constexpr float kscanExpandSpeed_[ModuleNodeLevel::kCount] = { 20.0f, 50.0f, 80.0f };
+	static constexpr float kscanExpandSpeed_[ModuleNodeLevel::kCount] = { 50.0f, 75.0f, 100.0f };
 };
 
 class ModuleNode_Other_Revive final : public IModuleNode
@@ -463,15 +464,42 @@ public:
 	explicit ModuleNode_Other_Repeat(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = kHitRadius_[0];
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
+		hitRadius_ = 15.0f;
+		cooldownDuration_ = 3.0f;
+		scanMaxRadius_ = 50.0f;
+		scanExpandSpeed_ = 50.0f;
+		repeatCount_ = kRepeatCount_[0];
 	}
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		AttackNodeStep_Other_Repeat::Make()->Apply(ctx);
+		if (ctx.recipe.empty())
+		{
+			return;
+		}
+
+		std::size_t take = static_cast<std::size_t>(repeatCount_);
+		if (take < 1u)
+		{
+			take = 1u;
+		}
+		else if (take > 3u)
+		{
+			take = 3u;
+		}
+		if (take > ctx.recipe.size())
+		{
+			take = ctx.recipe.size();
+		}
+
+		const std::vector<AttackStepRecord> window(
+			ctx.recipe.end() - static_cast<std::ptrdiff_t>(take),
+			ctx.recipe.end());
+		for (const AttackStepRecord& rec : window)
+		{
+			ApplyAttackStepRecord(ctx, rec);
+		}
+		RedistributeChildrenEvenly(ctx.standby);
 	}
 
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
@@ -487,9 +515,10 @@ public:
 protected:
 	void ApplyLevelStats_() override
 	{
-		hitRadius_ = kHitRadius_[level_.Index()];
+		repeatCount_ = kRepeatCount_[level_.Index()];
 	}
 
 private:
-	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 16.0f, 14.0f, 12.0f };
+	float repeatCount_{ 1.0f };
+	static constexpr float kRepeatCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 3.0f };
 };

@@ -477,65 +477,9 @@ public:
 	}
 };
 
-inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec);
-
-/**
- * @brief 把 recipe 上一条再 Apply/Record 一次。自身不进配方。
- * @note 空配方、或末尾连续同一 label 已达上限则空操作。复制 Revive = 再买一世。
- */
-class AttackNodeStep_Other_Repeat final : public IAttackNodeStep
-{
-public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Other_Repeat;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Repeat"; }
-
-	void Apply(DeployContext& ctx) override
-	{
-		if (ctx.recipe.empty())
-		{
-			return;
-		}
-		if (CountTrailingSameLabel_(ctx.recipe) >= kMaxTrailingCopies_)
-		{
-			return;
-		}
-		const AttackStepRecord last = ctx.recipe.back();
-		ApplyAttackStepRecord(ctx, last);
-	}
-
-	static std::unique_ptr<AttackNodeStep_Other_Repeat> Make()
-	{
-		return std::make_unique<AttackNodeStep_Other_Repeat>();
-	}
-
-private:
-	static constexpr int kMaxTrailingCopies_ = 8;
-
-	/**
-	 * @brief 配方末尾与最后一条相同 label 的连续条数。
-	 */
-	[[nodiscard]] static int CountTrailingSameLabel_(const std::vector<AttackStepRecord>& recipe) noexcept
-	{
-		const ModuleNodeLabel label = recipe.back().label;
-		int n = 0;
-		for (auto it = recipe.rbegin(); it != recipe.rend(); ++it)
-		{
-			if (it->label != label)
-			{
-				break;
-			}
-			++n;
-		}
-		return n;
-	}
-};
-
 /**
  * @brief 按快照 Apply 一条 Step。
- * @note Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。
+ * @note Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
  */
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
 {
@@ -572,6 +516,7 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 		AttackNodeStep_Rule_Return::Make()->Apply(ctx);
 		break;
 	case ModuleNodeLabel::Passive_DamageFix:
+		break;
 	case ModuleNodeLabel::Count:
 	default:
 		break;
