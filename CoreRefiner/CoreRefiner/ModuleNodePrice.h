@@ -10,7 +10,7 @@ namespace ModuleNodePrice
 	inline constexpr std::array<int, ModuleNodeLabelCount()> kBuyPrice{
 		0, // Core_Ball
 		4, // Spawn_Ball
-		4, // Attribute_Lifetime
+		4, // Attribute_LifetimeRate
 		4, // Attribute_SpeedRate
 		4, // Attribute_SizeRate
 		4, // Attribute_DamageRate
@@ -44,7 +44,7 @@ namespace ModuleNodePrice
 	static_assert(kSellPriceDenominator > kSellPriceNumerator);
 	static_assert(GetBuyPrice(ModuleNodeLabel::Core_Ball) == 0);
 	static_assert(GetSellPrice(ModuleNodeLabel::Spawn_Ball) < GetBuyPrice(ModuleNodeLabel::Spawn_Ball));
-	static_assert(GetSellPrice(ModuleNodeLabel::Attribute_Lifetime) < GetBuyPrice(ModuleNodeLabel::Attribute_Lifetime));
+	static_assert(GetSellPrice(ModuleNodeLabel::Attribute_LifetimeRate) < GetBuyPrice(ModuleNodeLabel::Attribute_LifetimeRate));
 	static_assert(GetSellPrice(ModuleNodeLabel::Attribute_SpeedRate) < GetBuyPrice(ModuleNodeLabel::Attribute_SpeedRate));
 	static_assert(GetSellPrice(ModuleNodeLabel::Rule_Orbit) < GetBuyPrice(ModuleNodeLabel::Rule_Orbit));
 	static_assert(GetSellPrice(ModuleNodeLabel::Rule_Return) < GetBuyPrice(ModuleNodeLabel::Rule_Return));

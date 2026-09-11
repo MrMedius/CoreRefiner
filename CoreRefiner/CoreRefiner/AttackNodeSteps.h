@@ -7,7 +7,7 @@
 
 #include "Module_Rule_Orbit.h"
 #include "Module_Rule_Return.h"
-#include "Module_Attribute_Lifetime.h"
+#include "Module_Attribute_LifetimeRate.h"
 #include "Module_Attribute_SpeedRate.h"
 #include "Module_Attribute_SizeRate.h"
 #include "Module_Attribute_DamageRate.h"
@@ -119,7 +119,6 @@ public:
 		ball->ClearModules();
 		ball->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
 		ball->ResetMoveVelocity();
-		ball->SetLifeTime(0.5f);
 		ball->ResetLifeTimer();
 		ball->ApplyPresentation(scale_, enableCollider_);
 
@@ -185,37 +184,37 @@ public:
 	}
 };
 
-class AttackNodeStep_Attribute_Lifetime final : public IAttackNodeStep
+class AttackNodeStep_Attribute_LifetimeRate final : public IAttackNodeStep
 {
 public:
-	explicit AttackNodeStep_Attribute_Lifetime(float durationSeconds) noexcept
+	explicit AttackNodeStep_Attribute_LifetimeRate(float lifetimeRate) noexcept
 		:
-		durationSeconds_(durationSeconds)
+		lifetimeRate_(lifetimeRate)
 	{}
 
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return ModuleNodeLabel::Attribute_Lifetime;
+		return ModuleNodeLabel::Attribute_LifetimeRate;
 	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_Lifetime"; }
+	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_LifetimeRate"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
 	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
-		AddToFocus<Module_Attribute_Lifetime>(
+		AddToFocus<Module_Attribute_LifetimeRate>(
 			ctx,
-			AttackStepRecordMake::Lifetime(durationSeconds_),
-			durationSeconds_);
+			AttackStepRecordMake::LifetimeRate(lifetimeRate_),
+			lifetimeRate_);
 	}
 
-	static std::unique_ptr<AttackNodeStep_Attribute_Lifetime> Make(float durationSeconds)
+	static std::unique_ptr<AttackNodeStep_Attribute_LifetimeRate> Make(float lifetimeRate)
 	{
-		return std::make_unique<AttackNodeStep_Attribute_Lifetime>(durationSeconds);
+		return std::make_unique<AttackNodeStep_Attribute_LifetimeRate>(lifetimeRate);
 	}
 
 private:
-	float durationSeconds_{ 2.0f };
+	float lifetimeRate_{ 0.5f };
 };
 
 class AttackNodeStep_Attribute_SpeedRate final : public IAttackNodeStep
@@ -554,8 +553,8 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 		break;
 	case ModuleNodeLabel::Other_Repeat:
 		break;
-	case ModuleNodeLabel::Attribute_Lifetime:
-		AttackNodeStep_Attribute_Lifetime::Make(rec.a)->Apply(ctx);
+	case ModuleNodeLabel::Attribute_LifetimeRate:
+		AttackNodeStep_Attribute_LifetimeRate::Make(rec.a)->Apply(ctx);
 		break;
 	case ModuleNodeLabel::Attribute_SpeedRate:
 		AttackNodeStep_Attribute_SpeedRate::Make(rec.a)->Apply(ctx);

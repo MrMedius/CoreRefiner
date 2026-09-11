@@ -83,7 +83,9 @@ class Ball : public Attack
 		const float assembled = MaxScaleComponent(GetSize());
 		Stats().size.base = (assembled > 0.0f) ? assembled : 1.0f;
 
+		Stats().lifetime.base = 2.0f;
 		ArmModules();
+		SetLifeTime(Stats().lifetime.Final());
 
 		SetMoveAccel((V(GetMoveAccel()) * Stats().speed.Final()).ToFloat3());
 		const float sz = Stats().size.Final();
@@ -103,12 +105,14 @@ class Ball : public Attack
 		for (Attack* childAtk : kids)
 		{
 			childAtk->Stats().ResetMods();
+			childAtk->Stats().lifetime.base = 2.0f;
 			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
 			{
 				const float childAssembled = MaxScaleComponent(childBall->GetSize());
 				childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
 			}
 			childAtk->ArmModules();
+			childAtk->SetLifeTime(childAtk->Stats().lifetime.Final());
 			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
 			{
 				XMFLOAT3 launch = childBall->GetMoveAccel();
@@ -141,6 +145,10 @@ class Ball : public Attack
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 
 		DispatchOnUpdate(dt);
+		if (IsActive() && TickLifeTimer(dt))
+		{
+			RequestDisable();
+		}
 		UpdateChildren(dt);
 		ObjectBase::Update(dt);
 	}

@@ -7,7 +7,7 @@
         { "start": 0, "length": 3, "r": 255, "g": 230, "b": 80, "a": 255, "weight": "bold" }
       ]
     },
-    "Attribute_Lifetime": {
+    "Attribute_LifetimeRate": {
       "title": "存在时长",
       "body": "影响子弹的存在时间。",
       "spans": [
@@ -86,7 +86,7 @@
         { "start": 0, "length": 6, "r": 255, "g": 230, "b": 80, "a": 255, "weight": "bold" }
       ]
     },
-    "Attribute_Lifetime": {
+    "Attribute_LifetimeRate": {
       "title": "周波数",
       "body": "弾に関する周波数パラメータを調整し、発射リズムや周期挙動に影響する。",
       "spans": [
@@ -165,7 +165,7 @@
         { "start": 0, "length": 10, "r": 255, "g": 230, "b": 80, "a": 255, "weight": "bold" }
       ]
     },
-    "Attribute_Lifetime": {
+    "Attribute_LifetimeRate": {
       "title": "Lifetime",
       "body": "Tweaks frequency-related projectile parameters that affect cadence or periodic behavior.",
       "spans": [

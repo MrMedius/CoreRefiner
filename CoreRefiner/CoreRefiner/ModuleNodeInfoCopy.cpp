@@ -37,9 +37,9 @@ namespace
 		{
 			return ModuleNodeLabel::Spawn_Ball;
 		}
-		if (name == "Attribute_Lifetime")
+		if (name == "Attribute_LifetimeRate")
 		{
-			return ModuleNodeLabel::Attribute_Lifetime;
+			return ModuleNodeLabel::Attribute_LifetimeRate;
 		}
 		if (name == "Attribute_SpeedRate")
 		{
@@ -169,7 +169,7 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	{
 	case ModuleNodeLabel::Core_Ball: return "Core_Ball";
 	case ModuleNodeLabel::Spawn_Ball: return "Spawn_Ball";
-	case ModuleNodeLabel::Attribute_Lifetime: return "Attribute_Lifetime";
+	case ModuleNodeLabel::Attribute_LifetimeRate: return "Attribute_LifetimeRate";
 	case ModuleNodeLabel::Attribute_SpeedRate: return "Attribute_SpeedRate";
 	case ModuleNodeLabel::Attribute_SizeRate: return "Attribute_SizeRate";
 	case ModuleNodeLabel::Attribute_DamageRate: return "Attribute_DamageRate";

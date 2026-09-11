@@ -238,7 +238,7 @@ protected:
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
 	ModuleNodeLevel level_{};
 
-	float hitRadius_{ 16.0f };
+	float hitRadius_{ 10.0f };
 	// <= 0 表示不覆盖，绘制走 hitRadius_。
 	float visualRadiusOverride_{ 0.0f };
 
@@ -246,8 +246,8 @@ protected:
 	
 	float cooldownRemaining_{ 0.0f };
 	float cooldownDuration_{ 3.0f };
-	float scanMaxRadius_{ 140.0f };
-	float scanExpandSpeed_{ 100.0f };
+	float scanMaxRadius_{ 10.0f };
+	float scanExpandSpeed_{ 10.0f };
 
 	std::unique_ptr<Canvas2D> icon_;
 	std::unique_ptr<Canvas2DSpriteUV> mask_;

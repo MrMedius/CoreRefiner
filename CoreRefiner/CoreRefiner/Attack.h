@@ -82,7 +82,7 @@ public:
 		return assembledRecipe_;
 	}
 
-	/** @brief 本弹数值袋（damage / size / speed）。 */
+	/** @brief 本弹数值袋（damage / size / speed / lifetime）。 */
 	[[nodiscard]] AttackStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const AttackStats& Stats() const noexcept { return stats_; }
 
@@ -169,11 +169,11 @@ public:
 	void SetLocalScale(XMFLOAT3 scale) { SetSize(scale); }
 
 	/**
-	 * @brief Shot lifetime seconds (Module_Attribute_Lifetime / recipes).
+	 * @brief 开火时拍板的寿命秒数（ArmModules 之后 = lifetime.Final()）。
 	 */
 	void SetLifeTime(float seconds) { lifeTime = seconds; }
 	[[nodiscard]] float GetLifeTime() const noexcept { return lifeTime; }
-	/** @brief Reset elapsed life clock (call from SpawnAt / Module_Attribute_Lifetime::OnSpawn). */
+	/** @brief Reset elapsed life clock (call from SpawnAt). */
 	void ResetLifeTimer() { lastTime = 0.0f; }
 	/**
 	 * @brief Advance life clock; returns true when expired.
@@ -275,7 +275,7 @@ protected:
 	XMFLOAT3 MoveAccel{ 0.0f,0.0f,0.0f };
 	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };
 	float lastTime{ 0.0f };
-	float lifeTime{ 0.5f };
+	float lifeTime{ 2.0f };
 
 private:
 	/** @brief Gameplay modules; independent from ObjectBase IComponent list. */

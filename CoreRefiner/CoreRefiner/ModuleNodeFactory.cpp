@@ -3,14 +3,6 @@
 
 namespace ModuleNodeFactory
 {
-	namespace
-	{
-		constexpr float kLifetimeSeconds = 2.0f;
-		constexpr float kSpeedRate = 0.5f;
-		constexpr float kSizeRate = 0.5f;
-		constexpr float kDamageRate = 0.5f;
-	}
-
 	std::unique_ptr<IModuleNode> MakeModuleNode(
 		ModuleNodeLabel label,
 		DirectX::XMFLOAT2 localPos)
@@ -19,10 +11,10 @@ namespace ModuleNodeFactory
 		{
 		case ModuleNodeLabel::Core_Ball:				return std::make_unique<ModuleNode_Spawn_Ball_Core>(localPos);
 		case ModuleNodeLabel::Spawn_Ball:				return std::make_unique<ModuleNode_Spawn_Ball>(localPos);
-		case ModuleNodeLabel::Attribute_Lifetime:		return std::make_unique<ModuleNode_Attribute_Lifetime>(localPos, kLifetimeSeconds);
-		case ModuleNodeLabel::Attribute_SpeedRate:		return std::make_unique<ModuleNode_Attribute_SpeedRate>(localPos, kSpeedRate);
-		case ModuleNodeLabel::Attribute_SizeRate:		return std::make_unique<ModuleNode_Attribute_SizeRate>(localPos, kSizeRate);
-		case ModuleNodeLabel::Attribute_DamageRate:		return std::make_unique<ModuleNode_Attribute_DamageRate>(localPos, kDamageRate);
+		case ModuleNodeLabel::Attribute_LifetimeRate:	return std::make_unique<ModuleNode_Attribute_LifetimeRate>(localPos);
+		case ModuleNodeLabel::Attribute_SpeedRate:		return std::make_unique<ModuleNode_Attribute_SpeedRate>(localPos);
+		case ModuleNodeLabel::Attribute_SizeRate:		return std::make_unique<ModuleNode_Attribute_SizeRate>(localPos);
+		case ModuleNodeLabel::Attribute_DamageRate:		return std::make_unique<ModuleNode_Attribute_DamageRate>(localPos);
 		case ModuleNodeLabel::Rule_Orbit:				return std::make_unique<ModuleNode_Rule_Orbit>(localPos);
 		case ModuleNodeLabel::Rule_Return:				return std::make_unique<ModuleNode_Rule_Return>(localPos);
 		case ModuleNodeLabel::Passive_DamageFix:		return std::make_unique<ModuleNode_Passive_DamageFix>(localPos);

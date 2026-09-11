@@ -5,7 +5,54 @@
 
 #include <DirectXMath.h>
 
-class ModuleNode_Spawn_Ball : public IModuleNode
+class ModuleNode_Spawn_Ball_Core final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Spawn_Ball_Core(
+		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
+		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
+		bool enableCollider = true) noexcept
+		:
+		scale_(scale),
+		enableCollider_(enableCollider)
+	{
+		localPos_ = localPos;
+		hitRadius_ = kHitRadius_[0];
+		cooldownDuration_ = kCooldownDuration_[0];
+		scanMaxRadius_ = 100.0f;
+		scanExpandSpeed_ = 100.0f;
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Core_Ball;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Core;
+	}
+
+protected:
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+		cooldownDuration_ = kCooldownDuration_[level_.Index()];
+	}
+
+private:
+	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
+	bool enableCollider_{ true };
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 20.0f, 17.0f, 14.0f };
+	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 2.0f, 1.5f, 1.0f };
+};
+
+class ModuleNode_Spawn_Ball final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Spawn_Ball(
@@ -17,10 +64,10 @@ public:
 		enableCollider_(enableCollider)
 	{
 		localPos_ = localPos;
-		hitRadius_ = 24.0f;
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
+		hitRadius_ = kHitRadius_[0];
+		cooldownDuration_ = kCooldownDuration_[0];
+		scanMaxRadius_ = 80.0f;
+		scanExpandSpeed_ = 80.0f;
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -39,85 +86,40 @@ public:
 	}
 
 protected:
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+		cooldownDuration_ = kCooldownDuration_[level_.Index()];
+	}
+
+private:
 	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
 	bool enableCollider_{ true };
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 24.0f, 21.0f, 18.0f };
+	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 2.0f, 1.5f, 1.0f };
 };
 
-class ModuleNode_Spawn_Ball_Core final : public ModuleNode_Spawn_Ball
+class ModuleNode_Attribute_LifetimeRate final : public IModuleNode
 {
 public:
-	explicit ModuleNode_Spawn_Ball_Core(
-		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
-		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
-		bool enableCollider = true) noexcept
-		:
-		ModuleNode_Spawn_Ball(localPos, scale, enableCollider)
-	{
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Core_Ball;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Core;
-	}
-};
-
-class ModuleNode_Other_Child final : public IModuleNode
-{
-public:
-	explicit ModuleNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
+	explicit ModuleNode_Attribute_LifetimeRate(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 8.0f;
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
+		hitRadius_ = 12.0f;
+		cooldownDuration_ = 2.0f;
+		scanMaxRadius_ = 50.0f;
+		scanExpandSpeed_ = 50.0f;
+		lifetimeRate_ = kLifetimeRate_[0];
 	}
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		AttackNodeStep_Other_Child::Make()->Apply(ctx);
+		AttackNodeStep_Attribute_LifetimeRate::Make(lifetimeRate_)->Apply(ctx);
 	}
 
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return ModuleNodeLabel::Other_Child;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Other;
-	}
-};
-
-class ModuleNode_Attribute_Lifetime final : public IModuleNode
-{
-public:
-	ModuleNode_Attribute_Lifetime(DirectX::XMFLOAT2 localPos, float durationSeconds = 2.0f) noexcept
-		:
-		durationSeconds_(durationSeconds)
-	{
-		localPos_ = localPos;
-		hitRadius_ = 16.0f;
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
-	}
-
-	void ApplyTo(DeployContext& ctx) override
-	{
-		AttackNodeStep_Attribute_Lifetime::Make(durationSeconds_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_Lifetime;
+		return ModuleNodeLabel::Attribute_LifetimeRate;
 	}
 
 	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
@@ -125,22 +127,28 @@ public:
 		return ModuleNodeKind::Attribute;
 	}
 
+protected:
+	void ApplyLevelStats_() override
+	{
+		lifetimeRate_ = kLifetimeRate_[level_.Index()];
+	}
+
 private:
-	float durationSeconds_{ 2.0f };
+	float lifetimeRate_{ 0.5f };
+	static constexpr float kLifetimeRate_[ModuleNodeLevel::kCount] = { 0.5f, 1.0f, 1.5f };
 };
 
 class ModuleNode_Attribute_SpeedRate final : public IModuleNode
 {
 public:
-	ModuleNode_Attribute_SpeedRate(DirectX::XMFLOAT2 localPos, float speedRate = 1.0f) noexcept
-		:
-		speedRate_(speedRate)
+	explicit ModuleNode_Attribute_SpeedRate(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
+		cooldownDuration_ = 2.0f;
+		scanMaxRadius_ = 50.0f;
+		scanExpandSpeed_ = 50.0f;
+		speedRate_ = kSpeedRate_[0];
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -158,22 +166,28 @@ public:
 		return ModuleNodeKind::Attribute;
 	}
 
+protected:
+	void ApplyLevelStats_() override
+	{
+		speedRate_ = kSpeedRate_[level_.Index()];
+	}
+
 private:
-	float speedRate_{ 1.0f };
+	float speedRate_{ 0.5f };
+	static constexpr float kSpeedRate_[ModuleNodeLevel::kCount] = { 0.5f, 1.0f, 1.5f };
 };
 
 class ModuleNode_Attribute_SizeRate final : public IModuleNode
 {
 public:
-	ModuleNode_Attribute_SizeRate(DirectX::XMFLOAT2 localPos, float sizeRate = 0.5f) noexcept
-		:
-		sizeRate_(sizeRate)
+	explicit ModuleNode_Attribute_SizeRate(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
+		cooldownDuration_ = 2.0f;
+		scanMaxRadius_ = 50.0f;
+		scanExpandSpeed_ = 50.0f;
+		sizeRate_ = kSizeRate_[0];
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -191,22 +205,28 @@ public:
 		return ModuleNodeKind::Attribute;
 	}
 
+protected:
+	void ApplyLevelStats_() override
+	{
+		sizeRate_ = kSizeRate_[level_.Index()];
+	}
+
 private:
 	float sizeRate_{ 0.5f };
+	static constexpr float kSizeRate_[ModuleNodeLevel::kCount] = { 0.5f, 1.0f, 1.5f };
 };
 
 class ModuleNode_Attribute_DamageRate final : public IModuleNode
 {
 public:
-	ModuleNode_Attribute_DamageRate(DirectX::XMFLOAT2 localPos, float damageRate = 0.5f) noexcept
-		:
-		damageRate_(damageRate)
+	explicit ModuleNode_Attribute_DamageRate(DirectX::XMFLOAT2 localPos) noexcept
 	{
 		localPos_ = localPos;
-		hitRadius_ = 24.0f;
-		cooldownDuration_ = 1.5f;
-		scanMaxRadius_ = 140.0f;
-		scanExpandSpeed_ = 100.0f;
+		hitRadius_ = 12.0f;
+		cooldownDuration_ = 2.0f;
+		scanMaxRadius_ = 50.0f;
+		scanExpandSpeed_ = 50.0f;
+		damageRate_ = kDamageRate_[0];
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -224,8 +244,15 @@ public:
 		return ModuleNodeKind::Attribute;
 	}
 
+protected:
+	void ApplyLevelStats_() override
+	{
+		damageRate_ = kDamageRate_[level_.Index()];
+	}
+
 private:
 	float damageRate_{ 0.5f };
+	static constexpr float kDamageRate_[ModuleNodeLevel::kCount] = { 0.5f, 1.0f, 1.5f };
 };
 
 class ModuleNode_Rule_Orbit final : public IModuleNode
@@ -347,6 +374,34 @@ private:
 	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 16.0f, 16.0f, 16.0f };
 	static constexpr float kDamageFix_[ModuleNodeLevel::kCount] = { 1.0f, 1.5f, 2.0f };
 	float damageFix_{ 1.0f };
+};
+
+class ModuleNode_Other_Child final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
+	{
+		localPos_ = localPos;
+		hitRadius_ = 8.0f;
+		cooldownDuration_ = 1.5f;
+		scanMaxRadius_ = 140.0f;
+		scanExpandSpeed_ = 100.0f;
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Other_Child::Make()->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Other_Child;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Other;
+	}
 };
 
 class ModuleNode_Other_Revive final : public IModuleNode

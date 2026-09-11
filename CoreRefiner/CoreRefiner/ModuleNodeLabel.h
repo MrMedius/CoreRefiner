@@ -18,7 +18,7 @@ enum class ModuleNodeLabel : unsigned char
 
 	Spawn_Ball,
 
-	Attribute_Lifetime,
+	Attribute_LifetimeRate,
 	Attribute_SpeedRate,
 	Attribute_SizeRate,
 	Attribute_DamageRate,

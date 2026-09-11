@@ -40,12 +40,12 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Attribute_Lifetime：a = 秒。 */
-	inline AttackStepRecord Lifetime(float durationSeconds) noexcept
+	/** @brief Attribute_LifetimeRate：a = 加算到 lifetime.rate。 */
+	inline AttackStepRecord LifetimeRate(float lifetimeRate) noexcept
 	{
 		AttackStepRecord r{};
-		r.label = ModuleNodeLabel::Attribute_Lifetime;
-		r.a = durationSeconds;
+		r.label = ModuleNodeLabel::Attribute_LifetimeRate;
+		r.a = lifetimeRate;
 		return r;
 	}
 

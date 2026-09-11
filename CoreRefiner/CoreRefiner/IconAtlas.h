@@ -73,7 +73,7 @@ namespace NodeIconAtlas
 			0b0000001111000000,
 		};
 
-		inline constexpr IconAtlas::IconBits kAttributeLifetime{
+		inline constexpr IconAtlas::IconBits kAttributeLifetimeRate{
 			0b0000001111000000,
 			0b0000110000110000,
 			0b0001000000001000,
@@ -268,7 +268,7 @@ namespace NodeIconAtlas
 		detail::kSpawnBall,           // Core_Ball
 		detail::kSpawnBall,           // Spawn_Ball
 
-		detail::kAttributeLifetime,   // Attribute_Lifetime
+		detail::kAttributeLifetimeRate,   // Attribute_LifetimeRate
 		detail::kAttributeSpeedRate,  // Attribute_SpeedRate
 		detail::kAttributeSizeRate,   // Attribute_SizeRate
 		detail::kAttributeDamageRate, // Attribute_DamageRate
