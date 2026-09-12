@@ -2,8 +2,10 @@
 
 #include "IModuleNode.h"
 #include "AttackNodeSteps.h"
+#include "IconAtlas.h"
 
 #include <DirectXMath.h>
+#include <memory>
 #include <vector>
 
 class ModuleNode_Spawn_Ball_Core final : public IModuleNode
@@ -522,4 +524,133 @@ protected:
 private:
 	float repeatCount_{ 1.0f };
 	static constexpr float kRepeatCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 3.0f };
+};
+
+class ModuleNode_Fusion final : public IModuleNode
+{
+public:
+	ModuleNode_Fusion(std::unique_ptr<IModuleNode> primary, std::unique_ptr<IModuleNode> material, DirectX::XMFLOAT2 localPos) noexcept
+		:
+		primary_(std::move(primary)),
+		material_(std::move(material))
+	{
+		localPos_ = localPos;
+		if (primary_ != nullptr && material_ != nullptr)
+		{
+			SetHitRadius((primary_->GetHitRadius() + material_->GetHitRadius()) * 0.5f);
+			SetCooldownDuration((primary_->GetCooldownDuration() + material_->GetCooldownDuration()) * 0.5f);
+			SetScanMaxRadius((primary_->GetScanMaxRadius() + material_->GetScanMaxRadius()) * 0.5f);
+			SetScanExpandSpeed((primary_->GetScanExpandSpeed() + material_->GetScanExpandSpeed()) * 0.5f);
+			SetBuyPrice(primary_->GetBuyPrice() + material_->GetBuyPrice());
+		}
+		SetLevel(3);
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		if (primary_ != nullptr)
+		{
+			primary_->ApplyTo(ctx);
+		}
+		if (material_ != nullptr)
+		{
+			material_->ApplyTo(ctx);
+		}
+	}
+
+	void ApplyWarehouseBonus(Attack& attack) override
+	{
+		if (primary_ != nullptr)
+		{
+			primary_->ApplyWarehouseBonus(attack);
+		}
+		if (material_ != nullptr)
+		{
+			material_->ApplyWarehouseBonus(attack);
+		}
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Fusion;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Fusion;
+	}
+
+	[[nodiscard]] IModuleNode* GetPrimary() noexcept
+	{
+		return primary_.get();
+	}
+
+	[[nodiscard]] const IModuleNode* GetPrimary() const noexcept
+	{
+		return primary_.get();
+	}
+
+	[[nodiscard]] IModuleNode* GetMaterial() noexcept
+	{
+		return material_.get();
+	}
+
+	[[nodiscard]] const IModuleNode* GetMaterial() const noexcept
+	{
+		return material_.get();
+	}
+
+	void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin) override
+	{
+		zoneOrigin_ = zoneOrigin;
+
+		icon_ = std::make_unique<Canvas2D>(gfx, kVisualSize, kVisualSize);
+		icon_->Clear(Colors::None);
+		BlitHalves_(*icon_, false);
+		icon_->NotifyPixelsChanged();
+		icon_->LinkTechniques(rg);
+
+		mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
+		mask_->Clear(Colors::None);
+		BlitHalves_(*mask_, true);
+		mask_->NotifyPixelsChanged();
+		mask_->LinkTechniques(rg);
+		mask_->SetUVOffset(0.0f, 0.0f);
+		mask_->SetUVScale(1.0f, 0.0f);
+
+		visualReady_ = true;
+
+		SyncMaskUV_();
+		ApplyVisualTransform_();
+	}
+
+private:
+	[[nodiscard]] static Color KindFillOf_(const IModuleNode& node) noexcept
+	{
+		const std::size_t i = ToIndex(node.GetKind());
+		if (i >= ModuleNodeKindCount())
+		{
+			return ModuleNodeKindFill::kFill[ToIndex(ModuleNodeKind::Other)];
+		}
+		return ModuleNodeKindFill::kFill[i];
+	}
+
+	void BlitHalves_(Canvas& canvas, bool asMask) const
+	{
+		constexpr unsigned kMid = 8u;
+		constexpr unsigned kEnd = 16u;
+		const Color maskColor(0u, 0u, 0u, 160u);
+
+		if (primary_ != nullptr)
+		{
+			IconAtlas::BlitIcon(canvas, NodeIconAtlas::Get(primary_->GetModuleNodeLabel()), asMask ? maskColor : KindFillOf_(*primary_), 0u, kMid);
+		}
+		if (material_ != nullptr)
+		{
+			IconAtlas::BlitIcon(canvas, NodeIconAtlas::Get(material_->GetModuleNodeLabel()), asMask ? maskColor : KindFillOf_(*material_), kMid, kEnd);
+		}
+	}
+
+	std::unique_ptr<IModuleNode> primary_;
+	std::unique_ptr<IModuleNode> material_;
 };

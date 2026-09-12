@@ -21,9 +21,24 @@ namespace ModuleNodeFactory
 		case ModuleNodeLabel::Other_Child:				return std::make_unique<ModuleNode_Other_Child>(localPos);
 		case ModuleNodeLabel::Other_Revive:				return std::make_unique<ModuleNode_Other_Revive>(localPos);
 		case ModuleNodeLabel::Other_Repeat:				return std::make_unique<ModuleNode_Other_Repeat>(localPos);
+		case ModuleNodeLabel::Fusion:
 		case ModuleNodeLabel::Count:
 		default:
 			return nullptr;
 		}
+	}
+
+	std::unique_ptr<IModuleNode> MakeFusion(std::unique_ptr<IModuleNode> primary, std::unique_ptr<IModuleNode> material, DirectX::XMFLOAT2 localPos)
+	{
+		if (primary == nullptr || material == nullptr)
+		{
+			return nullptr;
+		}
+		// Core 只能当主体，不能当素材。
+		if (material->IsCore())
+		{
+			return nullptr;
+		}
+		return std::make_unique<ModuleNode_Fusion>(std::move(primary), std::move(material), localPos);
 	}
 }

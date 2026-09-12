@@ -1,6 +1,9 @@
 #include "ModuleNodeInfoCopy.h"
 
 #include "GameStatsCodex.h"
+#include "IModuleNode.h"
+#include "ModuleNodes.h"
+#include "Util.h"
 #include "json.hpp"
 
 #include <array>
@@ -76,6 +79,10 @@ namespace
 		if (name == "Other_Repeat")
 		{
 			return ModuleNodeLabel::Other_Repeat;
+		}
+		if (name == "Fusion")
+		{
+			return ModuleNodeLabel::Fusion;
 		}
 		return std::nullopt;
 	}
@@ -179,6 +186,7 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	case ModuleNodeLabel::Other_Child: return "Other_Child";
 	case ModuleNodeLabel::Other_Revive: return "Other_Revive";
 	case ModuleNodeLabel::Other_Repeat: return "Other_Repeat";
+	case ModuleNodeLabel::Fusion: return "Fusion";
 	case ModuleNodeLabel::Count: return "";
 	}
 	return "";
@@ -248,4 +256,74 @@ const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label)
 		}
 	}
 	return BakedDefault_();
+}
+
+namespace
+{
+	[[nodiscard]] UINT32 Utf16Units_(std::string_view utf8) noexcept
+	{
+		return static_cast<UINT32>(ToWideUtf8(utf8).size());
+	}
+
+	// 只搬落在 title 里的 span（当前 JSON 都是标题加粗）。
+	void AppendTitleSpans_(
+		std::vector<Text::Span>& out,
+		const ModuleNodeInfoEntry& entry,
+		UINT32 titleOffset)
+	{
+		const UINT32 titleUnits = Utf16Units_(entry.title);
+		for (const Text::Span& sp : entry.spans)
+		{
+			if (sp.length == 0u)
+			{
+				continue;
+			}
+			if (sp.start + sp.length > titleUnits)
+			{
+				continue;
+			}
+			Text::Span shifted = sp;
+			shifted.start += titleOffset;
+			out.push_back(shifted);
+		}
+	}
+}
+
+ModuleNodeInfoEntry ComposeModuleNodeInfoCopy(const IModuleNode& node)
+{
+	if (node.GetKind() != ModuleNodeKind::Fusion)
+	{
+		return GetModuleNodeInfoCopy(node.GetModuleNodeLabel());
+	}
+
+	const auto& fusion = static_cast<const ModuleNode_Fusion&>(node);
+	const IModuleNode* primary = fusion.GetPrimary();
+	const IModuleNode* material = fusion.GetMaterial();
+	if (primary == nullptr || material == nullptr)
+	{
+		return GetModuleNodeInfoCopy(ModuleNodeLabel::Fusion);
+	}
+
+	const ModuleNodeInfoEntry primaryCopy = ComposeModuleNodeInfoCopy(*primary);
+	const ModuleNodeInfoEntry materialCopy = ComposeModuleNodeInfoCopy(*material);
+
+	ModuleNodeInfoEntry out{};
+	out.title = primaryCopy.title + " & " + materialCopy.title;
+	if (primaryCopy.body.empty())
+	{
+		out.body = materialCopy.body;
+	}
+	else if (materialCopy.body.empty())
+	{
+		out.body = primaryCopy.body;
+	}
+	else
+	{
+		out.body = primaryCopy.body + "\n" + materialCopy.body;
+	}
+
+	const UINT32 materialTitleAt = Utf16Units_(primaryCopy.title) + Utf16Units_(" & ");
+	AppendTitleSpans_(out.spans, primaryCopy, 0u);
+	AppendTitleSpans_(out.spans, materialCopy, materialTitleAt);
+	return out;
 }

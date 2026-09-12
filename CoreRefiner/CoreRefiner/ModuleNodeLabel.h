@@ -9,6 +9,7 @@ enum class ModuleNodeKind : unsigned char
 	Rule,
 	Passive,
 	Other,
+	Fusion,
 	Count
 };
 
@@ -31,6 +32,8 @@ enum class ModuleNodeLabel : unsigned char
 	Other_Child,
 	Other_Revive,
 	Other_Repeat,
+
+	Fusion,
 
 	Count
 };

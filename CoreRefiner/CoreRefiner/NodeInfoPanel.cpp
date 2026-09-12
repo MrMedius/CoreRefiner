@@ -5,6 +5,7 @@
 #include "Colors.h"
 #include "GameStatsCodex.h"
 #include "Graphics.h"
+#include "IModuleNode.h"
 #include "RenderGraph.h"
 #include "TextCodex.h"
 
@@ -75,7 +76,8 @@ void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameX
 
 	const Language lang = GameStatsCodex::GetLanguage();
 	const bool contentDirty =
-		!cachedLabel_.has_value()
+		cachedInstanceId_.has_value()
+		|| !cachedLabel_.has_value()
 		|| !cachedLanguage_.has_value()
 		|| *cachedLabel_ != label
 		|| *cachedLanguage_ != lang
@@ -86,8 +88,44 @@ void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameX
 
 	if (contentDirty)
 	{
-		RebuildContent_(label);
+		RebuildContent_(GetModuleNodeInfoCopy(label));
 		cachedLabel_ = label;
+		cachedInstanceId_.reset();
+		cachedLanguage_ = lang;
+	}
+
+	visible_ = true;
+	SyncPosition_(anchorGameXY);
+}
+
+void NodeInfoPanel::ShowFor(const IModuleNode& node, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor, float maxWidthPx)
+{
+	if (canvas_ == nullptr)
+	{
+		return;
+	}
+
+	if (maxWidthPx <= 0.0f)
+	{
+		maxWidthPx = kMaxWidthPx_;
+	}
+
+	const Language lang = GameStatsCodex::GetLanguage();
+	const bool contentDirty =
+		!cachedInstanceId_.has_value()
+		|| !cachedLanguage_.has_value()
+		|| *cachedInstanceId_ != node.GetInstanceId()
+		|| *cachedLanguage_ != lang
+		|| maxWidthPx_ != maxWidthPx;
+
+	anchor_ = anchor;
+	maxWidthPx_ = maxWidthPx;
+
+	if (contentDirty)
+	{
+		RebuildContent_(ComposeModuleNodeInfoCopy(node));
+		cachedLabel_ = node.GetModuleNodeLabel();
+		cachedInstanceId_ = node.GetInstanceId();
 		cachedLanguage_ = lang;
 	}
 
@@ -109,9 +147,8 @@ void NodeInfoPanel::Submit() const
 	canvas_->Submit(Chan::ui);
 }
 
-void NodeInfoPanel::RebuildContent_(ModuleNodeLabel label)
+void NodeInfoPanel::RebuildContent_(const ModuleNodeInfoEntry& entry)
 {
-	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(label);
 	std::string text = entry.ComposedText();
 	if (text.empty())
 	{

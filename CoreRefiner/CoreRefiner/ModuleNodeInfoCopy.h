@@ -33,8 +33,13 @@ bool LoadModuleNodeInfoCopy();
 
 [[nodiscard]] bool IsModuleNodeInfoCopyLoaded() noexcept;
 
+class IModuleNode;
+
 // 按 GameStatsCodex::GetLanguage() 取词条；缺则回退 En、Zh
 [[nodiscard]] const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label);
+
+// Fusion 按实例拼：标题「主体 & 素材」，描述先主体后素材。其它 Label 等同查表拷贝。
+[[nodiscard]] ModuleNodeInfoEntry ComposeModuleNodeInfoCopy(const IModuleNode& node);
 
 [[nodiscard]] const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept;
 

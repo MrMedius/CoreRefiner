@@ -11,17 +11,20 @@ namespace IconAtlas
 {
 	using IconBits = std::array<std::uint16_t, 16>;
 
-	inline void BlitIcon(Canvas& canvas, const IconBits& bits, Color color)
+	// x 半开区间 [x0, x1)；默认整图。Fusion 左半 0–8、右半 8–16。
+	inline void BlitIcon(Canvas& canvas, const IconBits& bits, Color color, unsigned x0 = 0u, unsigned x1 = 16u)
 	{
 		const unsigned w = canvas.GetCanvasWidth();
 		const unsigned h = canvas.GetCanvasHeight();
 		const unsigned rows = (h < 16u) ? h : 16u;
 		const unsigned cols = (w < 16u) ? w : 16u;
+		const unsigned xBegin = (x0 < cols) ? x0 : cols;
+		const unsigned xEnd = (x1 < cols) ? x1 : cols;
 
 		for (unsigned y = 0u; y < rows; ++y)
 		{
 			const std::uint16_t row = bits[y];
-			for (unsigned x = 0u; x < cols; ++x)
+			for (unsigned x = xBegin; x < xEnd; ++x)
 			{
 				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) != 0u)
 				{
@@ -262,6 +265,9 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
+
+		// Label::Fusion 下标槽；绘制走主体/素材对半 blit，不用这张图。
+		inline constexpr IconAtlas::IconBits kFusion{};
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
@@ -281,6 +287,7 @@ namespace NodeIconAtlas
 		detail::kOtherChild,          // Other_Child
 		detail::kOtherRevive,         // Other_Revive
 		detail::kOtherRepeat,         // Other_Repeat
+		detail::kFusion,              // Fusion
 	};
 
 	static_assert(kNodeIcons.size() == ModuleNodeLabelCount());

@@ -3,12 +3,14 @@
 #include "ModuleNodeLabel.h"
 #include "ModuleNodeInfoCopy.h"
 
+#include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
 #include <optional>
 
 class Canvas2D;
 class Graphics;
+class IModuleNode;
 
 namespace Rgph
 {
@@ -35,13 +37,14 @@ public:
 	void Ensure(Graphics& gfx, Rgph::RenderGraph& rg);
 
 	void ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor = Anchor::Above, float maxWidthPx = kMaxWidthPx_);
+	void ShowFor(const IModuleNode& node, DirectX::XMFLOAT2 anchorGameXY, Anchor anchor = Anchor::Above, float maxWidthPx = kMaxWidthPx_);
 
 	void Hide() noexcept;
 
 	void Submit() const;
 
 private:
-	void RebuildContent_(ModuleNodeLabel label);
+	void RebuildContent_(const ModuleNodeInfoEntry& entry);
 	void SyncPosition_(DirectX::XMFLOAT2 anchorGameXY);
 
 	Graphics* gfx_{ nullptr };
@@ -50,6 +53,7 @@ private:
 
 	bool visible_{ false };
 	std::optional<ModuleNodeLabel> cachedLabel_;
+	std::optional<std::uint32_t> cachedInstanceId_;
 	std::optional<Language> cachedLanguage_;
 	Anchor anchor_{ Anchor::Above };
 	float maxWidthPx_{ kMaxWidthPx_ };

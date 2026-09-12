@@ -188,7 +188,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		const DirectX::XMFLOAT3 origin = OriginForSource_(hoverSource_);
 		const DirectX::XMFLOAT2 local = hover_->GetLocalPos();
 		infoPanel_.ShowFor(
-			hover_->GetModuleNodeLabel(),
+			*hover_,
 			DirectX::XMFLOAT2{ origin.x + local.x, origin.y + local.y });
 	}
 }
