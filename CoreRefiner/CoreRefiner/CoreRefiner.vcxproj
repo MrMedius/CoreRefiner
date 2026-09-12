@@ -395,7 +395,6 @@
     <ClInclude Include="LoopMain.h" />
     <ClInclude Include="ModuleNodeFactory.h" />
     <ClInclude Include="ModuleNodeInfoCopy.h" />
-    <ClInclude Include="ModuleNodePrice.h" />
     <ClInclude Include="ModuleNodes.h" />
     <ClInclude Include="ModuleShop.h" />
     <ClInclude Include="ModuleWarehouse.h" />

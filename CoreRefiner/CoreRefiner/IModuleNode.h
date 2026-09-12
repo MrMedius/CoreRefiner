@@ -83,6 +83,140 @@ static_assert(ModuleNodeLevel::kCount == static_cast<std::size_t>(ModuleNodeLeve
 static_assert(ModuleNodeLevel::Clamp(0) == ModuleNodeLevel::kMin);
 static_assert(ModuleNodeLevel::Clamp(99) == ModuleNodeLevel::kMax);
 
+// Node 买入造价。卖出价恒为买入的一半。不随等级自动变。
+struct ModuleNodePrice
+{
+	int buy{ 4 };
+
+	// 写入买入造价。小于等于 0 存 0。
+	void SetBuy(int price) noexcept
+	{
+		buy = (price <= 0) ? 0 : price;
+	}
+
+	[[nodiscard]] constexpr int GetBuy() const noexcept
+	{
+		return buy;
+	}
+
+	[[nodiscard]] constexpr int GetSell() const noexcept
+	{
+		return buy / 2;
+	}
+};
+static_assert(ModuleNodePrice{}.GetBuy() == 4);
+static_assert(ModuleNodePrice{}.GetSell() == 2);
+
+// Node 冷却：时长、剩余、Ready/Cooling。
+struct ModuleNodeCooldown
+{
+	ModuleReadyState state{ ModuleReadyState::Ready };
+	float duration{ 3.0f };
+	float remaining{ 0.0f };
+
+	// 写入冷却时长。小于 0 存 0。
+	void SetDuration(float seconds) noexcept
+	{
+		duration = (seconds < 0.0f) ? 0.0f : seconds;
+	}
+
+	[[nodiscard]] float GetDuration() const noexcept
+	{
+		return duration;
+	}
+
+	[[nodiscard]] float GetRemaining() const noexcept
+	{
+		return remaining;
+	}
+
+	[[nodiscard]] ModuleReadyState GetState() const noexcept
+	{
+		return state;
+	}
+
+	[[nodiscard]] bool IsReady() const noexcept
+	{
+		return state == ModuleReadyState::Ready;
+	}
+
+	void Start() noexcept
+	{
+		state = ModuleReadyState::Cooling;
+		remaining = duration;
+	}
+
+	void Reset() noexcept
+	{
+		state = ModuleReadyState::Ready;
+		remaining = 0.0f;
+	}
+
+	void Tick(float dt) noexcept
+	{
+		if (state != ModuleReadyState::Cooling)
+		{
+			return;
+		}
+		remaining -= dt;
+		if (remaining <= 0.0f)
+		{
+			remaining = 0.0f;
+			state = ModuleReadyState::Ready;
+		}
+	}
+
+	// 冷却剩余比例 [0, 1]；非冷却为 0。
+	[[nodiscard]] float RemainRatio() const noexcept
+	{
+		if (state != ModuleReadyState::Cooling)
+		{
+			return 0.0f;
+		}
+		if (duration <= 1.0e-6f)
+		{
+			return 0.0f;
+		}
+		const float ratio = remaining / duration;
+		if (ratio < 0.0f)
+		{
+			return 0.0f;
+		}
+		if (ratio > 1.0f)
+		{
+			return 1.0f;
+		}
+		return ratio;
+	}
+};
+
+// 扫描波：最大半径与扩散速度。
+struct ModuleNodeScan
+{
+	float maxRadius{ 10.0f };
+	float expandSpeed{ 10.0f };
+
+	void SetMaxRadius(float radius) noexcept
+	{
+		maxRadius = (radius < 0.0f) ? 0.0f : radius;
+	}
+
+	void SetExpandSpeed(float speed) noexcept
+	{
+		expandSpeed = (speed < 0.0f) ? 0.0f : speed;
+	}
+
+	[[nodiscard]] float GetMaxRadius() const noexcept
+	{
+		return maxRadius;
+	}
+
+	[[nodiscard]] float GetExpandSpeed() const noexcept
+	{
+		return expandSpeed;
+	}
+};
+
 class IModuleNode
 {
 public:
@@ -90,8 +224,119 @@ public:
 
 	virtual ~IModuleNode() = default;
 
+protected:
+	IModuleNode() noexcept
+		:
+		instanceId_(++s_nextInstanceId_)
+	{}
+
+public:
+	// ---- 身份 ----
 	[[nodiscard]] std::uint32_t GetInstanceId() const noexcept { return instanceId_; }
 
+protected:
+	std::uint32_t instanceId_{ 0 };
+
+public:
+	// ---- 种类与装配：扫描命中时写入配方 ----
+	virtual void ApplyTo(DeployContext& ctx) = 0;
+	// 开火前仓内被动加算。默认空；Passive 节点覆写。
+	virtual void ApplyWarehouseBonus(Attack& attack)
+	{
+		(void)attack;
+	}
+	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
+	// 大类；默认 Other。未覆写的新节点会走 Other 色。
+	[[nodiscard]] virtual ModuleNodeKind GetKind() const noexcept
+	{
+		return ModuleNodeKind::Other;
+	}
+	[[nodiscard]] bool IsCore() const noexcept { return GetKind() == ModuleNodeKind::Core; }
+
+protected:
+	[[nodiscard]] virtual Color GetReadyFillColor() const noexcept;
+
+public:
+	// ---- 等级：夹在 [1, 3]，SetLevel 会重算本类数值，不改造价 ----
+	[[nodiscard]] int GetLevel() const noexcept
+	{
+		return level_.Get();
+	}
+
+	// 不在基类构造里调用（派生未完成时虚表不对）。
+	void SetLevel(int level) noexcept
+	{
+		level_.Set(level);
+		ApplyLevelStats_();
+		if (visualReady_)
+		{
+			ApplyVisualTransform_();
+		}
+	}
+
+protected:
+	virtual void ApplyLevelStats_() {}
+	ModuleNodeLevel level_{};
+
+public:
+	// ---- 造价：默认买 4 / 卖 2；Core 为 0。炼成用 SetBuyPrice，不随 SetLevel ----
+	[[nodiscard]] int GetBuyPrice() const noexcept
+	{
+		return price_.GetBuy();
+	}
+
+	void SetBuyPrice(int price) noexcept
+	{
+		price_.SetBuy(price);
+	}
+
+	[[nodiscard]] int GetSellPrice() const noexcept
+	{
+		return price_.GetSell();
+	}
+
+protected:
+	ModuleNodePrice price_{};
+
+public:
+	// ---- 冷却：开火后 Cooling，Tick 结束回到 Ready ----
+	[[nodiscard]] ModuleReadyState GetState() const noexcept { return cooldown_.GetState(); }
+	[[nodiscard]] bool IsReady() const noexcept { return cooldown_.IsReady(); }
+	[[nodiscard]] float GetCooldownRemaining() const noexcept { return cooldown_.GetRemaining(); }
+	[[nodiscard]] float GetCooldownDuration() const noexcept { return cooldown_.GetDuration(); }
+	void SetCooldownDuration(float seconds) noexcept { cooldown_.SetDuration(seconds); }
+
+	void StartCooldown()
+	{
+		cooldown_.Start();
+	}
+
+	void ResetCooldown() noexcept
+	{
+		cooldown_.Reset();
+	}
+
+	void TickCooldown(float dt)
+	{
+		cooldown_.Tick(dt);
+	}
+
+protected:
+	[[nodiscard]] float GetRemainRatio_() const noexcept;
+	ModuleNodeCooldown cooldown_{};
+
+public:
+	// ---- 扫描波：Assembler 起环时读半径与扩散速度 ----
+	[[nodiscard]] float GetScanMaxRadius() const noexcept { return scan_.GetMaxRadius(); }
+	void SetScanMaxRadius(float radius) noexcept { scan_.SetMaxRadius(radius); }
+	[[nodiscard]] float GetScanExpandSpeed() const noexcept { return scan_.GetExpandSpeed(); }
+	void SetScanExpandSpeed(float speed) noexcept { scan_.SetExpandSpeed(speed); }
+
+protected:
+	ModuleNodeScan scan_{};
+
+public:
+	// ---- 场上位置与碰撞圆 ----
 	[[nodiscard]] DirectX::XMFLOAT2 GetLocalPos() const noexcept { return localPos_; }
 	void SetLocalPos(DirectX::XMFLOAT2 pos) noexcept { localPos_ = pos; }
 
@@ -120,7 +365,6 @@ public:
 		}
 	}
 
-	// 取消绘制半径覆盖，恢复为命中半径。
 	void ClearVisualRadiusOverride() noexcept
 	{
 		visualRadiusOverride_ = 0.0f;
@@ -130,124 +374,26 @@ public:
 		}
 	}
 
-	[[nodiscard]] ModuleReadyState GetState() const noexcept { return state_; }
-	[[nodiscard]] bool IsCore() const noexcept { return GetKind() == ModuleNodeKind::Core; }
-	[[nodiscard]] bool IsReady() const noexcept { return state_ == ModuleReadyState::Ready; }
-
-	[[nodiscard]] float GetCooldownRemaining() const noexcept { return cooldownRemaining_; }
-	[[nodiscard]] float GetCooldownDuration() const noexcept { return cooldownDuration_; }
-	void SetCooldownDuration(float seconds) noexcept { cooldownDuration_ = seconds; }
-
-	[[nodiscard]] float GetScanMaxRadius() const noexcept { return scanMaxRadius_; }
-	void SetScanMaxRadius(float radius) noexcept { scanMaxRadius_ = radius; }
-
-	[[nodiscard]] float GetScanExpandSpeed() const noexcept { return scanExpandSpeed_; }
-	void SetScanExpandSpeed(float speed) noexcept { scanExpandSpeed_ = speed; }
-
-	void StartCooldown()
-	{
-		state_ = ModuleReadyState::Cooling;
-		cooldownRemaining_ = cooldownDuration_;
-	}
-
-	void ResetCooldown() noexcept
-	{
-		state_ = ModuleReadyState::Ready;
-		cooldownRemaining_ = 0.0f;
-	}
-
-	void TickCooldown(float dt)
-	{
-		if (state_ != ModuleReadyState::Cooling)
-		{
-			return;
-		}
-		cooldownRemaining_ -= dt;
-		if (cooldownRemaining_ <= 0.0f)
-		{
-			cooldownRemaining_ = 0.0f;
-			state_ = ModuleReadyState::Ready;
-		}
-	}
-
-	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin);
-
-	void SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept;
-
-	void SetZoneVisualScale(float scale) noexcept;
-
-	void SyncVisual();
-
-	void SubmitVisual();
-
-	void BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept;
-
-	void EndLayoutGhost() noexcept;
-
-	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
-
-	[[nodiscard]] int GetLevel() const noexcept
-	{
-		return level_.Get();
-	}
-
-	// 设级并按新等级重算本节点数值；夹在 [1, 3]。
-	// 不在基类构造里调用（派生未完成时虚表不对）。
-	void SetLevel(int level) noexcept
-	{
-		level_.Set(level);
-		ApplyLevelStats_();
-		if (visualReady_)
-		{
-			ApplyVisualTransform_();
-		}
-	}
-
-	virtual void ApplyTo(DeployContext& ctx) = 0;
-	
-	// 开火前仓内被动加算。默认空；Passive 节点覆写。
-	virtual void ApplyWarehouseBonus(Attack& attack)
-	{
-		(void)attack;
-	}
-	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
-
-	// 大类；默认 Other。未覆写的新节点会走 Other 色。
-	[[nodiscard]] virtual ModuleNodeKind GetKind() const noexcept
-	{
-		return ModuleNodeKind::Other;
-	}
-
 protected:
-	IModuleNode() noexcept
-		:
-		instanceId_(++s_nextInstanceId_)
-	{}
-
-	[[nodiscard]] virtual Color GetReadyFillColor() const noexcept;
-
-	// 按 level_ 重算本类数值。默认不成长。
-	virtual void ApplyLevelStats_() {}
-
-	void ApplyVisualTransform_();
-	void SyncMaskUV_();
-	[[nodiscard]] float GetRemainRatio_() const noexcept;
-
-	std::uint32_t instanceId_{ 0 };
-
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
-	ModuleNodeLevel level_{};
-
 	float hitRadius_{ 10.0f };
 	// <= 0 表示不覆盖，绘制走 hitRadius_。
 	float visualRadiusOverride_{ 0.0f };
 
-	ModuleReadyState state_{ ModuleReadyState::Ready };
-	
-	float cooldownRemaining_{ 0.0f };
-	float cooldownDuration_{ 3.0f };
-	float scanMaxRadius_{ 10.0f };
-	float scanExpandSpeed_{ 10.0f };
+public:
+	// ---- 绘制与拖放残影 ----
+	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin);
+	void SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept;
+	void SetZoneVisualScale(float scale) noexcept;
+	void SyncVisual();
+	void SubmitVisual();
+	void BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept;
+	void EndLayoutGhost() noexcept;
+	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
+
+protected:
+	void ApplyVisualTransform_();
+	void SyncMaskUV_();
 
 	std::unique_ptr<Canvas2D> icon_;
 	std::unique_ptr<Canvas2DSpriteUV> mask_;

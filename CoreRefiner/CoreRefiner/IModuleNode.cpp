@@ -5,10 +5,10 @@
 #include "RenderGraph.h"
 #include "XMath.h"
 
-#include <algorithm>
-
+// ---- 身份 ----
 std::uint32_t IModuleNode::s_nextInstanceId_ = 0;
 
+// ---- 种类与装配 ----
 Color IModuleNode::GetReadyFillColor() const noexcept
 {
 	const std::size_t i = ToIndex(GetKind());
@@ -19,6 +19,13 @@ Color IModuleNode::GetReadyFillColor() const noexcept
 	return ModuleNodeKindFill::kFill[i];
 }
 
+// ---- 冷却 ----
+float IModuleNode::GetRemainRatio_() const noexcept
+{
+	return cooldown_.RemainRatio();
+}
+
+// ---- 绘制与拖放残影 ----
 void IModuleNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin)
 {
 	zoneOrigin_ = zoneOrigin;
@@ -87,7 +94,7 @@ void IModuleNode::EndLayoutGhost() noexcept
 {
 	layoutGhostActive_ = false;
 	layoutGhostLocalPos_ = {};
-	if (mask_ != nullptr && state_ != ModuleReadyState::Cooling)
+	if (mask_ != nullptr && GetState() != ModuleReadyState::Cooling)
 	{
 		mask_->SetUVScale(1.0f, 0.0f);
 	}
@@ -118,7 +125,7 @@ void IModuleNode::SubmitVisual()
 	{
 		return;
 	}
-	// Ghost mask under icon; cooldown mask over icon — mutually exclusive in normal flow.
+	// 残影 mask 在图标下；冷却 mask 在图标上。正常流程互斥。
 	if (layoutGhostActive_ && mask_ != nullptr)
 	{
 		mask_->Submit(Chan::ui);
@@ -132,7 +139,7 @@ void IModuleNode::SubmitVisual()
 		return;
 	}
 	const float remainRatio = GetRemainRatio_();
-	if (state_ == ModuleReadyState::Cooling && remainRatio > 0.0f)
+	if (GetState() == ModuleReadyState::Cooling && remainRatio > 0.0f)
 	{
 		mask_->Submit(Chan::ui);
 	}
@@ -163,23 +170,13 @@ void IModuleNode::ApplyVisualTransform_()
 	mask_->SetScale(DirectX::XMFLOAT3{ maskSide, maskSide, 1.0f });
 }
 
-float IModuleNode::GetRemainRatio_() const noexcept
-{
-	if (state_ != ModuleReadyState::Cooling)
-	{
-		return 0.0f;
-	}
-	const float duration = std::max(cooldownDuration_, 1.0e-6f);
-	return std::clamp(cooldownRemaining_ / duration, 0.0f, 1.0f);
-}
-
 void IModuleNode::SyncMaskUV_()
 {
 	if (mask_ == nullptr)
 	{
 		return;
 	}
-	// Layout ghost owns full-reveal UV until EndLayoutGhost.
+	// 拖放残影占满 mask UV，直到 EndLayoutGhost。
 	if (layoutGhostActive_)
 	{
 		mask_->SetUVScale(1.0f, 1.0f);

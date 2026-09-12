@@ -1506,9 +1506,6 @@
     <ClInclude Include="Stats.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="ModuleNodePrice.h">
-      <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
-    </ClInclude>
     <ClInclude Include="WindowsMessageMap.h">
       <Filter>Framework\Window</Filter>
     </ClInclude>

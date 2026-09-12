@@ -19,9 +19,10 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = kHitRadius_[0];
-		cooldownDuration_ = kCooldownDuration_[0];
-		scanMaxRadius_ = 100.0f;
-		scanExpandSpeed_ = 100.0f;
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(100.0f);
+		SetScanExpandSpeed(100.0f);
+		SetBuyPrice(0);
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -43,7 +44,7 @@ protected:
 	void ApplyLevelStats_() override
 	{
 		hitRadius_ = kHitRadius_[level_.Index()];
-		cooldownDuration_ = kCooldownDuration_[level_.Index()];
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
 	}
 
 private:
@@ -66,9 +67,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = kHitRadius_[0];
-		cooldownDuration_ = kCooldownDuration_[0];
-		scanMaxRadius_ = 80.0f;
-		scanExpandSpeed_ = 80.0f;
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(80.0f);
+		SetScanExpandSpeed(80.0f);
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -90,7 +91,7 @@ protected:
 	void ApplyLevelStats_() override
 	{
 		hitRadius_ = kHitRadius_[level_.Index()];
-		cooldownDuration_ = kCooldownDuration_[level_.Index()];
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
 	}
 
 private:
@@ -107,9 +108,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
-		cooldownDuration_ = 2.0f;
-		scanMaxRadius_ = 50.0f;
-		scanExpandSpeed_ = 100.0f;
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(100.0f);
 		lifetimeRate_ = kLifetimeRate_[0];
 	}
 
@@ -146,9 +147,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
-		cooldownDuration_ = 2.0f;
-		scanMaxRadius_ = 50.0f;
-		scanExpandSpeed_ = 100.0f;
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(100.0f);
 		speedRate_ = kSpeedRate_[0];
 	}
 
@@ -185,9 +186,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
-		cooldownDuration_ = 2.0f;
-		scanMaxRadius_ = 50.0f;
-		scanExpandSpeed_ = 100.0f;
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(100.0f);
 		sizeRate_ = kSizeRate_[0];
 	}
 
@@ -224,9 +225,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
-		cooldownDuration_ = 2.0f;
-		scanMaxRadius_ = 50.0f;
-		scanExpandSpeed_ = 100.0f;
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(100.0f);
 		damageRate_ = kDamageRate_[0];
 	}
 
@@ -269,9 +270,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = kHitRadius_[0];
-		cooldownDuration_ = 1.0f;
-		scanMaxRadius_ = 80.0f;
-		scanExpandSpeed_ = 80.0f;
+		SetCooldownDuration(1.0f);
+		SetScanMaxRadius(80.0f);
+		SetScanExpandSpeed(80.0f);
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -308,9 +309,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 15.0f;
-		cooldownDuration_ = 2.0f;
-		scanMaxRadius_ = kscanMaxRadius_[0];
-		scanExpandSpeed_ = kscanExpandSpeed_[0];
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(kscanMaxRadius_[0]);
+		SetScanExpandSpeed(kscanExpandSpeed_[0]);
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -331,8 +332,8 @@ public:
 protected:
 	void ApplyLevelStats_() override
 	{
-		scanMaxRadius_ = kscanMaxRadius_[level_.Index()];
-		scanExpandSpeed_ = kscanExpandSpeed_[level_.Index()];
+		SetScanMaxRadius(kscanMaxRadius_[level_.Index()]);
+		SetScanExpandSpeed(kscanExpandSpeed_[level_.Index()]);
 	}
 
 private:
@@ -347,9 +348,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 10.0f;
-		cooldownDuration_ = 3.0f;
-		scanMaxRadius_ = 10.0f;
-		scanExpandSpeed_ = 10.0f;
+		SetCooldownDuration(3.0f);
+		SetScanMaxRadius(10.0f);
+		SetScanExpandSpeed(10.0f);
 		damageFix_ = kDamageFix_[0];
 	}
 
@@ -391,9 +392,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 20.0f;
-		cooldownDuration_ = 2.0f;
-		scanMaxRadius_ = 80.0f;
-		scanExpandSpeed_ = kscanExpandSpeed_[0];
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(80.0f);
+		SetScanExpandSpeed(kscanExpandSpeed_[0]);
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -414,7 +415,7 @@ public:
 protected:
 	void ApplyLevelStats_() override
 	{
-		scanExpandSpeed_ = kscanExpandSpeed_[level_.Index()];
+		SetScanExpandSpeed(kscanExpandSpeed_[level_.Index()]);
 	}
 
 private:
@@ -428,9 +429,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 15.0f;
-		cooldownDuration_ = kCooldownDuration_[0];
-		scanMaxRadius_ = 100.0f;
-		scanExpandSpeed_ = 100.0f;
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(100.0f);
+		SetScanExpandSpeed(100.0f);
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -451,7 +452,7 @@ public:
 protected:
 	void ApplyLevelStats_() override
 	{
-		cooldownDuration_ = kCooldownDuration_[level_.Index()];
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
 	}
 
 private:
@@ -465,9 +466,9 @@ public:
 	{
 		localPos_ = localPos;
 		hitRadius_ = 15.0f;
-		cooldownDuration_ = 3.0f;
-		scanMaxRadius_ = 50.0f;
-		scanExpandSpeed_ = 50.0f;
+		SetCooldownDuration(3.0f);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(50.0f);
 		repeatCount_ = kRepeatCount_[0];
 	}
 

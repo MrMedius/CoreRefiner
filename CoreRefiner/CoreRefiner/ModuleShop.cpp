@@ -9,7 +9,6 @@
 #include "ModuleNodeFactory.h"
 #include "ModuleNodeInfoCopy.h"
 #include "ModuleNodeLabel.h"
-#include "ModuleNodePrice.h"
 #include "RenderGraph.h"
 #include "TextCodex.h"
 
@@ -251,7 +250,7 @@ void ModuleShop::RestockSlot_(std::size_t index, ModuleNodeLabel label)
 	slot.sold = false;
 	slot.locked = false;
 	slot.price = (slot.node != nullptr)
-		? ModuleNodePrice::GetBuyPrice(label)
+		? slot.node->GetBuyPrice()
 		: 0;
 
 	if (gfx_ != nullptr && rg_ != nullptr && slot.node != nullptr)
@@ -653,7 +652,7 @@ bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFL
 		return false;
 	}
 
-	GameStatsCodex::AddCurrency(ModuleNodePrice::GetSellPrice(node->GetModuleNodeLabel()));
+	GameStatsCodex::AddCurrency(node->GetSellPrice());
 	node.reset();
 	return true;
 }

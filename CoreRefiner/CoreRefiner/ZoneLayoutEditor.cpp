@@ -1,6 +1,5 @@
 #include "ZoneLayoutEditor.h"
 #include "ModuleShop.h"
-#include "ModuleNodePrice.h"
 #include "GameStatsCodex.h"
 #include "InputCodex.h"
 #include "Colors.h"
@@ -342,7 +341,7 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 		const ZoneId target = static_cast<ZoneId>(i);
 		if (from == ZoneId::Shop && target != ZoneId::Shop)
 		{
-			const int price = ModuleNodePrice::GetBuyPrice(node.GetModuleNodeLabel());
+			const int price = node.GetBuyPrice();
 			if (GameStatsCodex::GetCurrency() < price)
 			{
 				eval.unaffordable = true;
@@ -444,7 +443,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
-	const int price = ModuleNodePrice::GetBuyPrice(node->GetModuleNodeLabel());
+	const int price = node->GetBuyPrice();
 	if (!GameStatsCodex::TrySpendCurrency(price))
 	{
 		std::unique_ptr<IModuleNode> back = target->TakeNode(node);
