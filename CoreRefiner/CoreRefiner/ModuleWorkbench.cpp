@@ -130,6 +130,11 @@ void ModuleWorkbench::InitFightButton_()
 	fightBtn_ = std::make_unique<Ui::ButtonCanvasComponent>(
 		gfx_, 601u, fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH, style);
 	fightBtn_->Button().SetOnClick([this] {
+		// 无 Core 时不得回调开打，避免走到 EndLayoutEdit / RequestStartWave
+		if (field_.GetCore() == nullptr)
+		{
+			return;
+		}
 		if (onFight_)
 		{
 			onFight_();
@@ -162,6 +167,13 @@ void ModuleWorkbench::RefreshFightLabel()
 {
 	if (fightBtn_ == nullptr)
 	{
+		return;
+	}
+	const bool hasCore = field_.GetCore() != nullptr;
+	fightBtn_->Button().SetEnabled(hasCore);
+	if (!hasCore)
+	{
+		fightBtn_->Button().SetLabel(GetUiCopy("prep.fight.need_core"));
 		return;
 	}
 	const int wave = (paintedWave_ < 1) ? 1 : paintedWave_;
@@ -227,6 +239,7 @@ void ModuleWorkbench::Reset()
 
 	shop_.FillStock();
 	shop_.ResetVisit();
+	shop_.ClearRefineResult();
 
 	paintedWave_ = -1;
 	SetNextWave(1);
@@ -321,6 +334,12 @@ void ModuleWorkbench::BeginLayoutEdit()
 
 	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
 	shop_.BeginVisit();
+	// Vacuum 切 Prep 的当帧可能先 Submit 再 Update，进整理立刻对齐战斗键
+	RefreshFightLabel();
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SyncView();
+	}
 }
 
 void ModuleWorkbench::EndLayoutEdit()
@@ -336,6 +355,12 @@ void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
 		uiRoot_->UpdateAfterInput();
 	}
 	layoutEditor_.Update(dt, hostWindow);
+	// 停放/拖出后同一帧刷新并重绘：Core 拖回 Field 立刻恢复战斗键
+	RefreshFightLabel();
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SyncView();
+	}
 }
 
 void ModuleWorkbench::SubmitField()

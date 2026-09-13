@@ -80,10 +80,18 @@ public:
 		int price{ 0 };
 	};
 
-	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return kSlotCount; }
+	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return kSlotCount + 1; }
 	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override
 	{
-		return (index < kSlotCount) ? slots_[index].node.get() : nullptr;
+		if (index < kSlotCount)
+		{
+			return slots_[index].node.get();
+		}
+		if (index == kSlotCount)
+		{
+			return refineResult_.get();
+		}
+		return nullptr;
 	}
 
 	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
@@ -180,20 +188,34 @@ public:
 	void ParkRefine(std::size_t slot, IModuleNode& node);
 	void UnbindRefine(IModuleNode* node) noexcept;
 	void ClearRefineParks();
+	void ClearRefineResult();
+	void RestoreRefineResult(std::unique_ptr<IModuleNode> node);
 	[[nodiscard]] bool IsRefineParked(const IModuleNode* node) const noexcept;
-	// 格内 Icon 按仓库格比例缩放；残影半径仍走 GetVisualRadius()。
+	[[nodiscard]] bool IsRefineResultParked(const IModuleNode* node) const noexcept;
+	// 格内 Icon 按仓库格比例缩放；素材/主体残影仍走来源尺寸。
 	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
+	[[nodiscard]] bool HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	bool TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse);
 
 private:
 	static constexpr std::size_t kRefineSlotCount_ = 3;
 	static constexpr std::size_t kRefineButtonCount_ = 4;
 	static constexpr float kRefineSlotLabelFont_ = 20.0f;
+	static constexpr int kRefineOpCost_{ 1 };
 
 	[[nodiscard]] BoundsWorld GetRefineBoundsWorld_() const noexcept;
 	[[nodiscard]] std::size_t HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
+	[[nodiscard]] std::size_t HitRefineButtonIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
 	[[nodiscard]] bool RefineWorldToPixel_(DirectX::XMFLOAT2 world, float& px, float& py) const noexcept;
 	[[nodiscard]] float RefineSlotIconRadius_() const noexcept;
 	void EjectRefineOccupant_(IModuleNode& occupant);
+	[[nodiscard]] bool CanUpgradeRefine_() const noexcept;
+	[[nodiscard]] bool CanReturnRefine_() const noexcept;
+	[[nodiscard]] IModuleZone* FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept;
+	bool TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse);
+	bool TryReturnRefine_();
+	void AdoptRefineResult_(std::unique_ptr<IModuleNode> node);
+	void PlaceRefineResultVisual_();
 
 	void EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintRefinePanel_();
@@ -201,6 +223,10 @@ private:
 
 	std::unique_ptr<Canvas2D> refinePanel_;
 	std::array<IModuleNode*, kRefineSlotCount_> refineParked_{};
+	std::unique_ptr<IModuleNode> refineResult_{};
+	bool paintedUpgradeLit_{ false };
+	bool paintedReturnLit_{ false };
+	int paintedRefineCurrency_{ -1 };
 
 	// ---- Function3：占位，宽度与买卖框对齐 ----
 private:

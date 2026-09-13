@@ -45,7 +45,14 @@ GameScene::GameScene(Window& wnd, SceneDirector& director, Rgph::GameRenderGraph
 
 	moduleWorkbench_ = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG_);
 	uiPrep_ = std::make_unique<UI_Prep>(*moduleWorkbench_);
-	uiPrep_->SetOnFight([this] { waveDirector_.RequestStartWave(); });
+	uiPrep_->SetOnFight([this] {
+		// 拦截须在 EndLayoutEdit / RequestStartWave 之前，整理态才能把 Core 拖回场上
+		if (moduleWorkbench_ == nullptr || moduleWorkbench_->GetField().GetCore() == nullptr)
+		{
+			return;
+		}
+		waveDirector_.RequestStartWave();
+	});
 
 	uiPause_ = std::make_unique<UI_Pause>(wnd.Gfx(), gameRG_);
 	uiPause_->SetOnContinue([this] { ClosePauseMenu_(); });
@@ -157,7 +164,12 @@ void GameScene::Update(float dt)
 #ifdef _DEBUG
 	if (InputCodex::Get().KeyTriggered(KK_P))
 	{
-		waveDirector_.DebugSkipPhase();
+		const bool prepNoCore = waveDirector_.GetPhase() == GamePhase::Prep
+			&& (moduleWorkbench_ == nullptr || moduleWorkbench_->GetField().GetCore() == nullptr);
+		if (!prepNoCore)
+		{
+			waveDirector_.DebugSkipPhase();
+		}
 	}
 #endif
 

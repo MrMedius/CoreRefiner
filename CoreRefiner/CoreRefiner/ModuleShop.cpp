@@ -1,17 +1,21 @@
-#include "ModuleShop.h"
-#include "Canvas.h"
-#include "CanvasPixelDraw.h"
+#include "Graphics.h"
+#include "RenderGraph.h"
 #include "Channels.h"
+
+#include "GameStatsCodex.h"
+#include "TextCodex.h"
+
 #include "Collision2D.h"
 #include "Colors.h"
-#include "GameStatsCodex.h"
-#include "Graphics.h"
 #include "IconAtlas.h"
+
+#include "Canvas.h"
+#include "CanvasPixelDraw.h"
+
+#include "ModuleShop.h"
 #include "ModuleNodeFactory.h"
-#include "ModuleNodeInfoCopy.h"
 #include "ModuleNodeLabel.h"
-#include "RenderGraph.h"
-#include "TextCodex.h"
+#include "ModuleNodeInfoCopy.h"
 #include "UiCopy.h"
 
 #include <algorithm>
@@ -366,6 +370,7 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 {
 	origin_ = origin;
 	RelayoutSlots_();
+	PlaceRefineResultVisual_();
 	SyncTradePanelTransform_();
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
@@ -384,6 +389,7 @@ void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
 		EnsureFunction3Visuals_(*gfx_, *rg_);
 	}
 	RelayoutSlots_();
+	PlaceRefineResultVisual_();
 	SyncTradePanelTransform_();
 	SyncRefineTransform_();
 	SyncFunction3Transform_();
@@ -621,6 +627,13 @@ void ModuleShop::TickHud(float dt)
 		}
 	}
 	SyncHud();
+	const bool up = CanUpgradeRefine_();
+	const bool back = CanReturnRefine_();
+	const int cur = GameStatsCodex::GetCurrency();
+	if (up != paintedUpgradeLit_ || back != paintedReturnLit_ || cur != paintedRefineCurrency_)
+	{
+		PaintRefinePanel_();
+	}
 }
 
 bool ModuleShop::TryRefresh()
@@ -768,7 +781,7 @@ void ModuleShop::RelayoutSlots_()
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
 {
 	(void)localPos;
-	if (node == nullptr)
+	if (node == nullptr || node->IsCore())
 	{
 		return false;
 	}
@@ -783,11 +796,6 @@ bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFL
 		}
 	}
 
-	if (node->IsCore())
-	{
-		return false;
-	}
-
 	GameStatsCodex::AddCurrency(node->GetSellPrice());
 	node.reset();
 	return true;
@@ -799,6 +807,30 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	if (!ContainsCircle(worldPos, node.GetHitRadius()))
 	{
 		result.verdict = DropVerdict::OutOfBounds;
+		return result;
+	}
+
+	if (refineResult_.get() == &node)
+	{
+		// 结果格只出不进：炼成板一律 Forbidden；买卖框非 Core 可进货或卖掉。
+		const std::size_t refineHit = HitRefineSlotIndex_(worldPos);
+		if (refineHit < kRefineSlotCount_)
+		{
+			result.verdict = DropVerdict::Forbidden;
+			return result;
+		}
+		const BoundsWorld refine = GetRefineBoundsWorld_();
+		if (PointInAabb_(refine.center, refine.half, worldPos))
+		{
+			result.verdict = DropVerdict::Forbidden;
+			return result;
+		}
+		if (node.IsCore())
+		{
+			result.verdict = DropVerdict::Forbidden;
+			return result;
+		}
+		result.verdict = DropVerdict::Accept;
 		return result;
 	}
 
@@ -852,6 +884,19 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 
 std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 {
+	if (node != nullptr && node == refineResult_.get())
+	{
+		refineParked_[2] = nullptr;
+		std::unique_ptr<IModuleNode> taken = std::move(refineResult_);
+		if (taken != nullptr)
+		{
+			taken->ClearIconRadiusOverride();
+			taken->ClearVisualRadiusOverride();
+		}
+		PaintRefinePanel_();
+		return taken;
+	}
+
 	const std::size_t i = FindSlotIndex_(node);
 	if (i >= kSlotCount)
 	{
@@ -881,6 +926,10 @@ void ModuleShop::SubmitNodes()
 			slot.node->SubmitVisual();
 		}
 	}
+	if (refineResult_ != nullptr)
+	{
+		refineResult_->SubmitVisual();
+	}
 }
 
 IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
@@ -888,7 +937,7 @@ IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) no
 	IModuleNode* best = nullptr;
 	float bestDistSq = 1.0e9f;
 
-	for (std::size_t i = 0; i < 2u; ++i)
+	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
 	{
 		IModuleNode* node = refineParked_[i];
 		if (node == nullptr || HitRefineSlotIndex_(worldPos) != i)
@@ -1443,6 +1492,51 @@ std::size_t ModuleShop::HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const no
 	return kRefineSlotCount_;
 }
 
+std::size_t ModuleShop::HitRefineButtonIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!RefineWorldToPixel_(worldPos, px, py))
+	{
+		return kRefineButtonCount_;
+	}
+	int cw = 1;
+	int ch = 1;
+	if (refinePanel_ != nullptr)
+	{
+		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
+		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
+	}
+	else
+	{
+		const BoundsWorld b = GetRefineBoundsWorld_();
+		cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
+		ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
+	}
+	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
+	if (layout.btnW <= 0 || layout.btnH <= 0)
+	{
+		return kRefineButtonCount_;
+	}
+	for (std::size_t i = 0; i < kRefineButtonCount_; ++i)
+	{
+		const float x0 = static_cast<float>(layout.btnX);
+		const float y0 = static_cast<float>(layout.btnTop + static_cast<int>(i) * (layout.btnH + layout.btnGap));
+		const float x1 = x0 + static_cast<float>(layout.btnW);
+		const float y1 = y0 + static_cast<float>(layout.btnH);
+		if (px >= x0 && px < x1 && py >= y0 && py < y1)
+		{
+			return i;
+		}
+	}
+	return kRefineButtonCount_;
+}
+
+bool ModuleShop::HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return HitRefineButtonIndex_(worldPos) < kRefineButtonCount_;
+}
+
 std::size_t ModuleShop::HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	const std::size_t i = HitRefineSlotIndex_(worldPos);
@@ -1506,6 +1600,10 @@ bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const 
 	{
 		return false;
 	}
+	if (refineResult_.get() == &node)
+	{
+		return false;
+	}
 	// 买卖框里的商品不能停进炼成格。
 	if (FindSlotIndex_(&node) < kSlotCount)
 	{
@@ -1564,6 +1662,53 @@ bool ModuleShop::IsRefineParked(const IModuleNode* node) const noexcept
 	return false;
 }
 
+bool ModuleShop::IsRefineResultParked(const IModuleNode* node) const noexcept
+{
+	return node != nullptr && node == refineResult_.get();
+}
+
+void ModuleShop::PlaceRefineResultVisual_()
+{
+	IModuleNode* node = refineResult_.get();
+	if (node == nullptr)
+	{
+		return;
+	}
+	const float r = RefineSlotIconRadius_();
+	node->SetIconRadiusOverride(r);
+	node->SetVisualRadiusOverride(r);
+	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
+	node->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
+	node->SetZoneOrigin(origin_);
+	node->SyncVisual();
+}
+
+void ModuleShop::AdoptRefineResult_(std::unique_ptr<IModuleNode> node)
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+	node->EndLayoutGhost();
+	node->SetZoneVisualScale(1.0f);
+	refineResult_ = std::move(node);
+	refineParked_[2] = refineResult_.get();
+	PlaceRefineResultVisual_();
+	PaintRefinePanel_();
+}
+
+void ModuleShop::RestoreRefineResult(std::unique_ptr<IModuleNode> node)
+{
+	AdoptRefineResult_(std::move(node));
+}
+
+void ModuleShop::ClearRefineResult()
+{
+	refineParked_[2] = nullptr;
+	refineResult_.reset();
+	PaintRefinePanel_();
+}
+
 void ModuleShop::EjectRefineOccupant_(IModuleNode& occupant)
 {
 	UnbindRefine(&occupant);
@@ -1594,16 +1739,140 @@ void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node)
 	PaintRefinePanel_();
 }
 
+bool ModuleShop::CanUpgradeRefine_() const noexcept
+{
+	// 素材等级>=主体、主体<3、结果空、至少 1 元。不看 Label。
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	if (material == nullptr || subject == nullptr || refineParked_[2] != nullptr || refineResult_ != nullptr)
+	{
+		return false;
+	}
+	if (GameStatsCodex::GetCurrency() < kRefineOpCost_)
+	{
+		return false;
+	}
+	if (subject->GetLevel() >= ModuleNodeLevel::kMax)
+	{
+		return false;
+	}
+	return material->GetLevel() >= subject->GetLevel();
+}
+
+bool ModuleShop::CanReturnRefine_() const noexcept
+{
+	return refineParked_[0] != nullptr || refineParked_[1] != nullptr;
+}
+
+IModuleZone* ModuleShop::FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept
+{
+	if (node == nullptr)
+	{
+		return nullptr;
+	}
+	const std::size_t npos = static_cast<std::size_t>(-1);
+	if (field != nullptr && field->FindNodeIndex(node) != npos)
+	{
+		return field;
+	}
+	if (warehouse != nullptr && warehouse->FindNodeIndex(node) != npos)
+	{
+		return warehouse;
+	}
+	return nullptr;
+}
+
+bool ModuleShop::TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse)
+{
+	if (!CanUpgradeRefine_())
+	{
+		return false;
+	}
+
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	IModuleZone* materialOwner = FindRefineOwner_(material, field, warehouse);
+	IModuleZone* subjectOwner = FindRefineOwner_(subject, field, warehouse);
+	if (material == nullptr || subject == nullptr || materialOwner == nullptr || subjectOwner == nullptr)
+	{
+		return false;
+	}
+
+	const int newLevel = (std::max)(subject->GetLevel() + 1, material->GetLevel());
+	const int newPrice = subject->GetBuyPrice() + material->GetBuyPrice();
+	if (!GameStatsCodex::TrySpendCurrency(kRefineOpCost_))
+	{
+		return false;
+	}
+
+	UnbindRefine(material);
+	UnbindRefine(subject);
+	std::unique_ptr<IModuleNode> takenMaterial = materialOwner->TakeNode(material);
+	std::unique_ptr<IModuleNode> takenSubject = subjectOwner->TakeNode(subject);
+	takenMaterial.reset();
+	if (takenSubject == nullptr)
+	{
+		PaintRefinePanel_();
+		return false;
+	}
+
+	// 同一颗主体：只改等级/造价，搬进结果格，场/仓不再留影子。
+	takenSubject->SetLevel(newLevel);
+	takenSubject->SetBuyPrice(newPrice);
+	AdoptRefineResult_(std::move(takenSubject));
+	materialOwner->SyncAllVisuals();
+	if (subjectOwner != materialOwner)
+	{
+		subjectOwner->SyncAllVisuals();
+	}
+	return true;
+}
+
+bool ModuleShop::TryReturnRefine_()
+{
+	if (!CanReturnRefine_())
+	{
+		return false;
+	}
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	if (material != nullptr)
+	{
+		EjectRefineOccupant_(*material);
+	}
+	if (subject != nullptr)
+	{
+		EjectRefineOccupant_(*subject);
+	}
+	PaintRefinePanel_();
+	return true;
+}
+
+bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse)
+{
+	const std::size_t i = HitRefineButtonIndex_(worldPos);
+	if (i == 0u)
+	{
+		return TryUpgradeRefine_(field, warehouse);
+	}
+	if (i == 3u)
+	{
+		return TryReturnRefine_();
+	}
+	return false;
+}
+
 void ModuleShop::ClearRefineParks()
 {
-	for (IModuleNode*& slot : refineParked_)
+	// 只弹素材/主体；结果格 unique_ptr 留下直到 Reset 或拖出。
+	for (std::size_t i = 0; i < 2u; ++i)
 	{
-		if (slot == nullptr)
+		IModuleNode* node = refineParked_[i];
+		if (node == nullptr)
 		{
 			continue;
 		}
-		IModuleNode* node = slot;
-		slot = nullptr;
+		refineParked_[i] = nullptr;
 		if (node->IsLayoutGhostActive())
 		{
 			node->SetLocalPos(node->GetCollisionLocalPos());
@@ -1637,9 +1906,14 @@ void ModuleShop::PaintRefinePanel_()
 
 	for (IModuleNode* node : refineParked_)
 	{
-		if (node != nullptr)
+		if (node == nullptr)
 		{
-			ApplyRefineParkIcon(*node);
+			continue;
+		}
+		ApplyRefineParkIcon(*node);
+		if (node == refineResult_.get())
+		{
+			node->SetVisualRadiusOverride(RefineSlotIconRadius_());
 		}
 	}
 
@@ -1663,6 +1937,9 @@ void ModuleShop::PaintRefinePanel_()
 	constexpr Color kBtnBg{ 48u, 52u, 60u, 220u };
 	constexpr Color kBtnFrame{ 96u, 100u, 108u, 200u };
 	constexpr Color kBtnText{ 210u, 214u, 220u, 255u };
+	constexpr Color kBtnBgLit{ 56u, 92u, 72u, 230u };
+	constexpr Color kBtnFrameLit{ 140u, 210u, 170u, 220u };
+	constexpr Color kBtnTextLit{ 236u, 244u, 238u, 255u };
 	const std::string slotLabels[kRefineSlotCount_] = {
 		GetUiCopy("shop.refine.material"),
 		GetUiCopy("shop.refine.subject"),
@@ -1721,14 +1998,23 @@ void ModuleShop::PaintRefinePanel_()
 		GetUiCopy("shop.refine.evolve"),
 		GetUiCopy("shop.refine.return")
 	};
+	const bool btnLit[kRefineButtonCount_] = {
+		CanUpgradeRefine_(),
+		false,
+		false,
+		CanReturnRefine_()
+	};
 	for (std::size_t i = 0; i < kRefineButtonCount_; ++i)
 	{
 		const int x0 = btnX;
 		const int y0 = btnTop + static_cast<int>(i) * (btnH + btnGap);
 		const int x1 = x0 + btnW - 1;
 		const int y1 = y0 + btnH - 1;
-		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, btnCorner, kBtnBg);
-		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, btnCorner, kBtnFrame);
+		const Color bg = btnLit[i] ? kBtnBgLit : kBtnBg;
+		const Color frame = btnLit[i] ? kBtnFrameLit : kBtnFrame;
+		const Color text = btnLit[i] ? kBtnTextLit : kBtnText;
+		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, btnCorner, bg);
+		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, btnCorner, frame);
 		DrawShopLabelInBox_(
 			canvas,
 			btnLabels[i],
@@ -1737,9 +2023,12 @@ void ModuleShop::PaintRefinePanel_()
 			y0,
 			btnW,
 			btnH,
-			kBtnText);
+			text);
 	}
 
+	paintedUpgradeLit_ = btnLit[0];
+	paintedReturnLit_ = btnLit[3];
+	paintedRefineCurrency_ = GameStatsCodex::GetCurrency();
 	canvas.NotifyPixelsChanged();
 }
 

@@ -55,7 +55,7 @@ public:
 	void SetOnFight(std::function<void()> cb) { onFight_ = std::move(cb); }
 	/** @brief 刷新战斗按钮文案；波次不变则不重绘。 */
 	void SetNextWave(int wave);
-	/** @brief 按当前语言重刷战斗按钮；波次可不变。 */
+	// 按当前语言与 Field 是否有 Core，刷新战斗键文案和灰态
 	void RefreshFightLabel();
 
 	/** @brief 新开一局：Field 回到演示布局，仓清空，商店重进货并清刷新次数。 */

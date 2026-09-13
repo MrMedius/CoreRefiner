@@ -131,6 +131,18 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 			hover_ = PickHover_(mouseGame, hoverSource_);
 		}
 	}
+	else if (shop != nullptr && shop->HitRefineButton(mouseGame))
+	{
+		hover_ = nullptr;
+		hoverSource_ = kNoZone_;
+		if (input.MouseLeftTriggered())
+		{
+			(void)shop->TryClickRefine(
+				mouseGame,
+				ZoneAt_(ZoneId::Field),
+				ZoneAt_(ZoneId::Warehouse));
+		}
+	}
 	else if (shop != nullptr && shop->HitRefreshButton(mouseGame))
 	{
 		hover_ = nullptr;
@@ -165,13 +177,19 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 				dragOrigin_ = OriginForSource_(dragSource_);
 			}
 			dragStartLocalPos_ = dragged_->GetLocalPos();
-			if (!dragged_->IsLayoutGhostActive())
+			if (shop != nullptr && shop->IsRefineResultParked(dragged_))
+			{
+				// 结果格已归商店：残影钉在格子里（格内尺寸），跟手恢复 hitRadius。
+				dragged_->BeginLayoutGhost(dragStartLocalPos_);
+				dragged_->ClearIconRadiusOverride();
+			}
+			else if (!dragged_->IsLayoutGhostActive())
 			{
 				dragged_->BeginLayoutGhost(dragStartLocalPos_);
 			}
 			else
 			{
-				// 从炼成格拿起：Icon 改回跟手大小，残影仍留在来源。
+				// 从素材/主体格拿起：Icon 改回跟手大小，残影仍留在来源。
 				dragged_->ClearIconRadiusOverride();
 			}
 			if (hostWindow != nullptr)
@@ -397,7 +415,12 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 
 		const ZoneId target = static_cast<ZoneId>(i);
 		IModuleZone* owner = FindOwnerZone_(zones_, &node);
-		if (owner != nullptr && owner->GetZoneId() == ZoneId::Shop && target != ZoneId::Shop)
+		auto* ownerShop = dynamic_cast<ModuleShop*>(owner);
+		const bool fromRefineResult = ownerShop != nullptr && ownerShop->IsRefineResultParked(&node);
+		if (!fromRefineResult
+			&& owner != nullptr
+			&& owner->GetZoneId() == ZoneId::Shop
+			&& target != ZoneId::Shop)
 		{
 			const int price = node.GetBuyPrice();
 			if (GameStatsCodex::GetCurrency() < price)
@@ -511,7 +534,25 @@ void ZoneLayoutEditor::ResolveRelease_()
 		}
 	}
 
-	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
+	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	if (shop != nullptr && shop->IsRefineResultParked(node))
+	{
+		// 结果格：Field / 仓 / 买卖框（空货槽进库存，否则卖掉）。失败仍归店、弹回结果影子。
+		node->EndLayoutGhost();
+		std::unique_ptr<IModuleNode> taken = shop->TakeNode(node);
+		if (taken == nullptr || !target->TryAcceptDrop(taken, drop.localPos))
+		{
+			if (taken != nullptr)
+			{
+				shop->RestoreRefineResult(std::move(taken));
+			}
+			RevertDrag_();
+			return;
+		}
+		return;
+	}
+
+	if (shop != nullptr)
 	{
 		shop->UnbindRefine(node);
 	}
