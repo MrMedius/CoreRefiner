@@ -341,6 +341,12 @@ public:
 	[[nodiscard]] DirectX::XMFLOAT2 GetLocalPos() const noexcept { return localPos_; }
 	void SetLocalPos(DirectX::XMFLOAT2 pos) noexcept { localPos_ = pos; }
 
+	// 占用/点选跟残影：ghost 开着用地板原位，否则跟图标。
+	[[nodiscard]] DirectX::XMFLOAT2 GetCollisionLocalPos() const noexcept
+	{
+		return layoutGhostActive_ ? layoutGhostLocalPos_ : localPos_;
+	}
+
 	[[nodiscard]] float GetHitRadius() const noexcept { return hitRadius_; }
 	void SetHitRadius(float r) noexcept { hitRadius_ = r; }
 
@@ -350,9 +356,13 @@ public:
 		return (visualRadiusOverride_ > 0.0f) ? visualRadiusOverride_ : hitRadius_;
 	}
 
-	// 当前跟随鼠标的图标半径；拖起时一律用 hitRadius_。
+	// 当前跟随鼠标的图标半径。iconRadiusOverride_ 供炼成格按仓库比例缩放；否则 ghost 时用 hitRadius_（跟手），静置用 GetVisualRadius()。
 	[[nodiscard]] float GetIconRadius() const noexcept
 	{
+		if (iconRadiusOverride_ > 0.0f)
+		{
+			return iconRadiusOverride_;
+		}
 		return layoutGhostActive_ ? hitRadius_ : GetVisualRadius();
 	}
 
@@ -375,11 +385,32 @@ public:
 		}
 	}
 
+	// 炼成格内 Icon 半径覆盖；残影仍走 GetVisualRadius()。<=0 清除。
+	void SetIconRadiusOverride(float r) noexcept
+	{
+		iconRadiusOverride_ = (r > 0.0f) ? r : 0.0f;
+		if (visualReady_)
+		{
+			ApplyVisualTransform_();
+		}
+	}
+
+	void ClearIconRadiusOverride() noexcept
+	{
+		iconRadiusOverride_ = 0.0f;
+		if (visualReady_)
+		{
+			ApplyVisualTransform_();
+		}
+	}
+
 protected:
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
 	float hitRadius_{ 10.0f };
 	// <= 0 表示不覆盖，绘制走 hitRadius_。
 	float visualRadiusOverride_{ 0.0f };
+	// <= 0 表示不覆盖。炼成格 Icon 单独缩放，不放大场上残影。
+	float iconRadiusOverride_{ 0.0f };
 
 public:
 	// ---- 绘制与拖放残影 ----
@@ -388,6 +419,9 @@ public:
 	void SetZoneVisualScale(float scale) noexcept;
 	void SyncVisual();
 	void SubmitVisual();
+	// 残影与图标分开交，整理态才能先画全区残影、再画全区图标。
+	void SubmitGhost();
+	void SubmitIcon();
 	void BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept;
 	void EndLayoutGhost() noexcept;
 	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }

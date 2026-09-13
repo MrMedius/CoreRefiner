@@ -87,7 +87,6 @@ public:
 	}
 
 	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
-	// 命中仍只用买卖框；炼成格拖放在 S7。
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
@@ -172,18 +171,36 @@ private:
 	std::unique_ptr<Canvas2D> currencyText_;
 	std::unique_ptr<Canvas2D> refreshCostText_;
 
-	// ---- 炼成区：本步只画，不接拖放 ----
+	// ---- 炼成区 ----
+public:
+	// 炼成停放：不接管所有权。0=素材 1=主体；未命中返回 3。
+	[[nodiscard]] std::size_t HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 RefineSlotWorldCenter(std::size_t slot) const noexcept;
+	[[nodiscard]] bool CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept;
+	void ParkRefine(std::size_t slot, IModuleNode& node);
+	void UnbindRefine(IModuleNode* node) noexcept;
+	void ClearRefineParks();
+	[[nodiscard]] bool IsRefineParked(const IModuleNode* node) const noexcept;
+	// 格内 Icon 按仓库格比例缩放；残影半径仍走 GetVisualRadius()。
+	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
+
 private:
 	static constexpr std::size_t kRefineSlotCount_ = 3;
 	static constexpr std::size_t kRefineButtonCount_ = 4;
+	static constexpr float kRefineSlotLabelFont_ = 20.0f;
 
 	[[nodiscard]] BoundsWorld GetRefineBoundsWorld_() const noexcept;
+	[[nodiscard]] std::size_t HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
+	[[nodiscard]] bool RefineWorldToPixel_(DirectX::XMFLOAT2 world, float& px, float& py) const noexcept;
+	[[nodiscard]] float RefineSlotIconRadius_() const noexcept;
+	void EjectRefineOccupant_(IModuleNode& occupant);
 
 	void EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintRefinePanel_();
 	void SyncRefineTransform_() noexcept;
 
 	std::unique_ptr<Canvas2D> refinePanel_;
+	std::array<IModuleNode*, kRefineSlotCount_> refineParked_{};
 
 	// ---- Function3：占位，宽度与买卖框对齐 ----
 private:

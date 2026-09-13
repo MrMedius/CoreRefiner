@@ -351,14 +351,19 @@ void ModuleWorkbench::SubmitPrep()
 	{
 		warehouse_.SubmitBackground();
 		shop_.SubmitBackground();
-	}
-	field_.SubmitNodes();
-	if (layoutEditor_.IsActive())
-	{
-		warehouse_.SubmitNodes();
-		shop_.SubmitNodes();
+		// 先全区残影，再全区图标：仓影子不会压在拖动中的场上 Node 上面。
+		field_.SubmitNodeGhosts();
+		warehouse_.SubmitNodeGhosts();
+		shop_.SubmitNodeGhosts();
+		field_.SubmitNodeIcons();
+		warehouse_.SubmitNodeIcons();
+		shop_.SubmitNodeIcons();
 		shop_.SubmitHud();
 		layoutEditor_.SubmitOverlay();
+	}
+	else
+	{
+		field_.SubmitNodes();
 	}
 	if (uiRoot_ != nullptr)
 	{

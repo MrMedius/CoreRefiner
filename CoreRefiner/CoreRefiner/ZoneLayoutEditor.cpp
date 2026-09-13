@@ -16,6 +16,25 @@ namespace
 	{
 		return ToIndex(id) < ZoneCount();
 	}
+
+	[[nodiscard]] IModuleZone* FindOwnerZone_(
+		const std::array<IModuleZone*, ZoneCount()>& zones,
+		const IModuleNode* node) noexcept
+	{
+		if (node == nullptr)
+		{
+			return nullptr;
+		}
+		const std::size_t npos = static_cast<std::size_t>(-1);
+		for (IModuleZone* zone : zones)
+		{
+			if (zone != nullptr && zone->FindNodeIndex(node) != npos)
+			{
+				return zone;
+			}
+		}
+		return nullptr;
+	}
 }
 
 void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::array<DirectX::XMFLOAT3, ZoneCount()> origins, Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 combatFieldOrigin)
@@ -56,6 +75,10 @@ void ZoneLayoutEditor::End()
 	}
 
 	ClearActiveDrag_();
+	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
+	{
+		shop->ClearRefineParks();
+	}
 	ClearAllLayoutGhosts_();
 	infoPanel_.Hide();
 
@@ -133,9 +156,24 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		{
 			dragged_ = hover_;
 			dragSource_ = hoverSource_;
-			dragOrigin_ = OriginForSource_(dragSource_);
+			if (IModuleZone* owner = FindOwnerZone_(zones_, dragged_))
+			{
+				dragOrigin_ = owner->GetOrigin();
+			}
+			else
+			{
+				dragOrigin_ = OriginForSource_(dragSource_);
+			}
 			dragStartLocalPos_ = dragged_->GetLocalPos();
-			dragged_->BeginLayoutGhost(dragStartLocalPos_);
+			if (!dragged_->IsLayoutGhostActive())
+			{
+				dragged_->BeginLayoutGhost(dragStartLocalPos_);
+			}
+			else
+			{
+				// 从炼成格拿起：Icon 改回跟手大小，残影仍留在来源。
+				dragged_->ClearIconRadiusOverride();
+			}
 			if (hostWindow != nullptr)
 			{
 				SnapCursorToNode_(*dragged_, dragOrigin_, *hostWindow);
@@ -153,7 +191,6 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	}
 
 	IModuleNode* ringTarget = (dragged_ != nullptr) ? dragged_ : hover_;
-	const ZoneId ringSource = (dragged_ != nullptr) ? dragSource_ : hoverSource_;
 	if (dragged_ != nullptr)
 	{
 		const DropEval_ eval = EvalDrop_(*dragged_);
@@ -176,16 +213,36 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	}
 	if (ringTarget != nullptr)
 	{
-		SyncRingTransform_(*ringTarget, OriginForSource_(ringSource));
+		DirectX::XMFLOAT3 ringOrigin = dragOrigin_;
+		if (dragged_ == nullptr)
+		{
+			if (IModuleZone* owner = FindOwnerZone_(zones_, ringTarget))
+			{
+				ringOrigin = owner->GetOrigin();
+			}
+			else
+			{
+				ringOrigin = OriginForSource_(hoverSource_);
+			}
+		}
+		SyncRingTransform_(*ringTarget, ringOrigin);
 	}
 
-	if (dragged_ != nullptr || hover_ == nullptr || hoverSource_ == ZoneId::Shop)
+	bool showInfo = dragged_ == nullptr && hover_ != nullptr;
+	if (showInfo && hoverSource_ == ZoneId::Shop)
+	{
+		showInfo = shop != nullptr && shop->IsRefineParked(hover_);
+	}
+	if (!showInfo)
 	{
 		infoPanel_.Hide();
 	}
 	else
 	{
-		const DirectX::XMFLOAT3 origin = OriginForSource_(hoverSource_);
+		IModuleZone* owner = FindOwnerZone_(zones_, hover_);
+		const DirectX::XMFLOAT3 origin = (owner != nullptr)
+			? owner->GetOrigin()
+			: OriginForSource_(hoverSource_);
 		const DirectX::XMFLOAT2 local = hover_->GetLocalPos();
 		infoPanel_.ShowFor(
 			*hover_,
@@ -339,7 +396,8 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 		}
 
 		const ZoneId target = static_cast<ZoneId>(i);
-		if (from == ZoneId::Shop && target != ZoneId::Shop)
+		IModuleZone* owner = FindOwnerZone_(zones_, &node);
+		if (owner != nullptr && owner->GetZoneId() == ZoneId::Shop && target != ZoneId::Shop)
 		{
 			const int price = node.GetBuyPrice();
 			if (GameStatsCodex::GetCurrency() < price)
@@ -365,15 +423,29 @@ void ZoneLayoutEditor::RevertDrag_()
 	}
 
 	dragged_->SetLocalPos(dragStartLocalPos_);
-	if (IModuleZone* source = ZoneAt_(dragSource_))
+	IModuleZone* owner = FindOwnerZone_(zones_, dragged_);
+	if (owner == nullptr)
 	{
-		dragged_->SetZoneOrigin(source->GetOrigin());
+		owner = ZoneAt_(dragSource_);
 	}
-	dragged_->EndLayoutGhost();
-	dragged_->SyncVisual();
-	if (IModuleZone* source = ZoneAt_(dragSource_))
+	if (owner != nullptr)
 	{
-		source->SyncAllVisuals();
+		dragged_->SetZoneOrigin(owner->GetOrigin());
+	}
+	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	const bool keepGhost = shop != nullptr && shop->IsRefineParked(dragged_);
+	if (!keepGhost)
+	{
+		dragged_->EndLayoutGhost();
+	}
+	else
+	{
+		shop->ApplyRefineParkIcon(*dragged_);
+	}
+	dragged_->SyncVisual();
+	if (owner != nullptr)
+	{
+		owner->SyncAllVisuals();
 	}
 }
 
@@ -398,8 +470,12 @@ void ZoneLayoutEditor::ResolveRelease_()
 
 	const DropEval_ eval = EvalDrop_(*dragged_);
 	IModuleZone* target = ZoneAt_(eval.target);
-	IModuleZone* source = ZoneAt_(dragSource_);
-	if (!eval.placeable || target == nullptr || source == nullptr)
+	IModuleZone* owner = FindOwnerZone_(zones_, dragged_);
+	if (owner == nullptr)
+	{
+		owner = ZoneAt_(dragSource_);
+	}
+	if (!eval.placeable || target == nullptr || owner == nullptr)
 	{
 		RevertDrag_();
 		return;
@@ -414,7 +490,33 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
-	if (dragSource_ == eval.target)
+	if (auto* shop = dynamic_cast<ModuleShop*>(target))
+	{
+		const std::size_t refineSlot = shop->HitRefineParkSlot(world);
+		if (refineSlot < 2u)
+		{
+			if (!shop->CanParkRefine(*node, refineSlot))
+			{
+				RevertDrag_();
+				return;
+			}
+			shop->ParkRefine(refineSlot, *node);
+			const DirectX::XMFLOAT2 wc = shop->RefineSlotWorldCenter(refineSlot);
+			const DirectX::XMFLOAT3 origin = owner->GetOrigin();
+			node->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin.x, wc.y - origin.y });
+			node->SetZoneOrigin(origin);
+			node->SyncVisual();
+			owner->SyncAllVisuals();
+			return;
+		}
+	}
+
+	if (auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop)))
+	{
+		shop->UnbindRefine(node);
+	}
+
+	if (owner == target)
 	{
 		node->SetLocalPos(drop.localPos);
 		node->SetZoneOrigin(target->GetOrigin());
@@ -426,19 +528,19 @@ void ZoneLayoutEditor::ResolveRelease_()
 	}
 
 	node->EndLayoutGhost();
-	const std::size_t sourceIndex = source->FindNodeIndex(node);
-	std::unique_ptr<IModuleNode> taken = source->TakeNode(node);
+	const std::size_t sourceIndex = owner->FindNodeIndex(node);
+	std::unique_ptr<IModuleNode> taken = owner->TakeNode(node);
 	if (!target->TryAcceptDrop(taken, drop.localPos))
 	{
 		if (taken != nullptr)
 		{
-			(void)source->TryAcceptDrop(taken, dragStartLocalPos_);
+			(void)owner->TryAcceptDrop(taken, dragStartLocalPos_);
 		}
 		RevertDrag_();
 		return;
 	}
 
-	if (dragSource_ != ZoneId::Shop)
+	if (owner->GetZoneId() != ZoneId::Shop || target->GetZoneId() == ZoneId::Shop)
 	{
 		return;
 	}
@@ -449,12 +551,12 @@ void ZoneLayoutEditor::ResolveRelease_()
 		std::unique_ptr<IModuleNode> back = target->TakeNode(node);
 		if (back != nullptr)
 		{
-			(void)source->TryAcceptDrop(back, dragStartLocalPos_);
+			(void)owner->TryAcceptDrop(back, dragStartLocalPos_);
 		}
 		RevertDrag_();
 		return;
 	}
-	if (auto* shop = dynamic_cast<ModuleShop*>(source))
+	if (auto* shop = dynamic_cast<ModuleShop*>(owner))
 	{
 		shop->MarkSold(sourceIndex);
 	}

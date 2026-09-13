@@ -208,7 +208,8 @@ bool ModuleField::WouldOverlap(
 		{
 			continue;
 		}
-		const Collider2D::CircleCollider solid{ other->GetLocalPos(), other->GetHitRadius() };
+		// 停进炼成后图标飞走，占用仍钉在残影上。
+		const Collider2D::CircleCollider solid{ other->GetCollisionLocalPos(), other->GetHitRadius() };
 		if (Collider2D::CollisionSystem::IsOverlap(moving, solid))
 		{
 			return true;
@@ -229,7 +230,12 @@ IModuleNode* ModuleField::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) n
 		{
 			continue;
 		}
-		const DirectX::XMFLOAT2 local = node->GetLocalPos();
+		// 炼成停放开着 ghost：只能从格子里点，影子不拾取。占用仍走 WouldOverlap。
+		if (node->IsLayoutGhostActive())
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 local = node->GetCollisionLocalPos();
 		const DirectX::XMFLOAT2 world = LocalToWorld_(local);
 		const Collider2D::CircleCollider hit{ world, node->GetHitRadius() * DisplayScale_() };
 		const Collider2D::PointCollider pt{ worldPos };

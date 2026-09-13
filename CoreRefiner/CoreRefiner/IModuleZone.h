@@ -123,6 +123,15 @@ public:
 	/** @brief 提交本区背景：先提交外壳，再交给子类。 */
 	void SubmitBackground();
 	virtual void SubmitNodes() = 0;
+	// 整理态分两趟提交：先全区残影，再全区图标，避免仓残影盖住场上 Node。
+	void SubmitNodeGhosts()
+	{
+		ForEach([](IModuleNode& node) { node.SubmitGhost(); });
+	}
+	void SubmitNodeIcons()
+	{
+		ForEach([](IModuleNode& node) { node.SubmitIcon(); });
+	}
 
 	template <typename Fn>
 	void ForEach(Fn&& fn)

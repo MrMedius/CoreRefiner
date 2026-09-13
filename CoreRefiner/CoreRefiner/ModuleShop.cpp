@@ -88,19 +88,84 @@ namespace
 			&& std::fabs(pos.y - center.y) <= half.y;
 	}
 
+	// 与 PaintRefinePanel_ 同一套四区等缝。slotXs[0/1/2] = 素材/主体/结果。
+	struct RefineLayout_
+	{
+		int pad{ 0 };
+		int side{ 0 };
+		int slotTop{ 0 };
+		int slotXs[3]{};
+		int btnW{ 120 };
+		int btnH{ 14 };
+		int btnX{ 0 };
+		int btnTop{ 0 };
+		int btnGap{ 5 };
+	};
+
+	[[nodiscard]] RefineLayout_ MakeRefineLayout_(int cw, int ch) noexcept
+	{
+		RefineLayout_ layout{};
+		layout.pad = (std::max)(8, ch / 14);
+		const int innerW = (std::max)(1, cw - layout.pad * 2);
+		const int innerH = (std::max)(1, ch - layout.pad * 2);
+		const int regionGapWanted = 64;
+		const int regionGapMin = 32;
+		layout.btnGap = 5;
+		constexpr int slotN = 3;
+		constexpr int buttonN = 4;
+		layout.btnW = 120;
+		layout.btnH = (std::max)(14, (innerH - layout.btnGap * (buttonN - 1)) / buttonN);
+		int side = innerH;
+		int regionGap = regionGapWanted;
+		const int gapN = slotN;
+		auto clusterW = [&]() noexcept
+		{
+			return side * slotN + regionGap * gapN + layout.btnW;
+		};
+		if (clusterW() > innerW)
+		{
+			regionGap = (std::max)(regionGapMin, (innerW - side * slotN - layout.btnW) / gapN);
+		}
+		if (clusterW() > innerW)
+		{
+			side = (std::max)(24, (innerW - regionGap * gapN - layout.btnW) / slotN);
+		}
+		if (clusterW() > innerW)
+		{
+			layout.btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
+		}
+		layout.side = side;
+		layout.slotTop = layout.pad + (std::max)(0, innerH - side) / 2;
+		const int groupX = layout.pad + (std::max)(0, innerW - clusterW()) / 2;
+		layout.slotXs[0] = groupX;
+		layout.slotXs[1] = groupX + side + regionGap;
+		layout.slotXs[2] = groupX + (side + regionGap) * 2;
+		layout.btnX = groupX + (side + regionGap) * slotN;
+		const int btnColH = layout.btnH * buttonN + layout.btnGap * (buttonN - 1);
+		layout.btnTop = layout.pad + (std::max)(0, innerH - btnColH) / 2;
+		return layout;
+	}
+
+	// Fixed 用 dest 做排版盒（不再认 maxWidthPx）。价格/描述各自收成一条带。
 	void DrawShopText_(
 		Canvas2D& canvas,
 		const std::string& text,
 		float fontSize,
-		float offsetX,
-		float offsetY,
-		float maxWidth,
+		int boxX,
+		int boxY,
+		int boxW,
+		int boxH,
 		int paddingPx,
 		DWRITE_TEXT_ALIGNMENT align,
 		DWRITE_PARAGRAPH_ALIGNMENT para,
 		Color color,
 		const std::vector<Text::Span>& spans = {})
 	{
+		if (text.empty() || boxW <= 0 || boxH <= 0)
+		{
+			return;
+		}
+
 		auto ctx = TextCodex::Get().BeginDraw();
 		Text::RenderRequest& rq = ctx.Request();
 		FillUiLabelRequest_(rq, text, fontSize, color);
@@ -109,10 +174,12 @@ namespace
 		rq.style.wordWrapEnabled = true;
 		rq.style.textAlign = align;
 		rq.style.paragraphAlign = para;
-		rq.maxWidthPx = maxWidth;
 		rq.paddingPx = paddingPx;
-		rq.drawOffsetXPx = offsetX;
-		rq.drawOffsetYPx = offsetY;
+		rq.SetDestRect(
+			static_cast<float>(boxX),
+			static_cast<float>(boxY),
+			static_cast<float>(boxW),
+			static_cast<float>(boxH));
 		rq.backgroundColor = Colors::None;
 		rq.spans = spans;
 		ctx.Render(canvas);
@@ -459,8 +526,10 @@ ModuleShop::BoundsWorld ModuleShop::GetBoundsWorld() const noexcept
 bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept
 {
 	(void)radius;
-	const BoundsWorld b = GetTradeBoundsWorld();
-	return PointInAabb_(b.center, b.half, worldCenter);
+	const BoundsWorld trade = GetTradeBoundsWorld();
+	const BoundsWorld refine = GetRefineBoundsWorld_();
+	return PointInAabb_(trade.center, trade.half, worldCenter)
+		|| PointInAabb_(refine.center, refine.half, worldCenter);
 }
 
 void ModuleShop::FillStock()
@@ -733,6 +802,27 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 		return result;
 	}
 
+	const std::size_t refineHit = HitRefineSlotIndex_(worldPos);
+	if (refineHit < kRefineSlotCount_)
+	{
+		if (refineHit >= 2u || !CanParkRefine(node, refineHit))
+		{
+			result.verdict = DropVerdict::Forbidden;
+			return result;
+		}
+		result.verdict = DropVerdict::Accept;
+		const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(refineHit);
+		result.localPos = DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y };
+		return result;
+	}
+
+	const BoundsWorld refine = GetRefineBoundsWorld_();
+	if (PointInAabb_(refine.center, refine.half, worldPos))
+	{
+		result.verdict = DropVerdict::Forbidden;
+		return result;
+	}
+
 	if (from == ZoneId::Shop)
 	{
 		result.verdict = DropVerdict::Accept;
@@ -797,6 +887,24 @@ IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) no
 {
 	IModuleNode* best = nullptr;
 	float bestDistSq = 1.0e9f;
+
+	for (std::size_t i = 0; i < 2u; ++i)
+	{
+		IModuleNode* node = refineParked_[i];
+		if (node == nullptr || HitRefineSlotIndex_(worldPos) != i)
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(i);
+		const float dx = worldPos.x - wc.x;
+		const float dy = worldPos.y - wc.y;
+		const float distSq = dx * dx + dy * dy;
+		if (distSq < bestDistSq)
+		{
+			bestDistSq = distSq;
+			best = node;
+		}
+	}
 
 	for (Slot& slot : slots_)
 	{
@@ -1074,9 +1182,10 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 			canvas,
 			"SOLD OUT",
 			16.0f,
-			0.0f,
-			0.0f,
-			static_cast<float>(cw),
+			0,
+			0,
+			cw,
+			ch,
 			6,
 			DWRITE_TEXT_ALIGNMENT_CENTER,
 			DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
@@ -1090,13 +1199,19 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		return;
 	}
 
+	// 价格贴在图标区下沿；描述吃剩余高度，避免整张卡当 layout。
+	const int priceTop = iconZoneH;
+	const int priceH = static_cast<int>(kPriceFontSize) + 8;
+	const int bodyTop = priceTop + priceH;
+	const int bodyH = ch - bodyTop;
 	DrawShopText_(
 		canvas,
 		std::to_string(slot.price),
 		kPriceFontSize,
-		0.0f,
-		static_cast<float>(iconZoneH),
-		static_cast<float>(cw),
+		0,
+		priceTop,
+		cw,
+		priceH,
 		6,
 		DWRITE_TEXT_ALIGNMENT_CENTER,
 		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
@@ -1107,9 +1222,10 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		canvas,
 		entry.ComposedText(),
 		13.0f,
-		0.0f,
-		static_cast<float>(iconZoneH) + kPriceFontSize + 8.0f,
-		static_cast<float>(cw),
+		0,
+		bodyTop,
+		cw,
+		bodyH,
 		6,
 		DWRITE_TEXT_ALIGNMENT_LEADING,
 		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
@@ -1262,6 +1378,242 @@ ModuleShop::BoundsWorld ModuleShop::GetRefineBoundsWorld_() const noexcept
 	return FunctionBandBounds_(0);
 }
 
+bool ModuleShop::RefineWorldToPixel_(DirectX::XMFLOAT2 world, float& px, float& py) const noexcept
+{
+	const BoundsWorld b = GetRefineBoundsWorld_();
+	const float worldW = b.half.x * 2.0f;
+	const float worldH = b.half.y * 2.0f;
+	if (worldW <= 1.0e-4f || worldH <= 1.0e-4f)
+	{
+		return false;
+	}
+	int cw = static_cast<int>(std::lround(worldW));
+	int ch = static_cast<int>(std::lround(worldH));
+	if (refinePanel_ != nullptr)
+	{
+		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
+		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
+	}
+	if (cw <= 0 || ch <= 0)
+	{
+		return false;
+	}
+	px = (world.x - (b.center.x - b.half.x)) * (static_cast<float>(cw) / worldW);
+	py = (world.y - (b.center.y - b.half.y)) * (static_cast<float>(ch) / worldH);
+	return true;
+}
+
+std::size_t ModuleShop::HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!RefineWorldToPixel_(worldPos, px, py))
+	{
+		return kRefineSlotCount_;
+	}
+	int cw = 1;
+	int ch = 1;
+	if (refinePanel_ != nullptr)
+	{
+		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
+		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
+	}
+	else
+	{
+		const BoundsWorld b = GetRefineBoundsWorld_();
+		cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
+		ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
+	}
+	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
+	if (layout.side <= 0)
+	{
+		return kRefineSlotCount_;
+	}
+	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
+	{
+		const float x0 = static_cast<float>(layout.slotXs[i]);
+		const float y0 = static_cast<float>(layout.slotTop);
+		const float x1 = x0 + static_cast<float>(layout.side);
+		const float y1 = y0 + static_cast<float>(layout.side);
+		if (px >= x0 && px < x1 && py >= y0 && py < y1)
+		{
+			return i;
+		}
+	}
+	return kRefineSlotCount_;
+}
+
+std::size_t ModuleShop::HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const std::size_t i = HitRefineSlotIndex_(worldPos);
+	return (i < 2u) ? i : kRefineSlotCount_;
+}
+
+DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenter(std::size_t slot) const noexcept
+{
+	const BoundsWorld b = GetRefineBoundsWorld_();
+	if (slot >= kRefineSlotCount_)
+	{
+		return b.center;
+	}
+	int cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
+	int ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
+	if (refinePanel_ != nullptr)
+	{
+		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
+		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
+	}
+	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
+	const float worldW = b.half.x * 2.0f;
+	const float worldH = b.half.y * 2.0f;
+	const float px = static_cast<float>(layout.slotXs[slot]) + static_cast<float>(layout.side) * 0.5f;
+	const float py = static_cast<float>(layout.slotTop) + static_cast<float>(layout.side) * 0.5f;
+	return DirectX::XMFLOAT2{
+		b.center.x - b.half.x + px * (worldW / static_cast<float>(cw)),
+		b.center.y - b.half.y + py * (worldH / static_cast<float>(ch))
+	};
+}
+
+float ModuleShop::RefineSlotIconRadius_() const noexcept
+{
+	const BoundsWorld b = GetRefineBoundsWorld_();
+	int cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
+	int ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
+	if (refinePanel_ != nullptr)
+	{
+		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
+		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
+	}
+	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
+	if (layout.side <= 0 || ch <= 0)
+	{
+		return 8.0f;
+	}
+	const float worldSide = static_cast<float>(layout.side) * ((b.half.y * 2.0f) / static_cast<float>(ch));
+	// 与仓库格相同：半径/格边 = 15/56（kStoredVisualRadius / kSlotPitch）。
+	constexpr float kIconToSlot = 15.0f / 56.0f;
+	return (std::max)(8.0f, worldSide * kIconToSlot);
+}
+
+void ModuleShop::ApplyRefineParkIcon(IModuleNode& node) noexcept
+{
+	node.SetIconRadiusOverride(RefineSlotIconRadius_());
+}
+
+bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept
+{
+	if (slot > 1u)
+	{
+		return false;
+	}
+	// 买卖框里的商品不能停进炼成格。
+	if (FindSlotIndex_(&node) < kSlotCount)
+	{
+		return false;
+	}
+	if (node.IsCore() && node.GetLevel() >= ModuleNodeLevel::kMax)
+	{
+		return false;
+	}
+	if (slot == 0u && node.IsCore())
+	{
+		return false;
+	}
+	if (slot == 1u && node.GetKind() == ModuleNodeKind::Fusion)
+	{
+		return false;
+	}
+	return true;
+}
+
+void ModuleShop::UnbindRefine(IModuleNode* node) noexcept
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+	bool changed = false;
+	for (IModuleNode*& slot : refineParked_)
+	{
+		if (slot == node)
+		{
+			slot = nullptr;
+			changed = true;
+		}
+	}
+	if (changed)
+	{
+		node->ClearIconRadiusOverride();
+		PaintRefinePanel_();
+	}
+}
+
+bool ModuleShop::IsRefineParked(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return false;
+	}
+	for (const IModuleNode* slot : refineParked_)
+	{
+		if (slot == node)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ModuleShop::EjectRefineOccupant_(IModuleNode& occupant)
+{
+	UnbindRefine(&occupant);
+	if (occupant.IsLayoutGhostActive())
+	{
+		occupant.SetLocalPos(occupant.GetCollisionLocalPos());
+		occupant.EndLayoutGhost();
+	}
+	occupant.SyncVisual();
+}
+
+void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node)
+{
+	if (slot > 1u)
+	{
+		return;
+	}
+	UnbindRefine(&node);
+	if (IModuleNode* occ = refineParked_[slot])
+	{
+		if (occ != &node)
+		{
+			EjectRefineOccupant_(*occ);
+		}
+	}
+	refineParked_[slot] = &node;
+	ApplyRefineParkIcon(node);
+	PaintRefinePanel_();
+}
+
+void ModuleShop::ClearRefineParks()
+{
+	for (IModuleNode*& slot : refineParked_)
+	{
+		if (slot == nullptr)
+		{
+			continue;
+		}
+		IModuleNode* node = slot;
+		slot = nullptr;
+		if (node->IsLayoutGhostActive())
+		{
+			node->SetLocalPos(node->GetCollisionLocalPos());
+		}
+		node->ClearIconRadiusOverride();
+		node->SyncVisual();
+	}
+	PaintRefinePanel_();
+}
+
 // ---- 炼成区 · 绘制 ----
 void ModuleShop::EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
@@ -1283,53 +1635,26 @@ void ModuleShop::PaintRefinePanel_()
 	Canvas2D& canvas = *refinePanel_;
 	PaintBandChrome_(canvas);
 
+	for (IModuleNode* node : refineParked_)
+	{
+		if (node != nullptr)
+		{
+			ApplyRefineParkIcon(*node);
+		}
+	}
+
 	const int cw = static_cast<int>(canvas.GetCanvasWidth());
 	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	const int pad = (std::max)(8, ch / 14);
-	const int innerW = (std::max)(1, cw - pad * 2);
-	const int innerH = (std::max)(1, ch - pad * 2);
-
-	// 四区等缝（素材/主体/结果/键列），整组水平居中；第三条缝留空。
-	// 64 让 16x16 图标 4 倍铺满缝，避免箭头悬浮。
-	const int regionGapWanted = 64;
-	const int regionGapMin = 32;
-	const int btnGap = 5;
-	int btnW = 120;
-	int btnH = (std::max)(14, (innerH - btnGap * static_cast<int>(kRefineButtonCount_ - 1))
-		/ static_cast<int>(kRefineButtonCount_));
-
-	int side = innerH;
-	int regionGap = regionGapWanted;
-	const int slotN = static_cast<int>(kRefineSlotCount_);
-	const int gapN = slotN;
-	auto clusterW = [&]() noexcept
-	{
-		return side * slotN + regionGap * gapN + btnW;
-	};
-	if (clusterW() > innerW)
-	{
-		regionGap = (std::max)(regionGapMin, (innerW - side * slotN - btnW) / gapN);
-	}
-	if (clusterW() > innerW)
-	{
-		side = (std::max)(24, (innerW - regionGap * gapN - btnW) / slotN);
-	}
-	if (clusterW() > innerW)
-	{
-		btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
-	}
-
-	const int groupX = pad + (std::max)(0, innerW - clusterW()) / 2;
-	const int slotTop = pad + (std::max)(0, innerH - side) / 2;
-	const int slotXs[kRefineSlotCount_] = {
-		groupX,
-		groupX + side + regionGap,
-		groupX + (side + regionGap) * 2
-	};
-	const int btnX = groupX + (side + regionGap) * slotN;
-	const int btnColH = btnH * static_cast<int>(kRefineButtonCount_)
-		+ btnGap * static_cast<int>(kRefineButtonCount_ - 1);
-	const int btnTop = pad + (std::max)(0, innerH - btnColH) / 2;
+	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
+	const int side = layout.side;
+	const int slotTop = layout.slotTop;
+	const int* slotXs = layout.slotXs;
+	const int regionGap = (side > 0) ? (slotXs[1] - slotXs[0] - side) : 64;
+	const int btnW = layout.btnW;
+	const int btnH = layout.btnH;
+	const int btnX = layout.btnX;
+	const int btnTop = layout.btnTop;
+	const int btnGap = layout.btnGap;
 
 	constexpr Color kSlotBg{ 42u, 56u, 78u, 190u };
 	constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
@@ -1345,20 +1670,31 @@ void ModuleShop::PaintRefinePanel_()
 	};
 	const UiIconId arrowIds[2] = { UiIconId::RefineFeed, UiIconId::RefineYield };
 	const float btnFont = (btnH < 22) ? 11.0f : 13.0f;
-	const int slotCorner = (std::max)(6, (std::min)(12, side / 8));
 	const int btnCorner = (std::max)(4, (std::min)(8, btnH / 2));
+	// 素材/主体/结果：直角正方形。右侧四键才圆角。
 	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
 	{
 		const int x0 = slotXs[i];
 		const int y0 = slotTop;
 		const int x1 = x0 + side - 1;
 		const int y1 = y0 + side - 1;
-		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, slotCorner, kSlotBg);
-		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, slotCorner, kSlotFrame);
+		CanvasPixelDraw::FillRect(
+			canvas,
+			static_cast<unsigned>(x0),
+			static_cast<unsigned>(y0),
+			static_cast<unsigned>(x1),
+			static_cast<unsigned>(y1),
+			kSlotBg);
+		CanvasPixelDraw::DrawRectOutline(canvas, x0, y0, x1, y1, kSlotFrame);
+		if (refineParked_[i] != nullptr)
+		{
+			// 格内有 Node 时不画素材/主体/结果标题，避免压在 Icon 上。
+			continue;
+		}
 		DrawShopLabelInBox_(
 			canvas,
 			slotLabels[i],
-			13.0f,
+			kRefineSlotLabelFont_,
 			x0,
 			y0,
 			side,
@@ -1445,9 +1781,10 @@ void ModuleShop::PaintFunction3Panel_()
 		canvas,
 		"Function3",
 		16.0f,
-		0.0f,
-		0.0f,
-		static_cast<float>(canvas.GetCanvasWidth()),
+		0,
+		0,
+		static_cast<int>(canvas.GetCanvasWidth()),
+		static_cast<int>(canvas.GetCanvasHeight()),
 		4,
 		DWRITE_TEXT_ALIGNMENT_CENTER,
 		DWRITE_PARAGRAPH_ALIGNMENT_CENTER,

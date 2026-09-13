@@ -119,16 +119,20 @@ void IModuleNode::SyncVisual()
 	ApplyVisualTransform_();
 }
 
-void IModuleNode::SubmitVisual()
+void IModuleNode::SubmitGhost()
+{
+	if (!visualReady_ || !layoutGhostActive_ || mask_ == nullptr)
+	{
+		return;
+	}
+	mask_->Submit(Chan::ui);
+}
+
+void IModuleNode::SubmitIcon()
 {
 	if (!visualReady_)
 	{
 		return;
-	}
-	// 残影 mask 在图标下；冷却 mask 在图标上。正常流程互斥。
-	if (layoutGhostActive_ && mask_ != nullptr)
-	{
-		mask_->Submit(Chan::ui);
 	}
 	if (icon_ != nullptr)
 	{
@@ -143,6 +147,13 @@ void IModuleNode::SubmitVisual()
 	{
 		mask_->Submit(Chan::ui);
 	}
+}
+
+void IModuleNode::SubmitVisual()
+{
+	// 残影 mask 在图标下；冷却 mask 在图标上。正常流程互斥。
+	SubmitGhost();
+	SubmitIcon();
 }
 
 void IModuleNode::ApplyVisualTransform_()

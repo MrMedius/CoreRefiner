@@ -123,6 +123,14 @@ void ModuleWarehouse::RelayoutSlots()
 		{
 			continue;
 		}
+		// 炼成停放：图标 localPos 在格子上，不能拽回仓槽；残影半径仍用仓尺寸。
+		if (node->IsLayoutGhostActive())
+		{
+			node->SetZoneOrigin(warehouseOrigin_);
+			node->SetVisualRadiusOverride(kStoredVisualRadius);
+			node->SyncVisual();
+			continue;
+		}
 		node->SetLocalPos(SlotLocalPos_(i));
 		node->SetZoneOrigin(warehouseOrigin_);
 		node->SetVisualRadiusOverride(kStoredVisualRadius);
@@ -370,7 +378,12 @@ IModuleNode* ModuleWarehouse::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistS
 		{
 			continue;
 		}
-		const DirectX::XMFLOAT2 local = node->GetLocalPos();
+		// 炼成停放开着 ghost：只能从格子里点，影子不拾取。
+		if (node->IsLayoutGhostActive())
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 local = node->GetCollisionLocalPos();
 		const DirectX::XMFLOAT2 world{
 			warehouseOrigin_.x + local.x,
 			warehouseOrigin_.y + local.y

@@ -264,7 +264,8 @@ namespace Ui
 		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
 		rq.style.wordWrapEnabled = false;
 		rq.paddingPx = style_.headerPaddingPx;
-		rq.maxWidthPx = static_cast<float>(textMaxW);
+		// dest 收成箭头左侧文字区。Fixed 不再认 maxWidthPx，避免字画进箭头。
+		rq.SetDestRect(0.0f, 0.0f, static_cast<float>(textMaxW), static_cast<float>(c.GetCanvasHeight()));
 		rq.defaultColor = HeaderTextColorForPhase(vm.headerPhase);
 		rq.backgroundColor = Colors::None;
 		ctx.Render(c);
