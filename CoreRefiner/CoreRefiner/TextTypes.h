@@ -101,6 +101,25 @@ namespace Text
         float drawOffsetXPx = 0.0f;
         float drawOffsetYPx = 0.0f;
 
+		// Fixed: destWPx/destHPx > 0 时 layout 盒子用这块区域，原点是 dest 左上。否则用整张画布。
+		float destXPx = 0.0f;
+		float destYPx = 0.0f;
+		float destWPx = 0.0f;
+		float destHPx = 0.0f;
+
+		[[nodiscard]] bool HasDestRect() const noexcept
+		{
+			return destWPx > 0.0f && destHPx > 0.0f;
+		}
+
+		void SetDestRect(float x, float y, float w, float h) noexcept
+		{
+			destXPx = x;
+			destYPx = y;
+			destWPx = w;
+			destHPx = h;
+		}
+
 		// Color settings
         Color defaultColor = Colors::White;
         Color backgroundColor = Colors::None;

@@ -310,6 +310,8 @@ enum class UiIconId : unsigned char
 	Refresh,
 	LockOpen,
 	LockClosed,
+	RefineFeed,
+	RefineYield,
 	Count
 };
 
@@ -397,6 +399,44 @@ namespace UiIconAtlas
 			0b0000000000000000,
 			0b0000000000000000,
 		};
+
+		inline constexpr IconAtlas::IconBits kRefineFeed{
+			0b0000000110000000,
+			0b0000000011000000,
+			0b0000000001100000,
+			0b0000000000110000,
+			0b0000000000011000,
+			0b0000000000001100,
+			0b0000000000000110,
+			0b1111111111111111,
+			0b1111111111111111,
+			0b0000000000000110,
+			0b0000000000001100,
+			0b0000000000011000,
+			0b0000000000110000,
+			0b0000000001100000,
+			0b0000000011000000,
+			0b0000000110000000,
+		};
+
+		inline constexpr IconAtlas::IconBits kRefineYield{
+			0b0000001110000000,
+			0b0000000111000000,
+			0b0000000011100000,
+			0b0000000001110000,
+			0b0000000000111000,
+			0b1111111111111100,
+			0b1111111111111110,
+			0b0000000000001111,
+			0b0000000000001111,
+			0b1111111111111110,
+			0b1111111111111100,
+			0b0000000000111000,
+			0b0000000001110000,
+			0b0000000011100000,
+			0b0000000111000000,
+			0b0000001110000000,
+		};
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, UiIconIdCount()> kUiIcons{
@@ -404,7 +444,11 @@ namespace UiIconAtlas
 		detail::kRefresh,
 		detail::kLockOpen,
 		detail::kLockClosed,
+		detail::kRefineFeed,
+		detail::kRefineYield,
 	};
+
+	static_assert(kUiIcons.size() == UiIconIdCount());
 
 	[[nodiscard]] inline const IconAtlas::IconBits& Get(UiIconId id) noexcept
 	{

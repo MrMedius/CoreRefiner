@@ -82,6 +82,32 @@ namespace
             && FontSourceEqual(req.primaryFont, pf)
             && SpansEqual(req.spans, sp);
     }
+
+	[[nodiscard]] float ResolveBoxWidth_(const Text::RenderRequest& req, const Canvas* canvasNullable)
+	{
+		if (req.HasDestRect())
+		{
+			return req.destWPx;
+		}
+		if (canvasNullable != nullptr)
+		{
+			return static_cast<float>(canvasNullable->GetCanvasWidth());
+		}
+		return req.maxWidthPx;
+	}
+
+	[[nodiscard]] float ResolveBoxHeight_(const Text::RenderRequest& req, const Canvas* canvasNullable)
+	{
+		if (req.HasDestRect())
+		{
+			return req.destHPx;
+		}
+		if (canvasNullable != nullptr)
+		{
+			return static_cast<float>(canvasNullable->GetCanvasHeight());
+		}
+		return kAutoLayoutHeight;
+	}
 }
 
 
@@ -142,8 +168,10 @@ namespace Text
         DWRITE_OVERHANG_METRICS o{};
         layout_->GetOverhangMetrics(&o);
 
-        float originX = float(req.paddingPx) + std::max(0.0f, o.left) + req.drawOffsetXPx;
-        float originY = float(req.paddingPx) + std::max(0.0f, o.top) + req.drawOffsetYPx;
+		const float destX = req.HasDestRect() ? req.destXPx : 0.0f;
+		const float destY = req.HasDestRect() ? req.destYPx : 0.0f;
+        float originX = destX + float(req.paddingPx) + std::max(0.0f, o.left) + req.drawOffsetXPx;
+        float originY = destY + float(req.paddingPx) + std::max(0.0f, o.top) + req.drawOffsetYPx;
 
         Microsoft::WRL::ComPtr<IDWriteTextRenderer> renderer;
         renderer.Attach(static_cast<IDWriteTextRenderer*>(new DWriteLayoutRenderer(codex_, canvas, req.defaultColor)));
@@ -155,20 +183,20 @@ namespace Text
 
     float TextRenderer::GetContentLayoutWidth_(const RenderRequest& req, const Canvas* canvasNullable)
     {
+		if (req.canvasMode == CanvasMode::Fixed)
+		{
+			const int inner = static_cast<int>(ResolveBoxWidth_(req, canvasNullable)) - req.paddingPx * 2;
+			return std::max(1.0f, float(std::max(0, inner)));
+		}
         if (!req.style.wordWrapEnabled)
             return kUnboundedLayoutWidth;
-        if (req.canvasMode == CanvasMode::Fixed && canvasNullable != nullptr)
-        {
-            const int inner = static_cast<int>(canvasNullable->GetCanvasWidth()) - req.paddingPx * 2;
-            return std::max(1.0f, float(std::max(0, inner)));
-        }
         return std::max(1.0f, req.maxWidthPx);
     }
     float TextRenderer::GetContentLayoutHeight_(const RenderRequest& req, const Canvas* canvasNullable)
     {
-        if (req.canvasMode == CanvasMode::Fixed && canvasNullable != nullptr)
+        if (req.canvasMode == CanvasMode::Fixed)
         {
-            const int inner = static_cast<int>(canvasNullable->GetCanvasHeight()) - req.paddingPx * 2;
+			const int inner = static_cast<int>(ResolveBoxHeight_(req, canvasNullable)) - req.paddingPx * 2;
             return std::max(1.0f, float(std::max(0, inner)));
         }
         return kAutoLayoutHeight;

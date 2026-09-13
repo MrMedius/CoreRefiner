@@ -260,18 +260,10 @@ const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label)
 
 namespace
 {
-	[[nodiscard]] UINT32 Utf16Units_(std::string_view utf8) noexcept
-	{
-		return static_cast<UINT32>(ToWideUtf8(utf8).size());
-	}
-
 	// 只搬落在 title 里的 span（当前 JSON 都是标题加粗）。
-	void AppendTitleSpans_(
-		std::vector<Text::Span>& out,
-		const ModuleNodeInfoEntry& entry,
-		UINT32 titleOffset)
+	void AppendTitleSpans_(std::vector<Text::Span>& out, const ModuleNodeInfoEntry& entry, UINT32 titleOffset)
 	{
-		const UINT32 titleUnits = Utf16Units_(entry.title);
+		const UINT32 titleUnits = static_cast<UINT32>(Utf16CodeUnitCount(entry.title));
 		for (const Text::Span& sp : entry.spans)
 		{
 			if (sp.length == 0u)
@@ -322,7 +314,7 @@ ModuleNodeInfoEntry ComposeModuleNodeInfoCopy(const IModuleNode& node)
 		out.body = primaryCopy.body + "\n" + materialCopy.body;
 	}
 
-	const UINT32 materialTitleAt = Utf16Units_(primaryCopy.title) + Utf16Units_(" & ");
+	const UINT32 materialTitleAt = static_cast<UINT32>(Utf16CodeUnitCount(primaryCopy.title) + Utf16CodeUnitCount(" & "));
 	AppendTitleSpans_(out.spans, primaryCopy, 0u);
 	AppendTitleSpans_(out.spans, materialCopy, materialTitleAt);
 	return out;

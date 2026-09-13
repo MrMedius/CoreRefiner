@@ -26,10 +26,10 @@ std::wstring ToWide( const std::string& narrow )
 
 std::wstring ToWideUtf8(std::string_view utf8)
 {
-	int len = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), nullptr, 0);
-	if (len <= 0) return L"";
+	const std::size_t len = Utf16CodeUnitCount(utf8);
+	if (len == 0u) return L"";
 	std::wstring w(len, L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), w.data(), len);
+	MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), w.data(), static_cast<int>(len));
 	return w;
 }
 
@@ -102,6 +102,13 @@ std::size_t Utf8CodepointCount(const std::string_view s) noexcept
 	for (std::size_t i = 0u; i < s.size(); i = Utf8Next(s, i))
 		++count;
 	return count;
+}
+
+std::size_t Utf16CodeUnitCount(std::string_view utf8) noexcept
+{
+	if (utf8.empty()) return 0u;
+	const int len = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), nullptr, 0);
+	return (len <= 0) ? 0u : static_cast<std::size_t>(len);
 }
 
 std::vector<std::string> SplitString( const std::string& s,const std::string& delim )

@@ -22,6 +22,9 @@ std::string ToNarrow( const std::wstring& wide );
 
 [[nodiscard]] std::size_t Utf8CodepointCount(std::string_view s) noexcept;
 
+// UTF-8 → UTF-16 code unit 数（Windows wchar / DirectWrite Span 下标）。只问长度，不分配。
+[[nodiscard]] std::size_t Utf16CodeUnitCount(std::string_view utf8) noexcept;
+
 template<class Iter>
 void SplitStringIter( const std::string& s,const std::string& delim,Iter out )
 {

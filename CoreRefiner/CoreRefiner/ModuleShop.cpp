@@ -1,4 +1,5 @@
 #include "ModuleShop.h"
+#include "Canvas.h"
 #include "CanvasPixelDraw.h"
 #include "Channels.h"
 #include "Collision2D.h"
@@ -11,6 +12,7 @@
 #include "ModuleNodeLabel.h"
 #include "RenderGraph.h"
 #include "TextCodex.h"
+#include "UiCopy.h"
 
 #include <algorithm>
 #include <cmath>
@@ -21,14 +23,15 @@
 
 [[nodiscard]] static bool IsShopOfferedLabel_(ModuleNodeLabel label) noexcept
 {
-	return label != ModuleNodeLabel::Core_Ball && label < ModuleNodeLabel::Count;
+	return label != ModuleNodeLabel::Core_Ball
+		&& label != ModuleNodeLabel::Fusion
+		&& label < ModuleNodeLabel::Count;
 }
 
 [[nodiscard]] static ModuleNodeLabel PickRandomShopLabel_()
 {
 	static std::mt19937 rng{ std::random_device{}() };
-	static std::uniform_int_distribution<int> dist(
-		0, static_cast<int>(ModuleNodeLabelCount()) - 1);
+	static std::uniform_int_distribution<int> dist(	0, static_cast<int>(ModuleNodeLabelCount()) - 1);
 	ModuleNodeLabel label = ModuleNodeLabel::Spawn_Ball;
 	do
 	{
@@ -41,6 +44,113 @@ static_assert(ModuleShop::kSlotCount >= 1);
 
 namespace
 {
+	[[nodiscard]] bool EnsureCanvasSize_(std::unique_ptr<Canvas2D>& canvas, Graphics& gfx, Rgph::RenderGraph& rg, unsigned w, unsigned h)
+	{
+		if (canvas == nullptr)
+		{
+			canvas = std::make_unique<Canvas2D>(gfx, w, h);
+			canvas->LinkTechniques(rg);
+			return true;
+		}
+		if (canvas->GetCanvasWidth() != w || canvas->GetCanvasHeight() != h)
+		{
+			canvas->Resize(w, h);
+			return true;
+		}
+		return false;
+	}
+
+	void PaintBandChrome_(Canvas2D& canvas)
+	{
+		constexpr Color kBg{ 36u, 48u, 68u, 150u };
+		constexpr Color kFrame{ 170u, 190u, 210u, 90u };
+		canvas.Clear(kBg);
+		const int w = static_cast<int>(canvas.GetCanvasWidth());
+		const int h = static_cast<int>(canvas.GetCanvasHeight());
+		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
+	}
+
+	// 商店 UI 共用字体栈：YaHei，回退 Yu Gothic / Segoe。
+	void FillUiLabelRequest_(Text::RenderRequest& rq, const std::string& text, float fontSize, Color color)
+	{
+		rq.text = text;
+		rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+		rq.fallbackFonts.clear();
+		rq.fallbackFonts.push_back(Text::FontSource::System(L"Yu Gothic UI"));
+		rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
+		rq.style.fontSize = fontSize;
+		rq.defaultColor = color;
+	}
+
+	[[nodiscard]] bool PointInAabb_(DirectX::XMFLOAT2 center, DirectX::XMFLOAT2 half, DirectX::XMFLOAT2 pos) noexcept
+	{
+		return std::fabs(pos.x - center.x) <= half.x
+			&& std::fabs(pos.y - center.y) <= half.y;
+	}
+
+	void DrawShopText_(
+		Canvas2D& canvas,
+		const std::string& text,
+		float fontSize,
+		float offsetX,
+		float offsetY,
+		float maxWidth,
+		int paddingPx,
+		DWRITE_TEXT_ALIGNMENT align,
+		DWRITE_PARAGRAPH_ALIGNMENT para,
+		Color color,
+		const std::vector<Text::Span>& spans = {})
+	{
+		auto ctx = TextCodex::Get().BeginDraw();
+		Text::RenderRequest& rq = ctx.Request();
+		FillUiLabelRequest_(rq, text, fontSize, color);
+		rq.canvasMode = Text::CanvasMode::Fixed;
+		rq.clearMode = Text::ClearMode::NoClear;
+		rq.style.wordWrapEnabled = true;
+		rq.style.textAlign = align;
+		rq.style.paragraphAlign = para;
+		rq.maxWidthPx = maxWidth;
+		rq.paddingPx = paddingPx;
+		rq.drawOffsetXPx = offsetX;
+		rq.drawOffsetYPx = offsetY;
+		rq.backgroundColor = Colors::None;
+		rq.spans = spans;
+		ctx.Render(canvas);
+	}
+
+	void DrawShopLabelInBox_(
+		Canvas2D& canvas,
+		const std::string& text,
+		float fontSize,
+		int boxX,
+		int boxY,
+		int boxW,
+		int boxH,
+		Color color)
+	{
+		if (text.empty() || boxW <= 0 || boxH <= 0)
+		{
+			return;
+		}
+
+		auto ctx = TextCodex::Get().BeginDraw();
+		Text::RenderRequest& rq = ctx.Request();
+		FillUiLabelRequest_(rq, text, fontSize, color);
+		rq.canvasMode = Text::CanvasMode::Fixed;
+		rq.clearMode = Text::ClearMode::NoClear;
+		rq.style.wordWrapEnabled = false;
+		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
+		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+		rq.paddingPx = 1;
+		rq.SetDestRect(
+			static_cast<float>(boxX),
+			static_cast<float>(boxY),
+			static_cast<float>(boxW),
+			static_cast<float>(boxH));
+		rq.backgroundColor = Colors::None;
+		ctx.Render(canvas);
+	}
+
 	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
 	{
 		if (scale == 0u)
@@ -74,8 +184,66 @@ namespace
 			}
 		}
 	}
+
+	// 整数倍率贴进矩形中心，不拉长变形。
+	void BlitIconInBox_(
+		Canvas& dest,
+		const IconAtlas::IconBits& bits,
+		Color color,
+		int boxX,
+		int boxY,
+		int boxW,
+		int boxH)
+	{
+		if (boxW <= 0 || boxH <= 0)
+		{
+			return;
+		}
+
+		const int scale = (std::max)(1, (std::min)(boxW, boxH) / 16);
+		const int glyph = 16 * scale;
+		const int ox = boxX + (boxW - glyph) / 2;
+		const int oy = boxY + (boxH - glyph) / 2;
+		for (unsigned y = 0u; y < 16u; ++y)
+		{
+			const std::uint16_t row = bits[y];
+			for (unsigned x = 0u; x < 16u; ++x)
+			{
+				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
+				{
+					continue;
+				}
+				for (int sy = 0; sy < scale; ++sy)
+				{
+					for (int sx = 0; sx < scale; ++sx)
+					{
+						CanvasPixelDraw::PutPixelClamped(
+							dest,
+							ox + static_cast<int>(x) * scale + sx,
+							oy + static_cast<int>(y) * scale + sy,
+							color);
+					}
+				}
+			}
+		}
+	}
+
+	void SyncBandTransform_(Canvas2D* canvas, const IModuleZone::BoundsWorld& b)
+	{
+		if (canvas == nullptr)
+		{
+			return;
+		}
+		canvas->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
+		canvas->SetScale(DirectX::XMFLOAT3{
+			b.half.x * 2.0f,
+			b.half.y * 2.0f,
+			1.0f
+		});
+	}
 }
 
+// ---- 外壳 ----
 ModuleShop::BoundsWorld ModuleShop::ShellInnerRect_() const noexcept
 {
 	const BoundsWorld shell = GetShellBoundsWorld();
@@ -92,15 +260,134 @@ float ModuleShop::SplitUnitHeight_() const noexcept
 {
 	const float innerH = shellHalf_.y * 2.0f - 2.0f * kShellInnerPad;
 	const float ratioSum = static_cast<float>(kTradeRatio)
-		+ static_cast<float>(kFunctionRatio) * static_cast<float>(kReserveCount_);
+		+ static_cast<float>(kFunctionRatio) * static_cast<float>(kFunctionBandCount_);
 	return (innerH - 2.0f * kShellInnerGap) / ratioSum;
 }
 
-float ModuleShop::TradeHalfX_() const noexcept
+float ModuleShop::ContentHalfX_() const noexcept
 {
 	return shellHalf_.x - kShellInnerPad;
 }
 
+ModuleShop::BoundsWorld ModuleShop::FunctionBandBounds_(std::size_t band) const noexcept
+{
+	const BoundsWorld inner = ShellInnerRect_();
+	const float unit = SplitUnitHeight_();
+	const float tradeH = unit * static_cast<float>(kTradeRatio);
+	const float funcH = unit * static_cast<float>(kFunctionRatio);
+	const float innerTop = inner.center.y - inner.half.y;
+	const float top = innerTop + tradeH + kShellInnerGap + static_cast<float>(band) * (funcH + kShellInnerGap);
+
+	BoundsWorld b{};
+	b.half = DirectX::XMFLOAT2{ ContentHalfX_(), funcH * 0.5f };
+	b.center = DirectX::XMFLOAT2{ inner.center.x, top + b.half.y };
+	return b;
+}
+
+ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
+{
+	BoundsWorld b{};
+	b.half = shellHalf_;
+	b.center = DirectX::XMFLOAT2{
+		origin_.x,
+		origin_.y
+	};
+	return b;
+}
+
+void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
+{
+	origin_ = origin;
+	RelayoutSlots_();
+	SyncTradePanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
+	SyncRefineTransform_();
+	SyncFunction3Transform_();
+}
+
+void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
+{
+	shellHalf_.x = (std::max)(1.0f, halfX);
+	shellHalf_.y = (std::max)(1.0f, halfY);
+	if (gfx_ != nullptr && rg_ != nullptr)
+	{
+		EnsureTradePanelVisual_(*gfx_, *rg_);
+		EnsureRefineVisuals_(*gfx_, *rg_);
+		EnsureFunction3Visuals_(*gfx_, *rg_);
+	}
+	RelayoutSlots_();
+	SyncTradePanelTransform_();
+	SyncRefineTransform_();
+	SyncFunction3Transform_();
+}
+
+void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	gfx_ = &gfx;
+	rg_ = &rg;
+	EnsureTradePanelVisual_(gfx, rg);
+	EnsureSlotCardVisuals_(gfx, rg);
+	EnsureLockButtonVisuals_(gfx, rg);
+	EnsureRefineVisuals_(gfx, rg);
+	EnsureFunction3Visuals_(gfx, rg);
+	FillStock();
+	for (Slot& slot : slots_)
+	{
+		if (slot.node != nullptr)
+		{
+			slot.node->InitVisual(gfx, rg, origin_);
+		}
+	}
+	RelayoutSlots_();
+	SyncTradePanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
+	SyncRefineTransform_();
+	SyncFunction3Transform_();
+}
+
+void ModuleShop::SyncZoneTransforms_()
+{
+	SyncTradePanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
+	SyncRefineTransform_();
+	SyncFunction3Transform_();
+	for (Slot& slot : slots_)
+	{
+		if (slot.node != nullptr)
+		{
+			slot.node->SyncVisual();
+		}
+	}
+	SyncHud();
+}
+
+void ModuleShop::SubmitZoneBackground_()
+{
+	if (tradePanel_ != nullptr)
+	{
+		tradePanel_->Submit(Chan::ui);
+	}
+	for (auto& card : slotCards_)
+	{
+		if (card != nullptr)
+		{
+			card->Submit(Chan::ui);
+		}
+	}
+	if (refinePanel_ != nullptr)
+	{
+		refinePanel_->Submit(Chan::ui);
+	}
+	if (function3Panel_ != nullptr)
+	{
+		function3Panel_->Submit(Chan::ui);
+	}
+}
+
+// ---- 买卖区 · 逻辑 ----
 float ModuleShop::TradeHalfY_() const noexcept
 {
 	return SplitUnitHeight_() * static_cast<float>(kTradeRatio) * 0.5f;
@@ -118,7 +405,7 @@ float ModuleShop::CardCenterLocalY_() const noexcept
 
 float ModuleShop::SlotPitchX_() const noexcept
 {
-	const float innerW = TradeHalfX_() * 2.0f;
+	const float innerW = ContentHalfX_() * 2.0f;
 	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
 }
 
@@ -153,24 +440,13 @@ ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
 	const float tradeH = SplitUnitHeight_() * static_cast<float>(kTradeRatio);
 	BoundsWorld b{};
 	b.half = DirectX::XMFLOAT2{
-		inner.half.x,
+		ContentHalfX_(),
 		tradeH * 0.5f
 	};
 	const float innerTop = inner.center.y - inner.half.y;
 	b.center = DirectX::XMFLOAT2{
 		inner.center.x,
 		innerTop + b.half.y
-	};
-	return b;
-}
-
-ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
-{
-	BoundsWorld b{};
-	b.half = shellHalf_;
-	b.center = DirectX::XMFLOAT2{
-		origin_.x,
-		origin_.y
 	};
 	return b;
 }
@@ -184,36 +460,7 @@ bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) con
 {
 	(void)radius;
 	const BoundsWorld b = GetTradeBoundsWorld();
-	const float minX = b.center.x - b.half.x;
-	const float maxX = b.center.x + b.half.x;
-	const float minY = b.center.y - b.half.y;
-	const float maxY = b.center.y + b.half.y;
-	return worldCenter.x >= minX && worldCenter.x <= maxX
-		&& worldCenter.y >= minY && worldCenter.y <= maxY;
-}
-
-void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
-{
-	origin_ = origin;
-	RelayoutSlots_();
-	SyncPanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncReserveTransforms_();
-}
-
-void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
-{
-	shellHalf_.x = (std::max)(1.0f, halfX);
-	shellHalf_.y = (std::max)(1.0f, halfY);
-	if (gfx_ != nullptr && rg_ != nullptr)
-	{
-		EnsurePanelVisual_(*gfx_, *rg_);
-		EnsureReserveVisuals_(*gfx_, *rg_);
-	}
-	RelayoutSlots_();
-	SyncPanelTransform_();
-	SyncReserveTransforms_();
+	return PointInAabb_(b.center, b.half, worldCenter);
 }
 
 void ModuleShop::FillStock()
@@ -379,7 +626,7 @@ bool ModuleShop::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	const DirectX::XMFLOAT2 c = RefreshButtonCenter_();
 	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
-	return std::fabs(worldPos.x - c.x) <= half && std::fabs(worldPos.y - c.y) <= half;
+	return PointInAabb_(c, DirectX::XMFLOAT2{ half, half }, worldPos);
 }
 
 std::size_t ModuleShop::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
@@ -393,7 +640,7 @@ std::size_t ModuleShop::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noex
 			continue;
 		}
 		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
-		if (std::fabs(worldPos.x - c.x) <= half && std::fabs(worldPos.y - c.y) <= half)
+		if (PointInAabb_(c, DirectX::XMFLOAT2{ half, half }, worldPos))
 		{
 			return i;
 		}
@@ -418,186 +665,6 @@ bool ModuleShop::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
 	PaintSlotCard_(i);
 	PaintLockButton_(i);
 	return true;
-}
-
-void ModuleShop::EnsureHudVisuals_()
-{
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return;
-	}
-
-	auto makeIcon = [&](std::unique_ptr<Canvas2D>& canvas)
-	{
-		if (canvas != nullptr)
-		{
-			return;
-		}
-		canvas = std::make_unique<Canvas2D>(*gfx_, IModuleNode::kVisualSize, IModuleNode::kVisualSize);
-		canvas->Clear(Colors::None);
-		canvas->LinkTechniques(*rg_);
-		canvas->SetScale(DirectX::XMFLOAT3{ kHudIconWorld_, kHudIconWorld_, 1.0f });
-	};
-	auto makeText = [&](std::unique_ptr<Canvas2D>& canvas)
-	{
-		if (canvas != nullptr)
-		{
-			return;
-		}
-		canvas = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
-		canvas->Clear(Colors::None);
-		canvas->LinkTechniques(*rg_);
-	};
-
-	makeIcon(currencyIcon_);
-	makeIcon(refreshIcon_);
-	makeText(currencyText_);
-	makeText(refreshCostText_);
-}
-
-void ModuleShop::PaintHudIcons_()
-{
-	EnsureHudVisuals_();
-	if (currencyIcon_ == nullptr || refreshIcon_ == nullptr)
-	{
-		return;
-	}
-
-	auto blit = [](Canvas2D& canvas, const IconAtlas::IconBits& bits, Color color)
-	{
-		canvas.Clear(Colors::None);
-		IconAtlas::BlitIcon(canvas, bits, color);
-		canvas.NotifyPixelsChanged();
-	};
-
-	if (!currencyIconReady_)
-	{
-		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), Color{ 255u, 210u, 80u, 255u });
-		currencyIconReady_ = true;
-	}
-
-	const Color tint = RefreshIconTint_();
-	if (paintedRefreshTint_ != tint)
-	{
-		blit(*refreshIcon_, UiIconAtlas::Get(UiIconId::Refresh), tint);
-		paintedRefreshTint_ = tint;
-	}
-}
-
-void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
-{
-	if (painted == value)
-	{
-		return;
-	}
-
-	auto ctx = TextCodex::Get().BeginDraw();
-	Text::RenderRequest& rq = ctx.Request();
-	rq.text = std::to_string(value);
-	rq.canvasMode = Text::CanvasMode::Auto;
-	rq.clearMode = Text::ClearMode::Clear;
-	rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-	rq.fallbackFonts.clear();
-	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-	rq.style.fontSize = kPriceFontSize;
-	rq.style.wordWrapEnabled = false;
-	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-	rq.maxWidthPx = 80.0f;
-	rq.paddingPx = 2;
-	rq.defaultColor = Colors::White;
-	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
-	ctx.Render(canvas);
-
-	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
-	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
-	canvas.SetScale(DirectX::XMFLOAT3{
-		static_cast<float>(w),
-		static_cast<float>(h),
-		1.0f
-	});
-	painted = value;
-}
-
-void ModuleShop::SyncHudTransforms_() noexcept
-{
-	const DirectX::XMFLOAT2 coin = CurrencyIconCenter_();
-	const DirectX::XMFLOAT2 refresh = RefreshButtonCenter_();
-
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->SetPosition(DirectX::XMFLOAT3{ coin.x, coin.y, 0.0f });
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->SetPosition(DirectX::XMFLOAT3{ refresh.x, refresh.y, 0.0f });
-	}
-	if (currencyText_ != nullptr)
-	{
-		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
-		currencyText_->SetPosition(DirectX::XMFLOAT3{
-			coin.x + kHudIconWorld_ * 0.5f + 4.0f + halfW,
-			coin.y,
-			0.0f
-		});
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		const float halfW = static_cast<float>(refreshCostText_->GetCanvasWidth()) * 0.5f;
-		refreshCostText_->SetPosition(DirectX::XMFLOAT3{
-			refresh.x - kHudIconWorld_ * 0.5f - 4.0f - halfW,
-			refresh.y,
-			0.0f
-		});
-	}
-}
-
-void ModuleShop::SyncHud()
-{
-	EnsureHudVisuals_();
-	PaintHudIcons_();
-	if (currencyText_ != nullptr)
-	{
-		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
-	}
-	SyncHudTransforms_();
-}
-
-void ModuleShop::SubmitHud()
-{
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->Submit(Chan::ui);
-	}
-	if (currencyText_ != nullptr)
-	{
-		currencyText_->Submit(Chan::ui);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		refreshCostText_->Submit(Chan::ui);
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->Submit(Chan::ui);
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		if (lockButtons_[i] == nullptr)
-		{
-			continue;
-		}
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			continue;
-		}
-		lockButtons_[i]->Submit(Chan::ui);
-	}
 }
 
 void ModuleShop::MarkSold(std::size_t index)
@@ -712,6 +779,234 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 void ModuleShop::RefreshCopy()
 {
 	RefreshSlotCards_();
+	PaintRefinePanel_();
+}
+
+void ModuleShop::SubmitNodes()
+{
+	for (Slot& slot : slots_)
+	{
+		if (slot.node != nullptr)
+		{
+			slot.node->SubmitVisual();
+		}
+	}
+}
+
+IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
+{
+	IModuleNode* best = nullptr;
+	float bestDistSq = 1.0e9f;
+
+	for (Slot& slot : slots_)
+	{
+		IModuleNode* node = slot.node.get();
+		if (node == nullptr)
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 local = node->GetLocalPos();
+		const DirectX::XMFLOAT2 world{
+			origin_.x + local.x,
+			origin_.y + local.y
+		};
+		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
+		const Collider2D::PointCollider pt{ worldPos };
+		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
+		{
+			continue;
+		}
+		const float dx = worldPos.x - world.x;
+		const float dy = worldPos.y - world.y;
+		const float distSq = dx * dx + dy * dy;
+		if (distSq < bestDistSq)
+		{
+			bestDistSq = distSq;
+			best = node;
+		}
+	}
+
+	if (best != nullptr)
+	{
+		outDistSq = bestDistSq;
+	}
+	return best;
+}
+
+// ---- 买卖区 · 绘制 ----
+void ModuleShop::EnsureHudVisuals_()
+{
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return;
+	}
+
+	auto makeIcon = [&](std::unique_ptr<Canvas2D>& canvas)
+	{
+		if (canvas != nullptr)
+		{
+			return;
+		}
+		canvas = std::make_unique<Canvas2D>(*gfx_, IModuleNode::kVisualSize, IModuleNode::kVisualSize);
+		canvas->Clear(Colors::None);
+		canvas->LinkTechniques(*rg_);
+		canvas->SetScale(DirectX::XMFLOAT3{ kHudIconWorld_, kHudIconWorld_, 1.0f });
+	};
+	auto makeText = [&](std::unique_ptr<Canvas2D>& canvas)
+	{
+		if (canvas != nullptr)
+		{
+			return;
+		}
+		canvas = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
+		canvas->Clear(Colors::None);
+		canvas->LinkTechniques(*rg_);
+	};
+
+	makeIcon(currencyIcon_);
+	makeIcon(refreshIcon_);
+	makeText(currencyText_);
+	makeText(refreshCostText_);
+}
+
+void ModuleShop::PaintHudIcons_()
+{
+	EnsureHudVisuals_();
+	if (currencyIcon_ == nullptr || refreshIcon_ == nullptr)
+	{
+		return;
+	}
+
+	auto blit = [](Canvas2D& canvas, const IconAtlas::IconBits& bits, Color color)
+	{
+		canvas.Clear(Colors::None);
+		IconAtlas::BlitIcon(canvas, bits, color);
+		canvas.NotifyPixelsChanged();
+	};
+
+	if (!currencyIconReady_)
+	{
+		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), Color{ 255u, 210u, 80u, 255u });
+		currencyIconReady_ = true;
+	}
+
+	const Color tint = RefreshIconTint_();
+	if (paintedRefreshTint_ != tint)
+	{
+		blit(*refreshIcon_, UiIconAtlas::Get(UiIconId::Refresh), tint);
+		paintedRefreshTint_ = tint;
+	}
+}
+
+void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
+{
+	if (painted == value)
+	{
+		return;
+	}
+
+	auto ctx = TextCodex::Get().BeginDraw();
+	Text::RenderRequest& rq = ctx.Request();
+	FillUiLabelRequest_(rq, std::to_string(value), kPriceFontSize, Colors::White);
+	rq.canvasMode = Text::CanvasMode::Auto;
+	rq.clearMode = Text::ClearMode::Clear;
+	rq.style.wordWrapEnabled = false;
+	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
+	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+	rq.maxWidthPx = 80.0f;
+	rq.paddingPx = 2;
+	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
+	ctx.Render(canvas);
+
+	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
+	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
+	canvas.SetScale(DirectX::XMFLOAT3{
+		static_cast<float>(w),
+		static_cast<float>(h),
+		1.0f
+	});
+	painted = value;
+}
+
+void ModuleShop::SyncHudTransforms_() noexcept
+{
+	const DirectX::XMFLOAT2 coin = CurrencyIconCenter_();
+	const DirectX::XMFLOAT2 refresh = RefreshButtonCenter_();
+
+	if (currencyIcon_ != nullptr)
+	{
+		currencyIcon_->SetPosition(DirectX::XMFLOAT3{ coin.x, coin.y, 0.0f });
+	}
+	if (refreshIcon_ != nullptr)
+	{
+		refreshIcon_->SetPosition(DirectX::XMFLOAT3{ refresh.x, refresh.y, 0.0f });
+	}
+	if (currencyText_ != nullptr)
+	{
+		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
+		currencyText_->SetPosition(DirectX::XMFLOAT3{
+			coin.x + kHudIconWorld_ * 0.5f + 4.0f + halfW,
+			coin.y,
+			0.0f
+		});
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		const float halfW = static_cast<float>(refreshCostText_->GetCanvasWidth()) * 0.5f;
+		refreshCostText_->SetPosition(DirectX::XMFLOAT3{
+			refresh.x - kHudIconWorld_ * 0.5f - 4.0f - halfW,
+			refresh.y,
+			0.0f
+		});
+	}
+}
+
+void ModuleShop::SyncHud()
+{
+	EnsureHudVisuals_();
+	PaintHudIcons_();
+	if (currencyText_ != nullptr)
+	{
+		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
+	}
+	SyncHudTransforms_();
+}
+
+void ModuleShop::SubmitHud()
+{
+	if (currencyIcon_ != nullptr)
+	{
+		currencyIcon_->Submit(Chan::ui);
+	}
+	if (currencyText_ != nullptr)
+	{
+		currencyText_->Submit(Chan::ui);
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		refreshCostText_->Submit(Chan::ui);
+	}
+	if (refreshIcon_ != nullptr)
+	{
+		refreshIcon_->Submit(Chan::ui);
+	}
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		if (lockButtons_[i] == nullptr)
+		{
+			continue;
+		}
+		const Slot& slot = slots_[i];
+		if (slot.sold || slot.node == nullptr)
+		{
+			continue;
+		}
+		lockButtons_[i]->Submit(Chan::ui);
+	}
 }
 
 void ModuleShop::RefreshSlotCards_()
@@ -737,16 +1032,7 @@ void ModuleShop::EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	const unsigned h = (std::max)(1u, static_cast<unsigned>(std::lround(kCardHeight)));
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		if (slotCards_[i] == nullptr)
-		{
-			slotCards_[i] = std::make_unique<Canvas2D>(gfx, w, h);
-			slotCards_[i]->LinkTechniques(rg);
-			continue;
-		}
-		if (slotCards_[i]->GetCanvasWidth() != w || slotCards_[i]->GetCanvasHeight() != h)
-		{
-			slotCards_[i]->Resize(w, h);
-		}
+		EnsureCanvasSize_(slotCards_[i], gfx, rg, w, h);
 	}
 }
 
@@ -781,44 +1067,20 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		kCardIconPad + kStoredVisualRadius * 2.0f + kCardIconPad));
 	CanvasPixelDraw::DrawHLine(canvas, 8, cw - 9, iconZoneH, frame);
 
-	auto drawText = [&](const std::string& text, float fontSize, float offsetY,
-		DWRITE_TEXT_ALIGNMENT align, Color color, bool wrap, const std::vector<Text::Span>& spans,
-		DWRITE_PARAGRAPH_ALIGNMENT paraAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR)
-	{
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		rq.text = text;
-		rq.canvasMode = Text::CanvasMode::Fixed;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-		rq.fallbackFonts.clear();
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Yu Gothic UI"));
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-		rq.style.fontSize = fontSize;
-		rq.style.wordWrapEnabled = wrap;
-		rq.style.textAlign = align;
-		rq.style.paragraphAlign = paraAlign;
-		rq.maxWidthPx = static_cast<float>(cw);
-		rq.paddingPx = 6;
-		rq.drawOffsetYPx = offsetY;
-		rq.defaultColor = color;
-		rq.backgroundColor = Colors::None;
-		rq.spans = spans;
-		ctx.Render(canvas);
-	};
-
 	if (slot.sold)
 	{
 		constexpr Color kSold{ 160u, 160u, 160u, 220u };
-		drawText(
+		DrawShopText_(
+			canvas,
 			"SOLD OUT",
 			16.0f,
 			0.0f,
+			0.0f,
+			static_cast<float>(cw),
+			6,
 			DWRITE_TEXT_ALIGNMENT_CENTER,
-			kSold,
-			true,
-			{},
-			DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+			DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+			kSold);
 		canvas.NotifyPixelsChanged();
 		return;
 	}
@@ -828,23 +1090,30 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		return;
 	}
 
-	drawText(
+	DrawShopText_(
+		canvas,
 		std::to_string(slot.price),
 		kPriceFontSize,
+		0.0f,
 		static_cast<float>(iconZoneH),
+		static_cast<float>(cw),
+		6,
 		DWRITE_TEXT_ALIGNMENT_CENTER,
-		kPrice,
-		true,
-		{});
+		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+		kPrice);
 
 	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(slot.node->GetModuleNodeLabel());
-	drawText(
+	DrawShopText_(
+		canvas,
 		entry.ComposedText(),
 		13.0f,
+		0.0f,
 		static_cast<float>(iconZoneH) + kPriceFontSize + 8.0f,
+		static_cast<float>(cw),
+		6,
 		DWRITE_TEXT_ALIGNMENT_LEADING,
+		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
 		Colors::White,
-		true,
 		entry.spans);
 
 	canvas.NotifyPixelsChanged();
@@ -889,20 +1158,14 @@ void ModuleShop::EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	const unsigned size = kLockButtonPixels_;
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		if (lockButtons_[i] == nullptr)
+		EnsureCanvasSize_(lockButtons_[i], gfx, rg, size, size);
+		if (lockButtons_[i] != nullptr)
 		{
-			lockButtons_[i] = std::make_unique<Canvas2D>(gfx, size, size);
-			lockButtons_[i]->LinkTechniques(rg);
 			lockButtons_[i]->SetScale(DirectX::XMFLOAT3{
 				kLockButtonWorld_,
 				kLockButtonWorld_,
 				1.0f
 			});
-			continue;
-		}
-		if (lockButtons_[i]->GetCanvasWidth() != size || lockButtons_[i]->GetCanvasHeight() != size)
-		{
-			lockButtons_[i]->Resize(size, size);
 		}
 	}
 }
@@ -957,283 +1220,242 @@ void ModuleShop::SyncLockButtonTransforms_() noexcept
 	}
 }
 
-void ModuleShop::EnsurePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
+void ModuleShop::EnsureTradePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfX_() * 2.0f)));
+	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, ContentHalfX_() * 2.0f)));
 	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfY_() * 2.0f)));
-	bool painted = false;
-	if (panel_ == nullptr)
+	if (EnsureCanvasSize_(tradePanel_, gfx, rg, w, h))
 	{
-		panel_ = std::make_unique<Canvas2D>(gfx, w, h);
-		panel_->LinkTechniques(rg);
-		painted = true;
+		PaintTradePanel_();
 	}
-	else if (panel_->GetCanvasWidth() != w || panel_->GetCanvasHeight() != h)
-	{
-		panel_->Resize(w, h);
-		painted = true;
-	}
-	if (painted)
-	{
-		PaintPanel_();
-	}
-	SyncPanelTransform_();
+	SyncTradePanelTransform_();
 }
 
-void ModuleShop::PaintPanel_()
+void ModuleShop::PaintTradePanel_()
 {
-	if (panel_ == nullptr)
+	if (tradePanel_ == nullptr)
 	{
 		return;
 	}
 
-	constexpr Color kBg{ 36u, 48u, 68u, 150u };
-	constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-
-	panel_->Clear(kBg);
-	const int w = static_cast<int>(panel_->GetCanvasWidth());
-	const int h = static_cast<int>(panel_->GetCanvasHeight());
+	PaintBandChrome_(*tradePanel_);
+	const int w = static_cast<int>(tradePanel_->GetCanvasWidth());
 	constexpr Color kHudBar{ 28u, 38u, 56u, 200u };
+	constexpr Color kFrame{ 170u, 190u, 210u, 90u };
 	const int barBottom = static_cast<int>(std::lround(kHudBarHeight)) - 1;
 	for (int y = 1; y < barBottom; ++y)
 	{
-		CanvasPixelDraw::DrawHLine(*panel_, 1, w - 2, y, kHudBar);
+		CanvasPixelDraw::DrawHLine(*tradePanel_, 1, w - 2, y, kHudBar);
 	}
-	CanvasPixelDraw::DrawRectOutline(*panel_, 0, 0, w - 1, h - 1, kFrame);
-	CanvasPixelDraw::DrawHLine(*panel_, 1, w - 2, barBottom, kFrame);
-	panel_->NotifyPixelsChanged();
+	CanvasPixelDraw::DrawHLine(*tradePanel_, 1, w - 2, barBottom, kFrame);
+	tradePanel_->NotifyPixelsChanged();
 }
 
-void ModuleShop::SyncPanelTransform_() noexcept
+void ModuleShop::SyncTradePanelTransform_() noexcept
 {
-	if (panel_ == nullptr)
+	SyncBandTransform_(tradePanel_.get(), GetTradeBoundsWorld());
+}
+
+// ---- 炼成区 · 逻辑 ----
+ModuleShop::BoundsWorld ModuleShop::GetRefineBoundsWorld_() const noexcept
+{
+	return FunctionBandBounds_(0);
+}
+
+// ---- 炼成区 · 绘制 ----
+void ModuleShop::EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	const BoundsWorld b = GetRefineBoundsWorld_();
+	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.x * 2.0f)));
+	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.y * 2.0f)));
+	EnsureCanvasSize_(refinePanel_, gfx, rg, w, h);
+	PaintRefinePanel_();
+	SyncRefineTransform_();
+}
+
+void ModuleShop::PaintRefinePanel_()
+{
+	if (refinePanel_ == nullptr)
 	{
 		return;
 	}
 
-	const BoundsWorld b = GetTradeBoundsWorld();
-	panel_->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
-	panel_->SetScale(DirectX::XMFLOAT3{
-		b.half.x * 2.0f,
-		b.half.y * 2.0f,
-		1.0f
-	});
-}
+	Canvas2D& canvas = *refinePanel_;
+	PaintBandChrome_(canvas);
 
-ModuleShop::BoundsWorld ModuleShop::GetReserveBoundsWorld_(std::size_t index) const noexcept
-{
-	const BoundsWorld inner = ShellInnerRect_();
-	const float unit = SplitUnitHeight_();
-	const float tradeH = unit * static_cast<float>(kTradeRatio);
-	const float funcH = unit * static_cast<float>(kFunctionRatio);
-	const float innerTop = inner.center.y - inner.half.y;
-	const float top = innerTop + tradeH + kShellInnerGap
-		+ static_cast<float>(index) * (funcH + kShellInnerGap);
-
-	BoundsWorld b{};
-	b.half = DirectX::XMFLOAT2{
-		inner.half.x,
-		funcH * 0.5f
-	};
-	b.center = DirectX::XMFLOAT2{
-		inner.center.x,
-		top + b.half.y
-	};
-	return b;
-}
-
-void ModuleShop::EnsureReserveVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const BoundsWorld sample = GetReserveBoundsWorld_(0);
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, sample.half.x * 2.0f)));
-	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, sample.half.y * 2.0f)));
-
-	for (std::size_t i = 0; i < kReserveCount_; ++i)
-	{
-		bool painted = false;
-		if (reservePanels_[i] == nullptr)
-		{
-			reservePanels_[i] = std::make_unique<Canvas2D>(gfx, w, h);
-			reservePanels_[i]->LinkTechniques(rg);
-			painted = true;
-		}
-		else if (reservePanels_[i]->GetCanvasWidth() != w || reservePanels_[i]->GetCanvasHeight() != h)
-		{
-			reservePanels_[i]->Resize(w, h);
-			painted = true;
-		}
-		if (painted)
-		{
-			PaintReservePanel_(i);
-		}
-	}
-	SyncReserveTransforms_();
-}
-
-void ModuleShop::PaintReservePanel_(std::size_t index)
-{
-	if (index >= kReserveCount_ || reservePanels_[index] == nullptr)
-	{
-		return;
-	}
-
-	Canvas2D& canvas = *reservePanels_[index];
-	constexpr Color kBg{ 28u, 36u, 52u, 160u };
-	constexpr Color kFrame{ 170u, 190u, 210u, 110u };
-	constexpr Color kTitle{ 180u, 195u, 215u, 200u };
-
-	canvas.Clear(kBg);
 	const int cw = static_cast<int>(canvas.GetCanvasWidth());
 	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	CanvasPixelDraw::DrawRectOutline(canvas, 2, 2, cw - 3, ch - 3, kFrame);
+	const int pad = (std::max)(8, ch / 14);
+	const int innerW = (std::max)(1, cw - pad * 2);
+	const int innerH = (std::max)(1, ch - pad * 2);
 
-	auto ctx = TextCodex::Get().BeginDraw();
-	Text::RenderRequest& rq = ctx.Request();
-	rq.text = (index == 0) ? "Function2" : "Function3";
-	rq.canvasMode = Text::CanvasMode::Fixed;
-	rq.clearMode = Text::ClearMode::NoClear;
-	rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-	rq.fallbackFonts.clear();
-	rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-	rq.style.fontSize = 16.0f;
-	rq.style.wordWrapEnabled = true;
-	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
-	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-	rq.maxWidthPx = static_cast<float>(cw);
-	rq.paddingPx = 4;
-	rq.defaultColor = kTitle;
-	rq.backgroundColor = Colors::None;
-	ctx.Render(canvas);
+	// 四区等缝（素材/主体/结果/键列），整组水平居中；第三条缝留空。
+	// 64 让 16x16 图标 4 倍铺满缝，避免箭头悬浮。
+	const int regionGapWanted = 64;
+	const int regionGapMin = 32;
+	const int btnGap = 5;
+	int btnW = 120;
+	int btnH = (std::max)(14, (innerH - btnGap * static_cast<int>(kRefineButtonCount_ - 1))
+		/ static_cast<int>(kRefineButtonCount_));
+
+	int side = innerH;
+	int regionGap = regionGapWanted;
+	const int slotN = static_cast<int>(kRefineSlotCount_);
+	const int gapN = slotN;
+	auto clusterW = [&]() noexcept
+	{
+		return side * slotN + regionGap * gapN + btnW;
+	};
+	if (clusterW() > innerW)
+	{
+		regionGap = (std::max)(regionGapMin, (innerW - side * slotN - btnW) / gapN);
+	}
+	if (clusterW() > innerW)
+	{
+		side = (std::max)(24, (innerW - regionGap * gapN - btnW) / slotN);
+	}
+	if (clusterW() > innerW)
+	{
+		btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
+	}
+
+	const int groupX = pad + (std::max)(0, innerW - clusterW()) / 2;
+	const int slotTop = pad + (std::max)(0, innerH - side) / 2;
+	const int slotXs[kRefineSlotCount_] = {
+		groupX,
+		groupX + side + regionGap,
+		groupX + (side + regionGap) * 2
+	};
+	const int btnX = groupX + (side + regionGap) * slotN;
+	const int btnColH = btnH * static_cast<int>(kRefineButtonCount_)
+		+ btnGap * static_cast<int>(kRefineButtonCount_ - 1);
+	const int btnTop = pad + (std::max)(0, innerH - btnColH) / 2;
+
+	constexpr Color kSlotBg{ 42u, 56u, 78u, 190u };
+	constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
+	constexpr Color kSlotText{ 220u, 228u, 236u, 255u };
+	constexpr Color kArrow{ 180u, 195u, 215u, 220u };
+	constexpr Color kBtnBg{ 48u, 52u, 60u, 220u };
+	constexpr Color kBtnFrame{ 96u, 100u, 108u, 200u };
+	constexpr Color kBtnText{ 210u, 214u, 220u, 255u };
+	const std::string slotLabels[kRefineSlotCount_] = {
+		GetUiCopy("shop.refine.material"),
+		GetUiCopy("shop.refine.subject"),
+		GetUiCopy("shop.refine.result")
+	};
+	const UiIconId arrowIds[2] = { UiIconId::RefineFeed, UiIconId::RefineYield };
+	const float btnFont = (btnH < 22) ? 11.0f : 13.0f;
+	const int slotCorner = (std::max)(6, (std::min)(12, side / 8));
+	const int btnCorner = (std::max)(4, (std::min)(8, btnH / 2));
+	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
+	{
+		const int x0 = slotXs[i];
+		const int y0 = slotTop;
+		const int x1 = x0 + side - 1;
+		const int y1 = y0 + side - 1;
+		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, slotCorner, kSlotBg);
+		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, slotCorner, kSlotFrame);
+		DrawShopLabelInBox_(
+			canvas,
+			slotLabels[i],
+			13.0f,
+			x0,
+			y0,
+			side,
+			side,
+			kSlotText);
+	}
+
+	for (int a = 0; a < 2; ++a)
+	{
+		const int gx = slotXs[a] + side;
+		BlitIconInBox_(
+			canvas,
+			UiIconAtlas::Get(arrowIds[a]),
+			kArrow,
+			gx,
+			slotTop,
+			regionGap,
+			side);
+	}
+
+	const std::string btnLabels[kRefineButtonCount_] = {
+		GetUiCopy("shop.refine.upgrade"),
+		GetUiCopy("shop.refine.fuse"),
+		GetUiCopy("shop.refine.evolve"),
+		GetUiCopy("shop.refine.return")
+	};
+	for (std::size_t i = 0; i < kRefineButtonCount_; ++i)
+	{
+		const int x0 = btnX;
+		const int y0 = btnTop + static_cast<int>(i) * (btnH + btnGap);
+		const int x1 = x0 + btnW - 1;
+		const int y1 = y0 + btnH - 1;
+		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, btnCorner, kBtnBg);
+		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, btnCorner, kBtnFrame);
+		DrawShopLabelInBox_(
+			canvas,
+			btnLabels[i],
+			btnFont,
+			x0,
+			y0,
+			btnW,
+			btnH,
+			kBtnText);
+	}
+
 	canvas.NotifyPixelsChanged();
 }
 
-void ModuleShop::SyncReserveTransforms_() noexcept
+void ModuleShop::SyncRefineTransform_() noexcept
 {
-	for (std::size_t i = 0; i < kReserveCount_; ++i)
-	{
-		Canvas2D* canvas = reservePanels_[i].get();
-		if (canvas == nullptr)
-		{
-			continue;
-		}
-		const BoundsWorld b = GetReserveBoundsWorld_(i);
-		canvas->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
-		canvas->SetScale(DirectX::XMFLOAT3{
-			b.half.x * 2.0f,
-			b.half.y * 2.0f,
-			1.0f
-		});
-	}
+	SyncBandTransform_(refinePanel_.get(), GetRefineBoundsWorld_());
 }
 
-void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
+// ---- Function3 · 逻辑 ----
+ModuleShop::BoundsWorld ModuleShop::GetFunction3BoundsWorld_() const noexcept
 {
-	gfx_ = &gfx;
-	rg_ = &rg;
-	EnsurePanelVisual_(gfx, rg);
-	EnsureSlotCardVisuals_(gfx, rg);
-	EnsureLockButtonVisuals_(gfx, rg);
-	EnsureReserveVisuals_(gfx, rg);
-	FillStock();
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->InitVisual(gfx, rg, origin_);
-		}
-	}
-	RelayoutSlots_();
-	SyncPanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncReserveTransforms_();
+	return FunctionBandBounds_(1);
 }
 
-void ModuleShop::SyncZoneTransforms_()
+// ---- Function3 · 绘制 ----
+void ModuleShop::EnsureFunction3Visuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	SyncPanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncReserveTransforms_();
-	for (Slot& slot : slots_)
+	const BoundsWorld b = GetFunction3BoundsWorld_();
+	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.x * 2.0f)));
+	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.y * 2.0f)));
+	if (EnsureCanvasSize_(function3Panel_, gfx, rg, w, h))
 	{
-		if (slot.node != nullptr)
-		{
-			slot.node->SyncVisual();
-		}
+		PaintFunction3Panel_();
 	}
-	SyncHud();
+	SyncFunction3Transform_();
 }
 
-void ModuleShop::SubmitZoneBackground_()
+void ModuleShop::PaintFunction3Panel_()
 {
-	if (panel_ != nullptr)
+	if (function3Panel_ == nullptr)
 	{
-		panel_->Submit(Chan::ui);
+		return;
 	}
-	for (auto& card : slotCards_)
-	{
-		if (card != nullptr)
-		{
-			card->Submit(Chan::ui);
-		}
-	}
-	for (auto& canvas : reservePanels_)
-	{
-		if (canvas != nullptr)
-		{
-			canvas->Submit(Chan::ui);
-		}
-	}
+
+	Canvas2D& canvas = *function3Panel_;
+	PaintBandChrome_(canvas);
+	constexpr Color kTitle{ 180u, 195u, 215u, 200u };
+	DrawShopText_(
+		canvas,
+		"Function3",
+		16.0f,
+		0.0f,
+		0.0f,
+		static_cast<float>(canvas.GetCanvasWidth()),
+		4,
+		DWRITE_TEXT_ALIGNMENT_CENTER,
+		DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+		kTitle);
+	canvas.NotifyPixelsChanged();
 }
 
-void ModuleShop::SubmitNodes()
+void ModuleShop::SyncFunction3Transform_() noexcept
 {
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->SubmitVisual();
-		}
-	}
-}
-
-IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
-{
-	IModuleNode* best = nullptr;
-	float bestDistSq = 1.0e9f;
-
-	for (Slot& slot : slots_)
-	{
-		IModuleNode* node = slot.node.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 local = node->GetLocalPos();
-		const DirectX::XMFLOAT2 world{
-			origin_.x + local.x,
-			origin_.y + local.y
-		};
-		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
-		const Collider2D::PointCollider pt{ worldPos };
-		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
-		{
-			continue;
-		}
-		const float dx = worldPos.x - world.x;
-		const float dy = worldPos.y - world.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq < bestDistSq)
-		{
-			bestDistSq = distSq;
-			best = node;
-		}
-	}
-
-	if (best != nullptr)
-	{
-		outDistSq = bestDistSq;
-	}
-	return best;
+	SyncBandTransform_(function3Panel_.get(), GetFunction3BoundsWorld_());
 }

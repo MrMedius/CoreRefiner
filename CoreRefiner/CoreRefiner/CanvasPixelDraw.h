@@ -84,6 +84,138 @@ namespace CanvasPixelDraw
 		DrawVLine(canvas, x1, y0, y1, c);
 	}
 
+	// 像素是否在圆角矩形内（含边）。radius<=0 视为直角。
+	[[nodiscard]] inline bool IsInsideRoundedRect(
+		int x,
+		int y,
+		int left,
+		int top,
+		int right,
+		int bottom,
+		int radius) noexcept
+	{
+		if (x < left || x > right || y < top || y > bottom)
+		{
+			return false;
+		}
+		if (radius <= 0)
+		{
+			return true;
+		}
+
+		const int w = right - left + 1;
+		const int h = bottom - top + 1;
+		if (w <= 0 || h <= 0)
+		{
+			return false;
+		}
+
+		const int maxR = (std::min)((w - 1) / 2, (h - 1) / 2);
+		const int r = (std::min)(radius, maxR);
+		if (r <= 0)
+		{
+			return true;
+		}
+
+		const int innerLeft = left + r;
+		const int innerRight = right - r;
+		const int innerTop = top + r;
+		const int innerBottom = bottom - r;
+		if (x >= innerLeft && x <= innerRight)
+		{
+			return true;
+		}
+		if (y >= innerTop && y <= innerBottom)
+		{
+			return true;
+		}
+
+		const int cx = (x < innerLeft) ? innerLeft : innerRight;
+		const int cy = (y < innerTop) ? innerTop : innerBottom;
+		const int dx = x - cx;
+		const int dy = y - cy;
+		return dx * dx + dy * dy <= r * r;
+	}
+
+	// 轴对齐圆角实心矩形。
+	inline void FillRoundedRect(Canvas& canvas, int x0, int y0, int x1, int y1, int radius, Color c)
+	{
+		int left = x0;
+		int right = x1;
+		int top = y0;
+		int bottom = y1;
+		if (right < left)
+		{
+			std::swap(left, right);
+		}
+		if (bottom < top)
+		{
+			std::swap(top, bottom);
+		}
+
+		for (int y = top; y <= bottom; ++y)
+		{
+			for (int x = left; x <= right; ++x)
+			{
+				if (IsInsideRoundedRect(x, y, left, top, right, bottom, radius))
+				{
+					PutPixelClamped(canvas, x, y, c);
+				}
+			}
+		}
+	}
+
+	// 轴对齐圆角描边（1 像素，向内）。
+	inline void DrawRoundedRectOutline(Canvas& canvas, int x0, int y0, int x1, int y1, int radius, Color c)
+	{
+		int left = x0;
+		int right = x1;
+		int top = y0;
+		int bottom = y1;
+		if (right < left)
+		{
+			std::swap(left, right);
+		}
+		if (bottom < top)
+		{
+			std::swap(top, bottom);
+		}
+		if (radius <= 0)
+		{
+			DrawRectOutline(canvas, left, top, right, bottom, c);
+			return;
+		}
+
+		const bool innerOk = (right - left >= 2) && (bottom - top >= 2);
+		const int innerLeft = left + 1;
+		const int innerTop = top + 1;
+		const int innerRight = right - 1;
+		const int innerBottom = bottom - 1;
+		const int innerRadius = radius - 1;
+		for (int y = top; y <= bottom; ++y)
+		{
+			for (int x = left; x <= right; ++x)
+			{
+				if (!IsInsideRoundedRect(x, y, left, top, right, bottom, radius))
+				{
+					continue;
+				}
+				if (innerOk && IsInsideRoundedRect(
+					x,
+					y,
+					innerLeft,
+					innerTop,
+					innerRight,
+					innerBottom,
+					innerRadius))
+				{
+					continue;
+				}
+				PutPixelClamped(canvas, x, y, c);
+			}
+		}
+	}
+
 	/**
 	 * @brief 轴对齐矩形描边，thickness 圈向内加厚。
 	 * @param thickness 线宽（像素）；小于 1 时不画。

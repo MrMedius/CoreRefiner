@@ -15,7 +15,14 @@
     "setting.window": "窗口大小",
     "setting.back": "返回",
     "prep.fight": "战斗！(第 {0} 波)",
-    "hud.wave": "WAVE {0}"
+    "hud.wave": "WAVE {0}",
+    "shop.refine.material": "素材",
+    "shop.refine.subject": "主体",
+    "shop.refine.result": "结果",
+    "shop.refine.upgrade": "升级",
+    "shop.refine.fuse": "合成",
+    "shop.refine.evolve": "进化",
+    "shop.refine.return": "退回"
   },
   "ja": {
     "title.new_game": "ニューゲーム",
@@ -33,7 +40,14 @@
     "setting.window": "ウィンドウサイズ",
     "setting.back": "戻る",
     "prep.fight": "戦闘！(第 {0} 波)",
-    "hud.wave": "WAVE {0}"
+    "hud.wave": "WAVE {0}",
+    "shop.refine.material": "素材",
+    "shop.refine.subject": "主体",
+    "shop.refine.result": "結果",
+    "shop.refine.upgrade": "強化",
+    "shop.refine.fuse": "合成",
+    "shop.refine.evolve": "進化",
+    "shop.refine.return": "戻す"
   },
   "en": {
     "title.new_game": "New Game",
@@ -51,6 +65,13 @@
     "setting.window": "Window Size",
     "setting.back": "Back",
     "prep.fight": "Fight! (Wave {0})",
-    "hud.wave": "WAVE {0}"
+    "hud.wave": "WAVE {0}",
+    "shop.refine.material": "Material",
+    "shop.refine.subject": "Primary",
+    "shop.refine.result": "Result",
+    "shop.refine.upgrade": "Upgrade",
+    "shop.refine.fuse": "Fuse",
+    "shop.refine.evolve": "Evolve",
+    "shop.refine.return": "Return"
   }
 }
