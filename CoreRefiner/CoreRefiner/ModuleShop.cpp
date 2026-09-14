@@ -26,26 +26,51 @@
 #include <utility>
 #include <vector>
 
-[[nodiscard]] static bool IsShopOfferedLabel_(ModuleNodeLabel label) noexcept
+namespace
 {
-	return label != ModuleNodeLabel::Core_Ball
-		&& label != ModuleNodeLabel::Fusion
-		&& label < ModuleNodeLabel::Count;
-}
-
-[[nodiscard]] static ModuleNodeLabel PickRandomShopLabel_()
-{
-	static std::mt19937 rng{ std::random_device{}() };
-	static std::uniform_int_distribution<int> dist(	0, static_cast<int>(ModuleNodeLabelCount()) - 1);
-	ModuleNodeLabel label = ModuleNodeLabel::Spawn_Ball;
-	do
+	struct ShopOffered_
 	{
-		label = static_cast<ModuleNodeLabel>(dist(rng));
-	} while (!IsShopOfferedLabel_(label));
-	return label;
-}
+		ModuleNodeLabel data[ModuleNodeLabelCount()]{};
+		std::size_t count{ 0 };
+	};
 
-static_assert(ModuleShop::kSlotCount >= 1);
+	// 可刷表 = Label 全集 − 进化表 − Core 表 − Fusion 表。
+	[[nodiscard]] constexpr ShopOffered_ MakeShopOffered_() noexcept
+	{
+		ShopOffered_ out{};
+		for (std::size_t i = 0; i < ModuleNodeLabelCount(); ++i)
+		{
+			const auto label = static_cast<ModuleNodeLabel>(i);
+			if (LabelTableContains(kEvolveLabels, label)
+				|| LabelTableContains(kCoreLabels, label)
+				|| LabelTableContains(kFusionLabels, label))
+			{
+				continue;
+			}
+			out.data[out.count++] = label;
+		}
+		return out;
+	}
+	constexpr ShopOffered_ kShopOffered_ = MakeShopOffered_();
+	static_assert(kShopOffered_.count >= ModuleShop::kSlotCount);
+
+	void ShuffleLabels_(ModuleNodeLabel* labels, std::size_t count)
+	{
+		if (count < 2u)
+		{
+			return;
+		}
+		static std::mt19937 rng{ std::random_device{}() };
+		for (std::size_t i = count; i > 1u; --i)
+		{
+			std::uniform_int_distribution<std::size_t> dist(0u, i - 1u);
+			const std::size_t j = dist(rng);
+			const ModuleNodeLabel tmp = labels[i - 1u];
+			labels[i - 1u] = labels[j];
+			labels[j] = tmp;
+		}
+	}
+}
 
 namespace
 {
@@ -546,16 +571,15 @@ bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) con
 
 void ModuleShop::FillStock()
 {
-	std::size_t slot = 0;
-	for (std::size_t n = 0; slot < kSlotCount && n < ModuleNodeLabelCount() * kSlotCount; ++n)
+	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
+	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
 	{
-		const auto label = static_cast<ModuleNodeLabel>(n % ModuleNodeLabelCount());
-		if (!IsShopOfferedLabel_(label))
-		{
-			continue;
-		}
-		RestockSlot_(slot, label);
-		++slot;
+		pool[i] = kShopOffered_.data[i];
+	}
+	ShuffleLabels_(pool, kShopOffered_.count);
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		RestockSlot_(i, pool[i]);
 	}
 	RelayoutSlots_();
 }
@@ -666,6 +690,28 @@ bool ModuleShop::TryRefresh()
 
 void ModuleShop::RerollStock_()
 {
+	bool taken[ModuleNodeLabelCount()]{};
+	for (const Slot& slot : slots_)
+	{
+		if (slot.locked && !slot.sold && slot.node != nullptr)
+		{
+			taken[ToIndex(slot.node->GetModuleNodeLabel())] = true;
+		}
+	}
+
+	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
+	std::size_t poolN = 0;
+	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
+	{
+		const ModuleNodeLabel label = kShopOffered_.data[i];
+		if (!taken[ToIndex(label)])
+		{
+			pool[poolN++] = label;
+		}
+	}
+	ShuffleLabels_(pool, poolN);
+
+	std::size_t p = 0;
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
 		const Slot& slot = slots_[i];
@@ -673,7 +719,11 @@ void ModuleShop::RerollStock_()
 		{
 			continue;
 		}
-		RestockSlot_(i, PickRandomShopLabel_());
+		if (p >= poolN)
+		{
+			break;
+		}
+		RestockSlot_(i, pool[p++]);
 	}
 	RelayoutSlots_();
 }

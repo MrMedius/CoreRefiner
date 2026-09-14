@@ -376,7 +376,6 @@
     <ClInclude Include="CanvasPixelDraw.h" />
     <ClInclude Include="IAttackNodeStep.h" />
     <ClInclude Include="IModule.h" />
-    <ClInclude Include="ModuleNodeLevel.h" />
     <ClInclude Include="Module_Attribute_DamageRate.h" />
     <ClInclude Include="Module_Attribute_Lifetime.h" />
     <ClInclude Include="Module_Attribute_SizeRate.h" />
@@ -384,6 +383,7 @@
     <ClInclude Include="Module_Other_Revive.h" />
     <ClInclude Include="Module_Rule_Orbit.h" />
     <ClInclude Include="Module_Rule_Return.h" />
+    <ClInclude Include="NodeEvolveRecipes.h" />
     <ClInclude Include="Stats.h" />
     <ClInclude Include="DisplaySettings.h" />
     <ClInclude Include="GameRenderGraph.h" />
