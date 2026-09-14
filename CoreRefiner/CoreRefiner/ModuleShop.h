@@ -80,7 +80,8 @@ public:
 		int price{ 0 };
 	};
 
-	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return kSlotCount + 1; }
+	// 货槽 + 结果 + 素材店有 + 主体店有。买卖勿把 GetNodeCount 当货槽数。
+	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return kSlotCount + 3; }
 	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override
 	{
 		if (index < kSlotCount)
@@ -90,6 +91,14 @@ public:
 		if (index == kSlotCount)
 		{
 			return refineResult_.get();
+		}
+		if (index == kSlotCount + 1)
+		{
+			return refineFeedOwned_[0].get();
+		}
+		if (index == kSlotCount + 2)
+		{
+			return refineFeedOwned_[1].get();
 		}
 		return nullptr;
 	}
@@ -181,7 +190,7 @@ private:
 
 	// ---- 炼成区 ----
 public:
-	// 炼成停放：不接管所有权。0=素材 1=主体；未命中返回 3。
+	// 炼成停放：0=素材 1=主体 2=结果；未命中返回 3。场/仓不接管；店有 Node 由 unique_ptr 持有。
 	[[nodiscard]] std::size_t HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT2 RefineSlotWorldCenter(std::size_t slot) const noexcept;
 	[[nodiscard]] bool CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept;
@@ -190,10 +199,15 @@ public:
 	void ClearRefineParks();
 	void ClearRefineResult();
 	void RestoreRefineResult(std::unique_ptr<IModuleNode> node);
+	void RestoreRefineHeld(std::unique_ptr<IModuleNode> node, std::size_t slot);
+	[[nodiscard]] std::size_t FindRefineParkIndex(const IModuleNode* node) const noexcept;
 	[[nodiscard]] bool IsRefineParked(const IModuleNode* node) const noexcept;
 	[[nodiscard]] bool IsRefineResultParked(const IModuleNode* node) const noexcept;
+	[[nodiscard]] bool IsShopRefineOwned(const IModuleNode* node) const noexcept;
 	// 格内 Icon 按仓库格比例缩放；素材/主体残影仍走来源尺寸。
 	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
+	// 店有炼成 Node：残影钉在结果格（格内尺寸），跟手图标另清 Icon 覆盖。
+	void PinShopRefineHomeGhost(IModuleNode& node) noexcept;
 	[[nodiscard]] bool HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept;
 	bool TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse);
 
@@ -209,15 +223,28 @@ private:
 	[[nodiscard]] bool RefineWorldToPixel_(DirectX::XMFLOAT2 world, float& px, float& py) const noexcept;
 	[[nodiscard]] float RefineSlotIconRadius_() const noexcept;
 	void EjectRefineOccupant_(IModuleNode& occupant);
+	[[nodiscard]] bool HasRefinePairReady_() const noexcept;
 	[[nodiscard]] bool CanUpgradeRefine_() const noexcept;
 	[[nodiscard]] bool CanFuseRefine_() const noexcept;
+	[[nodiscard]] bool CanEvolveRefine_() const noexcept;
 	[[nodiscard]] bool CanReturnRefine_() const noexcept;
 	[[nodiscard]] IModuleZone* FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept;
+	struct RefineTakenPair_
+	{
+		std::unique_ptr<IModuleNode> material;
+		std::unique_ptr<IModuleNode> subject;
+		IModuleZone* materialOwner{ nullptr };
+		IModuleZone* subjectOwner{ nullptr };
+	};
+	bool TryTakeRefinePair_(IModuleZone* field, IModuleZone* warehouse, RefineTakenPair_& out);
 	bool TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse);
 	bool TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse);
+	bool TryEvolveRefine_(IModuleZone* field, IModuleZone* warehouse);
 	bool TryReturnRefine_();
 	void AdoptRefineResult_(std::unique_ptr<IModuleNode> node);
 	void PlaceRefineResultVisual_();
+	void RelocateShopOwnedToFeed_(std::size_t slot, IModuleNode& node);
+	bool ReturnShopOwnedToResult_(IModuleNode& node);
 
 	void EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintRefinePanel_();
@@ -226,8 +253,11 @@ private:
 	std::unique_ptr<Canvas2D> refinePanel_;
 	std::array<IModuleNode*, kRefineSlotCount_> refineParked_{};
 	std::unique_ptr<IModuleNode> refineResult_{};
+	// 停在素材/主体的店有 Node；与 refineResult_ 互斥，至多一颗。
+	std::array<std::unique_ptr<IModuleNode>, 2> refineFeedOwned_{};
 	bool paintedUpgradeLit_{ false };
 	bool paintedFuseLit_{ false };
+	bool paintedEvolveLit_{ false };
 	bool paintedReturnLit_{ false };
 	int paintedRefineCurrency_{ -1 };
 

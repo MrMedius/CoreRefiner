@@ -194,7 +194,6 @@ void ModuleWorkbench::PlaceDemoField_()
 	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, -95.0f });
 
 	field_.AddNode<ModuleNode_Rule_Return>(DirectX::XMFLOAT2{ 50.0f, -95.0f });
-	field_.AddNode<ModuleNode_Other_Revive>(DirectX::XMFLOAT2{ 40.0f, -68.0f });
 	field_.AddNode<ModuleNode_Other_Repeat>(DirectX::XMFLOAT2{ 90.0f, -68.0f });
 
 	field_.AddNode<ModuleNode_Attribute_LifetimeRate>(DirectX::XMFLOAT2{ -110.0f, 0.0f });

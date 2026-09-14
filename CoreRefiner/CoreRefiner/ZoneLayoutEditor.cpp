@@ -177,10 +177,10 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 				dragOrigin_ = OriginForSource_(dragSource_);
 			}
 			dragStartLocalPos_ = dragged_->GetLocalPos();
-			if (shop != nullptr && shop->IsRefineResultParked(dragged_))
+			if (shop != nullptr && shop->IsShopRefineOwned(dragged_))
 			{
-				// 结果格已归商店：残影钉在格子里（格内尺寸），跟手恢复 hitRadius。
-				dragged_->BeginLayoutGhost(dragStartLocalPos_);
+				// 店有炼成 Node：残影钉在结果格（格内尺寸），跟手恢复 hitRadius。
+				shop->PinShopRefineHomeGhost(*dragged_);
 				dragged_->ClearIconRadiusOverride();
 			}
 			else if (!dragged_->IsLayoutGhostActive())
@@ -416,8 +416,8 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 		const ZoneId target = static_cast<ZoneId>(i);
 		IModuleZone* owner = FindOwnerZone_(zones_, &node);
 		auto* ownerShop = dynamic_cast<ModuleShop*>(owner);
-		const bool fromRefineResult = ownerShop != nullptr && ownerShop->IsRefineResultParked(&node);
-		if (!fromRefineResult
+		const bool fromShopRefine = ownerShop != nullptr && ownerShop->IsShopRefineOwned(&node);
+		if (!fromShopRefine
 			&& owner != nullptr
 			&& owner->GetZoneId() == ZoneId::Shop
 			&& target != ZoneId::Shop)
@@ -516,7 +516,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	if (auto* shop = dynamic_cast<ModuleShop*>(target))
 	{
 		const std::size_t refineSlot = shop->HitRefineParkSlot(world);
-		if (refineSlot < 2u)
+		if (refineSlot < 3u)
 		{
 			if (!shop->CanParkRefine(*node, refineSlot))
 			{
@@ -535,16 +535,17 @@ void ZoneLayoutEditor::ResolveRelease_()
 	}
 
 	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
-	if (shop != nullptr && shop->IsRefineResultParked(node))
+	if (shop != nullptr && shop->IsShopRefineOwned(node))
 	{
-		// 结果格：Field / 仓 / 买卖框（空货槽进库存，否则卖掉）。失败仍归店、弹回结果影子。
+		// 店有炼成 Node：Field / 仓 / 买卖框。失败仍归店、弹回原格影子。
+		const std::size_t heldSlot = shop->FindRefineParkIndex(node);
 		node->EndLayoutGhost();
 		std::unique_ptr<IModuleNode> taken = shop->TakeNode(node);
 		if (taken == nullptr || !target->TryAcceptDrop(taken, drop.localPos))
 		{
 			if (taken != nullptr)
 			{
-				shop->RestoreRefineResult(std::move(taken));
+				shop->RestoreRefineHeld(std::move(taken), heldSlot);
 			}
 			RevertDrag_();
 			return;

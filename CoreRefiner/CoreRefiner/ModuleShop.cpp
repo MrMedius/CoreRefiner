@@ -16,6 +16,7 @@
 #include "ModuleNodeFactory.h"
 #include "ModuleNodeLabel.h"
 #include "ModuleNodeInfoCopy.h"
+#include "NodeEvolveRecipes.h"
 #include "UiCopy.h"
 #include "Util.h"
 
@@ -465,6 +466,18 @@ void ModuleShop::SyncZoneTransforms_()
 			slot.node->SyncVisual();
 		}
 	}
+	auto syncOwned = [this](IModuleNode* node)
+	{
+		if (node == nullptr)
+		{
+			return;
+		}
+		node->SetZoneOrigin(origin_);
+		node->SyncVisual();
+	};
+	syncOwned(refineResult_.get());
+	syncOwned(refineFeedOwned_[0].get());
+	syncOwned(refineFeedOwned_[1].get());
 	SyncHud();
 }
 
@@ -659,9 +672,10 @@ void ModuleShop::TickHud(float dt)
 	SyncHud();
 	const bool up = CanUpgradeRefine_();
 	const bool fuse = CanFuseRefine_();
+	const bool evo = CanEvolveRefine_();
 	const bool back = CanReturnRefine_();
 	const int cur = GameStatsCodex::GetCurrency();
-	if (up != paintedUpgradeLit_ || fuse != paintedFuseLit_ || back != paintedReturnLit_ || cur != paintedRefineCurrency_)
+	if (up != paintedUpgradeLit_ || fuse != paintedFuseLit_ || evo != paintedEvolveLit_ || back != paintedReturnLit_ || cur != paintedRefineCurrency_)
 	{
 		PaintRefinePanel_();
 	}
@@ -867,34 +881,11 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 		return result;
 	}
 
-	if (refineResult_.get() == &node)
-	{
-		// 结果格只出不进：炼成板一律 Forbidden；买卖框非 Core 可进货或卖掉。
-		const std::size_t refineHit = HitRefineSlotIndex_(worldPos);
-		if (refineHit < kRefineSlotCount_)
-		{
-			result.verdict = DropVerdict::Forbidden;
-			return result;
-		}
-		const BoundsWorld refine = GetRefineBoundsWorld_();
-		if (PointInAabb_(refine.center, refine.half, worldPos))
-		{
-			result.verdict = DropVerdict::Forbidden;
-			return result;
-		}
-		if (node.IsCore())
-		{
-			result.verdict = DropVerdict::Forbidden;
-			return result;
-		}
-		result.verdict = DropVerdict::Accept;
-		return result;
-	}
-
+	const bool shopOwned = IsShopRefineOwned(&node);
 	const std::size_t refineHit = HitRefineSlotIndex_(worldPos);
 	if (refineHit < kRefineSlotCount_)
 	{
-		if (refineHit >= 2u || !CanParkRefine(node, refineHit))
+		if (!CanParkRefine(node, refineHit))
 		{
 			result.verdict = DropVerdict::Forbidden;
 			return result;
@@ -909,6 +900,18 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	if (PointInAabb_(refine.center, refine.half, worldPos))
 	{
 		result.verdict = DropVerdict::Forbidden;
+		return result;
+	}
+
+	if (shopOwned)
+	{
+		// 店有炼成 Node：买卖框非 Core 可进货或卖掉；场/仓不能丢进结果格（上面已拒）。
+		if (node.IsCore())
+		{
+			result.verdict = DropVerdict::Forbidden;
+			return result;
+		}
+		result.verdict = DropVerdict::Accept;
 		return result;
 	}
 
@@ -941,10 +944,15 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 
 std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 {
-	if (node != nullptr && node == refineResult_.get())
+	if (node == nullptr)
 	{
-		refineParked_[2] = nullptr;
-		std::unique_ptr<IModuleNode> taken = std::move(refineResult_);
+		return nullptr;
+	}
+
+	auto takeOwned = [this](std::unique_ptr<IModuleNode>& held) -> std::unique_ptr<IModuleNode>
+	{
+		UnbindRefine(held.get());
+		std::unique_ptr<IModuleNode> taken = std::move(held);
 		if (taken != nullptr)
 		{
 			taken->ClearIconRadiusOverride();
@@ -952,6 +960,18 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 		}
 		PaintRefinePanel_();
 		return taken;
+	};
+	if (refineResult_.get() == node)
+	{
+		return takeOwned(refineResult_);
+	}
+	if (refineFeedOwned_[0].get() == node)
+	{
+		return takeOwned(refineFeedOwned_[0]);
+	}
+	if (refineFeedOwned_[1].get() == node)
+	{
+		return takeOwned(refineFeedOwned_[1]);
 	}
 
 	const std::size_t i = FindSlotIndex_(node);
@@ -986,6 +1006,13 @@ void ModuleShop::SubmitNodes()
 	if (refineResult_ != nullptr)
 	{
 		refineResult_->SubmitVisual();
+	}
+	for (std::unique_ptr<IModuleNode>& held : refineFeedOwned_)
+	{
+		if (held != nullptr)
+		{
+			held->SubmitVisual();
+		}
 	}
 }
 
@@ -1595,8 +1622,7 @@ bool ModuleShop::HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept
 
 std::size_t ModuleShop::HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	const std::size_t i = HitRefineSlotIndex_(worldPos);
-	return (i < 2u) ? i : kRefineSlotCount_;
+	return HitRefineSlotIndex_(worldPos);
 }
 
 DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenter(std::size_t slot) const noexcept
@@ -1650,13 +1676,17 @@ void ModuleShop::ApplyRefineParkIcon(IModuleNode& node) noexcept
 	node.SetIconRadiusOverride(RefineSlotIconRadius_());
 }
 
+void ModuleShop::PinShopRefineHomeGhost(IModuleNode& node) noexcept
+{
+	node.SetZoneOrigin(origin_);
+	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
+	node.BeginLayoutGhost(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
+	node.SetVisualRadiusOverride(RefineSlotIconRadius_());
+}
+
 bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept
 {
-	if (slot > 1u)
-	{
-		return false;
-	}
-	if (refineResult_.get() == &node)
+	if (slot >= kRefineSlotCount_)
 	{
 		return false;
 	}
@@ -1668,6 +1698,11 @@ bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const 
 	if (node.IsCore() && node.GetLevel() >= ModuleNodeLevel::kMax)
 	{
 		return false;
+	}
+	if (slot == 2u)
+	{
+		// 只有店持有的炼成 Node 能回结果格；场/仓不能进。
+		return IsShopRefineOwned(&node);
 	}
 	if (slot == 0u && node.IsCore())
 	{
@@ -1723,6 +1758,45 @@ bool ModuleShop::IsRefineResultParked(const IModuleNode* node) const noexcept
 	return node != nullptr && node == refineResult_.get();
 }
 
+bool ModuleShop::IsShopRefineOwned(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return false;
+	}
+	return node == refineResult_.get()
+		|| node == refineFeedOwned_[0].get()
+		|| node == refineFeedOwned_[1].get();
+}
+
+std::size_t ModuleShop::FindRefineParkIndex(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return kRefineSlotCount_;
+	}
+	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
+	{
+		if (refineParked_[i] == node)
+		{
+			return i;
+		}
+	}
+	if (node == refineResult_.get())
+	{
+		return 2u;
+	}
+	if (node == refineFeedOwned_[0].get())
+	{
+		return 0u;
+	}
+	if (node == refineFeedOwned_[1].get())
+	{
+		return 1u;
+	}
+	return kRefineSlotCount_;
+}
+
 void ModuleShop::PlaceRefineResultVisual_()
 {
 	IModuleNode* node = refineResult_.get();
@@ -1730,6 +1804,7 @@ void ModuleShop::PlaceRefineResultVisual_()
 	{
 		return;
 	}
+	node->EndLayoutGhost();
 	const float r = RefineSlotIconRadius_();
 	node->SetIconRadiusOverride(r);
 	node->SetVisualRadiusOverride(r);
@@ -1755,18 +1830,119 @@ void ModuleShop::AdoptRefineResult_(std::unique_ptr<IModuleNode> node)
 
 void ModuleShop::RestoreRefineResult(std::unique_ptr<IModuleNode> node)
 {
+	RestoreRefineHeld(std::move(node), 2u);
+}
+
+void ModuleShop::RestoreRefineHeld(std::unique_ptr<IModuleNode> node, std::size_t slot)
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+	if (slot <= 1u)
+	{
+		node->SetZoneVisualScale(1.0f);
+		refineFeedOwned_[slot] = std::move(node);
+		IModuleNode* parked = refineFeedOwned_[slot].get();
+		refineParked_[slot] = parked;
+		ApplyRefineParkIcon(*parked);
+		const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(slot);
+		parked->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
+		parked->SetZoneOrigin(origin_);
+		PinShopRefineHomeGhost(*parked);
+		parked->SyncVisual();
+		PaintRefinePanel_();
+		return;
+	}
 	AdoptRefineResult_(std::move(node));
 }
 
 void ModuleShop::ClearRefineResult()
 {
+	for (std::size_t i = 0; i < 2u; ++i)
+	{
+		if (refineParked_[i] != nullptr && IsShopRefineOwned(refineParked_[i]))
+		{
+			refineParked_[i] = nullptr;
+		}
+		refineFeedOwned_[i].reset();
+	}
 	refineParked_[2] = nullptr;
 	refineResult_.reset();
 	PaintRefinePanel_();
 }
 
+void ModuleShop::RelocateShopOwnedToFeed_(std::size_t slot, IModuleNode& node)
+{
+	if (slot > 1u)
+	{
+		return;
+	}
+
+	std::unique_ptr<IModuleNode> held;
+	if (refineResult_.get() == &node)
+	{
+		refineParked_[2] = nullptr;
+		held = std::move(refineResult_);
+	}
+	else if (refineFeedOwned_[0].get() == &node && slot != 0u)
+	{
+		held = std::move(refineFeedOwned_[0]);
+	}
+	else if (refineFeedOwned_[1].get() == &node && slot != 1u)
+	{
+		held = std::move(refineFeedOwned_[1]);
+	}
+	if (held != nullptr)
+	{
+		refineFeedOwned_[slot] = std::move(held);
+	}
+
+	IModuleNode* parked = refineFeedOwned_[slot].get();
+	if (parked != &node)
+	{
+		return;
+	}
+	parked->SetZoneOrigin(origin_);
+	PinShopRefineHomeGhost(*parked);
+	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(slot);
+	parked->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
+	parked->SyncVisual();
+}
+
+bool ModuleShop::ReturnShopOwnedToResult_(IModuleNode& node)
+{
+	std::unique_ptr<IModuleNode> held;
+	if (refineFeedOwned_[0].get() == &node)
+	{
+		held = std::move(refineFeedOwned_[0]);
+	}
+	else if (refineFeedOwned_[1].get() == &node)
+	{
+		held = std::move(refineFeedOwned_[1]);
+	}
+	else if (refineResult_.get() == &node)
+	{
+		PlaceRefineResultVisual_();
+		PaintRefinePanel_();
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+	UnbindRefine(&node);
+	AdoptRefineResult_(std::move(held));
+	return true;
+}
+
 void ModuleShop::EjectRefineOccupant_(IModuleNode& occupant)
 {
+	if (ReturnShopOwnedToResult_(occupant))
+	{
+		return;
+	}
 	UnbindRefine(&occupant);
 	if (occupant.IsLayoutGhostActive())
 	{
@@ -1778,8 +1954,13 @@ void ModuleShop::EjectRefineOccupant_(IModuleNode& occupant)
 
 void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node)
 {
-	if (slot > 1u)
+	if (slot >= kRefineSlotCount_)
 	{
+		return;
+	}
+	if (slot == 2u)
+	{
+		(void)ReturnShopOwnedToResult_(node);
 		return;
 	}
 	UnbindRefine(&node);
@@ -1790,24 +1971,34 @@ void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node)
 			EjectRefineOccupant_(*occ);
 		}
 	}
+	RelocateShopOwnedToFeed_(slot, node);
 	refineParked_[slot] = &node;
 	ApplyRefineParkIcon(node);
 	PaintRefinePanel_();
 }
 
+bool ModuleShop::HasRefinePairReady_() const noexcept
+{
+	if (refineParked_[0] == nullptr || refineParked_[1] == nullptr)
+	{
+		return false;
+	}
+	if (refineParked_[2] != nullptr || refineResult_ != nullptr)
+	{
+		return false;
+	}
+	return GameStatsCodex::GetCurrency() >= kRefineOpCost_;
+}
+
 bool ModuleShop::CanUpgradeRefine_() const noexcept
 {
-	// 素材等级>=主体、主体<3、结果空、至少 1 元。不看 Label。
+	// 素材等级>=主体、主体<3。不看 Label。
+	if (!HasRefinePairReady_())
+	{
+		return false;
+	}
 	IModuleNode* material = refineParked_[0];
 	IModuleNode* subject = refineParked_[1];
-	if (material == nullptr || subject == nullptr || refineParked_[2] != nullptr || refineResult_ != nullptr)
-	{
-		return false;
-	}
-	if (GameStatsCodex::GetCurrency() < kRefineOpCost_)
-	{
-		return false;
-	}
 	if (subject->GetLevel() >= ModuleNodeLevel::kMax)
 	{
 		return false;
@@ -1817,17 +2008,13 @@ bool ModuleShop::CanUpgradeRefine_() const noexcept
 
 bool ModuleShop::CanFuseRefine_() const noexcept
 {
-	// 两边都是 3 级、Label 不同、都不是 Fusion、结果空、至少 1 元。Core 不能合成。
+	// 两边都是 3 级、Label 不同、都不是 Fusion。Core 不能合成。
+	if (!HasRefinePairReady_())
+	{
+		return false;
+	}
 	IModuleNode* material = refineParked_[0];
 	IModuleNode* subject = refineParked_[1];
-	if (material == nullptr || subject == nullptr || refineParked_[2] != nullptr || refineResult_ != nullptr)
-	{
-		return false;
-	}
-	if (GameStatsCodex::GetCurrency() < kRefineOpCost_)
-	{
-		return false;
-	}
 	if (material->IsCore() || subject->IsCore())
 	{
 		return false;
@@ -1843,6 +2030,26 @@ bool ModuleShop::CanFuseRefine_() const noexcept
 	return material->GetModuleNodeLabel() != subject->GetModuleNodeLabel();
 }
 
+bool ModuleShop::CanEvolveRefine_() const noexcept
+{
+	// 两边都是 3 级、对上进化表。与合成分开判断。
+	if (!HasRefinePairReady_())
+	{
+		return false;
+	}
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	if (material->GetLevel() < ModuleNodeLevel::kMax || subject->GetLevel() < ModuleNodeLevel::kMax)
+	{
+		return false;
+	}
+	ModuleNodeLabel product = ModuleNodeLabel::Count;
+	return NodeEvolveRecipes::TryFind(
+		material->GetModuleNodeLabel(),
+		subject->GetModuleNodeLabel(),
+		product);
+}
+
 bool ModuleShop::CanReturnRefine_() const noexcept
 {
 	return refineParked_[0] != nullptr || refineParked_[1] != nullptr;
@@ -1853,6 +2060,10 @@ IModuleZone* ModuleShop::FindRefineOwner_(IModuleNode* node, IModuleZone* field,
 	if (node == nullptr)
 	{
 		return nullptr;
+	}
+	if (IsShopRefineOwned(node))
+	{
+		return const_cast<ModuleShop*>(this);
 	}
 	const std::size_t npos = static_cast<std::size_t>(-1);
 	if (field != nullptr && field->FindNodeIndex(node) != npos)
@@ -1866,24 +2077,21 @@ IModuleZone* ModuleShop::FindRefineOwner_(IModuleNode* node, IModuleZone* field,
 	return nullptr;
 }
 
-bool ModuleShop::TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse)
+bool ModuleShop::TryTakeRefinePair_(IModuleZone* field, IModuleZone* warehouse, RefineTakenPair_& out)
 {
-	if (!CanUpgradeRefine_())
-	{
-		return false;
-	}
-
 	IModuleNode* material = refineParked_[0];
 	IModuleNode* subject = refineParked_[1];
-	IModuleZone* materialOwner = FindRefineOwner_(material, field, warehouse);
-	IModuleZone* subjectOwner = FindRefineOwner_(subject, field, warehouse);
-	if (material == nullptr || subject == nullptr || materialOwner == nullptr || subjectOwner == nullptr)
+	if (material == nullptr || subject == nullptr)
 	{
 		return false;
 	}
 
-	const int newLevel = (std::max)(subject->GetLevel() + 1, material->GetLevel());
-	const int newPrice = subject->GetBuyPrice() + material->GetBuyPrice();
+	out.materialOwner = FindRefineOwner_(material, field, warehouse);
+	out.subjectOwner = FindRefineOwner_(subject, field, warehouse);
+	if (out.materialOwner == nullptr || out.subjectOwner == nullptr)
+	{
+		return false;
+	}
 	if (!GameStatsCodex::TrySpendCurrency(kRefineOpCost_))
 	{
 		return false;
@@ -1891,23 +2099,46 @@ bool ModuleShop::TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse)
 
 	UnbindRefine(material);
 	UnbindRefine(subject);
-	std::unique_ptr<IModuleNode> takenMaterial = materialOwner->TakeNode(material);
-	std::unique_ptr<IModuleNode> takenSubject = subjectOwner->TakeNode(subject);
-	takenMaterial.reset();
-	if (takenSubject == nullptr)
+	out.material = out.materialOwner->TakeNode(material);
+	out.subject = out.subjectOwner->TakeNode(subject);
+	if (out.material == nullptr || out.subject == nullptr)
 	{
 		PaintRefinePanel_();
 		return false;
 	}
 
-	// 同一颗主体：只改等级/造价，搬进结果格，场/仓不再留影子。
-	takenSubject->SetLevel(newLevel);
-	takenSubject->SetBuyPrice(newPrice);
-	AdoptRefineResult_(std::move(takenSubject));
-	materialOwner->SyncAllVisuals();
-	if (subjectOwner != materialOwner)
+	out.material->EndLayoutGhost();
+	out.subject->EndLayoutGhost();
+	out.material->ClearIconRadiusOverride();
+	out.subject->ClearIconRadiusOverride();
+	out.material->ClearVisualRadiusOverride();
+	out.subject->ClearVisualRadiusOverride();
+	return true;
+}
+
+bool ModuleShop::TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse)
+{
+	if (!CanUpgradeRefine_())
 	{
-		subjectOwner->SyncAllVisuals();
+		return false;
+	}
+
+	RefineTakenPair_ taken;
+	if (!TryTakeRefinePair_(field, warehouse, taken))
+	{
+		return false;
+	}
+
+	const int newLevel = (std::max)(taken.subject->GetLevel() + 1, taken.material->GetLevel());
+	const int newPrice = taken.subject->GetBuyPrice() + taken.material->GetBuyPrice();
+	taken.material.reset();
+	taken.subject->SetLevel(newLevel);
+	taken.subject->SetBuyPrice(newPrice);
+	AdoptRefineResult_(std::move(taken.subject));
+	taken.materialOwner->SyncAllVisuals();
+	if (taken.subjectOwner != taken.materialOwner)
+	{
+		taken.subjectOwner->SyncAllVisuals();
 	}
 	return true;
 }
@@ -1918,47 +2149,22 @@ bool ModuleShop::TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse)
 	{
 		return false;
 	}
-
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	IModuleZone* materialOwner = FindRefineOwner_(material, field, warehouse);
-	IModuleZone* subjectOwner = FindRefineOwner_(subject, field, warehouse);
-	if (material == nullptr || subject == nullptr || materialOwner == nullptr || subjectOwner == nullptr)
-	{
-		return false;
-	}
 	if (gfx_ == nullptr || rg_ == nullptr)
 	{
 		return false;
 	}
 
-	if (!GameStatsCodex::TrySpendCurrency(kRefineOpCost_))
+	RefineTakenPair_ taken;
+	if (!TryTakeRefinePair_(field, warehouse, taken))
 	{
 		return false;
 	}
-
-	UnbindRefine(material);
-	UnbindRefine(subject);
-	std::unique_ptr<IModuleNode> takenMaterial = materialOwner->TakeNode(material);
-	std::unique_ptr<IModuleNode> takenSubject = subjectOwner->TakeNode(subject);
-	if (takenMaterial == nullptr || takenSubject == nullptr)
-	{
-		PaintRefinePanel_();
-		return false;
-	}
-
-	takenMaterial->EndLayoutGhost();
-	takenSubject->EndLayoutGhost();
-	takenMaterial->ClearIconRadiusOverride();
-	takenSubject->ClearIconRadiusOverride();
-	takenMaterial->ClearVisualRadiusOverride();
-	takenSubject->ClearVisualRadiusOverride();
 
 	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
 	const DirectX::XMFLOAT2 local{ wc.x - origin_.x, wc.y - origin_.y };
 	std::unique_ptr<IModuleNode> fusion = ModuleNodeFactory::MakeFusion(
-		std::move(takenSubject),
-		std::move(takenMaterial),
+		std::move(taken.subject),
+		std::move(taken.material),
 		local);
 	if (fusion == nullptr)
 	{
@@ -1968,10 +2174,59 @@ bool ModuleShop::TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse)
 
 	fusion->InitVisual(*gfx_, *rg_, origin_);
 	AdoptRefineResult_(std::move(fusion));
-	materialOwner->SyncAllVisuals();
-	if (subjectOwner != materialOwner)
+	taken.materialOwner->SyncAllVisuals();
+	if (taken.subjectOwner != taken.materialOwner)
 	{
-		subjectOwner->SyncAllVisuals();
+		taken.subjectOwner->SyncAllVisuals();
+	}
+	return true;
+}
+
+bool ModuleShop::TryEvolveRefine_(IModuleZone* field, IModuleZone* warehouse)
+{
+	if (!CanEvolveRefine_())
+	{
+		return false;
+	}
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return false;
+	}
+
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	ModuleNodeLabel productLabel = ModuleNodeLabel::Count;
+	if (!NodeEvolveRecipes::TryFind(
+		material->GetModuleNodeLabel(),
+		subject->GetModuleNodeLabel(),
+		productLabel))
+	{
+		return false;
+	}
+
+	RefineTakenPair_ taken;
+	if (!TryTakeRefinePair_(field, warehouse, taken))
+	{
+		return false;
+	}
+
+	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
+	const DirectX::XMFLOAT2 local{ wc.x - origin_.x, wc.y - origin_.y };
+	std::unique_ptr<IModuleNode> product = ModuleNodeFactory::MakeModuleNode(productLabel, local);
+	if (product == nullptr)
+	{
+		PaintRefinePanel_();
+		return false;
+	}
+
+	// 1 级新实例；造价与升级/合成相同，为两颗买入价之和。
+	product->SetBuyPrice(taken.material->GetBuyPrice() + taken.subject->GetBuyPrice());
+	product->InitVisual(*gfx_, *rg_, origin_);
+	AdoptRefineResult_(std::move(product));
+	taken.materialOwner->SyncAllVisuals();
+	if (taken.subjectOwner != taken.materialOwner)
+	{
+		taken.subjectOwner->SyncAllVisuals();
 	}
 	return true;
 }
@@ -1982,17 +2237,7 @@ bool ModuleShop::TryReturnRefine_()
 	{
 		return false;
 	}
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	if (material != nullptr)
-	{
-		EjectRefineOccupant_(*material);
-	}
-	if (subject != nullptr)
-	{
-		EjectRefineOccupant_(*subject);
-	}
-	PaintRefinePanel_();
+	ClearRefineParks();
 	return true;
 }
 
@@ -2007,6 +2252,10 @@ bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, 
 	{
 		return TryFuseRefine_(field, warehouse);
 	}
+	if (i == 2u)
+	{
+		return TryEvolveRefine_(field, warehouse);
+	}
 	if (i == 3u)
 	{
 		return TryReturnRefine_();
@@ -2016,11 +2265,15 @@ bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, 
 
 void ModuleShop::ClearRefineParks()
 {
-	// 只弹素材/主体；结果格 unique_ptr 留下直到 Reset 或拖出。
+	// 素材/主体：场/仓回残影；店有 Node 回结果栏。结果格 unique_ptr 留下直到 Reset 或拖出。
 	for (std::size_t i = 0; i < 2u; ++i)
 	{
 		IModuleNode* node = refineParked_[i];
 		if (node == nullptr)
+		{
+			continue;
+		}
+		if (ReturnShopOwnedToResult_(*node))
 		{
 			continue;
 		}
@@ -2029,6 +2282,7 @@ void ModuleShop::ClearRefineParks()
 		{
 			node->SetLocalPos(node->GetCollisionLocalPos());
 		}
+		node->EndLayoutGhost();
 		node->ClearIconRadiusOverride();
 		node->SyncVisual();
 	}
@@ -2153,7 +2407,7 @@ void ModuleShop::PaintRefinePanel_()
 	const bool btnLit[kRefineButtonCount_] = {
 		CanUpgradeRefine_(),
 		CanFuseRefine_(),
-		false,
+		CanEvolveRefine_(),
 		CanReturnRefine_()
 	};
 	for (std::size_t i = 0; i < kRefineButtonCount_; ++i)
@@ -2199,6 +2453,7 @@ void ModuleShop::PaintRefinePanel_()
 
 	paintedUpgradeLit_ = btnLit[0];
 	paintedFuseLit_ = btnLit[1];
+	paintedEvolveLit_ = btnLit[2];
 	paintedReturnLit_ = btnLit[3];
 	paintedRefineCurrency_ = GameStatsCodex::GetCurrency();
 	canvas.NotifyPixelsChanged();
