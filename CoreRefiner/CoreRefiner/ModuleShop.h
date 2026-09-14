@@ -210,9 +210,11 @@ private:
 	[[nodiscard]] float RefineSlotIconRadius_() const noexcept;
 	void EjectRefineOccupant_(IModuleNode& occupant);
 	[[nodiscard]] bool CanUpgradeRefine_() const noexcept;
+	[[nodiscard]] bool CanFuseRefine_() const noexcept;
 	[[nodiscard]] bool CanReturnRefine_() const noexcept;
 	[[nodiscard]] IModuleZone* FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept;
 	bool TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse);
+	bool TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse);
 	bool TryReturnRefine_();
 	void AdoptRefineResult_(std::unique_ptr<IModuleNode> node);
 	void PlaceRefineResultVisual_();
@@ -225,6 +227,7 @@ private:
 	std::array<IModuleNode*, kRefineSlotCount_> refineParked_{};
 	std::unique_ptr<IModuleNode> refineResult_{};
 	bool paintedUpgradeLit_{ false };
+	bool paintedFuseLit_{ false };
 	bool paintedReturnLit_{ false };
 	int paintedRefineCurrency_{ -1 };
 

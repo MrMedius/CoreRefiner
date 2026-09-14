@@ -17,6 +17,7 @@
 #include "ModuleNodeLabel.h"
 #include "ModuleNodeInfoCopy.h"
 #include "UiCopy.h"
+#include "Util.h"
 
 #include <algorithm>
 #include <cmath>
@@ -73,6 +74,9 @@ namespace
 		const int h = static_cast<int>(canvas.GetCanvasHeight());
 		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
 	}
+
+	// 货卡造价、顶栏金额、亮起的炼成费用共用。
+	constexpr Color kMoneyYellow{ 255u, 220u, 90u, 255u };
 
 	// 商店 UI 共用字体栈：YaHei，回退 Yu Gothic / Segoe。
 	void FillUiLabelRequest_(Text::RenderRequest& rq, const std::string& text, float fontSize, Color color)
@@ -197,7 +201,8 @@ namespace
 		int boxY,
 		int boxW,
 		int boxH,
-		Color color)
+		Color color,
+		const std::vector<Text::Span>& spans = {})
 	{
 		if (text.empty() || boxW <= 0 || boxH <= 0)
 		{
@@ -219,6 +224,7 @@ namespace
 			static_cast<float>(boxW),
 			static_cast<float>(boxH));
 		rq.backgroundColor = Colors::None;
+		rq.spans = spans;
 		ctx.Render(canvas);
 	}
 
@@ -628,9 +634,10 @@ void ModuleShop::TickHud(float dt)
 	}
 	SyncHud();
 	const bool up = CanUpgradeRefine_();
+	const bool fuse = CanFuseRefine_();
 	const bool back = CanReturnRefine_();
 	const int cur = GameStatsCodex::GetCurrency();
-	if (up != paintedUpgradeLit_ || back != paintedReturnLit_ || cur != paintedRefineCurrency_)
+	if (up != paintedUpgradeLit_ || fuse != paintedFuseLit_ || back != paintedReturnLit_ || cur != paintedRefineCurrency_)
 	{
 		PaintRefinePanel_();
 	}
@@ -1064,7 +1071,7 @@ void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
 
 	auto ctx = TextCodex::Get().BeginDraw();
 	Text::RenderRequest& rq = ctx.Request();
-	FillUiLabelRequest_(rq, std::to_string(value), kPriceFontSize, Colors::White);
+	FillUiLabelRequest_(rq, std::to_string(value), kPriceFontSize, kMoneyYellow);
 	rq.canvasMode = Text::CanvasMode::Auto;
 	rq.clearMode = Text::ClearMode::Clear;
 	rq.style.wordWrapEnabled = false;
@@ -1072,7 +1079,7 @@ void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
 	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
 	rq.maxWidthPx = 80.0f;
 	rq.paddingPx = 2;
-	rq.backgroundColor = Color{ 24u, 26u, 32u, 220u };
+	rq.backgroundColor = Colors::None;
 	ctx.Render(canvas);
 
 	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
@@ -1209,7 +1216,6 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 	constexpr Color kEmptyBg{ 28u, 36u, 52u, 150u };
 	constexpr Color kFrame{ 170u, 190u, 210u, 150u };
 	constexpr Color kFrameLocked{ 88u, 104u, 124u, 210u };
-	constexpr Color kPrice{ 255u, 220u, 90u, 255u };
 
 	const bool lockedLook = !empty && slot.locked;
 	const Color bg = empty ? kEmptyBg : (lockedLook ? kCardBgLocked : kCardBg);
@@ -1264,7 +1270,7 @@ void ModuleShop::PaintSlotCard_(std::size_t index)
 		6,
 		DWRITE_TEXT_ALIGNMENT_CENTER,
 		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-		kPrice);
+		kMoneyYellow);
 
 	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(slot.node->GetModuleNodeLabel());
 	DrawShopText_(
@@ -1759,6 +1765,34 @@ bool ModuleShop::CanUpgradeRefine_() const noexcept
 	return material->GetLevel() >= subject->GetLevel();
 }
 
+bool ModuleShop::CanFuseRefine_() const noexcept
+{
+	// 两边都是 3 级、Label 不同、都不是 Fusion、结果空、至少 1 元。Core 不能合成。
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	if (material == nullptr || subject == nullptr || refineParked_[2] != nullptr || refineResult_ != nullptr)
+	{
+		return false;
+	}
+	if (GameStatsCodex::GetCurrency() < kRefineOpCost_)
+	{
+		return false;
+	}
+	if (material->IsCore() || subject->IsCore())
+	{
+		return false;
+	}
+	if (material->GetKind() == ModuleNodeKind::Fusion || subject->GetKind() == ModuleNodeKind::Fusion)
+	{
+		return false;
+	}
+	if (material->GetLevel() < ModuleNodeLevel::kMax || subject->GetLevel() < ModuleNodeLevel::kMax)
+	{
+		return false;
+	}
+	return material->GetModuleNodeLabel() != subject->GetModuleNodeLabel();
+}
+
 bool ModuleShop::CanReturnRefine_() const noexcept
 {
 	return refineParked_[0] != nullptr || refineParked_[1] != nullptr;
@@ -1828,6 +1862,70 @@ bool ModuleShop::TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse)
 	return true;
 }
 
+bool ModuleShop::TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse)
+{
+	if (!CanFuseRefine_())
+	{
+		return false;
+	}
+
+	IModuleNode* material = refineParked_[0];
+	IModuleNode* subject = refineParked_[1];
+	IModuleZone* materialOwner = FindRefineOwner_(material, field, warehouse);
+	IModuleZone* subjectOwner = FindRefineOwner_(subject, field, warehouse);
+	if (material == nullptr || subject == nullptr || materialOwner == nullptr || subjectOwner == nullptr)
+	{
+		return false;
+	}
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return false;
+	}
+
+	if (!GameStatsCodex::TrySpendCurrency(kRefineOpCost_))
+	{
+		return false;
+	}
+
+	UnbindRefine(material);
+	UnbindRefine(subject);
+	std::unique_ptr<IModuleNode> takenMaterial = materialOwner->TakeNode(material);
+	std::unique_ptr<IModuleNode> takenSubject = subjectOwner->TakeNode(subject);
+	if (takenMaterial == nullptr || takenSubject == nullptr)
+	{
+		PaintRefinePanel_();
+		return false;
+	}
+
+	takenMaterial->EndLayoutGhost();
+	takenSubject->EndLayoutGhost();
+	takenMaterial->ClearIconRadiusOverride();
+	takenSubject->ClearIconRadiusOverride();
+	takenMaterial->ClearVisualRadiusOverride();
+	takenSubject->ClearVisualRadiusOverride();
+
+	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
+	const DirectX::XMFLOAT2 local{ wc.x - origin_.x, wc.y - origin_.y };
+	std::unique_ptr<IModuleNode> fusion = ModuleNodeFactory::MakeFusion(
+		std::move(takenSubject),
+		std::move(takenMaterial),
+		local);
+	if (fusion == nullptr)
+	{
+		PaintRefinePanel_();
+		return false;
+	}
+
+	fusion->InitVisual(*gfx_, *rg_, origin_);
+	AdoptRefineResult_(std::move(fusion));
+	materialOwner->SyncAllVisuals();
+	if (subjectOwner != materialOwner)
+	{
+		subjectOwner->SyncAllVisuals();
+	}
+	return true;
+}
+
 bool ModuleShop::TryReturnRefine_()
 {
 	if (!CanReturnRefine_())
@@ -1854,6 +1952,10 @@ bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, 
 	if (i == 0u)
 	{
 		return TryUpgradeRefine_(field, warehouse);
+	}
+	if (i == 1u)
+	{
+		return TryFuseRefine_(field, warehouse);
 	}
 	if (i == 3u)
 	{
@@ -2000,7 +2102,7 @@ void ModuleShop::PaintRefinePanel_()
 	};
 	const bool btnLit[kRefineButtonCount_] = {
 		CanUpgradeRefine_(),
-		false,
+		CanFuseRefine_(),
 		false,
 		CanReturnRefine_()
 	};
@@ -2015,18 +2117,38 @@ void ModuleShop::PaintRefinePanel_()
 		const Color text = btnLit[i] ? kBtnTextLit : kBtnText;
 		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, btnCorner, bg);
 		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, btnCorner, frame);
+		std::string label = btnLabels[i];
+		std::vector<Text::Span> spans;
+		if (i < 3u)
+		{
+			// 升级/合成/进化常驻费用；亮起时只有数字变黄。
+			const std::string cost = std::to_string(kRefineOpCost_);
+			const UINT32 digitAt = static_cast<UINT32>(
+				Utf16CodeUnitCount(label) + Utf16CodeUnitCount(" "));
+			label += " " + cost;
+			if (btnLit[i])
+			{
+				Text::Span money{};
+				money.start = digitAt;
+				money.length = static_cast<UINT32>(Utf16CodeUnitCount(cost));
+				money.color = kMoneyYellow;
+				spans.push_back(money);
+			}
+		}
 		DrawShopLabelInBox_(
 			canvas,
-			btnLabels[i],
+			label,
 			btnFont,
 			x0,
 			y0,
 			btnW,
 			btnH,
-			text);
+			text,
+			spans);
 	}
 
 	paintedUpgradeLit_ = btnLit[0];
+	paintedFuseLit_ = btnLit[1];
 	paintedReturnLit_ = btnLit[3];
 	paintedRefineCurrency_ = GameStatsCodex::GetCurrency();
 	canvas.NotifyPixelsChanged();
