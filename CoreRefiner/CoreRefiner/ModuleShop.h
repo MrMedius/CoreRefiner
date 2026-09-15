@@ -3,6 +3,7 @@
 #include "Colors.h"
 #include "IModuleNode.h"
 #include "IModuleZone.h"
+#include "ModuleShopPanel.h"
 
 #include <array>
 #include <cstddef>
@@ -64,11 +65,10 @@ private:
 public:
 	static constexpr int kColumns = 5;
 	static constexpr std::size_t kSlotCount = static_cast<std::size_t>(kColumns);
-	static constexpr float kSlotMargin = 10.0f;
-	static constexpr float kCardWidth = 140.0f;
-	static constexpr float kCardHeight = 220.0f;
+	static constexpr float kSlotMargin = 5.0f;
+	static constexpr float kCardWidth = ModuleShopPanel::kWidth;
+	static constexpr float kCardHeight = ModuleShopPanel::kHeight;
 	static constexpr float kHudBarHeight = 32.0f;
-	static constexpr float kCardIconPad = 8.0f;
 	static constexpr float kPriceFontSize = 14.0f;
 	static constexpr float kStoredVisualRadius = 15.0f;
 
@@ -129,10 +129,12 @@ public:
 
 private:
 	// 买卖 · 逻辑
-	[[nodiscard]] DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) const noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) const;
+	[[nodiscard]] float SlotCardIconRadius_() const;
 	[[nodiscard]] float SlotPitchX_() const noexcept;
 	[[nodiscard]] float TradeHalfY_() const noexcept;
 	[[nodiscard]] float TradeCenterLocalY_() const noexcept;
+	[[nodiscard]] float CardCenterLocalX_(std::size_t index) const noexcept;
 	[[nodiscard]] float CardCenterLocalY_() const noexcept;
 	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
 	void RelayoutSlots_();
@@ -152,7 +154,6 @@ private:
 	void SyncTradePanelTransform_() noexcept;
 	void RefreshSlotCards_();
 	void EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintSlotCard_(std::size_t index);
 	void SyncSlotCardTransforms_() noexcept;
 	void EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
 	void PaintLockButton_(std::size_t index);
@@ -164,14 +165,14 @@ private:
 
 	std::array<Slot, kSlotCount> slots_{};
 	std::unique_ptr<Canvas2D> tradePanel_;
-	std::array<std::unique_ptr<Canvas2D>, kSlotCount> slotCards_{};
+	std::array<ModuleShopPanel, kSlotCount> slotPanels_{};
 	std::array<std::unique_ptr<Canvas2D>, kSlotCount> lockButtons_{};
 
 	static constexpr float kHudIconWorld_{ 24.0f };
 	static constexpr float kHudHitPad_{ 4.0f };
-	static constexpr float kLockButtonGap_{ 6.0f };
+	static constexpr float kLockButtonGap_{ 4.0f };
 	static constexpr unsigned kLockButtonPixels_{ 48u };
-	static constexpr float kLockButtonWorld_{ 36.0f };
+	static constexpr float kLockButtonWorld_{ 30.0f };
 	static constexpr unsigned kLockBorderTexels_{ 4u };
 	static constexpr unsigned kLockIconScale_{ 2u };
 	static constexpr int kRefreshBaseCost_{ 1 };

@@ -88,7 +88,12 @@ static_assert(ModuleNodeLevel::Clamp(99) == ModuleNodeLevel::kMax);
 // 独有属性一行：不含四基础。Panel 再映射到 GetStatCopy。
 enum class ModuleNodeUniqueStat : unsigned char
 {
-	RepeatCount,
+	LifetimeRate, // 生命周期倍率增幅
+	SpeedRate,    // 移动速度倍率增幅
+	SizeRate,     // 体积倍率增幅
+	DamageRate,   // 伤害倍率增幅
+	DamageFix,    // 固定伤害
+	RepeatCount,  // 重复节点个数
 	Count
 };
 

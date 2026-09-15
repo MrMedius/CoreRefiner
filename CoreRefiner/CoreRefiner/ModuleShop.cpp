@@ -14,8 +14,6 @@
 
 #include "ModuleShop.h"
 #include "ModuleNodeFactory.h"
-#include "ModuleNodeLabel.h"
-#include "ModuleNodeInfoCopy.h"
 #include "NodeEvolveRecipes.h"
 #include "UiCopy.h"
 #include "Util.h"
@@ -135,7 +133,8 @@ namespace
 		DWRITE_TEXT_ALIGNMENT align,
 		DWRITE_PARAGRAPH_ALIGNMENT para,
 		Color color,
-		const std::vector<Text::Span>& spans = {})
+		const std::vector<Text::Span>& spans = {},
+		bool wrap = true)
 	{
 		if (text.empty() || boxW <= 0 || boxH <= 0)
 		{
@@ -147,7 +146,7 @@ namespace
 		FillUiLabelRequest_(rq, text, fontSize, color);
 		rq.canvasMode = Text::CanvasMode::Fixed;
 		rq.clearMode = Text::ClearMode::NoClear;
-		rq.style.wordWrapEnabled = true;
+		rq.style.wordWrapEnabled = wrap;
 		rq.style.textAlign = align;
 		rq.style.paragraphAlign = para;
 		rq.paddingPx = paddingPx;
@@ -429,12 +428,9 @@ void ModuleShop::SubmitZoneBackground_()
 	{
 		tradePanel_->Submit(Chan::ui);
 	}
-	for (auto& card : slotCards_)
+	for (ModuleShopPanel& card : slotPanels_)
 	{
-		if (card != nullptr)
-		{
-			card->Submit(Chan::ui);
-		}
+		card.Submit();
 	}
 	if (refinePanel_ != nullptr)
 	{
@@ -468,12 +464,24 @@ float ModuleShop::SlotPitchX_() const noexcept
 	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
 }
 
-DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) const noexcept
+float ModuleShop::CardCenterLocalX_(std::size_t index) const noexcept
 {
 	const float pitch = SlotPitchX_();
-	const float x = (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
+	return (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
+}
+
+float ModuleShop::SlotCardIconRadius_() const
+{
+	return ModuleShopPanel::IconWorldRadius();
+}
+
+DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) const
+{
+	// Icon 在货卡顶区水平居中，其下才是标题/Kind。
+	const float r = SlotCardIconRadius_();
 	const float cardTop = CardCenterLocalY_() - kCardHeight * 0.5f;
-	const float y = cardTop + kCardIconPad + kStoredVisualRadius;
+	const float x = CardCenterLocalX_(index);
+	const float y = cardTop + ModuleShopPanel::kIconPad + r;
 	return DirectX::XMFLOAT2{ x, y };
 }
 
@@ -757,7 +765,7 @@ bool ModuleShop::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
 	}
 
 	slots_[i].locked = !slots_[i].locked;
-	PaintSlotCard_(i);
+	slotPanels_[i].Rebuild(slots_[i].node.get(), slots_[i].price, slots_[i].sold, slots_[i].locked);
 	PaintLockButton_(i);
 	return true;
 }
@@ -785,7 +793,7 @@ void ModuleShop::RelayoutSlots_()
 		}
 		node->SetLocalPos(SlotLocalPos_(i));
 		node->SetZoneOrigin(origin_);
-		node->SetVisualRadiusOverride(kStoredVisualRadius);
+		node->SetVisualRadiusOverride(SlotCardIconRadius_());
 		node->SyncVisual();
 	}
 	RefreshSlotCards_();
@@ -1201,7 +1209,8 @@ void ModuleShop::RefreshSlotCards_()
 	}
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		PaintSlotCard_(i);
+		const Slot& slot = slots_[i];
+		slotPanels_[i].Rebuild(slot.node.get(), slot.price, slot.sold, slot.locked);
 		PaintLockButton_(i);
 	}
 	SyncSlotCardTransforms_();
@@ -1211,102 +1220,10 @@ void ModuleShop::RefreshSlotCards_()
 
 void ModuleShop::EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	const unsigned w = (std::max)(1u, static_cast<unsigned>(std::lround(kCardWidth)));
-	const unsigned h = (std::max)(1u, static_cast<unsigned>(std::lround(kCardHeight)));
-	for (std::size_t i = 0; i < kSlotCount; ++i)
+	for (ModuleShopPanel& panel : slotPanels_)
 	{
-		EnsureCanvasSize_(slotCards_[i], gfx, rg, w, h);
+		panel.Ensure(gfx, rg);
 	}
-}
-
-void ModuleShop::PaintSlotCard_(std::size_t index)
-{
-	if (index >= kSlotCount || slotCards_[index] == nullptr)
-	{
-		return;
-	}
-
-	Canvas2D& canvas = *slotCards_[index];
-	const Slot& slot = slots_[index];
-	const bool empty = slot.sold || slot.node == nullptr;
-
-	constexpr Color kCardBg{ 42u, 56u, 78u, 190u };
-	constexpr Color kCardBgLocked{ 22u, 30u, 42u, 230u };
-	constexpr Color kEmptyBg{ 28u, 36u, 52u, 150u };
-	constexpr Color kFrame{ 170u, 190u, 210u, 150u };
-	constexpr Color kFrameLocked{ 88u, 104u, 124u, 210u };
-
-	const bool lockedLook = !empty && slot.locked;
-	const Color bg = empty ? kEmptyBg : (lockedLook ? kCardBgLocked : kCardBg);
-	const Color frame = lockedLook ? kFrameLocked : kFrame;
-
-	canvas.Clear(bg);
-	const int cw = static_cast<int>(canvas.GetCanvasWidth());
-	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	CanvasPixelDraw::DrawRectOutline(canvas, 1, 1, cw - 2, ch - 2, frame);
-
-	const int iconZoneH = static_cast<int>(std::lround(
-		kCardIconPad + kStoredVisualRadius * 2.0f + kCardIconPad));
-	CanvasPixelDraw::DrawHLine(canvas, 8, cw - 9, iconZoneH, frame);
-
-	if (slot.sold)
-	{
-		constexpr Color kSold{ 160u, 160u, 160u, 220u };
-		DrawShopText_(
-			canvas,
-			"SOLD OUT",
-			16.0f,
-			0,
-			0,
-			cw,
-			ch,
-			6,
-			DWRITE_TEXT_ALIGNMENT_CENTER,
-			DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-			kSold);
-		canvas.NotifyPixelsChanged();
-		return;
-	}
-	if (slot.node == nullptr)
-	{
-		canvas.NotifyPixelsChanged();
-		return;
-	}
-
-	// 价格贴在图标区下沿；描述吃剩余高度，避免整张卡当 layout。
-	const int priceTop = iconZoneH;
-	const int priceH = static_cast<int>(kPriceFontSize) + 8;
-	const int bodyTop = priceTop + priceH;
-	const int bodyH = ch - bodyTop;
-	DrawShopText_(
-		canvas,
-		std::to_string(slot.price),
-		kPriceFontSize,
-		0,
-		priceTop,
-		cw,
-		priceH,
-		6,
-		DWRITE_TEXT_ALIGNMENT_CENTER,
-		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-		kMoneyYellow);
-
-	const ModuleNodeInfoEntry& entry = GetModuleNodeInfoCopy(slot.node->GetModuleNodeLabel());
-	DrawShopText_(
-		canvas,
-		entry.ComposedText(),
-		13.0f,
-		0,
-		bodyTop,
-		cw,
-		bodyH,
-		6,
-		DWRITE_TEXT_ALIGNMENT_LEADING,
-		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-		Colors::White,
-		entry.spans);
-
-	canvas.NotifyPixelsChanged();
 }
 
 void ModuleShop::SyncSlotCardTransforms_() noexcept
@@ -1314,31 +1231,19 @@ void ModuleShop::SyncSlotCardTransforms_() noexcept
 	const float cardCenterLocalY = CardCenterLocalY_();
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		Canvas2D* canvas = slotCards_[i].get();
-		if (canvas == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 slot = SlotLocalPos_(i);
-		canvas->SetPosition(DirectX::XMFLOAT3{
-			origin_.x + slot.x,
+		slotPanels_[i].SetWorldCenter(DirectX::XMFLOAT3{
+			origin_.x + CardCenterLocalX_(i),
 			origin_.y + cardCenterLocalY,
 			0.0f
-		});
-		canvas->SetScale(DirectX::XMFLOAT3{
-			kCardWidth,
-			kCardHeight,
-			1.0f
 		});
 	}
 }
 
 DirectX::XMFLOAT2 ModuleShop::LockButtonCenter_(std::size_t index) const noexcept
 {
-	const DirectX::XMFLOAT2 slot = SlotLocalPos_(index);
 	const float cardBottom = origin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
 	return DirectX::XMFLOAT2{
-		std::round(origin_.x + slot.x),
+		std::round(origin_.x + CardCenterLocalX_(index)),
 		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
 	};
 }

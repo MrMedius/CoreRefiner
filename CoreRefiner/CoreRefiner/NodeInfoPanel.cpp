@@ -390,6 +390,21 @@ namespace
 			ModuleNodeStat stat = ModuleNodeStat::Count;
 			switch (row.id)
 			{
+			case ModuleNodeUniqueStat::LifetimeRate:
+				stat = ModuleNodeStat::LifetimeRate;
+				break;
+			case ModuleNodeUniqueStat::SpeedRate:
+				stat = ModuleNodeStat::SpeedRate;
+				break;
+			case ModuleNodeUniqueStat::SizeRate:
+				stat = ModuleNodeStat::SizeRate;
+				break;
+			case ModuleNodeUniqueStat::DamageRate:
+				stat = ModuleNodeStat::DamageRate;
+				break;
+			case ModuleNodeUniqueStat::DamageFix:
+				stat = ModuleNodeStat::DamageFix;
+				break;
 			case ModuleNodeUniqueStat::RepeatCount:
 				stat = ModuleNodeStat::RepeatCount;
 				break;

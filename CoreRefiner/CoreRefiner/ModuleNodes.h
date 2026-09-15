@@ -113,6 +113,11 @@ public:
 		AttackNodeStep_Attribute_LifetimeRate::Make(lifetimeRate_)->Apply(ctx);
 	}
 
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeUniqueStat::LifetimeRate, lifetimeRate_ });
+	}
+
 protected:
 	void ApplyLevelStats_() override
 	{
@@ -142,6 +147,11 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Attribute_SpeedRate::Make(speedRate_)->Apply(ctx);
+	}
+
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeUniqueStat::SpeedRate, speedRate_ });
 	}
 
 protected:
@@ -175,6 +185,11 @@ public:
 		AttackNodeStep_Attribute_SizeRate::Make(sizeRate_)->Apply(ctx);
 	}
 
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeUniqueStat::SizeRate, sizeRate_ });
+	}
+
 protected:
 	void ApplyLevelStats_() override
 	{
@@ -204,6 +219,11 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Attribute_DamageRate::Make(damageRate_)->Apply(ctx);
+	}
+
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeUniqueStat::DamageRate, damageRate_ });
 	}
 
 protected:
@@ -371,6 +391,11 @@ public:
 	void ApplyWarehouseBonus(Attack& attack) override
 	{
 		attack.Stats().damage.fix += damageFix_;
+	}
+
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeUniqueStat::DamageFix, damageFix_ });
 	}
 
 protected:
