@@ -2,6 +2,7 @@
 #include "DWriteCustomFontCollection.h"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -362,7 +363,12 @@ void TextCodex::DrawGlyphRunToCanvas(
     float baselineOriginX,
     float baselineOriginY,
     const DWRITE_GLYPH_RUN& glyphRun,
-    Color color)
+    Color color,
+    bool clipEnabled,
+    int clipX0,
+    int clipY0,
+    int clipX1,
+    int clipY1)
 {
     if (!initialized_) Init();
 
@@ -404,10 +410,14 @@ void TextCodex::DrawGlyphRunToCanvas(
         const int dstY = baseY + bounds.top + y;
         if (dstY < 0 || dstY >= static_cast<int>(surface.GetHeight()))
             continue;
+        if (clipEnabled && (dstY < clipY0 || dstY >= clipY1))
+            continue;
         for (int x = 0; x < texW; ++x)
         {
             const int dstX = baseX + bounds.left + x;
             if (dstX < 0 || dstX >= static_cast<int>(surface.GetWidth()))
+                continue;
+            if (clipEnabled && (dstX < clipX0 || dstX >= clipX1))
                 continue;
             const uint8_t cov = alpha[static_cast<size_t>(y) * texW + x];
             if (!cov) continue;

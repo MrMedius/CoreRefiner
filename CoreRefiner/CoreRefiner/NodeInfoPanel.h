@@ -2,11 +2,14 @@
 
 #include "ModuleNodeLabel.h"
 #include "ModuleNodeInfoCopy.h"
+#include "Colors.h"
 
 #include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
 class Canvas2D;
 class Graphics;
@@ -42,14 +45,41 @@ public:
 
 	void Hide() noexcept;
 
-	void Submit() const;
+	// 超框单行在此每帧滚 offset，不靠 RebuildContent_ 脏标记。
+	void Submit();
 
 private:
+	struct HeaderMarqueeLine_
+	{
+		std::string text;
+		std::vector<Text::Span> spans;
+		std::vector<ModuleNodeKind> fusionKinds;
+		Color color{ Colors::White };
+		int boxX{ 0 };
+		int boxY{ 0 };
+		int boxW{ 0 };
+		int boxH{ 0 };
+		float textW{ 0.0f };
+		float offsetPx{ 0.0f };
+		float holdRemain{ 0.0f };
+		enum class Phase : unsigned char
+		{
+			HoldStart,
+			ScrollToEnd,
+			HoldEnd,
+			ScrollGap
+		};
+		Phase phase{ Phase::HoldStart };
+		bool paintFusionKindBack{ false };
+	};
+
 	void RebuildContent_(
 		const ModuleNodeInfoEntry& entry,
 		const IModuleNode* node,
 		ModuleNodeLabel label);
 	void SyncPosition_(DirectX::XMFLOAT2 anchorGameXY);
+	void TickMarquee_();
+	void PaintMarqueeLine_(const HeaderMarqueeLine_& line);
 
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
@@ -65,6 +95,7 @@ private:
 	float maxWidthPx_{ kMaxWidthPx_ };
 	unsigned contentW_{ 1u };
 	unsigned contentH_{ 1u };
+	std::vector<HeaderMarqueeLine_> marquees_;
 
 	static constexpr float kScreenPad_{ 8.0f };
 	static constexpr float kAnchorGap_{ 16.0f };
@@ -74,4 +105,7 @@ private:
 	static constexpr int kHeaderIconTextGap_{ 8 };
 	static constexpr int kHeaderRuleGap_{ 4 };
 	static constexpr int kHeaderBodyGap_{ 6 };
+	static constexpr float kMarqueePxPerSec_{ 48.0f };
+	static constexpr float kMarqueeHoldSec_{ 0.75f };
+	static constexpr float kMarqueeGapPx_{ 40.0f };
 };

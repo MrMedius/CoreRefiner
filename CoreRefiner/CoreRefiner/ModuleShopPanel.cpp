@@ -3,6 +3,7 @@
 #include "Canvas.h"
 #include "Canvas2D.h"
 #include "CanvasPixelDraw.h"
+#include "CanvasTextDraw.h"
 #include "Channels.h"
 #include "Colors.h"
 #include "Graphics.h"
@@ -10,7 +11,6 @@
 #include "ModuleNodeInfoCopy.h"
 #include "ModuleNodes.h"
 #include "RenderGraph.h"
-#include "TextCodex.h"
 #include "Util.h"
 
 #include <algorithm>
@@ -31,100 +31,14 @@ namespace
 	constexpr Color kMoneyYellow{ 255u, 220u, 90u, 255u };
 	constexpr std::string_view kKindSep{ " / " };
 
-	void FillCardText_(Text::RenderRequest& rq, const std::string& text, float fontSize, Color color)
-	{
-		rq.text = text;
-		rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-		rq.fallbackFonts.clear();
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Yu Gothic UI"));
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-		rq.style.fontSize = fontSize;
-		rq.defaultColor = color;
-	}
-
-	void DrawCardText_(
-		Canvas2D& canvas,
-		const std::string& text,
-		float fontSize,
-		int boxX,
-		int boxY,
-		int boxW,
-		int boxH,
-		int paddingPx,
-		DWRITE_TEXT_ALIGNMENT align,
-		DWRITE_PARAGRAPH_ALIGNMENT para,
-		Color color,
-		const std::vector<Text::Span>& spans = {},
-		bool wrap = true)
-	{
-		if (text.empty() || boxW <= 0 || boxH <= 0)
-		{
-			return;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillCardText_(rq, text, fontSize, color);
-		rq.canvasMode = Text::CanvasMode::Fixed;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.style.wordWrapEnabled = wrap;
-		rq.style.textAlign = align;
-		rq.style.paragraphAlign = para;
-		rq.paddingPx = paddingPx;
-		rq.SetDestRect(
-			static_cast<float>(boxX),
-			static_cast<float>(boxY),
-			static_cast<float>(boxW),
-			static_cast<float>(boxH));
-		rq.backgroundColor = Colors::None;
-		rq.spans = spans;
-		ctx.Render(canvas);
-	}
-
-	[[nodiscard]] Text::MeasureResult MeasureCardText_(
-		const std::string& text,
-		float fontSize,
-		bool wrap,
-		float maxWidthPx)
-	{
-		Text::MeasureResult result{};
-		result.widthPx = 0u;
-		result.heightPx = 0u;
-		if (text.empty())
-		{
-			return result;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillCardText_(rq, text, fontSize, Colors::White);
-		rq.canvasMode = Text::CanvasMode::Auto;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.paddingPx = 0;
-		rq.style.wordWrapEnabled = wrap;
-		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-		rq.maxWidthPx = wrap ? maxWidthPx : 4096.0f;
-		return ctx.Measure();
-	}
-
 	[[nodiscard]] float CardFontSize_(float logical) noexcept
 	{
 		return logical * static_cast<float>(ModuleShopPanel::TexelScale());
 	}
 
-	void DrawCardHRule_(Canvas& canvas, int x0, int x1, int y, Color c)
-	{
-		const int t = ModuleShopPanel::TexelScale();
-		for (int i = 0; i < t; ++i)
-		{
-			CanvasPixelDraw::DrawHLine(canvas, x0, x1, y + i, c);
-		}
-	}
-
 	[[nodiscard]] int CardLineH_()
 	{
-		const unsigned h = MeasureCardText_(
+		const unsigned h = CanvasTextDraw::Measure(
 			"Lv.Max",
 			CardFontSize_(ModuleShopPanel::kHeaderFontSize),
 			false,
@@ -263,7 +177,7 @@ void ModuleShopPanel::PaintSold_()
 	Canvas2D& canvas = *canvas_;
 	const int texel = TexelScale();
 	constexpr Color kSold{ 160u, 160u, 160u, 220u };
-	DrawCardText_(
+	CanvasTextDraw::Draw(
 		canvas,
 		"SOLD OUT",
 		CardFontSize_(16.0f),
@@ -271,10 +185,12 @@ void ModuleShopPanel::PaintSold_()
 		0,
 		static_cast<int>(canvas.GetCanvasWidth()),
 		static_cast<int>(canvas.GetCanvasHeight()),
+		kSold,
+		true,
+		{},
 		6 * texel,
 		DWRITE_TEXT_ALIGNMENT_CENTER,
-		DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-		kSold);
+		DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 	canvas.NotifyPixelsChanged();
 }
 
@@ -297,7 +213,7 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 
 	const int titleY = pad + iconSide + pad;
 	const ModuleNodeInfoEntry entry = ComposeModuleNodeInfoCopy(node);
-	const int titleNatural = static_cast<int>(MeasureCardText_(
+	const int titleNatural = static_cast<int>(CanvasTextDraw::Measure(
 		entry.title,
 		headerFont,
 		true,
@@ -305,7 +221,7 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 	const int titleMaxH = 2 * lineH + headerGap;
 	const int titleH = (std::max)(1, (std::min)(titleMaxH, (std::max)(lineH, titleNatural)));
 
-	DrawCardText_(
+	CanvasTextDraw::Draw(
 		canvas,
 		entry.title,
 		headerFont,
@@ -313,12 +229,11 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 		titleY,
 		innerW,
 		titleH,
-		0,
-		DWRITE_TEXT_ALIGNMENT_CENTER,
-		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
 		Colors::White,
+		true,
 		entry.spans,
-		true);
+		0,
+		DWRITE_TEXT_ALIGNMENT_CENTER);
 
 	std::vector<ModuleNodeKind> kinds;
 	CollectShopHeaderKinds_(node, kinds);
@@ -326,7 +241,7 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 	std::vector<Text::Span> kindSpans;
 	BuildShopKindLine_(kinds, kindLine, kindSpans);
 	const int kindY = titleY + titleH + headerGap;
-	DrawCardText_(
+	CanvasTextDraw::Draw(
 		canvas,
 		kindLine,
 		headerFont,
@@ -334,22 +249,21 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 		kindY,
 		innerW,
 		lineH,
-		0,
-		DWRITE_TEXT_ALIGNMENT_CENTER,
-		DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
 		Colors::White,
+		false,
 		kindSpans,
-		false);
+		0,
+		DWRITE_TEXT_ALIGNMENT_CENTER);
 
 	const int headerBottom = kindY + lineH + pad;
-	DrawCardHRule_(canvas, pad, cw - pad - 1, headerBottom, frame);
+	CanvasTextDraw::DrawHRule(canvas, pad, cw - pad - 1, headerBottom, frame, texel);
 
 	const int priceH = static_cast<int>(kPriceFontSize) * texel + pad;
 	const int priceY = ch - pad - priceH;
 	const int priceRuleY = priceY - pad;
 	if (priceRuleY > headerBottom)
 	{
-		DrawCardHRule_(canvas, pad, cw - pad - 1, priceRuleY, frame);
+		CanvasTextDraw::DrawHRule(canvas, pad, cw - pad - 1, priceRuleY, frame, texel);
 	}
 
 	const std::vector<std::string> bodyBlocks = entry.BodyBlocks();
@@ -368,7 +282,7 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 			const int splitY = cursorY;
 			if (splitY < bodyLimitY)
 			{
-				DrawCardHRule_(canvas, pad, cw - pad - 1, splitY, frame);
+				CanvasTextDraw::DrawHRule(canvas, pad, cw - pad - 1, splitY, frame, texel);
 			}
 			cursorY = splitY + texel + pad;
 		}
@@ -377,13 +291,13 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 		{
 			break;
 		}
-		const int naturalH = static_cast<int>(MeasureCardText_(
+		const int naturalH = static_cast<int>(CanvasTextDraw::Measure(
 			block,
 			bodyFont,
 			true,
 			static_cast<float>(innerW)).heightPx);
 		const int h = (std::max)(1, (std::min)(remain, (std::max)(1, naturalH)));
-		DrawCardText_(
+		CanvasTextDraw::Draw(
 			canvas,
 			block,
 			bodyFont,
@@ -391,17 +305,13 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 			cursorY,
 			innerW,
 			h,
-			0,
-			DWRITE_TEXT_ALIGNMENT_LEADING,
-			DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
 			Colors::White,
-			{},
 			true);
 		cursorY += h;
 		drewBody = true;
 	}
 
-	DrawCardText_(
+	CanvasTextDraw::Draw(
 		canvas,
 		std::to_string(price),
 		priceFont,
@@ -409,10 +319,12 @@ void ModuleShopPanel::PaintStock_(const IModuleNode& node, int price, bool locke
 		priceY,
 		innerW,
 		priceH,
+		kMoneyYellow,
+		true,
+		{},
 		0,
 		DWRITE_TEXT_ALIGNMENT_CENTER,
-		DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-		kMoneyYellow);
+		DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
 	canvas.NotifyPixelsChanged();
 }

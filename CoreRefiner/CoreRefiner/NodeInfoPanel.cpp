@@ -3,6 +3,7 @@
 #include "Canvas.h"
 #include "Canvas2D.h"
 #include "CanvasPixelDraw.h"
+#include "CanvasTextDraw.h"
 #include "Channels.h"
 #include "Colors.h"
 #include "GameStatsCodex.h"
@@ -11,7 +12,7 @@
 #include "IModuleNode.h"
 #include "ModuleNodes.h"
 #include "RenderGraph.h"
-#include "TextCodex.h"
+#include "TimeCodex.h"
 #include "UiCopy.h"
 #include "Util.h"
 
@@ -64,17 +65,6 @@ namespace
 		}
 
 		return DirectX::XMFLOAT2{ cx, cy };
-	}
-
-	void FillPanelText_(Text::RenderRequest& rq, const std::string& text, float fontSize, Color color)
-	{
-		rq.text = text;
-		rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-		rq.fallbackFonts.clear();
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Yu Gothic UI"));
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-		rq.style.fontSize = fontSize;
-		rq.defaultColor = color;
 	}
 
 	[[nodiscard]] Color KindCopyColor_(ModuleNodeKind kind) noexcept
@@ -167,59 +157,6 @@ namespace
 		}
 	}
 
-	[[nodiscard]] Text::MeasureResult MeasurePanelText_(
-		const std::string& text,
-		float fontSize,
-		const std::vector<Text::Span>& spans)
-	{
-		Text::MeasureResult result{};
-		result.widthPx = 0u;
-		result.heightPx = 0u;
-		if (text.empty())
-		{
-			return result;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillPanelText_(rq, text, fontSize, Colors::White);
-		rq.canvasMode = Text::CanvasMode::Auto;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.paddingPx = 0;
-		rq.style.wordWrapEnabled = false;
-		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-		rq.maxWidthPx = 4096.0f;
-		rq.spans = spans;
-		return ctx.Measure();
-	}
-
-	[[nodiscard]] Text::MeasureResult MeasurePanelBody_(
-		const std::string& text,
-		float fontSize,
-		float maxWidthPx)
-	{
-		Text::MeasureResult result{};
-		result.widthPx = 0u;
-		result.heightPx = 0u;
-		if (text.empty() || maxWidthPx <= 0.0f)
-		{
-			return result;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillPanelText_(rq, text, fontSize, Colors::White);
-		rq.canvasMode = Text::CanvasMode::Auto;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.paddingPx = 0;
-		rq.style.wordWrapEnabled = true;
-		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-		rq.maxWidthPx = maxWidthPx;
-		return ctx.Measure();
-	}
-
 	[[nodiscard]] std::string FormatStatNumber_(float value)
 	{
 		char buf[32]{};
@@ -233,43 +170,6 @@ namespace
 			std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(value));
 		}
 		return buf;
-	}
-
-	void DrawPanelText_(
-		Canvas2D& canvas,
-		const std::string& text,
-		float fontSize,
-		int boxX,
-		int boxY,
-		int boxW,
-		int boxH,
-		Color color,
-		const std::vector<Text::Span>& spans,
-		bool wrap,
-		DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING)
-	{
-		if (text.empty() || boxW <= 0 || boxH <= 0)
-		{
-			return;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillPanelText_(rq, text, fontSize, color);
-		rq.canvasMode = Text::CanvasMode::Fixed;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.style.wordWrapEnabled = wrap;
-		rq.style.textAlign = align;
-		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-		rq.paddingPx = 0;
-		rq.SetDestRect(
-			static_cast<float>(boxX),
-			static_cast<float>(boxY),
-			static_cast<float>(boxW),
-			static_cast<float>(boxH));
-		rq.backgroundColor = Colors::None;
-		rq.spans = spans;
-		ctx.Render(canvas);
 	}
 
 	void BlitHeaderIcon_(
@@ -321,7 +221,7 @@ namespace
 		unsigned w = 1u;
 		for (const PanelStatRow& row : rows)
 		{
-			w = (std::max)(w, MeasurePanelText_(row.value, fontSize, {}).widthPx);
+			w = (std::max)(w, CanvasTextDraw::Measure(row.value, fontSize, false, 4096.0f).widthPx);
 		}
 		return w;
 	}
@@ -333,7 +233,8 @@ namespace
 		int textX,
 		int rowY,
 		int lineH,
-		int maxX)
+		int maxX,
+		int offsetX = 0)
 	{
 		if (lineH <= 0 || textX >= maxX || rowY < 0)
 		{
@@ -350,8 +251,8 @@ namespace
 			const std::string name = GetKindCopy(kinds[i]);
 			if (kinds[i] == ModuleNodeKind::Fusion && !name.empty())
 			{
-				const int x0 = textX + static_cast<int>(MeasurePanelText_(prefix, fontSize, {}).widthPx);
-				const int x1 = textX + static_cast<int>(MeasurePanelText_(prefix + name, fontSize, {}).widthPx) - 1;
+				const int x0 = textX + offsetX + static_cast<int>(CanvasTextDraw::Measure(prefix, fontSize, false, 4096.0f).widthPx);
+				const int x1 = textX + offsetX + static_cast<int>(CanvasTextDraw::Measure(prefix + name, fontSize, false, 4096.0f).widthPx) - 1;
 				int left = x0;
 				int right = x1;
 				if (left < textX)
@@ -435,7 +336,7 @@ namespace
 		for (std::size_t i = 0; i < rows.size(); ++i)
 		{
 			const PanelStatRow& row = rows[i];
-			DrawPanelText_(
+			CanvasTextDraw::Draw(
 				canvas,
 				row.label,
 				fontSize,
@@ -444,9 +345,8 @@ namespace
 				labelW,
 				lineH,
 				ink,
-				{},
 				false);
-			DrawPanelText_(
+			CanvasTextDraw::Draw(
 				canvas,
 				row.value,
 				fontSize,
@@ -455,8 +355,9 @@ namespace
 				valueColW,
 				lineH,
 				ink,
-				{},
 				false,
+				{},
+				0,
 				DWRITE_TEXT_ALIGNMENT_TRAILING);
 			y += lineH;
 			if (i + 1u < rows.size())
@@ -567,12 +468,13 @@ void NodeInfoPanel::Hide() noexcept
 	visible_ = false;
 }
 
-void NodeInfoPanel::Submit() const
+void NodeInfoPanel::Submit()
 {
 	if (!visible_ || canvas_ == nullptr)
 	{
 		return;
 	}
+	TickMarquee_();
 	canvas_->Submit(Chan::ui);
 }
 
@@ -581,6 +483,8 @@ void NodeInfoPanel::RebuildContent_(
 	const IModuleNode* node,
 	ModuleNodeLabel label)
 {
+	marquees_.clear();
+
 	std::vector<ModuleNodeKind> kinds;
 	CollectHeaderKinds_(node, label, kinds);
 
@@ -616,7 +520,7 @@ void NodeInfoPanel::RebuildContent_(
 		priceSpans.push_back(money);
 	}
 
-	const Text::MeasureResult lineProbe = MeasurePanelText_("Lv.Max", kFontSize_, {});
+	const Text::MeasureResult lineProbe = CanvasTextDraw::Measure("Lv.Max", kFontSize_, false, 4096.0f);
 	const int lineH = static_cast<int>((std::max)(1u, lineProbe.heightPx));
 	const int iconSide = 4 * lineH + 3 * kHeaderLineGap_;
 
@@ -657,9 +561,10 @@ void NodeInfoPanel::RebuildContent_(
 	int bodyDrawnCount = 0;
 	for (const std::string& block : bodyBlocks)
 	{
-		const int h = static_cast<int>(MeasurePanelBody_(
+		const int h = static_cast<int>(CanvasTextDraw::Measure(
 			block,
 			kFontSize_,
+			true,
 			static_cast<float>(innerW)).heightPx);
 		bodyHs.push_back(h);
 		if (h <= 0)
@@ -708,7 +613,41 @@ void NodeInfoPanel::RebuildContent_(
 	const int row3Y = row2Y + lineH + kHeaderLineGap_;
 	const int drawTextW = (std::max)(1, panelW - textX - pad);
 
-	DrawPanelText_(
+	auto considerHeaderMarquee = [&](
+		std::string text,
+		std::vector<Text::Span> spans,
+		int rowY,
+		bool fusionBack,
+		const std::vector<ModuleNodeKind>& fusionKinds)
+	{
+		if (text.empty())
+		{
+			return;
+		}
+		const float textW = static_cast<float>(CanvasTextDraw::Measure(text, kFontSize_, false, 4096.0f, spans).widthPx);
+		if (textW <= static_cast<float>(drawTextW) + 0.5f)
+		{
+			return;
+		}
+		HeaderMarqueeLine_ row{};
+		row.text = std::move(text);
+		row.spans = std::move(spans);
+		if (fusionBack)
+		{
+			row.fusionKinds = fusionKinds;
+		}
+		row.color = Colors::White;
+		row.boxX = textX;
+		row.boxY = rowY;
+		row.boxW = drawTextW;
+		row.boxH = lineH;
+		row.textW = textW;
+		row.holdRemain = kMarqueeHoldSec_;
+		row.paintFusionKindBack = fusionBack;
+		marquees_.push_back(std::move(row));
+	};
+
+	CanvasTextDraw::Draw(
 		*canvas_,
 		entry.title,
 		kFontSize_,
@@ -717,8 +656,9 @@ void NodeInfoPanel::RebuildContent_(
 		drawTextW,
 		lineH,
 		Colors::White,
-		entry.spans,
-		false);
+		false,
+		entry.spans);
+	considerHeaderMarquee(entry.title, entry.spans, row0Y, false, {});
 	FillFusionKindBacks_(
 		*canvas_,
 		kinds,
@@ -727,7 +667,7 @@ void NodeInfoPanel::RebuildContent_(
 		row1Y,
 		lineH,
 		textX + drawTextW);
-	DrawPanelText_(
+	CanvasTextDraw::Draw(
 		*canvas_,
 		kindLine,
 		kFontSize_,
@@ -736,9 +676,19 @@ void NodeInfoPanel::RebuildContent_(
 		drawTextW,
 		lineH,
 		Colors::White,
-		kindSpans,
-		false);
-	DrawPanelText_(
+		false,
+		kindSpans);
+	bool kindNeedsBack = false;
+	for (ModuleNodeKind k : kinds)
+	{
+		if (k == ModuleNodeKind::Fusion)
+		{
+			kindNeedsBack = true;
+			break;
+		}
+	}
+	considerHeaderMarquee(kindLine, kindSpans, row1Y, kindNeedsBack, kinds);
+	CanvasTextDraw::Draw(
 		*canvas_,
 		levelLine,
 		kFontSize_,
@@ -747,9 +697,8 @@ void NodeInfoPanel::RebuildContent_(
 		drawTextW,
 		lineH,
 		Colors::White,
-		{},
 		false);
-	DrawPanelText_(
+	CanvasTextDraw::Draw(
 		*canvas_,
 		priceLine,
 		kFontSize_,
@@ -758,11 +707,12 @@ void NodeInfoPanel::RebuildContent_(
 		drawTextW,
 		lineH,
 		Colors::White,
-		priceSpans,
-		false);
+		false,
+		priceSpans);
+	considerHeaderMarquee(priceLine, priceSpans, row3Y, false, {});
 
 	const int ruleY = pad + iconSide + kHeaderRuleGap_;
-	CanvasPixelDraw::DrawHLine(*canvas_, pad, panelW - pad - 1, ruleY, kHeaderRule);
+	CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, ruleY, kHeaderRule);
 
 	int cursorY = ruleY + 1;
 	if (bodySectionH > 0)
@@ -778,11 +728,11 @@ void NodeInfoPanel::RebuildContent_(
 			if (drewBody)
 			{
 				const int splitY = cursorY + kHeaderBodyGap_;
-				CanvasPixelDraw::DrawHLine(*canvas_, pad, panelW - pad - 1, splitY, kHeaderRule);
+				CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, splitY, kHeaderRule);
 				cursorY = splitY + 1;
 			}
 			const int bodyY = cursorY + kHeaderBodyGap_;
-			DrawPanelText_(
+			CanvasTextDraw::Draw(
 				*canvas_,
 				bodyBlocks[i],
 				kFontSize_,
@@ -791,13 +741,12 @@ void NodeInfoPanel::RebuildContent_(
 				innerW,
 				h,
 				Colors::White,
-				{},
 				true);
 			cursorY = bodyY + h;
 			drewBody = true;
 		}
 		const int bodyRuleY = cursorY + kHeaderRuleGap_;
-		CanvasPixelDraw::DrawHLine(*canvas_, pad, panelW - pad - 1, bodyRuleY, kHeaderRule);
+		CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, bodyRuleY, kHeaderRule);
 		cursorY = bodyRuleY + 1;
 	}
 
@@ -825,7 +774,7 @@ void NodeInfoPanel::RebuildContent_(
 	if (hasUnique)
 	{
 		const int uniqueRuleY = cursorY + kHeaderBodyGap_;
-		CanvasPixelDraw::DrawHLine(*canvas_, pad, panelW - pad - 1, uniqueRuleY, kHeaderRule);
+		CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, uniqueRuleY, kHeaderRule);
 		cursorY = uniqueRuleY + 1 + kHeaderBodyGap_;
 		if (!uniquePrimary.empty())
 		{
@@ -844,7 +793,7 @@ void NodeInfoPanel::RebuildContent_(
 		if (uniqueSplit)
 		{
 			const int splitRuleY = cursorY + kHeaderBodyGap_;
-			CanvasPixelDraw::DrawHLine(*canvas_, pad, panelW - pad - 1, splitRuleY, kHeaderRule);
+			CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, splitRuleY, kHeaderRule);
 			cursorY = splitRuleY + 1 + kHeaderBodyGap_;
 		}
 		if (!uniqueMaterial.empty())
@@ -904,4 +853,118 @@ void NodeInfoPanel::SyncPosition_(DirectX::XMFLOAT2 anchorGameXY)
 		kScreenPad_);
 
 	canvas_->SetPosition(DirectX::XMFLOAT3{ center.x, center.y, 0.0f });
+}
+
+void NodeInfoPanel::TickMarquee_()
+{
+	if (marquees_.empty() || canvas_ == nullptr)
+	{
+		return;
+	}
+
+	float dt = TimeCodex::Get().GetUnscaledDeltaTime();
+	if (dt < 0.0f)
+	{
+		dt = 0.0f;
+	}
+	if (dt > 0.05f)
+	{
+		dt = 0.05f;
+	}
+
+	for (HeaderMarqueeLine_& line : marquees_)
+	{
+		const float maxShift = line.textW - static_cast<float>(line.boxW);
+		const float loopShift = line.textW + kMarqueeGapPx_;
+		switch (line.phase)
+		{
+		case HeaderMarqueeLine_::Phase::HoldStart:
+			line.holdRemain -= dt;
+			if (line.holdRemain <= 0.0f)
+			{
+				line.phase = HeaderMarqueeLine_::Phase::ScrollToEnd;
+			}
+			break;
+		case HeaderMarqueeLine_::Phase::ScrollToEnd:
+			line.offsetPx -= kMarqueePxPerSec_ * dt;
+			if (line.offsetPx <= -maxShift)
+			{
+				line.offsetPx = -maxShift;
+				line.phase = HeaderMarqueeLine_::Phase::HoldEnd;
+				line.holdRemain = kMarqueeHoldSec_;
+			}
+			break;
+		case HeaderMarqueeLine_::Phase::HoldEnd:
+			line.holdRemain -= dt;
+			if (line.holdRemain <= 0.0f)
+			{
+				line.phase = HeaderMarqueeLine_::Phase::ScrollGap;
+			}
+			break;
+		case HeaderMarqueeLine_::Phase::ScrollGap:
+			line.offsetPx -= kMarqueePxPerSec_ * dt;
+			if (line.offsetPx <= -loopShift)
+			{
+				line.offsetPx = 0.0f;
+				line.phase = HeaderMarqueeLine_::Phase::HoldStart;
+				line.holdRemain = kMarqueeHoldSec_;
+			}
+			break;
+		}
+		PaintMarqueeLine_(line);
+	}
+
+	canvas_->NotifyPixelsChanged();
+}
+
+void NodeInfoPanel::PaintMarqueeLine_(const HeaderMarqueeLine_& line)
+{
+	if (canvas_ == nullptr || line.boxW <= 0 || line.boxH <= 0)
+	{
+		return;
+	}
+
+	CanvasPixelDraw::FillRect(
+		*canvas_,
+		static_cast<unsigned>(line.boxX),
+		static_cast<unsigned>(line.boxY),
+		static_cast<unsigned>(line.boxX + line.boxW - 1),
+		static_cast<unsigned>(line.boxY + line.boxH - 1),
+		kPanelBg);
+
+	const float copies[2]{
+		line.offsetPx,
+		line.offsetPx + line.textW + kMarqueeGapPx_
+	};
+	for (float off : copies)
+	{
+		const int ox = static_cast<int>(std::floor(off));
+		if (line.paintFusionKindBack)
+		{
+			FillFusionKindBacks_(
+				*canvas_,
+				line.fusionKinds,
+				kFontSize_,
+				line.boxX,
+				line.boxY,
+				line.boxH,
+				line.boxX + line.boxW,
+				ox);
+		}
+		CanvasTextDraw::Draw(
+			*canvas_,
+			line.text,
+			kFontSize_,
+			line.boxX,
+			line.boxY,
+			line.boxW,
+			line.boxH,
+			line.color,
+			false,
+			line.spans,
+			0,
+			DWRITE_TEXT_ALIGNMENT_LEADING,
+			DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+			off);
+	}
 }

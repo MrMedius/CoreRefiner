@@ -24,8 +24,19 @@ namespace
         return fallback;
     }
 
-    /** 轴对齐矩形填充（像素坐标，含简单裁剪）。 */
-    void FillSolidRect(Canvas& canvas, int x0, int y0, int x1, int y1, Color color)
+    // 轴对齐矩形填充；可再与 dest clip 求交。
+    void FillSolidRect(
+        Canvas& canvas,
+        int x0,
+        int y0,
+        int x1,
+        int y1,
+        Color color,
+        bool clipEnabled,
+        int clipX0,
+        int clipY0,
+        int clipX1,
+        int clipY1)
     {
         Surface& surface = canvas.GetSurface();
         const int w = static_cast<int>(surface.GetWidth());
@@ -34,6 +45,13 @@ namespace
         y0 = std::max(0, y0);
         x1 = std::min(w, x1);
         y1 = std::min(h, y1);
+        if (clipEnabled)
+        {
+            x0 = std::max(x0, clipX0);
+            y0 = std::max(y0, clipY0);
+            x1 = std::min(x1, clipX1);
+            y1 = std::min(y1, clipY1);
+        }
         if (x0 >= x1 || y0 >= y1)
             return;
 
@@ -49,7 +67,12 @@ namespace
         float baselineOriginX,
         float baselineOriginY,
         const DWRITE_UNDERLINE* u,
-        Color color)
+        Color color,
+        bool clipEnabled,
+        int clipX0,
+        int clipY0,
+        int clipX1,
+        int clipY1)
     {
         if (!u || u->width <= 0.0f || u->thickness <= 0.0f)
             return;
@@ -64,7 +87,7 @@ namespace
         const int x1 = static_cast<int>(std::ceil(left + width));
         const int y1 = static_cast<int>(std::ceil(top + thick));
 
-        FillSolidRect(canvas, x0, y0, x1, y1, color);
+        FillSolidRect(canvas, x0, y0, x1, y1, color, clipEnabled, clipX0, clipY0, clipX1, clipY1);
     }
 
     void FillStrikethroughBand(
@@ -72,7 +95,12 @@ namespace
         float baselineOriginX,
         float baselineOriginY,
         const DWRITE_STRIKETHROUGH* s,
-        Color color)
+        Color color,
+        bool clipEnabled,
+        int clipX0,
+        int clipY0,
+        int clipX1,
+        int clipY1)
     {
         if (!s || s->width <= 0.0f || s->thickness <= 0.0f)
             return;
@@ -87,14 +115,30 @@ namespace
         const int x1 = static_cast<int>(std::ceil(left + width));
         const int y1 = static_cast<int>(std::ceil(top + thick));
 
-        FillSolidRect(canvas, x0, y0, x1, y1, color);
+        FillSolidRect(canvas, x0, y0, x1, y1, color, clipEnabled, clipX0, clipY0, clipX1, clipY1);
     }
 }
 
 namespace Text
 {
-    DWriteLayoutRenderer::DWriteLayoutRenderer(TextCodex& codex, Canvas& canvas, Color defaultColor)
-        : codex_(codex), canvas_(canvas), defaultColor_(defaultColor)
+    DWriteLayoutRenderer::DWriteLayoutRenderer(
+        TextCodex& codex,
+        Canvas& canvas,
+        Color defaultColor,
+        bool clipEnabled,
+        int clipX0,
+        int clipY0,
+        int clipX1,
+        int clipY1)
+        :
+        codex_(codex),
+        canvas_(canvas),
+        defaultColor_(defaultColor),
+        clipEnabled_(clipEnabled),
+        clipX0_(clipX0),
+        clipY0_(clipY0),
+        clipX1_(clipX1),
+        clipY1_(clipY1)
     {
     }
 
@@ -156,7 +200,17 @@ namespace Text
         if (!glyphRun) return E_INVALIDARG;
 
         const Color c = ResolveDrawColor(defaultColor_, clientDrawingEffect);
-        codex_.DrawGlyphRunToCanvas(canvas_, baselineOriginX, baselineOriginY, *glyphRun, c);
+        codex_.DrawGlyphRunToCanvas(
+            canvas_,
+            baselineOriginX,
+            baselineOriginY,
+            *glyphRun,
+            c,
+            clipEnabled_,
+            clipX0_,
+            clipY0_,
+            clipX1_,
+            clipY1_);
         return S_OK;
     }
 
@@ -169,7 +223,17 @@ namespace Text
     {
         if (!underline) return E_INVALIDARG;
         const Color c = ResolveDrawColor(defaultColor_, clientDrawingEffect);
-        FillUnderlineBand(canvas_, baselineOriginX, baselineOriginY, underline, c);
+        FillUnderlineBand(
+            canvas_,
+            baselineOriginX,
+            baselineOriginY,
+            underline,
+            c,
+            clipEnabled_,
+            clipX0_,
+            clipY0_,
+            clipX1_,
+            clipY1_);
         return S_OK;
     }
 
@@ -182,7 +246,17 @@ namespace Text
     {
         if (!strikethrough) return E_INVALIDARG;
         const Color c = ResolveDrawColor(defaultColor_, clientDrawingEffect);
-        FillStrikethroughBand(canvas_, baselineOriginX, baselineOriginY, strikethrough, c);
+        FillStrikethroughBand(
+            canvas_,
+            baselineOriginX,
+            baselineOriginY,
+            strikethrough,
+            c,
+            clipEnabled_,
+            clipX0_,
+            clipY0_,
+            clipX1_,
+            clipY1_);
         return S_OK;
     }
 

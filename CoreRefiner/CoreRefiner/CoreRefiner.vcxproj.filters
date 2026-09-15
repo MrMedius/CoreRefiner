@@ -1557,6 +1557,9 @@
     <ClInclude Include="ModuleShopPanel.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
+    <ClInclude Include="CanvasTextDraw.h">
+      <Filter>Tool\Art</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

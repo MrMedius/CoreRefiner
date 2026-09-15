@@ -9,7 +9,16 @@ namespace Text
     class DWriteLayoutRenderer final : public IDWriteTextRenderer
     {
     public:
-        DWriteLayoutRenderer(TextCodex& codex, Canvas& canvas, Color defaultColor);
+        // clipEnabled：只画 [clipX0, clipX1) × [clipY0, clipY1)，给 Fixed dest 裁超框字。
+        DWriteLayoutRenderer(
+            TextCodex& codex,
+            Canvas& canvas,
+            Color defaultColor,
+            bool clipEnabled = false,
+            int clipX0 = 0,
+            int clipY0 = 0,
+            int clipX1 = 0,
+            int clipY1 = 0);
 
         // IUnknown
         HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override;
@@ -43,5 +52,10 @@ namespace Text
         TextCodex& codex_;
         Canvas& canvas_;
         Color defaultColor_;
+        bool clipEnabled_{ false };
+        int clipX0_{ 0 };
+        int clipY0_{ 0 };
+        int clipX1_{ 0 };
+        int clipY1_{ 0 };
     };
 }

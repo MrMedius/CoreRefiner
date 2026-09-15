@@ -99,7 +99,12 @@ private:
         float baselineOriginX,
         float baselineOriginY,
         const DWRITE_GLYPH_RUN& glyphRun,
-        Color color);
+        Color color,
+        bool clipEnabled = false,
+        int clipX0 = 0,
+        int clipY0 = 0,
+        int clipX1 = 0,
+        int clipY1 = 0);
 
     // -------------------------------------------------------------------------
     // Cache key types (for systemFormats_ / fileFormats_ usage)

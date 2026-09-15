@@ -174,7 +174,28 @@ namespace Text
         float originY = destY + float(req.paddingPx) + std::max(0.0f, o.top) + req.drawOffsetYPx;
 
         Microsoft::WRL::ComPtr<IDWriteTextRenderer> renderer;
-        renderer.Attach(static_cast<IDWriteTextRenderer*>(new DWriteLayoutRenderer(codex_, canvas, req.defaultColor)));
+        bool clipEnabled = false;
+        int clipX0 = 0;
+        int clipY0 = 0;
+        int clipX1 = 0;
+        int clipY1 = 0;
+        if (req.HasDestRect())
+        {
+            clipEnabled = true;
+            clipX0 = static_cast<int>(std::floor(req.destXPx));
+            clipY0 = static_cast<int>(std::floor(req.destYPx));
+            clipX1 = static_cast<int>(std::ceil(req.destXPx + req.destWPx));
+            clipY1 = static_cast<int>(std::ceil(req.destYPx + req.destHPx));
+        }
+        renderer.Attach(static_cast<IDWriteTextRenderer*>(new DWriteLayoutRenderer(
+            codex_,
+            canvas,
+            req.defaultColor,
+            clipEnabled,
+            clipX0,
+            clipY0,
+            clipX1,
+            clipY1)));
 
         layout_->Draw(nullptr, renderer.Get(), originX, originY);
 
