@@ -80,13 +80,18 @@ DirectX::XMFLOAT2 ModuleField::WorldToLocal_(DirectX::XMFLOAT2 world) const noex
 	};
 }
 
-DirectX::XMFLOAT2 ModuleField::LocalToWorld_(DirectX::XMFLOAT2 local) const noexcept
+DirectX::XMFLOAT2 ModuleField::ContentLocalToWorld_(DirectX::XMFLOAT2 local) const noexcept
 {
 	const float s = DisplayScale_();
 	return DirectX::XMFLOAT2{
 		origin_.x + local.x * s,
 		origin_.y + local.y * s
 	};
+}
+
+float ModuleField::PickHitRadius_(const IModuleNode& node) const noexcept
+{
+	return node.GetHitRadius() * DisplayScale_();
 }
 
 bool ModuleField::TryAcceptDrop(
@@ -216,46 +221,4 @@ bool ModuleField::WouldOverlap(
 		}
 	}
 	return false;
-}
-
-IModuleNode* ModuleField::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
-{
-	IModuleNode* best = nullptr;
-	float bestDistSq = 1.0e9f;
-
-	for (auto& n : nodes_)
-	{
-		IModuleNode* node = n.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		// 炼成停放开着 ghost：只能从格子里点，影子不拾取。占用仍走 WouldOverlap。
-		if (node->IsLayoutGhostActive())
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 local = node->GetCollisionLocalPos();
-		const DirectX::XMFLOAT2 world = LocalToWorld_(local);
-		const Collider2D::CircleCollider hit{ world, node->GetHitRadius() * DisplayScale_() };
-		const Collider2D::PointCollider pt{ worldPos };
-		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
-		{
-			continue;
-		}
-		const float dx = worldPos.x - world.x;
-		const float dy = worldPos.y - world.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq < bestDistSq)
-		{
-			bestDistSq = distSq;
-			best = node;
-		}
-	}
-
-	if (best != nullptr)
-	{
-		outDistSq = bestDistSq;
-	}
-	return best;
 }

@@ -122,64 +122,6 @@ namespace
 			&& std::fabs(pos.y - center.y) <= half.y;
 	}
 
-	// 与 PaintRefinePanel_ 同一套四区等缝。slotXs[0/1/2] = 素材/主体/结果。
-	struct RefineLayout_
-	{
-		int pad{ 0 };
-		int side{ 0 };
-		int slotTop{ 0 };
-		int slotXs[3]{};
-		int btnW{ 120 };
-		int btnH{ 14 };
-		int btnX{ 0 };
-		int btnTop{ 0 };
-		int btnGap{ 5 };
-	};
-
-	[[nodiscard]] RefineLayout_ MakeRefineLayout_(int cw, int ch) noexcept
-	{
-		RefineLayout_ layout{};
-		layout.pad = (std::max)(8, ch / 14);
-		const int innerW = (std::max)(1, cw - layout.pad * 2);
-		const int innerH = (std::max)(1, ch - layout.pad * 2);
-		const int regionGapWanted = 64;
-		const int regionGapMin = 32;
-		layout.btnGap = 5;
-		constexpr int slotN = 3;
-		constexpr int buttonN = 4;
-		layout.btnW = 120;
-		layout.btnH = (std::max)(14, (innerH - layout.btnGap * (buttonN - 1)) / buttonN);
-		int side = innerH;
-		int regionGap = regionGapWanted;
-		const int gapN = slotN;
-		auto clusterW = [&]() noexcept
-		{
-			return side * slotN + regionGap * gapN + layout.btnW;
-		};
-		if (clusterW() > innerW)
-		{
-			regionGap = (std::max)(regionGapMin, (innerW - side * slotN - layout.btnW) / gapN);
-		}
-		if (clusterW() > innerW)
-		{
-			side = (std::max)(24, (innerW - regionGap * gapN - layout.btnW) / slotN);
-		}
-		if (clusterW() > innerW)
-		{
-			layout.btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
-		}
-		layout.side = side;
-		layout.slotTop = layout.pad + (std::max)(0, innerH - side) / 2;
-		const int groupX = layout.pad + (std::max)(0, innerW - clusterW()) / 2;
-		layout.slotXs[0] = groupX;
-		layout.slotXs[1] = groupX + side + regionGap;
-		layout.slotXs[2] = groupX + (side + regionGap) * 2;
-		layout.btnX = groupX + (side + regionGap) * slotN;
-		const int btnColH = layout.btnH * buttonN + layout.btnGap * (buttonN - 1);
-		layout.btnTop = layout.pad + (std::max)(0, innerH - btnColH) / 2;
-		return layout;
-	}
-
 	// Fixed 用 dest 做排版盒（不再认 maxWidthPx）。价格/描述各自收成一条带。
 	void DrawShopText_(
 		Canvas2D& canvas,
@@ -1510,54 +1452,118 @@ ModuleShop::BoundsWorld ModuleShop::GetRefineBoundsWorld_() const noexcept
 	return FunctionBandBounds_(0);
 }
 
-bool ModuleShop::RefineWorldToPixel_(DirectX::XMFLOAT2 world, float& px, float& py) const noexcept
+void ModuleShop::FillRefineLayout_(RefineLayout_& layout) noexcept
 {
-	const BoundsWorld b = GetRefineBoundsWorld_();
-	const float worldW = b.half.x * 2.0f;
-	const float worldH = b.half.y * 2.0f;
-	if (worldW <= 1.0e-4f || worldH <= 1.0e-4f)
+	layout.pad = (std::max)(8, layout.ch / 14);
+	const int innerW = (std::max)(1, layout.cw - layout.pad * 2);
+	const int innerH = (std::max)(1, layout.ch - layout.pad * 2);
+	const int regionGapWanted = 64;
+	const int regionGapMin = 32;
+	layout.btnGap = 5;
+	constexpr int slotN = 3;
+	constexpr int buttonN = 4;
+	layout.btnW = 120;
+	layout.btnH = (std::max)(14, (innerH - layout.btnGap * (buttonN - 1)) / buttonN);
+	int side = innerH;
+	int regionGap = regionGapWanted;
+	const int gapN = slotN;
+	auto clusterW = [&]() noexcept
 	{
-		return false;
+		return side * slotN + regionGap * gapN + layout.btnW;
+	};
+	if (clusterW() > innerW)
+	{
+		regionGap = (std::max)(regionGapMin, (innerW - side * slotN - layout.btnW) / gapN);
 	}
-	int cw = static_cast<int>(std::lround(worldW));
-	int ch = static_cast<int>(std::lround(worldH));
+	if (clusterW() > innerW)
+	{
+		side = (std::max)(24, (innerW - regionGap * gapN - layout.btnW) / slotN);
+	}
+	if (clusterW() > innerW)
+	{
+		layout.btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
+	}
+	layout.side = side;
+	layout.slotTop = layout.pad + (std::max)(0, innerH - side) / 2;
+	const int groupX = layout.pad + (std::max)(0, innerW - clusterW()) / 2;
+	layout.slotXs[0] = groupX;
+	layout.slotXs[1] = groupX + side + regionGap;
+	layout.slotXs[2] = groupX + (side + regionGap) * 2;
+	layout.btnX = groupX + (side + regionGap) * slotN;
+	const int btnColH = layout.btnH * buttonN + layout.btnGap * (buttonN - 1);
+	layout.btnTop = layout.pad + (std::max)(0, innerH - btnColH) / 2;
+}
+
+ModuleShop::RefineLayout_ ModuleShop::CurrentRefineLayout_() const noexcept
+{
+	RefineLayout_ layout{};
+	layout.bounds = GetRefineBoundsWorld_();
+	layout.cw = (std::max)(1, static_cast<int>(std::lround(layout.bounds.half.x * 2.0f)));
+	layout.ch = (std::max)(1, static_cast<int>(std::lround(layout.bounds.half.y * 2.0f)));
 	if (refinePanel_ != nullptr)
 	{
-		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
-		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
+		const int pw = static_cast<int>(refinePanel_->GetCanvasWidth());
+		const int ph = static_cast<int>(refinePanel_->GetCanvasHeight());
+		if (pw > 0)
+		{
+			layout.cw = pw;
+		}
+		if (ph > 0)
+		{
+			layout.ch = ph;
+		}
 	}
-	if (cw <= 0 || ch <= 0)
+	FillRefineLayout_(layout);
+	return layout;
+}
+
+bool ModuleShop::RefineWorldToPixel_(DirectX::XMFLOAT2 world, const RefineLayout_& layout, float& px, float& py) const noexcept
+{
+	const float worldW = layout.bounds.half.x * 2.0f;
+	const float worldH = layout.bounds.half.y * 2.0f;
+	if (worldW <= 1.0e-4f || worldH <= 1.0e-4f || layout.cw <= 0 || layout.ch <= 0)
 	{
 		return false;
 	}
-	px = (world.x - (b.center.x - b.half.x)) * (static_cast<float>(cw) / worldW);
-	py = (world.y - (b.center.y - b.half.y)) * (static_cast<float>(ch) / worldH);
+	px = (world.x - (layout.bounds.center.x - layout.bounds.half.x)) * (static_cast<float>(layout.cw) / worldW);
+	py = (world.y - (layout.bounds.center.y - layout.bounds.half.y)) * (static_cast<float>(layout.ch) / worldH);
 	return true;
+}
+
+DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenterFrom_(const RefineLayout_& layout, std::size_t slot) const noexcept
+{
+	if (slot >= kRefineSlotCount_ || layout.cw <= 0 || layout.ch <= 0)
+	{
+		return layout.bounds.center;
+	}
+	const float worldW = layout.bounds.half.x * 2.0f;
+	const float worldH = layout.bounds.half.y * 2.0f;
+	const float px = static_cast<float>(layout.slotXs[slot]) + static_cast<float>(layout.side) * 0.5f;
+	const float py = static_cast<float>(layout.slotTop) + static_cast<float>(layout.side) * 0.5f;
+	return DirectX::XMFLOAT2{
+		layout.bounds.center.x - layout.bounds.half.x + px * (worldW / static_cast<float>(layout.cw)),
+		layout.bounds.center.y - layout.bounds.half.y + py * (worldH / static_cast<float>(layout.ch))
+	};
+}
+
+float ModuleShop::RefineSlotIconRadiusFrom_(const RefineLayout_& layout) const noexcept
+{
+	if (layout.side <= 0 || layout.ch <= 0)
+	{
+		return 8.0f;
+	}
+	const float worldSide = static_cast<float>(layout.side) * ((layout.bounds.half.y * 2.0f) / static_cast<float>(layout.ch));
+	// 与仓库格相同：半径/格边 = 15/56（kStoredVisualRadius / kSlotPitch）。
+	constexpr float kIconToSlot = 15.0f / 56.0f;
+	return (std::max)(8.0f, worldSide * kIconToSlot);
 }
 
 std::size_t ModuleShop::HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
 {
+	const RefineLayout_ layout = CurrentRefineLayout_();
 	float px = 0.0f;
 	float py = 0.0f;
-	if (!RefineWorldToPixel_(worldPos, px, py))
-	{
-		return kRefineSlotCount_;
-	}
-	int cw = 1;
-	int ch = 1;
-	if (refinePanel_ != nullptr)
-	{
-		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
-		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
-	}
-	else
-	{
-		const BoundsWorld b = GetRefineBoundsWorld_();
-		cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
-		ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
-	}
-	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
-	if (layout.side <= 0)
+	if (!RefineWorldToPixel_(worldPos, layout, px, py) || layout.side <= 0)
 	{
 		return kRefineSlotCount_;
 	}
@@ -1577,27 +1583,10 @@ std::size_t ModuleShop::HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const no
 
 std::size_t ModuleShop::HitRefineButtonIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
 {
+	const RefineLayout_ layout = CurrentRefineLayout_();
 	float px = 0.0f;
 	float py = 0.0f;
-	if (!RefineWorldToPixel_(worldPos, px, py))
-	{
-		return kRefineButtonCount_;
-	}
-	int cw = 1;
-	int ch = 1;
-	if (refinePanel_ != nullptr)
-	{
-		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
-		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
-	}
-	else
-	{
-		const BoundsWorld b = GetRefineBoundsWorld_();
-		cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
-		ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
-	}
-	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
-	if (layout.btnW <= 0 || layout.btnH <= 0)
+	if (!RefineWorldToPixel_(worldPos, layout, px, py) || layout.btnW <= 0 || layout.btnH <= 0)
 	{
 		return kRefineButtonCount_;
 	}
@@ -1627,53 +1616,39 @@ std::size_t ModuleShop::HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noex
 
 DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenter(std::size_t slot) const noexcept
 {
-	const BoundsWorld b = GetRefineBoundsWorld_();
-	if (slot >= kRefineSlotCount_)
-	{
-		return b.center;
-	}
-	int cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
-	int ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
-	if (refinePanel_ != nullptr)
-	{
-		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
-		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
-	}
-	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
-	const float worldW = b.half.x * 2.0f;
-	const float worldH = b.half.y * 2.0f;
-	const float px = static_cast<float>(layout.slotXs[slot]) + static_cast<float>(layout.side) * 0.5f;
-	const float py = static_cast<float>(layout.slotTop) + static_cast<float>(layout.side) * 0.5f;
-	return DirectX::XMFLOAT2{
-		b.center.x - b.half.x + px * (worldW / static_cast<float>(cw)),
-		b.center.y - b.half.y + py * (worldH / static_cast<float>(ch))
-	};
+	const RefineLayout_ layout = CurrentRefineLayout_();
+	return RefineSlotWorldCenterFrom_(layout, slot);
 }
 
 float ModuleShop::RefineSlotIconRadius_() const noexcept
 {
-	const BoundsWorld b = GetRefineBoundsWorld_();
-	int cw = (std::max)(1, static_cast<int>(std::lround(b.half.x * 2.0f)));
-	int ch = (std::max)(1, static_cast<int>(std::lround(b.half.y * 2.0f)));
-	if (refinePanel_ != nullptr)
-	{
-		cw = static_cast<int>(refinePanel_->GetCanvasWidth());
-		ch = static_cast<int>(refinePanel_->GetCanvasHeight());
-	}
-	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
-	if (layout.side <= 0 || ch <= 0)
-	{
-		return 8.0f;
-	}
-	const float worldSide = static_cast<float>(layout.side) * ((b.half.y * 2.0f) / static_cast<float>(ch));
-	// 与仓库格相同：半径/格边 = 15/56（kStoredVisualRadius / kSlotPitch）。
-	constexpr float kIconToSlot = 15.0f / 56.0f;
-	return (std::max)(8.0f, worldSide * kIconToSlot);
+	return RefineSlotIconRadiusFrom_(CurrentRefineLayout_());
 }
 
 void ModuleShop::ApplyRefineParkIcon(IModuleNode& node) noexcept
 {
 	node.SetIconRadiusOverride(RefineSlotIconRadius_());
+}
+
+void ModuleShop::PlaceRefinePark_(std::size_t slot, IModuleNode& node, IModuleZone* owner)
+{
+	if (slot >= kRefineSlotCount_)
+	{
+		return;
+	}
+	const RefineLayout_ layout = CurrentRefineLayout_();
+	const DirectX::XMFLOAT3 origin = (owner != nullptr) ? owner->GetOrigin() : origin_;
+	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenterFrom_(layout, slot);
+	const float r = RefineSlotIconRadiusFrom_(layout);
+	node.SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin.x, wc.y - origin.y });
+	node.SetZoneOrigin(origin);
+	node.SetIconRadiusOverride(r);
+	if (slot == 2u)
+	{
+		node.EndLayoutGhost();
+		node.SetVisualRadiusOverride(r);
+	}
+	node.SyncVisual();
 }
 
 void ModuleShop::PinShopRefineHomeGhost(IModuleNode& node) noexcept
@@ -1804,14 +1779,7 @@ void ModuleShop::PlaceRefineResultVisual_()
 	{
 		return;
 	}
-	node->EndLayoutGhost();
-	const float r = RefineSlotIconRadius_();
-	node->SetIconRadiusOverride(r);
-	node->SetVisualRadiusOverride(r);
-	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
-	node->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
-	node->SetZoneOrigin(origin_);
-	node->SyncVisual();
+	PlaceRefinePark_(2u, *node, this);
 }
 
 void ModuleShop::AdoptRefineResult_(std::unique_ptr<IModuleNode> node)
@@ -1845,10 +1813,7 @@ void ModuleShop::RestoreRefineHeld(std::unique_ptr<IModuleNode> node, std::size_
 		refineFeedOwned_[slot] = std::move(node);
 		IModuleNode* parked = refineFeedOwned_[slot].get();
 		refineParked_[slot] = parked;
-		ApplyRefineParkIcon(*parked);
-		const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(slot);
-		parked->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
-		parked->SetZoneOrigin(origin_);
+		PlaceRefinePark_(slot, *parked, this);
 		PinShopRefineHomeGhost(*parked);
 		parked->SyncVisual();
 		PaintRefinePanel_();
@@ -1903,11 +1868,7 @@ void ModuleShop::RelocateShopOwnedToFeed_(std::size_t slot, IModuleNode& node)
 	{
 		return;
 	}
-	parked->SetZoneOrigin(origin_);
 	PinShopRefineHomeGhost(*parked);
-	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(slot);
-	parked->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
-	parked->SyncVisual();
 }
 
 bool ModuleShop::ReturnShopOwnedToResult_(IModuleNode& node)
@@ -1937,22 +1898,22 @@ bool ModuleShop::ReturnShopOwnedToResult_(IModuleNode& node)
 	return true;
 }
 
-void ModuleShop::EjectRefineOccupant_(IModuleNode& occupant)
+void ModuleShop::BounceRefinePark_(IModuleNode& node)
 {
-	if (ReturnShopOwnedToResult_(occupant))
+	if (ReturnShopOwnedToResult_(node))
 	{
 		return;
 	}
-	UnbindRefine(&occupant);
-	if (occupant.IsLayoutGhostActive())
+	UnbindRefine(&node);
+	if (node.IsLayoutGhostActive())
 	{
-		occupant.SetLocalPos(occupant.GetCollisionLocalPos());
-		occupant.EndLayoutGhost();
+		node.SetLocalPos(node.GetCollisionLocalPos());
 	}
-	occupant.SyncVisual();
+	node.EndLayoutGhost();
+	node.SyncVisual();
 }
 
-void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node)
+void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node, IModuleZone* owner)
 {
 	if (slot >= kRefineSlotCount_)
 	{
@@ -1968,12 +1929,12 @@ void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node)
 	{
 		if (occ != &node)
 		{
-			EjectRefineOccupant_(*occ);
+			BounceRefinePark_(*occ);
 		}
 	}
 	RelocateShopOwnedToFeed_(slot, node);
 	refineParked_[slot] = &node;
-	ApplyRefineParkIcon(node);
+	PlaceRefinePark_(slot, node, owner);
 	PaintRefinePanel_();
 }
 
@@ -2057,24 +2018,12 @@ bool ModuleShop::CanReturnRefine_() const noexcept
 
 IModuleZone* ModuleShop::FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept
 {
-	if (node == nullptr)
-	{
-		return nullptr;
-	}
-	if (IsShopRefineOwned(node))
-	{
-		return const_cast<ModuleShop*>(this);
-	}
-	const std::size_t npos = static_cast<std::size_t>(-1);
-	if (field != nullptr && field->FindNodeIndex(node) != npos)
-	{
-		return field;
-	}
-	if (warehouse != nullptr && warehouse->FindNodeIndex(node) != npos)
-	{
-		return warehouse;
-	}
-	return nullptr;
+	IModuleZone* zones[3]{
+		const_cast<ModuleShop*>(this),
+		field,
+		warehouse
+	};
+	return FindNodeOwnerZone(node, zones, 3);
 }
 
 bool ModuleShop::TryTakeRefinePair_(IModuleZone* field, IModuleZone* warehouse, RefineTakenPair_& out)
@@ -2273,18 +2222,7 @@ void ModuleShop::ClearRefineParks()
 		{
 			continue;
 		}
-		if (ReturnShopOwnedToResult_(*node))
-		{
-			continue;
-		}
-		refineParked_[i] = nullptr;
-		if (node->IsLayoutGhostActive())
-		{
-			node->SetLocalPos(node->GetCollisionLocalPos());
-		}
-		node->EndLayoutGhost();
-		node->ClearIconRadiusOverride();
-		node->SyncVisual();
+		BounceRefinePark_(*node);
 	}
 	PaintRefinePanel_();
 }
@@ -2323,9 +2261,7 @@ void ModuleShop::PaintRefinePanel_()
 		}
 	}
 
-	const int cw = static_cast<int>(canvas.GetCanvasWidth());
-	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	const RefineLayout_ layout = MakeRefineLayout_(cw, ch);
+	const RefineLayout_ layout = CurrentRefineLayout_();
 	const int side = layout.side;
 	const int slotTop = layout.slotTop;
 	const int* slotXs = layout.slotXs;

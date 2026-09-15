@@ -16,25 +16,6 @@ namespace
 	{
 		return ToIndex(id) < ZoneCount();
 	}
-
-	[[nodiscard]] IModuleZone* FindOwnerZone_(
-		const std::array<IModuleZone*, ZoneCount()>& zones,
-		const IModuleNode* node) noexcept
-	{
-		if (node == nullptr)
-		{
-			return nullptr;
-		}
-		const std::size_t npos = static_cast<std::size_t>(-1);
-		for (IModuleZone* zone : zones)
-		{
-			if (zone != nullptr && zone->FindNodeIndex(node) != npos)
-			{
-				return zone;
-			}
-		}
-		return nullptr;
-	}
 }
 
 void ZoneLayoutEditor::Begin(std::array<IModuleZone*, ZoneCount()> zones, std::array<DirectX::XMFLOAT3, ZoneCount()> origins, Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 combatFieldOrigin)
@@ -168,7 +149,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		{
 			dragged_ = hover_;
 			dragSource_ = hoverSource_;
-			if (IModuleZone* owner = FindOwnerZone_(zones_, dragged_))
+			if (IModuleZone* owner = OwnerZoneOf_(dragged_))
 			{
 				dragOrigin_ = owner->GetOrigin();
 			}
@@ -234,7 +215,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		DirectX::XMFLOAT3 ringOrigin = dragOrigin_;
 		if (dragged_ == nullptr)
 		{
-			if (IModuleZone* owner = FindOwnerZone_(zones_, ringTarget))
+			if (IModuleZone* owner = OwnerZoneOf_(ringTarget))
 			{
 				ringOrigin = owner->GetOrigin();
 			}
@@ -257,7 +238,7 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	}
 	else
 	{
-		IModuleZone* owner = FindOwnerZone_(zones_, hover_);
+		IModuleZone* owner = OwnerZoneOf_(hover_);
 		const DirectX::XMFLOAT3 origin = (owner != nullptr)
 			? owner->GetOrigin()
 			: OriginForSource_(hoverSource_);
@@ -379,6 +360,11 @@ IModuleZone* ZoneLayoutEditor::ZoneAt_(ZoneId id) const noexcept
 	return zones_[ToIndex(id)];
 }
 
+IModuleZone* ZoneLayoutEditor::OwnerZoneOf_(const IModuleNode* node) const noexcept
+{
+	return FindNodeOwnerZone(node, zones_.data(), ZoneCount());
+}
+
 void ZoneLayoutEditor::SetFreePreview_(IModuleNode& node, DirectX::XMFLOAT2 mouseGame)
 {
 	node.SetLocalPos(DirectX::XMFLOAT2{
@@ -414,7 +400,7 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 		}
 
 		const ZoneId target = static_cast<ZoneId>(i);
-		IModuleZone* owner = FindOwnerZone_(zones_, &node);
+		IModuleZone* owner = OwnerZoneOf_(&node);
 		auto* ownerShop = dynamic_cast<ModuleShop*>(owner);
 		const bool fromShopRefine = ownerShop != nullptr && ownerShop->IsShopRefineOwned(&node);
 		if (!fromShopRefine
@@ -446,7 +432,7 @@ void ZoneLayoutEditor::RevertDrag_()
 	}
 
 	dragged_->SetLocalPos(dragStartLocalPos_);
-	IModuleZone* owner = FindOwnerZone_(zones_, dragged_);
+	IModuleZone* owner = OwnerZoneOf_(dragged_);
 	if (owner == nullptr)
 	{
 		owner = ZoneAt_(dragSource_);
@@ -493,7 +479,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 
 	const DropEval_ eval = EvalDrop_(*dragged_);
 	IModuleZone* target = ZoneAt_(eval.target);
-	IModuleZone* owner = FindOwnerZone_(zones_, dragged_);
+	IModuleZone* owner = OwnerZoneOf_(dragged_);
 	if (owner == nullptr)
 	{
 		owner = ZoneAt_(dragSource_);
@@ -523,12 +509,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 				RevertDrag_();
 				return;
 			}
-			shop->ParkRefine(refineSlot, *node);
-			const DirectX::XMFLOAT2 wc = shop->RefineSlotWorldCenter(refineSlot);
-			const DirectX::XMFLOAT3 origin = owner->GetOrigin();
-			node->SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin.x, wc.y - origin.y });
-			node->SetZoneOrigin(origin);
-			node->SyncVisual();
+			shop->ParkRefine(refineSlot, *node, owner);
 			owner->SyncAllVisuals();
 			return;
 		}

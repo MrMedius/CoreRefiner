@@ -1,7 +1,6 @@
 #include "ModuleWarehouse.h"
 #include "CanvasPixelDraw.h"
 #include "Channels.h"
-#include "Collision2D.h"
 #include "Colors.h"
 #include "RenderGraph.h"
 
@@ -364,49 +363,4 @@ void ModuleWarehouse::SubmitNodes()
 			n->SubmitVisual();
 		}
 	}
-}
-
-IModuleNode* ModuleWarehouse::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
-{
-	IModuleNode* best = nullptr;
-	float bestDistSq = 1.0e9f;
-
-	for (auto& n : nodes_)
-	{
-		IModuleNode* node = n.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		// 炼成停放开着 ghost：只能从格子里点，影子不拾取。
-		if (node->IsLayoutGhostActive())
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 local = node->GetCollisionLocalPos();
-		const DirectX::XMFLOAT2 world{
-			warehouseOrigin_.x + local.x,
-			warehouseOrigin_.y + local.y
-		};
-		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
-		const Collider2D::PointCollider pt{ worldPos };
-		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
-		{
-			continue;
-		}
-		const float dx = worldPos.x - world.x;
-		const float dy = worldPos.y - world.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq < bestDistSq)
-		{
-			bestDistSq = distSq;
-			best = node;
-		}
-	}
-
-	if (best != nullptr)
-	{
-		outDistSq = bestDistSq;
-	}
-	return best;
 }

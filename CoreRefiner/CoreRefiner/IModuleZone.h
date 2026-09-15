@@ -105,7 +105,8 @@ public:
 
 	[[nodiscard]] virtual bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept = 0;
 
-	[[nodiscard]] virtual IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept = 0;
+	// 默认跳过 ghost，用碰撞位点选。Shop 点货卡/炼成格，自己 override。
+	[[nodiscard]] virtual IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept;
 
 	[[nodiscard]] virtual DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept = 0;
 
@@ -170,6 +171,11 @@ public:
 
 protected:
 	IModuleZone() = default;
+
+	// 内容本地 → 世界。默认 origin.xy + local（仓）。场地有 visualScale，自己 override。
+	[[nodiscard]] virtual DirectX::XMFLOAT2 ContentLocalToWorld_(DirectX::XMFLOAT2 local) const noexcept;
+	// 点选半径。默认 VisualRadius（仓）。场地用 hitRadius * DisplayScale。
+	[[nodiscard]] virtual float PickHitRadius_(const IModuleNode& node) const noexcept;
 
 	/** @brief 子类初始化自身内容视觉（不含外壳）。 */
 	virtual void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) = 0;

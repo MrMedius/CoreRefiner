@@ -154,14 +154,14 @@ public:
 
 	[[nodiscard]] bool WouldOverlap(const IModuleNode& self, DirectX::XMFLOAT2 fieldLocal) const noexcept;
 
-	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
-
 	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 
 protected:
 	void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) override;
 	void SyncZoneTransforms_() override;
 	void SubmitZoneBackground_() override;
+	[[nodiscard]] DirectX::XMFLOAT2 ContentLocalToWorld_(DirectX::XMFLOAT2 local) const noexcept override;
+	[[nodiscard]] float PickHitRadius_(const IModuleNode& node) const noexcept override;
 
 private:
 	std::vector<std::unique_ptr<IModuleNode>> nodes_;
@@ -172,5 +172,4 @@ private:
 	void ApplyDisplayScale_() noexcept;
 	[[nodiscard]] float DisplayScale_() const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT2 WorldToLocal_(DirectX::XMFLOAT2 world) const noexcept;
-	[[nodiscard]] DirectX::XMFLOAT2 LocalToWorld_(DirectX::XMFLOAT2 local) const noexcept;
 };

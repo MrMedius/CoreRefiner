@@ -194,7 +194,8 @@ public:
 	[[nodiscard]] std::size_t HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT2 RefineSlotWorldCenter(std::size_t slot) const noexcept;
 	[[nodiscard]] bool CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept;
-	void ParkRefine(std::size_t slot, IModuleNode& node);
+	// owner 用来把格子世界中心写成 localPos（场/仓/店）。
+	void ParkRefine(std::size_t slot, IModuleNode& node, IModuleZone* owner);
 	void UnbindRefine(IModuleNode* node) noexcept;
 	void ClearRefineParks();
 	void ClearRefineResult();
@@ -217,12 +218,33 @@ private:
 	static constexpr float kRefineSlotLabelFont_ = 20.0f;
 	static constexpr int kRefineOpCost_{ 1 };
 
+	struct RefineLayout_
+	{
+		BoundsWorld bounds{};
+		int cw{ 1 };
+		int ch{ 1 };
+		int pad{ 0 };
+		int side{ 0 };
+		int slotTop{ 0 };
+		int slotXs[3]{};
+		int btnW{ 120 };
+		int btnH{ 14 };
+		int btnX{ 0 };
+		int btnTop{ 0 };
+		int btnGap{ 5 };
+	};
 	[[nodiscard]] BoundsWorld GetRefineBoundsWorld_() const noexcept;
+	[[nodiscard]] RefineLayout_ CurrentRefineLayout_() const noexcept;
+	static void FillRefineLayout_(RefineLayout_& layout) noexcept;
+	[[nodiscard]] DirectX::XMFLOAT2 RefineSlotWorldCenterFrom_(const RefineLayout_& layout, std::size_t slot) const noexcept;
+	[[nodiscard]] float RefineSlotIconRadiusFrom_(const RefineLayout_& layout) const noexcept;
 	[[nodiscard]] std::size_t HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
 	[[nodiscard]] std::size_t HitRefineButtonIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
-	[[nodiscard]] bool RefineWorldToPixel_(DirectX::XMFLOAT2 world, float& px, float& py) const noexcept;
+	[[nodiscard]] bool RefineWorldToPixel_(DirectX::XMFLOAT2 world, const RefineLayout_& layout, float& px, float& py) const noexcept;
 	[[nodiscard]] float RefineSlotIconRadius_() const noexcept;
-	void EjectRefineOccupant_(IModuleNode& occupant);
+	void PlaceRefinePark_(std::size_t slot, IModuleNode& node, IModuleZone* owner);
+	// 按来源离开素材/主体格：店有回结果栏；场/仓回残影。
+	void BounceRefinePark_(IModuleNode& node);
 	[[nodiscard]] bool HasRefinePairReady_() const noexcept;
 	[[nodiscard]] bool CanUpgradeRefine_() const noexcept;
 	[[nodiscard]] bool CanFuseRefine_() const noexcept;
@@ -271,3 +293,38 @@ private:
 
 	std::unique_ptr<Canvas2D> function3Panel_;
 };
+
+// 这颗 Node 现在归谁。店有炼成必须先于场/仓 FindNodeIndex，否则结果格再炼会认错主人。
+[[nodiscard]] inline IModuleZone* FindNodeOwnerZone(
+	const IModuleNode* node,
+	IModuleZone* const* zones,
+	std::size_t count) noexcept
+{
+	if (node == nullptr || zones == nullptr)
+	{
+		return nullptr;
+	}
+	const std::size_t npos = static_cast<std::size_t>(-1);
+	for (std::size_t i = 0; i < count; ++i)
+	{
+		IModuleZone* zone = zones[i];
+		if (zone == nullptr)
+		{
+			continue;
+		}
+		if (const auto* shop = dynamic_cast<const ModuleShop*>(zone);
+			shop != nullptr && shop->IsShopRefineOwned(node))
+		{
+			return zone;
+		}
+	}
+	for (std::size_t i = 0; i < count; ++i)
+	{
+		IModuleZone* zone = zones[i];
+		if (zone != nullptr && zone->FindNodeIndex(node) != npos)
+		{
+			return zone;
+		}
+	}
+	return nullptr;
+}

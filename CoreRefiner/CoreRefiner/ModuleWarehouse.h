@@ -111,8 +111,6 @@ public:
 
 	void SubmitNodes() override;
 
-	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
-
 	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 	void OnSameZoneMove(IModuleNode& node, DirectX::XMFLOAT2 localPos) override;
 

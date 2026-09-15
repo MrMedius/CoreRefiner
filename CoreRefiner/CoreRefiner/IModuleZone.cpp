@@ -1,6 +1,7 @@
 #include "IModuleZone.h"
 #include "CanvasPixelDraw.h"
 #include "Channels.h"
+#include "Collision2D.h"
 #include "Colors.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
@@ -140,4 +141,56 @@ void IModuleZone::SubmitBackground()
 {
 	SubmitShell_();
 	SubmitZoneBackground_();
+}
+
+DirectX::XMFLOAT2 IModuleZone::ContentLocalToWorld_(DirectX::XMFLOAT2 local) const noexcept
+{
+	const DirectX::XMFLOAT3 o = GetOrigin();
+	return DirectX::XMFLOAT2{ o.x + local.x, o.y + local.y };
+}
+
+float IModuleZone::PickHitRadius_(const IModuleNode& node) const noexcept
+{
+	return node.GetVisualRadius();
+}
+
+IModuleNode* IModuleZone::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
+{
+	IModuleNode* best = nullptr;
+	float bestDistSq = 1.0e9f;
+
+	for (std::size_t i = 0; i < GetNodeCount(); ++i)
+	{
+		IModuleNode* node = GetNode(i);
+		if (node == nullptr)
+		{
+			continue;
+		}
+		// 炼成停放开着 ghost：只能从格子里点，影子不拾取。占用仍走碰撞位。
+		if (node->IsLayoutGhostActive())
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 world = ContentLocalToWorld_(node->GetCollisionLocalPos());
+		const Collider2D::CircleCollider hit{ world, PickHitRadius_(*node) };
+		const Collider2D::PointCollider pt{ worldPos };
+		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
+		{
+			continue;
+		}
+		const float dx = worldPos.x - world.x;
+		const float dy = worldPos.y - world.y;
+		const float distSq = dx * dx + dy * dy;
+		if (distSq < bestDistSq)
+		{
+			bestDistSq = distSq;
+			best = node;
+		}
+	}
+
+	if (best != nullptr)
+	{
+		outDistSq = bestDistSq;
+	}
+	return best;
 }

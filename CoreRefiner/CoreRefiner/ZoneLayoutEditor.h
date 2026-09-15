@@ -56,6 +56,7 @@ private:
 	[[nodiscard]] DirectX::XMFLOAT3 OriginForSource_(ZoneId source) const noexcept;
 	[[nodiscard]] DirectX::XMFLOAT2 WorldPosOf_(const IModuleNode& node, DirectX::XMFLOAT3 origin) const noexcept;
 	[[nodiscard]] IModuleZone* ZoneAt_(ZoneId id) const noexcept;
+	[[nodiscard]] IModuleZone* OwnerZoneOf_(const IModuleNode* node) const noexcept;
 
 	void SetFreePreview_(IModuleNode& node, DirectX::XMFLOAT2 mouseGame);
 
