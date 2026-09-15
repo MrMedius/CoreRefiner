@@ -2,13 +2,14 @@
 
 #include "Canvas2D.h"
 #include "Canvas2DSpriteUV.h"
-#include "ModuleNodeLabel.h"
 #include "Colors.h"
+#include "ModuleNodeLabel.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
+#include <vector>
 
 class Graphics;
 
@@ -83,6 +84,19 @@ struct ModuleNodeLevel
 static_assert(ModuleNodeLevel::kCount == static_cast<std::size_t>(ModuleNodeLevel::kMax - ModuleNodeLevel::kMin + 1));
 static_assert(ModuleNodeLevel::Clamp(0) == ModuleNodeLevel::kMin);
 static_assert(ModuleNodeLevel::Clamp(99) == ModuleNodeLevel::kMax);
+
+// 独有属性一行：不含四基础。Panel 再映射到 GetStatCopy。
+enum class ModuleNodeUniqueStat : unsigned char
+{
+	RepeatCount,
+	Count
+};
+
+struct ModuleNodeUniqueStatRow
+{
+	ModuleNodeUniqueStat id{ ModuleNodeUniqueStat::Count };
+	float value{ 0.0f };
+};
 
 // Node 买入造价。卖出价恒为买入的一半。不随等级自动变。
 struct ModuleNodePrice
@@ -286,6 +300,12 @@ protected:
 	ModuleNodeLevel level_{};
 
 public:
+	// 独有行写入 out，不含四基础。默认无行。
+	virtual void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const
+	{
+		(void)out;
+	}
+
 	// ---- 造价：默认买 4 / 卖 2；Core 为 0。炼成用 SetBuyPrice，不随 SetLevel ----
 	[[nodiscard]] int GetBuyPrice() const noexcept
 	{
@@ -421,6 +441,8 @@ protected:
 public:
 	// ---- 绘制与拖放残影 ----
 	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin);
+	// 把图集 Icon 画到任意 Canvas。asMask 为冷却/残影遮罩色。买卖卡不走这条。
+	virtual void BlitIcon(Canvas& canvas, bool asMask = false) const;
 	void SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept;
 	void SetZoneVisualScale(float scale) noexcept;
 	void SyncVisual();

@@ -1,12 +1,33 @@
 {
   "zh": {
+    "kinds": {
+      "Core": "核心类",
+      "Spawn": "生成类",
+      "Attribute": "属性类",
+      "Rule": "规则类",
+      "Passive": "被动类",
+      "Other": "其他类",
+      "Fusion": "合成类"
+    },
+    "stats": {
+      "node_radius": "节点半径",
+      "cooldown": "冷却时间",
+      "expand_radius": "扩散半径",
+      "expand_speed": "扩散速度",
+      "lifetime_rate": "生命周期倍率",
+      "speed_rate": "移动速度倍率",
+      "size_rate": "体积倍率",
+      "damage_rate": "伤害倍率",
+      "damage_fix": "固定伤害",
+      "repeat_count": "重复节点个数"
+    },
     "Core_Ball": {
-      "title": "核心球",
-      "body": "战场上必须有一颗。扫描命中后生成（或刷新）弹道根节点。商店不出售。",
+      "title": "核心·球体生成",
+      "body": "核心节点，每次攻击，扫描都会从这里开始。填充一发球体。若无栏位则组装并发射上一次攻击。",
       "spans": [
         {
           "start": 0,
-          "length": 3,
+          "length": 7,
           "r": 255,
           "g": 255,
           "b": 0,
@@ -16,27 +37,27 @@
       ]
     },
     "Spawn_Ball": {
-      "title": "生成球",
-      "body": "扫描命中后生成（或刷新）弹道根节点，并可作为后续扫描的接力点。",
+      "title": "球体生成",
+      "body": "填充一发球体。若无栏位则组装并发射上一次攻击。",
       "spans": [
         {
           "start": 0,
-          "length": 3,
+          "length": 4,
           "r": 255,
-          "g": 230,
-          "b": 80,
+          "g": 180,
+          "b": 60,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Attribute_LifetimeRate": {
-      "title": "存在时长",
-      "body": "影响子弹的存在时间。",
+      "title": "生命倍率增幅",
+      "body": "增加当前攻击节点的生命周期的倍率。",
       "spans": [
         {
           "start": 0,
-          "length": 2,
+          "length": 6,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -46,12 +67,12 @@
       ]
     },
     "Attribute_SpeedRate": {
-      "title": "速度倍率",
-      "body": "乘算弹道速度，大于 1 加快，小于 1 减慢。",
+      "title": "速度倍率增幅",
+      "body": "增加当前攻击节点的移动速度的倍率。",
       "spans": [
         {
           "start": 0,
-          "length": 4,
+          "length": 6,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -61,12 +82,12 @@
       ]
     },
     "Attribute_SizeRate": {
-      "title": "尺寸倍率",
-      "body": "加算弹体外形尺寸倍率。正值变大，负值变小。",
+      "title": "体积倍率增幅",
+      "body": "增加当前攻击节点的体积的倍率。",
       "spans": [
         {
           "start": 0,
-          "length": 4,
+          "length": 6,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -76,12 +97,12 @@
       ]
     },
     "Attribute_DamageRate": {
-      "title": "伤害倍率",
-      "body": "加算弹体伤害倍率。正值提高伤害，负值降低。",
+      "title": "伤害倍率增幅",
+      "body": "增加当前攻击节点的伤害的倍率。",
       "spans": [
         {
           "start": 0,
-          "length": 4,
+          "length": 6,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -91,72 +112,72 @@
       ]
     },
     "Rule_Orbit": {
-      "title": "环绕规则",
-      "body": "为弹道附加环绕运动规则，改变其相对父节点的运行轨迹。",
+      "title": "公转",
+      "body": "让攻击节点围绕自己的主体进行公转。",
       "spans": [
         {
           "start": 0,
-          "length": 4,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 2,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Return": {
-      "title": "返还规则",
-      "body": "从鼠标指向的地面生成，速度朝向玩家。生成点锁定时不改位置。",
+      "title": "逆向发射",
+      "body": "让这次攻击从瞄准点向角色方向发射。",
       "spans": [
         {
           "start": 0,
           "length": 4,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Child": {
-      "title": "子弹",
-      "body": "作为附加子节点挂接，扩展弹道树的结构与表现。",
+      "title": "子物体",
+      "body": "在主攻击节点周围开辟新的子物体栏位，并记录此栏位为聚焦的攻击节点。",
       "spans": [
         {
           "start": 0,
-          "length": 2,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 3,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Revive": {
-      "title": "复活",
-      "body": "主体照常发射。消失时在原处放出不带本节点的克隆；之后扫到的节点打在克隆上。",
+      "title": "重生",
+      "body": "使销毁的攻击在原地重新生成。重生的攻击可以继续叠加此节点后的其他节点，包括其他的重生节点。",
       "spans": [
         {
           "start": 0,
           "length": 2,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Passive_DamageFix": {
-      "title": "伤害固定",
-      "body": "放在仓库中时，开火给弹体伤害加算固定值。放在战场上扫描无效。",
+      "title": "固定伤害增幅",
+      "body": "如果处于仓库中，则为所有攻击节点增加固定伤害。",
       "spans": [
         {
           "start": 0,
-          "length": 4,
+          "length": 6,
           "r": 192,
           "g": 192,
           "b": 192,
@@ -167,13 +188,13 @@
     },
     "Other_Repeat": {
       "title": "重复",
-      "body": "把上一条装配再执行一次。复制复活等于多买一世。",
+      "body": "重复*重复节点个数*个节点。重复之间不会相互产生效果。",
       "spans": [
         {
           "start": 0,
           "length": 2,
           "r": 200,
-          "g": 180,
+          "g": 160,
           "b": 255,
           "a": 255,
           "weight": "bold"
@@ -182,13 +203,34 @@
     }
   },
   "ja": {
+    "kinds": {
+      "Core": "コアタイプ",
+      "Spawn": "生成タイプ",
+      "Attribute": "属性タイプ",
+      "Rule": "ルールタイプ",
+      "Passive": "パッシブタイプ",
+      "Other": "その他タイプ",
+      "Fusion": "合成タイプ"
+    },
+    "stats": {
+      "node_radius": "ノード半径",
+      "cooldown": "クールタイム",
+      "expand_radius": "拡散半径",
+      "expand_speed": "拡散速度",
+      "lifetime_rate": "寿命倍率",
+      "speed_rate": "移動速度倍率",
+      "size_rate": "体積倍率",
+      "damage_rate": "ダメージ倍率",
+      "damage_fix": "固定ダメージ",
+      "repeat_count": "繰り返しノード数"
+    },
     "Core_Ball": {
-      "title": "コアボール",
-      "body": "フィールドに必須。スキャン命中後に弾のルートを生成（または更新）する。店では売らない。",
+      "title": "コア・球体生成",
+      "body": "コアノード。攻撃のたびにスキャンはここから始まる。球体を1発充填する。空きスロットがなければ直前の攻撃を組み立てて発射する。",
       "spans": [
         {
           "start": 0,
-          "length": 5,
+          "length": 7,
           "r": 255,
           "g": 255,
           "b": 0,
@@ -198,27 +240,27 @@
       ]
     },
     "Spawn_Ball": {
-      "title": "ボール生成",
-      "body": "スキャン命中後に弾のルートを生成（または更新）し、続けてスキャンを繋げる起点にもなる。",
+      "title": "球体生成",
+      "body": "球体を1発充填する。空きスロットがなければ直前の攻撃を組み立てて発射する。",
       "spans": [
         {
           "start": 0,
-          "length": 6,
+          "length": 4,
           "r": 255,
-          "g": 230,
-          "b": 80,
+          "g": 180,
+          "b": 60,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Attribute_LifetimeRate": {
-      "title": "周波数",
-      "body": "弾に関する周波数パラメータを調整し、発射リズムや周期挙動に影響する。",
+      "title": "寿命倍率増幅",
+      "body": "現在の攻撃ノードの寿命倍率を増加する。",
       "spans": [
         {
           "start": 0,
-          "length": 3,
+          "length": 6,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -228,12 +270,12 @@
       ]
     },
     "Attribute_SpeedRate": {
-      "title": "速度倍率",
-      "body": "弾速に乗算する。1より大きいと加速、小さいと減速。",
+      "title": "速度倍率増幅",
+      "body": "現在の攻撃ノードの移動速度倍率を増加する。",
       "spans": [
         {
           "start": 0,
-          "length": 4,
+          "length": 6,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -243,8 +285,8 @@
       ]
     },
     "Attribute_SizeRate": {
-      "title": "サイズ倍率",
-      "body": "弾の外形サイズ倍率を加算する。正で大きく、負で小さく。",
+      "title": "体積倍率増幅",
+      "body": "現在の攻撃ノードの体積倍率を増加する。",
       "spans": [
         {
           "start": 0,
@@ -258,12 +300,12 @@
       ]
     },
     "Attribute_DamageRate": {
-      "title": "ダメージ倍率",
-      "body": "弾のダメージ倍率を加算する。正で増加、負で減少。",
+      "title": "ダメージ倍率増幅",
+      "body": "現在の攻撃ノードのダメージ倍率を増加する。",
       "spans": [
         {
           "start": 0,
-          "length": 7,
+          "length": 8,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -273,72 +315,72 @@
       ]
     },
     "Rule_Orbit": {
-      "title": "周回ルール",
-      "body": "弾に周回運動を付与し、親からの相対軌道を変える。",
+      "title": "公転",
+      "body": "攻撃ノードを自身の主体の周りで公転させる。",
       "spans": [
         {
           "start": 0,
-          "length": 5,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 2,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Return": {
-      "title": "帰還ルール",
-      "body": "マウスが指す地面から生成し、速度はプレイヤーへ向く。生成点がロックされていれば位置は変えない。",
+      "title": "逆方向発射",
+      "body": "この攻撃を照準地点からキャラクター方向へ発射する。",
       "spans": [
         {
           "start": 0,
           "length": 5,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Child": {
-      "title": "子弾",
-      "body": "追加の子ノードとして接続し、弾ツリーの構造と見た目を拡張する。",
+      "title": "子オブジェクト",
+      "body": "主攻撃ノードの周囲に新しい子オブジェクトのスロットを開き、そのスロットをフォーカス中の攻撃ノードとして記録する。",
       "spans": [
         {
           "start": 0,
-          "length": 2,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 7,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Revive": {
-      "title": "蘇生",
-      "body": "本体はそのまま発射。消滅地点で本ノードを持たないクローンを出す。以降のノードはクローンに付く。",
+      "title": "再生",
+      "body": "消滅した攻撃をその場で再生成する。再生成した攻撃は、このノード以降の他ノードを重ねられ、他の再生ノードも含む。",
       "spans": [
         {
           "start": 0,
           "length": 2,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Passive_DamageFix": {
-      "title": "固定ダメージ",
-      "body": "倉庫にあるとき、発射時に弾のダメージへ固定値を加算する。フィールド上のスキャンでは無効。",
+      "title": "固定ダメージ増幅",
+      "body": "倉庫にあるとき、すべての攻撃ノードに固定ダメージを加算する。",
       "spans": [
         {
           "start": 0,
-          "length": 6,
+          "length": 8,
           "r": 192,
           "g": 192,
           "b": 192,
@@ -349,13 +391,13 @@
     },
     "Other_Repeat": {
       "title": "反復",
-      "body": "直前の組み立てステップをもう一度適用する。蘇生ならもう一世。",
+      "body": "繰り返しノード数の個数だけノードを繰り返す。繰り返し同士は互いに影響しない。",
       "spans": [
         {
           "start": 0,
           "length": 2,
           "r": 200,
-          "g": 180,
+          "g": 160,
           "b": 255,
           "a": 255,
           "weight": "bold"
@@ -364,13 +406,34 @@
     }
   },
   "en": {
+    "kinds": {
+      "Core": "Core",
+      "Spawn": "Spawn",
+      "Attribute": "Attribute",
+      "Rule": "Rule",
+      "Passive": "Passive",
+      "Other": "Other",
+      "Fusion": "Fusion"
+    },
+    "stats": {
+      "node_radius": "Node Radius",
+      "cooldown": "Cooldown",
+      "expand_radius": "Expand Radius",
+      "expand_speed": "Expand Speed",
+      "lifetime_rate": "Lifetime Rate",
+      "speed_rate": "Speed Rate",
+      "size_rate": "Size Rate",
+      "damage_rate": "Damage Rate",
+      "damage_fix": "Flat Damage",
+      "repeat_count": "Repeat Count"
+    },
     "Core_Ball": {
-      "title": "Core Ball",
-      "body": "Required on the field. On scan hit, creates (or refreshes) a projectile root. Not sold in the shop.",
+      "title": "Core Sphere Spawn",
+      "body": "Core node. Every attack, the scan starts here. Fills one sphere. If no slot is free, assembles and fires the previous attack.",
       "spans": [
         {
           "start": 0,
-          "length": 9,
+          "length": 17,
           "r": 255,
           "g": 255,
           "b": 0,
@@ -380,27 +443,27 @@
       ]
     },
     "Spawn_Ball": {
-      "title": "Spawn Ball",
-      "body": "On scan hit, creates (or refreshes) a projectile root and can continue the scan chain.",
+      "title": "Sphere Spawn",
+      "body": "Fills one sphere. If no slot is free, assembles and fires the previous attack.",
       "spans": [
         {
           "start": 0,
-          "length": 10,
+          "length": 12,
           "r": 255,
-          "g": 230,
-          "b": 80,
+          "g": 180,
+          "b": 60,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Attribute_LifetimeRate": {
-      "title": "Lifetime",
-      "body": "Tweaks frequency-related projectile parameters that affect cadence or periodic behavior.",
+      "title": "Lifetime Rate Boost",
+      "body": "Increases the current attack node's lifetime multiplier.",
       "spans": [
         {
           "start": 0,
-          "length": 9,
+          "length": 19,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -410,12 +473,12 @@
       ]
     },
     "Attribute_SpeedRate": {
-      "title": "Speed Rate",
-      "body": "Scales projectile speed. Values above 1 speed up; below 1 slow down.",
+      "title": "Speed Rate Boost",
+      "body": "Increases the current attack node's movement speed multiplier.",
       "spans": [
         {
           "start": 0,
-          "length": 10,
+          "length": 16,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -425,12 +488,12 @@
       ]
     },
     "Attribute_SizeRate": {
-      "title": "Size Rate",
-      "body": "Adds to projectile size rate. Positive grows; negative shrinks.",
+      "title": "Size Rate Boost",
+      "body": "Increases the current attack node's size multiplier.",
       "spans": [
         {
           "start": 0,
-          "length": 9,
+          "length": 15,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -440,12 +503,12 @@
       ]
     },
     "Attribute_DamageRate": {
-      "title": "Damage Rate",
-      "body": "Adds to projectile damage rate. Positive increases; negative decreases.",
+      "title": "Damage Rate Boost",
+      "body": "Increases the current attack node's damage multiplier.",
       "spans": [
         {
           "start": 0,
-          "length": 11,
+          "length": 17,
           "r": 120,
           "g": 200,
           "b": 255,
@@ -455,45 +518,45 @@
       ]
     },
     "Rule_Orbit": {
-      "title": "Orbit Rule",
-      "body": "Attaches an orbit motion rule that changes the path relative to the parent.",
+      "title": "Orbit",
+      "body": "Makes the attack node orbit its host.",
       "spans": [
         {
           "start": 0,
-          "length": 10,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 5,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Return": {
-      "title": "Return Rule",
-      "body": "Spawns at the mouse ground point and flies toward the player. Locked spawn points keep their position.",
+      "title": "Reverse Shot",
+      "body": "Fires this attack from the aim point toward the character.",
       "spans": [
         {
           "start": 0,
-          "length": 11,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 12,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Rule_Child": {
-      "title": "Child Shot",
-      "body": "Hooks on as an extra child node to extend the projectile tree.",
+      "title": "Child",
+      "body": "Opens a new child slot around the main attack node and records that slot as the focused attack node.",
       "spans": [
         {
           "start": 0,
-          "length": 10,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "length": 5,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
@@ -501,26 +564,26 @@
     },
     "Rule_Revive": {
       "title": "Revive",
-      "body": "The original shot fires as usual. On death it spawns a clone at that point without this node. Later scan steps attach to the clone.",
+      "body": "Respawns a destroyed attack in place. The revived attack can keep stacking nodes after this one, including other revive nodes.",
       "spans": [
         {
           "start": 0,
           "length": 6,
-          "r": 180,
-          "g": 255,
-          "b": 160,
+          "r": 140,
+          "g": 220,
+          "b": 130,
           "a": 255,
           "weight": "bold"
         }
       ]
     },
     "Passive_DamageFix": {
-      "title": "Damage Fix",
-      "body": "While in the warehouse, adds a flat amount to projectile damage on fire. Scanning it on the field does nothing.",
+      "title": "Flat Damage Boost",
+      "body": "While in the warehouse, adds flat damage to all attack nodes.",
       "spans": [
         {
           "start": 0,
-          "length": 10,
+          "length": 17,
           "r": 192,
           "g": 192,
           "b": 192,
@@ -531,13 +594,13 @@
     },
     "Other_Repeat": {
       "title": "Repeat",
-      "body": "Applies the previous assembly step again. Repeating Revive buys another life.",
+      "body": "Repeats a number of nodes equal to Repeat Count. Repeats do not affect each other.",
       "spans": [
         {
           "start": 0,
           "length": 6,
           "r": 200,
-          "g": 180,
+          "g": 160,
           "b": 255,
           "a": 255,
           "weight": "bold"

@@ -20,11 +20,16 @@ namespace
 	using LabelTable = std::unordered_map<std::size_t, ModuleNodeInfoEntry>;
 	std::array<LabelTable, LanguageCount()> g_tables{};
 
+	using NameTable = std::unordered_map<std::size_t, std::string>;
+	std::array<NameTable, LanguageCount()> g_kindTables{};
+	std::array<NameTable, LanguageCount()> g_statTables{};
+
 	[[nodiscard]] const ModuleNodeInfoEntry& BakedDefault_()
 	{
 		static const ModuleNodeInfoEntry kDefault{
 			"Unknown Module",
 			"No localized copy is available for this node.",
+			{},
 			{}
 		};
 		return kDefault;
@@ -68,6 +73,124 @@ namespace
 		if (name == "Fusion")					{ return ModuleNodeLabel::Fusion; }
 		// ————————————————————————————————————————————————————
 		return std::nullopt;
+	}
+
+	[[nodiscard]] std::optional<ModuleNodeKind> ParseModuleNodeKind_(std::string_view name) noexcept
+	{
+		if (name == "Core")		{ return ModuleNodeKind::Core; }
+		if (name == "Spawn")		{ return ModuleNodeKind::Spawn; }
+		if (name == "Attribute")	{ return ModuleNodeKind::Attribute; }
+		if (name == "Rule")		{ return ModuleNodeKind::Rule; }
+		if (name == "Passive")	{ return ModuleNodeKind::Passive; }
+		if (name == "Other")		{ return ModuleNodeKind::Other; }
+		if (name == "Fusion")	{ return ModuleNodeKind::Fusion; }
+		return std::nullopt;
+	}
+
+	[[nodiscard]] std::optional<ModuleNodeStat> ParseModuleNodeStat_(std::string_view name) noexcept
+	{
+		if (name == "node_radius")	{ return ModuleNodeStat::NodeRadius; }
+		if (name == "cooldown")		{ return ModuleNodeStat::Cooldown; }
+		if (name == "expand_radius")	{ return ModuleNodeStat::ExpandRadius; }
+		if (name == "expand_speed")	{ return ModuleNodeStat::ExpandSpeed; }
+		if (name == "lifetime_rate")	{ return ModuleNodeStat::LifetimeRate; }
+		if (name == "speed_rate")		{ return ModuleNodeStat::SpeedRate; }
+		if (name == "size_rate")		{ return ModuleNodeStat::SizeRate; }
+		if (name == "damage_rate")	{ return ModuleNodeStat::DamageRate; }
+		if (name == "damage_fix")		{ return ModuleNodeStat::DamageFix; }
+		if (name == "repeat_count")	{ return ModuleNodeStat::RepeatCount; }
+		return std::nullopt;
+	}
+
+	[[nodiscard]] const char* KindKey_(ModuleNodeKind kind) noexcept
+	{
+		switch (kind)
+		{
+		case ModuleNodeKind::Core:		return "Core";
+		case ModuleNodeKind::Spawn:		return "Spawn";
+		case ModuleNodeKind::Attribute:	return "Attribute";
+		case ModuleNodeKind::Rule:		return "Rule";
+		case ModuleNodeKind::Passive:	return "Passive";
+		case ModuleNodeKind::Other:		return "Other";
+		case ModuleNodeKind::Fusion:	return "Fusion";
+		case ModuleNodeKind::Count:		return "";
+		}
+		return "";
+	}
+
+	[[nodiscard]] const char* StatKey_(ModuleNodeStat stat) noexcept
+	{
+		switch (stat)
+		{
+		case ModuleNodeStat::NodeRadius:	return "node_radius";
+		case ModuleNodeStat::Cooldown:		return "cooldown";
+		case ModuleNodeStat::ExpandRadius:	return "expand_radius";
+		case ModuleNodeStat::ExpandSpeed:	return "expand_speed";
+		case ModuleNodeStat::LifetimeRate:	return "lifetime_rate";
+		case ModuleNodeStat::SpeedRate:		return "speed_rate";
+		case ModuleNodeStat::SizeRate:		return "size_rate";
+		case ModuleNodeStat::DamageRate:	return "damage_rate";
+		case ModuleNodeStat::DamageFix:		return "damage_fix";
+		case ModuleNodeStat::RepeatCount:	return "repeat_count";
+		case ModuleNodeStat::Count:			return "";
+		}
+		return "";
+	}
+
+	void LoadKindTable_(NameTable& table, const json& obj)
+	{
+		for (auto it = obj.begin(); it != obj.end(); ++it)
+		{
+			if (!it.value().is_string())
+			{
+				continue;
+			}
+			const auto kindOpt = ParseModuleNodeKind_(it.key());
+			if (!kindOpt.has_value())
+			{
+				continue;
+			}
+			table[ToIndex(*kindOpt)] = it.value().get<std::string>();
+		}
+	}
+
+	void LoadStatTable_(NameTable& table, const json& obj)
+	{
+		for (auto it = obj.begin(); it != obj.end(); ++it)
+		{
+			if (!it.value().is_string())
+			{
+				continue;
+			}
+			const auto statOpt = ParseModuleNodeStat_(it.key());
+			if (!statOpt.has_value())
+			{
+				continue;
+			}
+			table[static_cast<std::size_t>(*statOpt)] = it.value().get<std::string>();
+		}
+	}
+
+	[[nodiscard]] std::string ResolveName_(
+		const std::array<NameTable, LanguageCount()>& tables,
+		std::size_t index,
+		const char* fallback)
+	{
+		const Language order[] = {
+			GameStatsCodex::GetLanguage(),
+			Language::En,
+			Language::Zh,
+		};
+		for (Language lang : order)
+		{
+			const NameTable& table = tables[ToIndex(lang)];
+			const auto it = table.find(index);
+			if (it != table.end() && !it->second.empty())
+			{
+				return it->second;
+			}
+		}
+		return fallback != nullptr ? std::string{ fallback } : std::string{};
 	}
 
 	[[nodiscard]] DWRITE_FONT_WEIGHT ParseWeight_(std::string_view w) noexcept
@@ -203,6 +326,14 @@ bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 	{
 		table.clear();
 	}
+	for (auto& table : g_kindTables)
+	{
+		table.clear();
+	}
+	for (auto& table : g_statTables)
+	{
+		table.clear();
+	}
 	g_loaded = false;
 
 	json top;
@@ -215,8 +346,20 @@ bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 	ForEachLanguageObject(top, [&](Language lang, const json& langObj)
 	{
 		LabelTable& table = g_tables[ToIndex(lang)];
+		NameTable& kinds = g_kindTables[ToIndex(lang)];
+		NameTable& stats = g_statTables[ToIndex(lang)];
 		for (auto lit = langObj.begin(); lit != langObj.end(); ++lit)
 		{
+			if (lit.key() == "kinds" && lit.value().is_object())
+			{
+				LoadKindTable_(kinds, lit.value());
+				continue;
+			}
+			if (lit.key() == "stats" && lit.value().is_object())
+			{
+				LoadStatTable_(stats, lit.value());
+				continue;
+			}
 			const auto labelOpt = ParseModuleNodeLabel_(lit.key());
 			if (!labelOpt.has_value() || !lit.value().is_object())
 			{
@@ -263,6 +406,24 @@ const ModuleNodeInfoEntry& GetModuleNodeInfoCopy(ModuleNodeLabel label)
 	return BakedDefault_();
 }
 
+std::string GetKindCopy(ModuleNodeKind kind)
+{
+	if (kind == ModuleNodeKind::Count)
+	{
+		return {};
+	}
+	return ResolveName_(g_kindTables, ToIndex(kind), KindKey_(kind));
+}
+
+std::string GetStatCopy(ModuleNodeStat stat)
+{
+	if (stat == ModuleNodeStat::Count)
+	{
+		return {};
+	}
+	return ResolveName_(g_statTables, static_cast<std::size_t>(stat), StatKey_(stat));
+}
+
 namespace
 {
 	// 只搬落在 title 里的 span（当前 JSON 都是标题加粗）。
@@ -306,17 +467,15 @@ ModuleNodeInfoEntry ComposeModuleNodeInfoCopy(const IModuleNode& node)
 
 	ModuleNodeInfoEntry out{};
 	out.title = primaryCopy.title + " & " + materialCopy.title;
-	if (primaryCopy.body.empty())
+	const std::string primaryBody = primaryCopy.JoinedBody();
+	const std::string materialBody = materialCopy.JoinedBody();
+	if (!primaryBody.empty())
 	{
-		out.body = materialCopy.body;
+		out.bodies.push_back(primaryBody);
 	}
-	else if (materialCopy.body.empty())
+	if (!materialBody.empty())
 	{
-		out.body = primaryCopy.body;
-	}
-	else
-	{
-		out.body = primaryCopy.body + "\n" + materialCopy.body;
+		out.bodies.push_back(materialBody);
 	}
 
 	const UINT32 materialTitleAt = static_cast<UINT32>(Utf16CodeUnitCount(primaryCopy.title) + Utf16CodeUnitCount(" & "));

@@ -343,4 +343,126 @@ namespace CanvasPixelDraw
 			}
 		}
 	}
+
+	// 最近邻缩放拷贝到 dst。透明像素不写。src 空或目标边为 0 则跳过。
+	inline void BlitNearest(
+		Canvas& dst,
+		const Canvas& src,
+		int dx,
+		int dy,
+		unsigned destW,
+		unsigned destH)
+	{
+		const unsigned sw = src.GetCanvasWidth();
+		const unsigned sh = src.GetCanvasHeight();
+		if (sw == 0u || sh == 0u || destW == 0u || destH == 0u)
+		{
+			return;
+		}
+
+		for (unsigned y = 0u; y < destH; ++y)
+		{
+			const unsigned sy = y * sh / destH;
+			for (unsigned x = 0u; x < destW; ++x)
+			{
+				const unsigned sx = x * sw / destW;
+				const Color c = src.GetPixel(sx, sy);
+				if (c.GetA() == 0u)
+				{
+					continue;
+				}
+				PutPixelClamped(
+					dst,
+					dx + static_cast<int>(x),
+					dy + static_cast<int>(y),
+					c);
+			}
+		}
+	}
+
+	// 按不透明像素包围盒适配，居中拷到 dst 矩形。
+	inline void BlitNearestCentered(
+		Canvas& dst,
+		const Canvas& src,
+		int dx,
+		int dy,
+		unsigned destW,
+		unsigned destH)
+	{
+		const unsigned sw = src.GetCanvasWidth();
+		const unsigned sh = src.GetCanvasHeight();
+		if (sw == 0u || sh == 0u || destW == 0u || destH == 0u)
+		{
+			return;
+		}
+
+		bool found = false;
+		unsigned x0 = 0u;
+		unsigned y0 = 0u;
+		unsigned x1 = 0u;
+		unsigned y1 = 0u;
+		for (unsigned y = 0u; y < sh; ++y)
+		{
+			for (unsigned x = 0u; x < sw; ++x)
+			{
+				if (src.GetPixel(x, y).GetA() == 0u)
+				{
+					continue;
+				}
+				if (!found)
+				{
+					found = true;
+					x0 = x1 = x;
+					y0 = y1 = y;
+				}
+				else
+				{
+					if (x < x0) { x0 = x; }
+					if (x > x1) { x1 = x; }
+					if (y < y0) { y0 = y; }
+					if (y > y1) { y1 = y; }
+				}
+			}
+		}
+		if (!found)
+		{
+			return;
+		}
+
+		const unsigned cw = x1 - x0 + 1u;
+		const unsigned ch = y1 - y0 + 1u;
+		unsigned fitW = destW;
+		unsigned fitH = destH;
+		if (cw * destH >= ch * destW)
+		{
+			fitW = destW;
+			fitH = (std::max)(1u, ch * destW / cw);
+		}
+		else
+		{
+			fitH = destH;
+			fitW = (std::max)(1u, cw * destH / ch);
+		}
+
+		const int ox = dx + static_cast<int>(destW - fitW) / 2;
+		const int oy = dy + static_cast<int>(destH - fitH) / 2;
+		for (unsigned y = 0u; y < fitH; ++y)
+		{
+			const unsigned sy = y0 + y * ch / fitH;
+			for (unsigned x = 0u; x < fitW; ++x)
+			{
+				const unsigned sx = x0 + x * cw / fitW;
+				const Color c = src.GetPixel(sx, sy);
+				if (c.GetA() == 0u)
+				{
+					continue;
+				}
+				PutPixelClamped(
+					dst,
+					ox + static_cast<int>(x),
+					oy + static_cast<int>(y),
+					c);
+			}
+		}
+	}
 }

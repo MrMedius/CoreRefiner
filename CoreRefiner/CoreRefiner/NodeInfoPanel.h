@@ -32,7 +32,8 @@ public:
 		Below,
 	};
 
-	static constexpr float kMaxWidthPx_{ 320.0f };
+	// 固定面板宽度；高度随文案变。Fusion 日/英 Kind 行按这个提前量排。
+	static constexpr float kMaxWidthPx_{ 300.0f };
 
 	void Ensure(Graphics& gfx, Rgph::RenderGraph& rg);
 
@@ -44,7 +45,10 @@ public:
 	void Submit() const;
 
 private:
-	void RebuildContent_(const ModuleNodeInfoEntry& entry);
+	void RebuildContent_(
+		const ModuleNodeInfoEntry& entry,
+		const IModuleNode* node,
+		ModuleNodeLabel label);
 	void SyncPosition_(DirectX::XMFLOAT2 anchorGameXY);
 
 	Graphics* gfx_{ nullptr };
@@ -54,6 +58,8 @@ private:
 	bool visible_{ false };
 	std::optional<ModuleNodeLabel> cachedLabel_;
 	std::optional<std::uint32_t> cachedInstanceId_;
+	std::optional<int> cachedLevel_;
+	std::optional<int> cachedBuyPrice_;
 	std::optional<Language> cachedLanguage_;
 	Anchor anchor_{ Anchor::Above };
 	float maxWidthPx_{ kMaxWidthPx_ };
@@ -64,4 +70,8 @@ private:
 	static constexpr float kAnchorGap_{ 16.0f };
 	static constexpr int kPaddingPx_{ 10 };
 	static constexpr float kFontSize_{ 18.0f };
+	static constexpr int kHeaderLineGap_{ 4 };
+	static constexpr int kHeaderIconTextGap_{ 8 };
+	static constexpr int kHeaderRuleGap_{ 4 };
+	static constexpr int kHeaderBodyGap_{ 6 };
 };

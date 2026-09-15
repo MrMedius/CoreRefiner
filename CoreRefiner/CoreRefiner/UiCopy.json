@@ -23,7 +23,8 @@
     "shop.refine.upgrade": "升级",
     "shop.refine.fuse": "合成",
     "shop.refine.evolve": "进化",
-    "shop.refine.return": "退回"
+    "shop.refine.return": "退回",
+    "node.cost": "造价"
   },
   "ja": {
     "title.new_game": "ニューゲーム",
@@ -49,7 +50,8 @@
     "shop.refine.upgrade": "強化",
     "shop.refine.fuse": "合成",
     "shop.refine.evolve": "進化",
-    "shop.refine.return": "戻す"
+    "shop.refine.return": "戻す",
+    "node.cost": "コスト"
   },
   "en": {
     "title.new_game": "New Game",
@@ -75,6 +77,7 @@
     "shop.refine.upgrade": "Upgrade",
     "shop.refine.fuse": "Fuse",
     "shop.refine.evolve": "Evolve",
-    "shop.refine.return": "Return"
+    "shop.refine.return": "Return",
+    "node.cost": "Cost"
   }
 }

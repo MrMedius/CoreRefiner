@@ -26,25 +26,28 @@ float IModuleNode::GetRemainRatio_() const noexcept
 }
 
 // ---- 绘制与拖放残影 ----
+void IModuleNode::BlitIcon(Canvas& canvas, bool asMask) const
+{
+	const Color color = asMask ? Color(0u, 0u, 0u, 160u) : GetReadyFillColor();
+	IconAtlas::BlitIcon(
+		canvas,
+		NodeIconAtlas::Get(GetModuleNodeLabel()),
+		color);
+}
+
 void IModuleNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin)
 {
 	zoneOrigin_ = zoneOrigin;
 
 	icon_ = std::make_unique<Canvas2D>(gfx, kVisualSize, kVisualSize);
 	icon_->Clear(Colors::None);
-	IconAtlas::BlitIcon(
-		*icon_,
-		NodeIconAtlas::Get(GetModuleNodeLabel()),
-		GetReadyFillColor());
+	BlitIcon(*icon_, false);
 	icon_->NotifyPixelsChanged();
 	icon_->LinkTechniques(rg);
 
 	mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
 	mask_->Clear(Colors::None);
-	IconAtlas::BlitIcon(
-		*mask_,
-		NodeIconAtlas::Get(GetModuleNodeLabel()),
-		Color(0u, 0u, 0u, 160u));
+	BlitIcon(*mask_, true);
 	mask_->NotifyPixelsChanged();
 	mask_->NotifyPixelsChanged();
 	mask_->LinkTechniques(rg);

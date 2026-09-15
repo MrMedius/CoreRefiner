@@ -402,6 +402,11 @@ public:
 		repeatCount_ = kRepeatCount_[0];
 	}
 
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeUniqueStat::RepeatCount, repeatCount_ });
+	}
+
 	void ApplyTo(DeployContext& ctx) override
 	{
 		if (ctx.recipe.empty())
@@ -529,28 +534,9 @@ public:
 		return material_.get();
 	}
 
-	void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin) override
+	void BlitIcon(Canvas& canvas, bool asMask) const override
 	{
-		zoneOrigin_ = zoneOrigin;
-
-		icon_ = std::make_unique<Canvas2D>(gfx, kVisualSize, kVisualSize);
-		icon_->Clear(Colors::None);
-		BlitHalves_(*icon_, false);
-		icon_->NotifyPixelsChanged();
-		icon_->LinkTechniques(rg);
-
-		mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
-		mask_->Clear(Colors::None);
-		BlitHalves_(*mask_, true);
-		mask_->NotifyPixelsChanged();
-		mask_->LinkTechniques(rg);
-		mask_->SetUVOffset(0.0f, 0.0f);
-		mask_->SetUVScale(1.0f, 0.0f);
-
-		visualReady_ = true;
-
-		SyncMaskUV_();
-		ApplyVisualTransform_();
+		BlitHalves_(canvas, asMask);
 	}
 
 private:
