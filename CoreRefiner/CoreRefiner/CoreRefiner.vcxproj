@@ -203,7 +203,7 @@
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
     <ClCompile Include="ModuleWorkbench.cpp" />
-    <ClCompile Include="Module_Other_Revive.cpp" />
+    <ClCompile Include="Module_Rule_Revive.cpp" />
     <ClCompile Include="ResultScene.cpp" />
     <ClCompile Include="SceneDirector.cpp" />
     <ClCompile Include="SettingsStore.cpp" />
@@ -380,9 +380,9 @@
     <ClInclude Include="Module_Attribute_Lifetime.h" />
     <ClInclude Include="Module_Attribute_SizeRate.h" />
     <ClInclude Include="Module_Attribute_SpeedRate.h" />
-    <ClInclude Include="Module_Other_Revive.h" />
     <ClInclude Include="Module_Rule_Orbit.h" />
     <ClInclude Include="Module_Rule_Return.h" />
+    <ClInclude Include="Module_Rule_Revive.h" />
     <ClInclude Include="NodeEvolveRecipes.h" />
     <ClInclude Include="Stats.h" />
     <ClInclude Include="DisplaySettings.h" />

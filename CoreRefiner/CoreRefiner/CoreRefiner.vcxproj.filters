@@ -742,7 +742,7 @@
     <ClCompile Include="Enemy.cpp">
       <Filter>Object\Character\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="Module_Other_Revive.cpp">
+    <ClCompile Include="Module_Rule_Revive.cpp">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1539,9 +1539,6 @@
     <ClInclude Include="Module_Attribute_SpeedRate.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
-    <ClInclude Include="Module_Other_Revive.h">
-      <Filter>Object\Attack\ModuleSystem\Module</Filter>
-    </ClInclude>
     <ClInclude Include="Module_Rule_Return.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
@@ -1550,6 +1547,9 @@
     </ClInclude>
     <ClInclude Include="NodeEvolveRecipes.h">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Rule_Revive.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

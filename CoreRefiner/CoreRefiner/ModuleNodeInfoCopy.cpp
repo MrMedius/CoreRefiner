@@ -32,58 +32,41 @@ namespace
 
 	[[nodiscard]] std::optional<ModuleNodeLabel> ParseModuleNodeLabel_(std::string_view name) noexcept
 	{
-		if (name == "Core_Ball")
-		{
-			return ModuleNodeLabel::Core_Ball;
-		}
-		if (name == "Spawn_Ball")
-		{
-			return ModuleNodeLabel::Spawn_Ball;
-		}
-		if (name == "Attribute_LifetimeRate")
-		{
-			return ModuleNodeLabel::Attribute_LifetimeRate;
-		}
-		if (name == "Attribute_SpeedRate")
-		{
-			return ModuleNodeLabel::Attribute_SpeedRate;
-		}
-		if (name == "Attribute_SizeRate")
-		{
-			return ModuleNodeLabel::Attribute_SizeRate;
-		}
-		if (name == "Attribute_DamageRate")
-		{
-			return ModuleNodeLabel::Attribute_DamageRate;
-		}
-		if (name == "Rule_Orbit")
-		{
-			return ModuleNodeLabel::Rule_Orbit;
-		}
-		if (name == "Rule_Return")
-		{
-			return ModuleNodeLabel::Rule_Return;
-		}
-		if (name == "Passive_DamageFix")
-		{
-			return ModuleNodeLabel::Passive_DamageFix;
-		}
-		if (name == "Other_Child")
-		{
-			return ModuleNodeLabel::Other_Child;
-		}
-		if (name == "Other_Revive")
-		{
-			return ModuleNodeLabel::Other_Revive;
-		}
-		if (name == "Other_Repeat")
-		{
-			return ModuleNodeLabel::Other_Repeat;
-		}
-		if (name == "Fusion")
-		{
-			return ModuleNodeLabel::Fusion;
-		}
+		// ————————————————————————————————————————————————————
+		// Kind —— Core
+		// ————————————————————————————————————————————————————
+		if (name == "Core_Ball")				{ return ModuleNodeLabel::Core_Ball; }
+		// ————————————————————————————————————————————————————
+		// Kind —— Spawn
+		// ————————————————————————————————————————————————————
+		if (name == "Spawn_Ball")				{ return ModuleNodeLabel::Spawn_Ball; }
+		// ————————————————————————————————————————————————————
+		// Kind —— Attribute
+		// ————————————————————————————————————————————————————
+		if (name == "Attribute_LifetimeRate")	{ return ModuleNodeLabel::Attribute_LifetimeRate; }
+		if (name == "Attribute_SpeedRate")		{ return ModuleNodeLabel::Attribute_SpeedRate; }
+		if (name == "Attribute_SizeRate")		{ return ModuleNodeLabel::Attribute_SizeRate; }
+		if (name == "Attribute_DamageRate")		{ return ModuleNodeLabel::Attribute_DamageRate; }
+		// ————————————————————————————————————————————————————
+		// Kind —— Rule
+		// ————————————————————————————————————————————————————
+		if (name == "Rule_Orbit")				{ return ModuleNodeLabel::Rule_Orbit; }
+		if (name == "Rule_Return")				{ return ModuleNodeLabel::Rule_Return; }
+		if (name == "Rule_Child")				{ return ModuleNodeLabel::Rule_Child; }
+		if (name == "Rule_Revive")				{ return ModuleNodeLabel::Rule_Revive; }
+		// ————————————————————————————————————————————————————
+		// Kind —— Passive
+		// ————————————————————————————————————————————————————
+		if (name == "Passive_DamageFix")		{ return ModuleNodeLabel::Passive_DamageFix; }
+		// ————————————————————————————————————————————————————
+		// Kind —— Other
+		// ————————————————————————————————————————————————————
+		if (name == "Other_Repeat")				{ return ModuleNodeLabel::Other_Repeat; }
+		// ————————————————————————————————————————————————————
+		// Kind —— Fusion
+		// ————————————————————————————————————————————————————
+		if (name == "Fusion")					{ return ModuleNodeLabel::Fusion; }
+		// ————————————————————————————————————————————————————
 		return std::nullopt;
 	}
 
@@ -174,20 +157,42 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 {
 	switch (label)
 	{
-	case ModuleNodeLabel::Core_Ball: return "Core_Ball";
-	case ModuleNodeLabel::Spawn_Ball: return "Spawn_Ball";
-	case ModuleNodeLabel::Attribute_LifetimeRate: return "Attribute_LifetimeRate";
-	case ModuleNodeLabel::Attribute_SpeedRate: return "Attribute_SpeedRate";
-	case ModuleNodeLabel::Attribute_SizeRate: return "Attribute_SizeRate";
-	case ModuleNodeLabel::Attribute_DamageRate: return "Attribute_DamageRate";
-	case ModuleNodeLabel::Rule_Orbit: return "Rule_Orbit";
-	case ModuleNodeLabel::Rule_Return: return "Rule_Return";
-	case ModuleNodeLabel::Passive_DamageFix: return "Passive_DamageFix";
-	case ModuleNodeLabel::Other_Child: return "Other_Child";
-	case ModuleNodeLabel::Other_Revive: return "Other_Revive";
-	case ModuleNodeLabel::Other_Repeat: return "Other_Repeat";
-	case ModuleNodeLabel::Fusion: return "Fusion";
-	case ModuleNodeLabel::Count: return "";
+	// ————————————————————————————————————————————————————
+	// Kind —— Core
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Core_Ball:				return "Core_Ball";
+	// ————————————————————————————————————————————————————
+	// Kind —— Spawn
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Spawn_Ball:				return "Spawn_Ball";
+	// ————————————————————————————————————————————————————
+	// Kind —— Attribute
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Attribute_LifetimeRate:	return "Attribute_LifetimeRate";
+	case ModuleNodeLabel::Attribute_SpeedRate:		return "Attribute_SpeedRate";
+	case ModuleNodeLabel::Attribute_SizeRate:		return "Attribute_SizeRate";
+	case ModuleNodeLabel::Attribute_DamageRate:		return "Attribute_DamageRate";
+	// ————————————————————————————————————————————————————
+	// Kind —— Rule
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Rule_Orbit:				return "Rule_Orbit";
+	case ModuleNodeLabel::Rule_Return:				return "Rule_Return";
+	case ModuleNodeLabel::Rule_Child:				return "Rule_Child";
+	case ModuleNodeLabel::Rule_Revive:				return "Rule_Revive";
+	// ————————————————————————————————————————————————————
+	// Kind —— Passive
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Passive_DamageFix:		return "Passive_DamageFix";
+	// ————————————————————————————————————————————————————
+	// Kind —— Other
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Other_Repeat:				return "Other_Repeat";
+	// ————————————————————————————————————————————————————
+	// Kind —— Fusion
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Fusion:					return "Fusion";
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Count:					return "";
 	}
 	return "";
 }

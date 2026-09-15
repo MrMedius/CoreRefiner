@@ -1,5 +1,4 @@
 #pragma once
-
 #include "IModuleNode.h"
 #include "AttackNodeSteps.h"
 #include "IconAtlas.h"
@@ -8,10 +7,13 @@
 #include <memory>
 #include <vector>
 
-class ModuleNode_Spawn_Ball_Core final : public IModuleNode
+// ————————————————————————————————————————————————————
+// Kind —— Core
+// ————————————————————————————————————————————————————
+class ModuleNode_Core_Ball final : public IModuleNode
 {
 public:
-	explicit ModuleNode_Spawn_Ball_Core(
+	explicit ModuleNode_Core_Ball(
 		DirectX::XMFLOAT2 localPos = { 0.0f, 0.0f },
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
@@ -29,7 +31,7 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		AttackNodeStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
+		AttackNodeStep_Core_Ball::Make(scale_, enableCollider_)->Apply(ctx);
 	}
 
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
@@ -56,6 +58,9 @@ private:
 	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 2.0f, 1.5f, 1.0f };
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Spawn
+// ————————————————————————————————————————————————————
 class ModuleNode_Spawn_Ball final : public IModuleNode
 {
 public:
@@ -103,6 +108,9 @@ private:
 	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 2.0f, 1.5f, 1.0f };
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Attribute
+// ————————————————————————————————————————————————————
 class ModuleNode_Attribute_LifetimeRate final : public IModuleNode
 {
 public:
@@ -259,6 +267,9 @@ private:
 	static constexpr float kDamageRate_[ModuleNodeLevel::kCount] = { 0.5f, 1.0f, 1.5f };
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Rule
+// ————————————————————————————————————————————————————
 class ModuleNode_Rule_Orbit final : public IModuleNode
 {
 public:
@@ -343,6 +354,83 @@ private:
 	static constexpr float kscanExpandSpeed_[ModuleNodeLevel::kCount] = { 50.0f, 75.0f, 100.0f };
 };
 
+class ModuleNode_Rule_Child final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Rule_Child(DirectX::XMFLOAT2 localPos) noexcept
+	{
+		localPos_ = localPos;
+		hitRadius_ = 20.0f;
+		SetCooldownDuration(2.0f);
+		SetScanMaxRadius(80.0f);
+		SetScanExpandSpeed(kscanExpandSpeed_[0]);
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Rule_Child::Make()->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Rule_Child;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Rule;
+	}
+
+protected:
+	void ApplyLevelStats_() override
+	{
+		SetScanExpandSpeed(kscanExpandSpeed_[level_.Index()]);
+	}
+
+private:
+	static constexpr float kscanExpandSpeed_[ModuleNodeLevel::kCount] = { 50.0f, 75.0f, 100.0f };
+};
+
+class ModuleNode_Rule_Revive final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Rule_Revive(DirectX::XMFLOAT2 localPos) noexcept
+	{
+		localPos_ = localPos;
+		hitRadius_ = 15.0f;
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(100.0f);
+		SetScanExpandSpeed(100.0f);
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Rule_Revive::Make()->Apply(ctx);
+	}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Rule_Revive;
+	}
+
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
+	{
+		return ModuleNodeKind::Rule;
+	}
+
+protected:
+	void ApplyLevelStats_() override
+	{
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
+	}
+
+private:
+	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 5.0f, 4.0f, 3.0f };
+};
+
+// ————————————————————————————————————————————————————
+// Kind —— Passive
+// ————————————————————————————————————————————————————
 class ModuleNode_Passive_DamageFix final : public IModuleNode
 {
 public:
@@ -387,80 +475,9 @@ private:
 	static constexpr float kDamageFix_[ModuleNodeLevel::kCount] = { 1.0f, 1.5f, 2.0f };
 };
 
-class ModuleNode_Other_Child final : public IModuleNode
-{
-public:
-	explicit ModuleNode_Other_Child(DirectX::XMFLOAT2 localPos) noexcept
-	{
-		localPos_ = localPos;
-		hitRadius_ = 20.0f;
-		SetCooldownDuration(2.0f);
-		SetScanMaxRadius(80.0f);
-		SetScanExpandSpeed(kscanExpandSpeed_[0]);
-	}
-
-	void ApplyTo(DeployContext& ctx) override
-	{
-		AttackNodeStep_Other_Child::Make()->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Other_Child;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Other;
-	}
-
-protected:
-	void ApplyLevelStats_() override
-	{
-		SetScanExpandSpeed(kscanExpandSpeed_[level_.Index()]);
-	}
-
-private:
-	static constexpr float kscanExpandSpeed_[ModuleNodeLevel::kCount] = { 50.0f, 75.0f, 100.0f };
-};
-
-class ModuleNode_Other_Revive final : public IModuleNode
-{
-public:
-	explicit ModuleNode_Other_Revive(DirectX::XMFLOAT2 localPos) noexcept
-	{
-		localPos_ = localPos;
-		hitRadius_ = 15.0f;
-		SetCooldownDuration(kCooldownDuration_[0]);
-		SetScanMaxRadius(100.0f);
-		SetScanExpandSpeed(100.0f);
-	}
-
-	void ApplyTo(DeployContext& ctx) override
-	{
-		AttackNodeStep_Other_Revive::Make()->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Other_Revive;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Other;
-	}
-
-protected:
-	void ApplyLevelStats_() override
-	{
-		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
-	}
-
-private:
-	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 5.0f, 4.0f, 3.0f };
-};
-
+// ————————————————————————————————————————————————————
+// Kind —— Other
+// ————————————————————————————————————————————————————
 class ModuleNode_Other_Repeat final : public IModuleNode
 {
 public:
@@ -526,6 +543,9 @@ private:
 	static constexpr float kRepeatCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 3.0f };
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Fusion
+// ————————————————————————————————————————————————————
 class ModuleNode_Fusion final : public IModuleNode
 {
 public:

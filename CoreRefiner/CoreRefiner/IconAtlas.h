@@ -39,6 +39,7 @@ namespace NodeIconAtlas
 {
 	namespace detail
 	{
+		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kRoundFrame{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -57,6 +58,30 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
+		// ————————————————————————————————————————————————————
+		// Kind —— Core
+		// ————————————————————————————————————————————————————
+		inline constexpr IconAtlas::IconBits kCoreBall{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000001000100,
+			0b0100000010010010,
+			0b0100000100100010,
+			0b1000000001001001,
+			0b1000011100010001,
+			0b1000100010100001,
+			0b1000100010000001,
+			0b0100100010000010,
+			0b0100011100000010,
+			0b0010000000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+		// ————————————————————————————————————————————————————
+		// Kind —— Spawn
+		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kSpawnBall{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -75,7 +100,9 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
+		// ————————————————————————————————————————————————————
+		// Kind —— Attribute
+		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kAttributeLifetimeRate{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -94,7 +121,6 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kAttributeSpeedRate{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -113,7 +139,6 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kAttributeSizeRate{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -132,7 +157,6 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kAttributeDamageRate{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -151,7 +175,9 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
+		// ————————————————————————————————————————————————————
+		// Kind —— Rule
+		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kRuleOrbit{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -170,7 +196,6 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kRuleReturn{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -189,7 +214,45 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
+		inline constexpr IconAtlas::IconBits kRuleChild{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010110000000100,
+			0b0101001000000010,
+			0b0101001111000010,
+			0b1000110000100001,
+			0b1000010000100001,
+			0b1000010000100001,
+			0b1000010000110001,
+			0b0100001111001010,
+			0b0100000001001010,
+			0b0010000000110100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+		inline constexpr IconAtlas::IconBits kRuleRevive{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010100110010100,
+			0b0100010110100010,
+			0b0100000110000010,
+			0b1000111111110001,
+			0b1000111111110001,
+			0b1000000110000001,
+			0b1000010110100001,
+			0b0100100110010010,
+			0b0101000110001010,
+			0b0010000110000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+		// ————————————————————————————————————————————————————
+		// Kind —— Passive
+		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kPassiveDamageFix{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -208,45 +271,9 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
-		inline constexpr IconAtlas::IconBits kOtherChild{
-			0b0000001111000000,
-			0b0000110000110000,
-			0b0001000000001000,
-			0b0010110000000100,
-			0b0101001000000010,
-			0b0101001111000010,
-			0b1000110000100001,
-			0b1000010000100001,
-			0b1000010000100001,
-			0b1000010000110001,
-			0b0100001111001010,
-			0b0100000001001010,
-			0b0010000000110100,
-			0b0001000000001000,
-			0b0000110000110000,
-			0b0000001111000000,
-		};
-
-		inline constexpr IconAtlas::IconBits kOtherRevive{
-			0b0000001111000000,
-			0b0000110000110000,
-			0b0001000000001000,
-			0b0010100110010100,
-			0b0100010110100010,
-			0b0100000110000010,
-			0b1000111111110001,
-			0b1000111111110001,
-			0b1000000110000001,
-			0b1000010110100001,
-			0b0100100110010010,
-			0b0101000110001010,
-			0b0010000110000100,
-			0b0001000000001000,
-			0b0000110000110000,
-			0b0000001111000000,
-		};
-
+		// ————————————————————————————————————————————————————
+		// Kind —— Other
+		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kOtherRepeat{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -265,13 +292,15 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
-
+		// ————————————————————————————————————————————————————
+		// Kind —— Fusion
+		// ————————————————————————————————————————————————————
 		// Label::Fusion 下标槽；绘制走主体/素材对半 blit，不用这张图。
 		inline constexpr IconAtlas::IconBits kFusion{};
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
-		detail::kSpawnBall,           // Core_Ball
+		detail::kCoreBall,            // Core_Ball
 		detail::kSpawnBall,           // Spawn_Ball
 
 		detail::kAttributeLifetimeRate,   // Attribute_LifetimeRate
@@ -281,11 +310,11 @@ namespace NodeIconAtlas
 
 		detail::kRuleOrbit,           // Rule_Orbit
 		detail::kRuleReturn,          // Rule_Return
+		detail::kRuleChild,           // Rule_Child
+		detail::kRuleRevive,          // Rule_Revive
 
 		detail::kPassiveDamageFix,    // Passive_DamageFix
 
-		detail::kOtherChild,          // Other_Child
-		detail::kOtherRevive,         // Other_Revive
 		detail::kOtherRepeat,         // Other_Repeat
 		detail::kFusion,              // Fusion
 	};
@@ -342,7 +371,6 @@ namespace UiIconAtlas
 			0b0000001001000000,
 			0b0000000000000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kRefresh{
 			0b0000000000000000,
 			0b0000000100000000,
@@ -361,7 +389,6 @@ namespace UiIconAtlas
 			0b0000000010000000,
 			0b0000000000000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kLockOpen{
 			0b0000001111100000,
 			0b0000110000110000,
@@ -380,7 +407,6 @@ namespace UiIconAtlas
 			0b0000000000000000,
 			0b0000000000000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kLockClosed{
 			0b0000000000000000,
 			0b0000011111100000,
@@ -399,7 +425,6 @@ namespace UiIconAtlas
 			0b0000000000000000,
 			0b0000000000000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kRefineFeed{
 			0b0000000110000000,
 			0b0000000011000000,
@@ -418,7 +443,6 @@ namespace UiIconAtlas
 			0b0000000011000000,
 			0b0000000110000000,
 		};
-
 		inline constexpr IconAtlas::IconBits kRefineYield{
 			0b0000001110000000,
 			0b0000000111000000,

@@ -1,8 +1,8 @@
-#include "Module_Other_Revive.h"
+#include "Module_Rule_Revive.h"
 #include "AttackDeployer.h"
 #include "XMath.h"
 
-void Module_Other_Revive::OnSpawn()
+void Module_Rule_Revive::OnSpawn()
 {
 	armed_ = true;
 	if (Attack* owner = GetOwner())
@@ -11,7 +11,7 @@ void Module_Other_Revive::OnSpawn()
 	}
 }
 
-void Module_Other_Revive::OnDisable()
+void Module_Rule_Revive::OnDisable()
 {
 	Attack* owner = GetOwner();
 	if (owner == nullptr || !armed_ || owner->IsActive())
@@ -22,13 +22,13 @@ void Module_Other_Revive::OnDisable()
 	Replay_(owner);
 }
 
-void Module_Other_Revive::OnRecycle()
+void Module_Rule_Revive::OnRecycle()
 {
 	armed_ = false;
 	launchDir_ = { 0.0f, 0.0f, 0.0f };
 }
 
-void Module_Other_Revive::Replay_(Attack* owner)
+void Module_Rule_Revive::Replay_(Attack* owner)
 {
 	if (owner == nullptr || gfx_ == nullptr || rg_ == nullptr)
 	{
@@ -58,14 +58,12 @@ void Module_Other_Revive::Replay_(Attack* owner)
 	ctx.standby.spawnPos = pos;
 	ctx.standby.player = player_;
 
-	/**
-	 * @brief 消耗封存列表里第一条 Other_Revive：只把 Focus 拨回主体，不 Apply、不记账、不进入 recordOnly。
-	 * @note 其后的 Revive 仍走 ApplyAttackStepRecord（挂一层模块）。Flush 封到新根的是剩余配方。
-	 */
+	// 消耗封存列表里第一条 Rule_Revive：只把 Focus 拨回主体，不 Apply、不记账、不进入 recordOnly。
+	// 其后的 Revive 仍走 ApplyAttackStepRecord（挂一层模块）。Flush 封到新根的是剩余配方。
 	bool consumedRevive = false;
 	for (const AttackStepRecord& rec : records)
 	{
-		if (!consumedRevive && rec.label == ModuleNodeLabel::Other_Revive)
+		if (!consumedRevive && rec.label == ModuleNodeLabel::Rule_Revive)
 		{
 			consumedRevive = true;
 			if (ctx.standby.parent != nullptr)

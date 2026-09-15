@@ -9,22 +9,43 @@ namespace ModuleNodeFactory
 	{
 		switch (label)
 		{
-		case ModuleNodeLabel::Core_Ball:				return std::make_unique<ModuleNode_Spawn_Ball_Core>(localPos);
+		// ————————————————————————————————————————————————————
+		// Kind —— Core
+		// ————————————————————————————————————————————————————
+		case ModuleNodeLabel::Core_Ball:				return std::make_unique<ModuleNode_Core_Ball>(localPos);
+		// ————————————————————————————————————————————————————
+		// Kind —— Spawn
+		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Spawn_Ball:				return std::make_unique<ModuleNode_Spawn_Ball>(localPos);
+		// ————————————————————————————————————————————————————
+		// Kind —— Attribute
+		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Attribute_LifetimeRate:	return std::make_unique<ModuleNode_Attribute_LifetimeRate>(localPos);
 		case ModuleNodeLabel::Attribute_SpeedRate:		return std::make_unique<ModuleNode_Attribute_SpeedRate>(localPos);
 		case ModuleNodeLabel::Attribute_SizeRate:		return std::make_unique<ModuleNode_Attribute_SizeRate>(localPos);
 		case ModuleNodeLabel::Attribute_DamageRate:		return std::make_unique<ModuleNode_Attribute_DamageRate>(localPos);
+		// ————————————————————————————————————————————————————
+		// Kind —— Rule
+		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Rule_Orbit:				return std::make_unique<ModuleNode_Rule_Orbit>(localPos);
 		case ModuleNodeLabel::Rule_Return:				return std::make_unique<ModuleNode_Rule_Return>(localPos);
+		case ModuleNodeLabel::Rule_Child:				return std::make_unique<ModuleNode_Rule_Child>(localPos);
+		case ModuleNodeLabel::Rule_Revive:				return std::make_unique<ModuleNode_Rule_Revive>(localPos);
+		// ————————————————————————————————————————————————————
+		// Kind —— Passive
+		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Passive_DamageFix:		return std::make_unique<ModuleNode_Passive_DamageFix>(localPos);
-		case ModuleNodeLabel::Other_Child:				return std::make_unique<ModuleNode_Other_Child>(localPos);
-		case ModuleNodeLabel::Other_Revive:				return std::make_unique<ModuleNode_Other_Revive>(localPos);
+		// ————————————————————————————————————————————————————
+		// Kind —— Other
+		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Other_Repeat:				return std::make_unique<ModuleNode_Other_Repeat>(localPos);
-		case ModuleNodeLabel::Fusion:
-		case ModuleNodeLabel::Count:
-		default:
-			return nullptr;
+		// ————————————————————————————————————————————————————
+		// Kind —— Fusion
+		// ————————————————————————————————————————————————————
+		case ModuleNodeLabel::Fusion:					return nullptr;
+		// ————————————————————————————————————————————————————
+		case ModuleNodeLabel::Count:					return nullptr;
+		default:										return nullptr;
 		}
 	}
 

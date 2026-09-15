@@ -38,10 +38,8 @@ struct DeployContext
 	std::vector<AttackStepRecord> recipe;
 	// 当前空子坑上等待 host 填入后再执行的安装
 	std::vector<std::function<void(DeployContext&)>> pitQueue;
-	/**
-	 * @brief 扫到 Revive 之后为 true：后续 Step 只 Record，不改当前树。
-	 * @note 由 Other_Revive 的 Apply 置位；新 Context 从 false 开始。
-	 */
+	// 扫到 Revive 之后为 true：后续 Step 只 Record，不改当前树。
+	// 由 Rule_Revive 的 Apply 置位；新 Context 从 false 开始。
 	bool recordOnly{ false };
 
 	/**

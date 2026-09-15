@@ -318,10 +318,7 @@ private:
 
 		const bool flushedShots = session.ctx.shots.size() > shotsBefore;
 
-		/**
-		 * Spawn_Ball Flush (core or ModuleNode_Spawn_Ball): park previous roots, keep new parent,
-		 * reset token count, continue scan from this node. Fill-only hits just chain.
-		 */
+		// Core_Ball / Spawn_Ball Flush：封存上一棵根，从本节点继续扫。只填模组的命中只接力。
 		if (flushedShots)
 		{
 			DetachFlushedShotsAsPending_(sessionIndex);

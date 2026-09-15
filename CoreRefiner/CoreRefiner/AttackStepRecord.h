@@ -20,7 +20,25 @@ struct AttackStepRecord
 
 namespace AttackStepRecordMake
 {
-	/** @brief Spawn_Ball：a/b/c = 缩放，flag = 碰撞开关。 */
+	// ————————————————————————————————————————————————————
+	// Kind —— Core
+	// ————————————————————————————————————————————————————
+	// Core_Ball：a/b/c = 缩放，flag = 碰撞开关。
+	inline AttackStepRecord CoreBall(DirectX::XMFLOAT3 scale, bool enableCollider) noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Core_Ball;
+		r.a = scale.x;
+		r.b = scale.y;
+		r.c = scale.z;
+		r.flag = enableCollider;
+		return r;
+	}
+
+	// ————————————————————————————————————————————————————
+	// Kind —— Spawn
+	// ————————————————————————————————————————————————————
+	// Spawn_Ball：a/b/c = 缩放，flag = 碰撞开关。
 	inline AttackStepRecord SpawnBall(DirectX::XMFLOAT3 scale, bool enableCollider) noexcept
 	{
 		AttackStepRecord r{};
@@ -32,14 +50,9 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Other_Child：无参数。 */
-	inline AttackStepRecord OtherChild() noexcept
-	{
-		AttackStepRecord r{};
-		r.label = ModuleNodeLabel::Other_Child;
-		return r;
-	}
-
+	// ————————————————————————————————————————————————————
+	// Kind —— Attribute
+	// ————————————————————————————————————————————————————
 	/** @brief Attribute_LifetimeRate：a = 加算到 lifetime.rate。 */
 	inline AttackStepRecord LifetimeRate(float lifetimeRate) noexcept
 	{
@@ -76,6 +89,9 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
+	// ————————————————————————————————————————————————————
+	// Kind —— Rule
+	// ————————————————————————————————————————————————————
 	/** @brief Rule_Orbit：a = 半径，b = 相位。 */
 	inline AttackStepRecord Orbit(float radius, float phase) noexcept
 	{
@@ -94,11 +110,31 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Other_Revive：无参数。 */
+	// Rule_Child：无参数。
+	inline AttackStepRecord Child() noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Rule_Child;
+		return r;
+	}
+
+	// Rule_Revive：无参数。
 	inline AttackStepRecord Revive() noexcept
 	{
 		AttackStepRecord r{};
-		r.label = ModuleNodeLabel::Other_Revive;
+		r.label = ModuleNodeLabel::Rule_Revive;
 		return r;
 	}
+
+	// ————————————————————————————————————————————————————
+	// Kind —— Passive
+	// ————————————————————————————————————————————————————
+	
+	// ————————————————————————————————————————————————————
+	// Kind —— Other
+	// ————————————————————————————————————————————————————
+	
+	// ————————————————————————————————————————————————————
+	// Kind —— Fusion
+	// ————————————————————————————————————————————————————
 }

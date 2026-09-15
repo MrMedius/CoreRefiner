@@ -15,26 +15,41 @@ enum class ModuleNodeKind : unsigned char
 
 enum class ModuleNodeLabel : unsigned char
 {
+	// ————————————————————————————————————————————————————
+	// Kind —— Core
+	// ————————————————————————————————————————————————————
 	Core_Ball,
-
+	// ————————————————————————————————————————————————————
+	// Kind —— Spawn
+	// ————————————————————————————————————————————————————
 	Spawn_Ball,
-
+	// ————————————————————————————————————————————————————
+	// Kind —— Attribute
+	// ————————————————————————————————————————————————————
 	Attribute_LifetimeRate,
 	Attribute_SpeedRate,
 	Attribute_SizeRate,
 	Attribute_DamageRate,
-
+	// ————————————————————————————————————————————————————
+	// Kind —— Rule
+	// ————————————————————————————————————————————————————
 	Rule_Orbit,
 	Rule_Return,
-
+	Rule_Child,
+	Rule_Revive,
+	// ————————————————————————————————————————————————————
+	// Kind —— Passive
+	// ————————————————————————————————————————————————————
 	Passive_DamageFix,
-
-	Other_Child,
-	Other_Revive,
+	// ————————————————————————————————————————————————————
+	// Kind —— Other
+	// ————————————————————————————————————————————————————
 	Other_Repeat,
-
+	// ————————————————————————————————————————————————————
+	// Kind —— Fusion
+	// ————————————————————————————————————————————————————
 	Fusion,
-
+	// ————————————————————————————————————————————————————
 	Count
 };
 
@@ -59,30 +74,51 @@ enum class ModuleNodeLabel : unsigned char
 }
 
 // 每个 Kind 一张 Label 子表
+// ————————————————————————————————————————————————————
+// Kind —— Core
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kCoreLabels[] = {
 	ModuleNodeLabel::Core_Ball,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Spawn
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kSpawnLabels[] = {
 	ModuleNodeLabel::Spawn_Ball,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Attribute
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kAttributeLabels[] = {
 	ModuleNodeLabel::Attribute_LifetimeRate,
 	ModuleNodeLabel::Attribute_SpeedRate,
 	ModuleNodeLabel::Attribute_SizeRate,
 	ModuleNodeLabel::Attribute_DamageRate,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Rule
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kRuleLabels[] = {
 	ModuleNodeLabel::Rule_Orbit,
 	ModuleNodeLabel::Rule_Return,
+	ModuleNodeLabel::Rule_Child,
+	ModuleNodeLabel::Rule_Revive,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Passive
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kPassiveLabels[] = {
 	ModuleNodeLabel::Passive_DamageFix,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Other
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kOtherLabels[] = {
-	ModuleNodeLabel::Other_Child,
-	ModuleNodeLabel::Other_Revive,
 	ModuleNodeLabel::Other_Repeat,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Fusion
+// ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kFusionLabels[] = {
 	ModuleNodeLabel::Fusion,
 };
@@ -182,7 +218,7 @@ static_assert(KindTablesPartitionLabels());
 
 // 进化产物子集，项仍留在对应 Kind 表里，不从 Kind 表抠走。
 inline constexpr ModuleNodeLabel kEvolveLabels[] = {
-	ModuleNodeLabel::Other_Revive,
+	ModuleNodeLabel::Rule_Revive,
 };
 
 [[nodiscard]] inline constexpr bool LabelInAnyKindTable(ModuleNodeLabel label) noexcept

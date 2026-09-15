@@ -1,17 +1,17 @@
 #pragma once
-
 #include "IAttackNodeStep.h"
 #include "Ball.h"
 #include "ObjectCodex.h"
 #include "XMath.h"
 
-#include "Module_Rule_Orbit.h"
-#include "Module_Rule_Return.h"
 #include "Module_Attribute_LifetimeRate.h"
 #include "Module_Attribute_SpeedRate.h"
 #include "Module_Attribute_SizeRate.h"
 #include "Module_Attribute_DamageRate.h"
-#include "Module_Other_Revive.h"
+
+#include "Module_Rule_Orbit.h"
+#include "Module_Rule_Return.h"
+#include "Module_Rule_Revive.h"
 
 #include <cmath>
 #include <memory>
@@ -62,38 +62,23 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 	}
 }
 
-class AttackNodeStep_Spawn_Ball final : public IAttackNodeStep
+namespace 
 {
-public:
-	explicit AttackNodeStep_Spawn_Ball(
-		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
-		bool enableCollider = true) noexcept
-		:
-		scale_(scale),
-		enableCollider_(enableCollider)
-	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Spawn_Ball;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Spawn_Ball"; }
-
-	void Apply(DeployContext& ctx) override
+	// Core / Spawn 出球相同：按 rec.label 记账，避免两套 Apply 日后改漏。
+	inline void ApplyBallSpawnStep(DeployContext& ctx, const AttackStepRecord& rec)
 	{
 		AttackStandby& s = ctx.standby;
-		/**
-		 * Revive 之后只记账：不得先 Flush。否则第二次 Spawn 会把当前树推进 shots，
-		 * Flush 再清掉 recordOnly，后面的 Child 永远无法在重放时开槽。
-		 */
-		if (ctx.TryRecordOnly(AttackStepRecordMake::SpawnBall(scale_, enableCollider_)))
+		const DirectX::XMFLOAT3 scale{ rec.a, rec.b, rec.c };
+		const bool enableCollider = rec.flag;
+
+		// Revive 之后只记账：不得先 Flush。否则第二次出球会把当前树推进 shots，
+		// Flush 再清掉 recordOnly，后面的 Child 永远无法在重放时开槽。
+		if (ctx.TryRecordOnly(rec))
 		{
 			return;
 		}
-		/**
-		 * 非 recordOnly 且已有 host：这是新的根弹，先把上一套封进 shots。
-		 * Child 已把 host 置空时走下面的填坑，不 Flush。
-		 */
+		// 非 recordOnly 且已有 host：这是新的根弹，先把上一套封进 shots。
+		// Child 已把 host 置空时走下面的填坑，不 Flush。
 		if (s.host != nullptr)
 		{
 			ctx.FlushStandby();
@@ -120,22 +105,85 @@ public:
 		ball->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
 		ball->ResetMoveVelocity();
 		ball->ResetLifeTimer();
-		ball->ApplyPresentation(scale_, enableCollider_);
+		ball->ApplyPresentation(scale, enableCollider);
 
 		if (s.parent == nullptr || ball == s.parent)
 		{
 			s.parent = ball;
 			s.host = ball;
-			ctx.Record(AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
+			ctx.Record(rec);
 			return;
 		}
 
 		ball->SetParent(s.parent);
 		s.children.push_back(ball);
 		s.host = ball;
-		ctx.Record(AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
+		ctx.Record(rec);
 		ctx.DrainPitQueue();
 		RedistributeChildrenEvenly(s);
+	}
+}
+
+// ————————————————————————————————————————————————————
+// Kind —— Core
+// ————————————————————————————————————————————————————
+class AttackNodeStep_Core_Ball final : public IAttackNodeStep
+{
+public:
+	explicit AttackNodeStep_Core_Ball(
+		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
+		bool enableCollider = true) noexcept
+		:
+		scale_(scale),
+		enableCollider_(enableCollider)
+	{}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Core_Ball;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Core_Ball"; }
+
+	void Apply(DeployContext& ctx) override
+	{
+		ApplyBallSpawnStep(ctx, AttackStepRecordMake::CoreBall(scale_, enableCollider_));
+	}
+
+	static std::unique_ptr<AttackNodeStep_Core_Ball> Make(
+		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
+		bool enableCollider = true)
+	{
+		return std::make_unique<AttackNodeStep_Core_Ball>(scale, enableCollider);
+	}
+
+private:
+	DirectX::XMFLOAT3 scale_{ 1.0f, 1.0f, 1.0f };
+	bool enableCollider_{ true };
+};
+
+// ————————————————————————————————————————————————————
+// Kind —— Spawn
+// ————————————————————————————————————————————————————
+class AttackNodeStep_Spawn_Ball final : public IAttackNodeStep
+{
+public:
+	explicit AttackNodeStep_Spawn_Ball(
+		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
+		bool enableCollider = true) noexcept
+		:
+		scale_(scale),
+		enableCollider_(enableCollider)
+	{}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Spawn_Ball;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Spawn_Ball"; }
+
+	void Apply(DeployContext& ctx) override
+	{
+		ApplyBallSpawnStep(ctx, AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
 	}
 
 	static std::unique_ptr<AttackNodeStep_Spawn_Ball> Make(
@@ -150,40 +198,9 @@ private:
 	bool enableCollider_{ true };
 };
 
-class AttackNodeStep_Other_Child final : public IAttackNodeStep
-{
-public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Other_Child;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Child"; }
-
-	void Apply(DeployContext& ctx) override
-	{
-		if (ctx.TryRecordOnly(AttackStepRecordMake::OtherChild()))
-		{
-			return;
-		}
-		AttackStandby& s = ctx.standby;
-		if (s.parent == nullptr)
-		{
-			return;
-		}
-		if (s.host == nullptr)
-		{
-			return;
-		}
-		s.host = nullptr;
-		ctx.Record(AttackStepRecordMake::OtherChild());
-	}
-
-	static std::unique_ptr<AttackNodeStep_Other_Child> Make()
-	{
-		return std::make_unique<AttackNodeStep_Other_Child>();
-	}
-};
-
+// ————————————————————————————————————————————————————
+// Kind —— Attribute
+// ————————————————————————————————————————————————————
 class AttackNodeStep_Attribute_LifetimeRate final : public IAttackNodeStep
 {
 public:
@@ -313,6 +330,9 @@ private:
 	float damageRate_{ 0.0f };
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Rule
+// ————————————————————————————————————————————————————
 class AttackNodeStep_Rule_Orbit final : public IAttackNodeStep
 {
 public:
@@ -435,14 +455,48 @@ public:
 	}
 };
 
-class AttackNodeStep_Other_Revive final : public IAttackNodeStep
+class AttackNodeStep_Rule_Child final : public IAttackNodeStep
 {
 public:
 	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
 	{
-		return ModuleNodeLabel::Other_Revive;
+		return ModuleNodeLabel::Rule_Child;
 	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Other_Revive"; }
+	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Child"; }
+
+	void Apply(DeployContext& ctx) override
+	{
+		if (ctx.TryRecordOnly(AttackStepRecordMake::Child()))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.parent == nullptr)
+		{
+			return;
+		}
+		if (s.host == nullptr)
+		{
+			return;
+		}
+		s.host = nullptr;
+		ctx.Record(AttackStepRecordMake::Child());
+	}
+
+	static std::unique_ptr<AttackNodeStep_Rule_Child> Make()
+	{
+		return std::make_unique<AttackNodeStep_Rule_Child>();
+	}
+};
+
+class AttackNodeStep_Rule_Revive final : public IAttackNodeStep
+{
+public:
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Rule_Revive;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Revive"; }
 	[[nodiscard]] bool HasModule() const noexcept override { return true; }
 	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
 
@@ -461,64 +515,64 @@ public:
 		{
 			return;
 		}
-		if (s.parent->GetModule<Module_Other_Revive>() != nullptr)
+		if (s.parent->GetModule<Module_Rule_Revive>() != nullptr)
 		{
 			return;
 		}
 
-		s.parent->AddModule<Module_Other_Revive>(s.gfx, s.rg, s.player);
+		s.parent->AddModule<Module_Rule_Revive>(s.gfx, s.rg, s.player);
 		ctx.Record(AttackStepRecordMake::Revive());
 		ctx.recordOnly = true;
 	}
 
-	static std::unique_ptr<AttackNodeStep_Other_Revive> Make()
+	static std::unique_ptr<AttackNodeStep_Rule_Revive> Make()
 	{
-		return std::make_unique<AttackNodeStep_Other_Revive>();
+		return std::make_unique<AttackNodeStep_Rule_Revive>();
 	}
 };
 
-/**
- * @brief 按快照 Apply 一条 Step。
- * @note Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
- */
+// 按快照 Apply 一条 Step。
+// Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
 {
 	switch (rec.label)
 	{
-	case ModuleNodeLabel::Core_Ball:
-	case ModuleNodeLabel::Spawn_Ball:
-		AttackNodeStep_Spawn_Ball::Make(DirectX::XMFLOAT3{ rec.a, rec.b, rec.c },rec.flag)->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Other_Child:
-		AttackNodeStep_Other_Child::Make()->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Other_Revive:
-		AttackNodeStep_Other_Revive::Make()->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Other_Repeat:
-		break;
-	case ModuleNodeLabel::Attribute_LifetimeRate:
-		AttackNodeStep_Attribute_LifetimeRate::Make(rec.a)->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Attribute_SpeedRate:
-		AttackNodeStep_Attribute_SpeedRate::Make(rec.a)->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Attribute_SizeRate:
-		AttackNodeStep_Attribute_SizeRate::Make(rec.a)->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Attribute_DamageRate:
-		AttackNodeStep_Attribute_DamageRate::Make(rec.a)->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Rule_Orbit:
-		AttackNodeStep_Rule_Orbit::Make(rec.a, rec.b)->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Rule_Return:
-		AttackNodeStep_Rule_Return::Make()->Apply(ctx);
-		break;
-	case ModuleNodeLabel::Passive_DamageFix:
-		break;
-	case ModuleNodeLabel::Count:
-	default:
-		break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Core
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Core_Ball:	AttackNodeStep_Core_Ball::Make(DirectX::XMFLOAT3{ rec.a, rec.b, rec.c }, rec.flag)->Apply(ctx);		break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Spawn
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Spawn_Ball:	AttackNodeStep_Spawn_Ball::Make(DirectX::XMFLOAT3{ rec.a, rec.b, rec.c }, rec.flag)->Apply(ctx);	break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Attribute
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Attribute_LifetimeRate:	AttackNodeStep_Attribute_LifetimeRate::Make(rec.a)->Apply(ctx);	break;
+	case ModuleNodeLabel::Attribute_SpeedRate:		AttackNodeStep_Attribute_SpeedRate::Make(rec.a)->Apply(ctx);	break;
+	case ModuleNodeLabel::Attribute_SizeRate:		AttackNodeStep_Attribute_SizeRate::Make(rec.a)->Apply(ctx);		break;
+	case ModuleNodeLabel::Attribute_DamageRate:		AttackNodeStep_Attribute_DamageRate::Make(rec.a)->Apply(ctx);	break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Rule
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Rule_Orbit:	AttackNodeStep_Rule_Orbit::Make(rec.a, rec.b)->Apply(ctx);	break;
+	case ModuleNodeLabel::Rule_Return:	AttackNodeStep_Rule_Return::Make()->Apply(ctx);				break;
+	case ModuleNodeLabel::Rule_Child:	AttackNodeStep_Rule_Child::Make()->Apply(ctx);				break;
+	case ModuleNodeLabel::Rule_Revive:	AttackNodeStep_Rule_Revive::Make()->Apply(ctx);				break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Passive
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Passive_DamageFix:	break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Other
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Other_Repeat:	break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Fusion
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Fusion:	break;
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Count:	break;
+	default:						break;
 	}
 }

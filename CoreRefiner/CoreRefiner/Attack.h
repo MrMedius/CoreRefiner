@@ -184,10 +184,8 @@ public:
 		return lastTime >= lifeTime;
 	}
 
-	/**
-	 * @brief 若有模块要求独立，先卸父子，再 DispatchOnSpawn + 组件同步。
-	 * @note 装配树仍由 Spawn_Ball 建立；开火后需要独立世界坐标的弹在此摘下。
-	 */
+	// 若有模块要求独立，先卸父子，再 DispatchOnSpawn + 组件同步。
+	// 装配树仍由 Core_Ball / Spawn_Ball 建立；开火后需要独立世界坐标的弹在此摘下。
 	void ArmModules()
 	{
 		if (WantsDetachFromParent_())

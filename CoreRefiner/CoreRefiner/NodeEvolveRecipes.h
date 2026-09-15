@@ -15,7 +15,7 @@ namespace NodeEvolveRecipes
 
 	// 无序一对：存盘时 a 的下标 <= b。不要为反序再写一行。
 	inline constexpr Recipe kRecipes[] = {
-		{ ModuleNodeLabel::Other_Child, ModuleNodeLabel::Other_Repeat, ModuleNodeLabel::Other_Revive },
+		{ ModuleNodeLabel::Rule_Child, ModuleNodeLabel::Other_Repeat, ModuleNodeLabel::Rule_Revive },
 	};
 
 	static_assert(ToIndex(kRecipes[0].a) <= ToIndex(kRecipes[0].b));
