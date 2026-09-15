@@ -174,6 +174,73 @@ template<std::size_t N>
 	}
 }
 
+// Label → Kind。未入任何 Kind 表则返回 Count。
+[[nodiscard]] inline constexpr ModuleNodeKind KindOf(ModuleNodeLabel label) noexcept
+{
+	for (std::size_t k = 0; k < ModuleNodeKindCount(); ++k)
+	{
+		const auto kind = static_cast<ModuleNodeKind>(k);
+		const ModuleNodeLabelTable table = LabelsOf(kind);
+		if (table.data == nullptr)
+		{
+			continue;
+		}
+		for (std::size_t n = 0; n < table.count; ++n)
+		{
+			if (table.data[n] == label)
+			{
+				return kind;
+			}
+		}
+	}
+	return ModuleNodeKind::Count;
+}
+
+// KindOf 与 LabelsOf 互逆：每个 Label 都能反查，且表里的 Label 都回到同一 Kind。
+[[nodiscard]] inline constexpr bool KindOfInvertsLabelsOf() noexcept
+{
+	for (std::size_t i = 0; i < ModuleNodeLabelCount(); ++i)
+	{
+		const auto label = static_cast<ModuleNodeLabel>(i);
+		const ModuleNodeKind kind = KindOf(label);
+		if (kind >= ModuleNodeKind::Count)
+		{
+			return false;
+		}
+		const ModuleNodeLabelTable table = LabelsOf(kind);
+		bool found = false;
+		for (std::size_t n = 0; n < table.count && table.data != nullptr; ++n)
+		{
+			if (table.data[n] == label)
+			{
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			return false;
+		}
+	}
+	for (std::size_t k = 0; k < ModuleNodeKindCount(); ++k)
+	{
+		const auto kind = static_cast<ModuleNodeKind>(k);
+		const ModuleNodeLabelTable table = LabelsOf(kind);
+		if (table.data == nullptr)
+		{
+			return false;
+		}
+		for (std::size_t n = 0; n < table.count; ++n)
+		{
+			if (KindOf(table.data[n]) != kind)
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 // 检测各Kind表并起来 = Label 全集，不漏不叠
 [[nodiscard]] inline constexpr bool KindTablesPartitionLabels() noexcept
 {
@@ -214,7 +281,7 @@ template<std::size_t N>
 	return true;
 }
 static_assert(KindTablesPartitionLabels());
-
+static_assert(KindOfInvertsLabelsOf());
 
 // 进化产物子集，项仍留在对应 Kind 表里，不从 Kind 表抠走。
 inline constexpr ModuleNodeLabel kEvolveLabels[] = {

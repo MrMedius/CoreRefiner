@@ -226,17 +226,30 @@ public:
 	virtual ~IModuleNode() = default;
 
 protected:
-	IModuleNode() noexcept
+	// 构造写入 Label，Kind 由 KindOf 填。之后只读。
+	explicit IModuleNode(ModuleNodeLabel label) noexcept
 		:
-		instanceId_(++s_nextInstanceId_)
+		instanceId_(++s_nextInstanceId_),
+		label_(label),
+		kind_(KindOf(label))
 	{}
 
 public:
 	// ---- 身份 ----
 	[[nodiscard]] std::uint32_t GetInstanceId() const noexcept { return instanceId_; }
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept { return label_; }
+	[[nodiscard]] ModuleNodeKind GetKind() const noexcept { return kind_; }
+	[[nodiscard]] bool IsCore() const noexcept { return GetKind() == ModuleNodeKind::Core; }
+	// 身份匹配。Fusion 再问子节点（递归 HasKind，嵌套也能命中）。
+	[[nodiscard]] virtual bool HasKind(ModuleNodeKind k) const noexcept
+	{
+		return GetKind() == k;
+	}
 
 protected:
 	std::uint32_t instanceId_{ 0 };
+	ModuleNodeLabel label_{ ModuleNodeLabel::Count };
+	ModuleNodeKind kind_{ ModuleNodeKind::Count };
 
 public:
 	// ---- 种类与装配：扫描命中时写入配方 ----
@@ -246,13 +259,6 @@ public:
 	{
 		(void)attack;
 	}
-	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
-	// 大类；默认 Other。未覆写的新节点会走 Other 色。
-	[[nodiscard]] virtual ModuleNodeKind GetKind() const noexcept
-	{
-		return ModuleNodeKind::Other;
-	}
-	[[nodiscard]] bool IsCore() const noexcept { return GetKind() == ModuleNodeKind::Core; }
 
 protected:
 	[[nodiscard]] virtual Color GetReadyFillColor() const noexcept;

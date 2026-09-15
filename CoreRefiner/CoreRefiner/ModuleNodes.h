@@ -18,6 +18,7 @@ public:
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
 		:
+		IModuleNode(ModuleNodeLabel::Core_Ball),
 		scale_(scale),
 		enableCollider_(enableCollider)
 	{
@@ -32,16 +33,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Core_Ball::Make(scale_, enableCollider_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Core_Ball;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Core;
 	}
 
 protected:
@@ -69,6 +60,7 @@ public:
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f },
 		bool enableCollider = true) noexcept
 		:
+		IModuleNode(ModuleNodeLabel::Spawn_Ball),
 		scale_(scale),
 		enableCollider_(enableCollider)
 	{
@@ -82,16 +74,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Spawn_Ball::Make(scale_, enableCollider_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Spawn_Ball;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Spawn;
 	}
 
 protected:
@@ -115,6 +97,8 @@ class ModuleNode_Attribute_LifetimeRate final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Attribute_LifetimeRate(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Attribute_LifetimeRate)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
@@ -127,16 +111,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Attribute_LifetimeRate::Make(lifetimeRate_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_LifetimeRate;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Attribute;
 	}
 
 protected:
@@ -154,6 +128,8 @@ class ModuleNode_Attribute_SpeedRate final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Attribute_SpeedRate(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Attribute_SpeedRate)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
@@ -166,16 +142,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Attribute_SpeedRate::Make(speedRate_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SpeedRate;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Attribute;
 	}
 
 protected:
@@ -193,6 +159,8 @@ class ModuleNode_Attribute_SizeRate final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Attribute_SizeRate(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Attribute_SizeRate)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
@@ -205,16 +173,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Attribute_SizeRate::Make(sizeRate_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SizeRate;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Attribute;
 	}
 
 protected:
@@ -232,6 +190,8 @@ class ModuleNode_Attribute_DamageRate final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Attribute_DamageRate(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Attribute_DamageRate)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 12.0f;
@@ -244,16 +204,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Attribute_DamageRate::Make(damageRate_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_DamageRate;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Attribute;
 	}
 
 protected:
@@ -278,6 +228,7 @@ public:
 		float radius = 2.0f,
 		float phase = -1.0f) noexcept
 		:
+		IModuleNode(ModuleNodeLabel::Rule_Orbit),
 		orbitRadius_(radius),
 		orbitPhase_(phase)
 	{
@@ -291,16 +242,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Rule_Orbit::Make(orbitRadius_, orbitPhase_)->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Orbit;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Rule;
 	}
 
 protected:
@@ -319,6 +260,8 @@ class ModuleNode_Rule_Return final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Rule_Return(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Rule_Return)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 15.0f;
@@ -330,16 +273,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Rule_Return::Make()->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Return;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Rule;
 	}
 
 protected:
@@ -358,6 +291,8 @@ class ModuleNode_Rule_Child final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Rule_Child(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Rule_Child)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 20.0f;
@@ -369,16 +304,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Rule_Child::Make()->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Child;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Rule;
 	}
 
 protected:
@@ -395,6 +320,8 @@ class ModuleNode_Rule_Revive final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Rule_Revive(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Rule_Revive)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 15.0f;
@@ -406,16 +333,6 @@ public:
 	void ApplyTo(DeployContext& ctx) override
 	{
 		AttackNodeStep_Rule_Revive::Make()->Apply(ctx);
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Revive;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Rule;
 	}
 
 protected:
@@ -435,6 +352,8 @@ class ModuleNode_Passive_DamageFix final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Passive_DamageFix(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Passive_DamageFix)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 10.0f;
@@ -452,16 +371,6 @@ public:
 	void ApplyWarehouseBonus(Attack& attack) override
 	{
 		attack.Stats().damage.fix += damageFix_;
-	}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Passive_DamageFix;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Passive;
 	}
 
 protected:
@@ -482,6 +391,8 @@ class ModuleNode_Other_Repeat final : public IModuleNode
 {
 public:
 	explicit ModuleNode_Other_Repeat(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Other_Repeat)
 	{
 		localPos_ = localPos;
 		hitRadius_ = 15.0f;
@@ -522,16 +433,6 @@ public:
 		RedistributeChildrenEvenly(ctx.standby);
 	}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Other_Repeat;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Other;
-	}
-
 protected:
 	void ApplyLevelStats_() override
 	{
@@ -551,6 +452,7 @@ class ModuleNode_Fusion final : public IModuleNode
 public:
 	ModuleNode_Fusion(std::unique_ptr<IModuleNode> primary, std::unique_ptr<IModuleNode> material, DirectX::XMFLOAT2 localPos) noexcept
 		:
+		IModuleNode(ModuleNodeLabel::Fusion),
 		primary_(std::move(primary)),
 		material_(std::move(material))
 	{
@@ -590,14 +492,21 @@ public:
 		}
 	}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	[[nodiscard]] bool HasKind(ModuleNodeKind k) const noexcept override
 	{
-		return ModuleNodeLabel::Fusion;
-	}
-
-	[[nodiscard]] ModuleNodeKind GetKind() const noexcept override
-	{
-		return ModuleNodeKind::Fusion;
+		if (GetKind() == k)
+		{
+			return true;
+		}
+		if (primary_ != nullptr && primary_->HasKind(k))
+		{
+			return true;
+		}
+		if (material_ != nullptr && material_->HasKind(k))
+		{
+			return true;
+		}
+		return false;
 	}
 
 	[[nodiscard]] IModuleNode* GetPrimary() noexcept
