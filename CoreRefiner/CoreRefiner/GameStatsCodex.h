@@ -96,11 +96,13 @@ namespace
 
     struct CurrencyData
     {
-        int amount{ 0 };
+        // 测试用初始金钱，正式数值以后改回 0。
+        static constexpr int kTestStartAmount = 10000;
+        int amount{ kTestStartAmount };
 
         void Reset() noexcept
         {
-            amount = 0;
+            amount = kTestStartAmount;
         }
     };
 

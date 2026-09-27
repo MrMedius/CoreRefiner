@@ -641,8 +641,6 @@
     <ResourceCompile Include="CoreRefiner.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="asset\Icon\GameLogo.ico" />
-    <Image Include="asset\Icon\Logo.ico" />
     <Image Include="asset\Icon\XYX.ico" />
   </ItemGroup>
   <ItemGroup>

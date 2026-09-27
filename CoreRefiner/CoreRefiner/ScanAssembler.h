@@ -116,6 +116,7 @@ public:
 		session.appliedTokenCount = 0;
 
 		const std::size_t shotsBefore = session.ctx.shots.size();
+		session.ctx.BeginRecipeGroup();
 		core->ApplyTo(session.ctx);
 		++session.appliedTokenCount;
 		core->StartCooldown();
@@ -309,6 +310,7 @@ private:
 
 		ScanSession& session = sessions_[sessionIndex];
 		const std::size_t shotsBefore = session.ctx.shots.size();
+		session.ctx.BeginRecipeGroup();
 		node.ApplyTo(session.ctx);
 		++session.appliedTokenCount;
 

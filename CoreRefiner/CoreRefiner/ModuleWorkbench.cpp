@@ -186,20 +186,20 @@ void ModuleWorkbench::PlaceDemoField_()
 
 	field_.AddNode<ModuleNode_Rule_Child>(DirectX::XMFLOAT2{ -70.0f, 40.0f });
 	field_.AddNode<ModuleNode_Rule_Child>(DirectX::XMFLOAT2{ 80.0f, 40.0f });
-
+	
 	field_.AddNode<ModuleNode_Spawn_Ball>(DirectX::XMFLOAT2{ -50.0f, -40.0f });
 	field_.AddNode<ModuleNode_Spawn_Ball>(DirectX::XMFLOAT2{ 40.0f, -40.0f });
-
+	
 	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, 75.0f });
 	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, -95.0f });
-
+	
 	field_.AddNode<ModuleNode_Rule_Return>(DirectX::XMFLOAT2{ 50.0f, -95.0f });
 	field_.AddNode<ModuleNode_Other_Repeat>(DirectX::XMFLOAT2{ 90.0f, -68.0f });
-
+	
 	field_.AddNode<ModuleNode_Attribute_LifetimeRate>(DirectX::XMFLOAT2{ -110.0f, 0.0f });
-
+	
 	field_.AddNode<ModuleNode_Attribute_DamageRate>(DirectX::XMFLOAT2{ 110.0f, 50.0f });
-
+	
 	field_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
 }
 

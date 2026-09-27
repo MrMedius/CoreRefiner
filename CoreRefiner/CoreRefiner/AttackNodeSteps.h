@@ -111,7 +111,9 @@ namespace
 		{
 			s.parent = ball;
 			s.host = ball;
+			// 出球记录在前；没有主体时先入队的 Node 在这里补上。
 			ctx.Record(rec);
+			ctx.DrainPitQueue();
 			return;
 		}
 
@@ -358,10 +360,7 @@ public:
 		AttackStandby& s = ctx.standby;
 		if (s.host == nullptr)
 		{
-			if (s.parent == nullptr)
-			{
-				return;
-			}
+			// 没有主体，或子坑还没填球：先入队，等生成主体后再装。
 			const float radius = orbitRadius_;
 			const float phase = orbitPhase_;
 			ctx.EnqueueOnEmptyPit([radius, phase](DeployContext& c)
@@ -439,6 +438,10 @@ public:
 		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
+			ctx.EnqueueOnEmptyPit([](DeployContext& c)
+			{
+				AttackNodeStep_Rule_Return{}.Apply(c);
+			});
 			return;
 		}
 		if (s.parent->GetModule<Module_Rule_Return>() != nullptr)
@@ -473,6 +476,10 @@ public:
 		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
+			ctx.EnqueueOnEmptyPit([](DeployContext& c)
+			{
+				AttackNodeStep_Rule_Child{}.Apply(c);
+			});
 			return;
 		}
 		if (s.host == nullptr)
@@ -509,6 +516,10 @@ public:
 		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
+			ctx.EnqueueOnEmptyPit([](DeployContext& c)
+			{
+				AttackNodeStep_Rule_Revive{}.Apply(c);
+			});
 			return;
 		}
 		if (s.gfx == nullptr || s.rg == nullptr)

@@ -188,7 +188,7 @@
     },
     "Other_Repeat": {
       "title": "重复",
-      "body": "重复之前的节点，但重复之间不会相互产生效果。",
+      "body": "重复之前的节点。",
       "spans": [
         {
           "start": 0,
@@ -391,7 +391,7 @@
     },
     "Other_Repeat": {
       "title": "反復",
-      "body": "前のノードを繰り返す。ただし、繰り返し同士は互いに影響しない。",
+      "body": "前のノードを繰り返す。",
       "spans": [
         {
           "start": 0,
@@ -594,7 +594,7 @@
     },
     "Other_Repeat": {
       "title": "Repeat",
-      "body": "Repeats the previous nodes, but repeats do not affect each other.",
+      "body": "Repeats the previous nodes.",
       "spans": [
         {
           "start": 0,

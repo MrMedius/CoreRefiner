@@ -1570,12 +1570,6 @@
     <Image Include="asset\Icon\XYX.ico">
       <Filter>Tool\Resource Files</Filter>
     </Image>
-    <Image Include="asset\Icon\Logo.ico">
-      <Filter>Tool\Resource Files</Filter>
-    </Image>
-    <Image Include="asset\Icon\GameLogo.ico">
-      <Filter>Tool\Resource Files</Filter>
-    </Image>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Phong_PS.hlsl">

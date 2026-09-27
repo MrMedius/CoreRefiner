@@ -131,7 +131,7 @@ static_assert(ModuleNodePrice{}.GetSell() == 2);
 struct ModuleNodeCooldown
 {
 	ModuleReadyState state{ ModuleReadyState::Ready };
-	float duration{ 3.0f };
+	float duration{ 10.0f };
 	float remaining{ 0.0f };
 
 	// 写入冷却时长。小于 0 存 0。

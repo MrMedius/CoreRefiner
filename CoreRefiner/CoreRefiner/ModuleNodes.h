@@ -434,7 +434,9 @@ public:
 
 	void ApplyTo(DeployContext& ctx) override
 	{
-		if (ctx.recipe.empty())
+		// 按 Node 组取，不按记录条数。当前组（含 Fusion 里刚写上的主体）不参与。
+		const std::size_t groupCount = ctx.recipeGroupStarts.size();
+		if (groupCount == 0u)
 		{
 			return;
 		}
@@ -448,17 +450,59 @@ public:
 		{
 			take = 3u;
 		}
-		if (take > ctx.recipe.size())
+		if (take > groupCount)
 		{
-			take = ctx.recipe.size();
+			take = groupCount;
 		}
 
-		const std::vector<AttackStepRecord> window(
-			ctx.recipe.end() - static_cast<std::ptrdiff_t>(take),
-			ctx.recipe.end());
+		// 先拷贝再重放：重放出球会 Flush，把配方和分组清掉。
+		const std::size_t firstGroup = groupCount - take;
+		std::vector<AttackStepRecord> window;
+		for (std::size_t g = firstGroup; g < groupCount; ++g)
+		{
+			const std::size_t begin = ctx.recipeGroupStarts[g];
+			const std::size_t end = (g + 1u < groupCount)
+				? ctx.recipeGroupStarts[g + 1u]
+				: ctx.recipeGroupStart;
+			if (begin > end || end > ctx.recipe.size())
+			{
+				continue;
+			}
+			window.insert(
+				window.end(),
+				ctx.recipe.begin() + static_cast<std::ptrdiff_t>(begin),
+				ctx.recipe.begin() + static_cast<std::ptrdiff_t>(end));
+		}
+
+		// 复活会先打开 recordOnly。重复里的 Core / Spawn 仍要当场发射。
+		// 没发射则恢复，只含属性的重放不会改掉复活后的只记账。
+		// 新分组只在这次从 recordOnly 里发射之后重开，普通重放的分组不变。
+		const bool recordOnlyBefore = ctx.recordOnly;
+		bool fired = false;
 		for (const AttackStepRecord& rec : window)
 		{
+			// 核心和生成都要能发射。以后新增的 Label 只要进了这两张 Kind 表就算上。
+			const ModuleNodeKind kind = KindOf(rec.label);
+			const bool isCoreOrSpawn =
+				kind == ModuleNodeKind::Core || kind == ModuleNodeKind::Spawn;
+			if (isCoreOrSpawn)
+			{
+				ctx.recordOnly = false;
+			}
+			if (fired && recordOnlyBefore)
+			{
+				ctx.BeginRecipeGroup();
+			}
+			const std::size_t shotsNow = ctx.shots.size();
 			ApplyAttackStepRecord(ctx, rec);
+			if (ctx.shots.size() != shotsNow)
+			{
+				fired = true;
+			}
+		}
+		if (!fired)
+		{
+			ctx.recordOnly = recordOnlyBefore;
 		}
 		RedistributeChildrenEvenly(ctx.standby);
 	}

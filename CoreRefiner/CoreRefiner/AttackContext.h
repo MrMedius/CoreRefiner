@@ -5,6 +5,7 @@
 #include "RenderGraph.h"
 #include "Player.h"
 
+#include <cstddef>
 #include <functional>
 #include <tuple>
 #include <utility>
@@ -36,7 +37,12 @@ struct DeployContext
 	std::vector<Attack*> shots;
 	/** @brief 当前未 Flush 的流水线 Step；FlushStandby 时封到根弹。 */
 	std::vector<AttackStepRecord> recipe;
-	// 当前空子坑上等待 host 填入后再执行的安装
+	// 已完成配方组在 recipe 中的起点，不含当前组。
+	// 组 i 的范围是 [recipeGroupStarts[i], 下一组起点)；最后一组的终点是 recipeGroupStart。
+	std::vector<std::size_t> recipeGroupStarts;
+	// 当前组起点。Flush 后归 0，本组从新配方开头继续记。
+	std::size_t recipeGroupStart{ 0 };
+	// 等待 host 填入后再执行的安装。没有父弹时也先入队，新根弹生成后 Drain。
 	std::vector<std::function<void(DeployContext&)>> pitQueue;
 	// 扫到 Revive 之后为 true：后续 Step 只 Record，不改当前树。
 	// 由 Rule_Revive 的 Apply 置位；新 Context 从 false 开始。
@@ -74,6 +80,8 @@ struct DeployContext
 			}
 		}
 		recipe.clear();
+		recipeGroupStarts.clear();
+		recipeGroupStart = 0;
 		standby.parent = nullptr;
 		standby.children.clear();
 		standby.host = nullptr;
@@ -83,10 +91,21 @@ struct DeployContext
 	}
 
 	
-	//把安装动作挂到当前空子坑；球体填坑后 DrainPitQueue 再跑。
+	// 把安装动作挂到等待队列；Core / Spawn 生成主体后 DrainPitQueue 再跑。
 	void EnqueueOnEmptyPit(std::function<void(DeployContext&)> job)
 	{
 		pitQueue.push_back(std::move(job));
+	}
+
+	// 结束上一组（没有新记录则不记），从 recipe 末尾开一组。
+	// 出球在组中途 Flush 时，上面的归零会让本组改从新配方开头继续。
+	void BeginRecipeGroup()
+	{
+		if (recipe.size() > recipeGroupStart)
+		{
+			recipeGroupStarts.push_back(recipeGroupStart);
+		}
+		recipeGroupStart = recipe.size();
 	}
 
 	//对当前 host 执行坑队列（先移出再跑，避免 Drain 中再次入队套娃）。
@@ -104,8 +123,8 @@ struct DeployContext
 	}
 };
 
-// 打 standby.host
-// host 空且已开子坑则入队，等填坑后再装。
+// 打 standby.host。
+// host 空则入队，等 Core / Spawn 生成主体后再装。没有父弹时也入队。
 template <typename T, typename... Args>
 T* AddToFocus(DeployContext& ctx, const AttackStepRecord& rec, Args&&... args)
 {
@@ -115,17 +134,14 @@ T* AddToFocus(DeployContext& ctx, const AttackStepRecord& rec, Args&&... args)
 	}
 	if (ctx.standby.host == nullptr)
 	{
-		if (ctx.standby.parent != nullptr)
-		{
-			ctx.EnqueueOnEmptyPit(
-				[captured = std::make_tuple(std::forward<Args>(args)...), rec](DeployContext& c) mutable
+		ctx.EnqueueOnEmptyPit(
+			[captured = std::make_tuple(std::forward<Args>(args)...), rec](DeployContext& c) mutable
+			{
+				std::apply([&c, rec](auto&&... a)
 				{
-					std::apply([&c, rec](auto&&... a)
-					{
-						AddToFocus<T>(c, rec, std::forward<decltype(a)>(a)...);
-					}, std::move(captured));
-				});
-		}
+					AddToFocus<T>(c, rec, std::forward<decltype(a)>(a)...);
+				}, std::move(captured));
+			});
 		return nullptr;
 	}
 	T* raw = ctx.standby.host->AddModule<T>(std::forward<Args>(args)...);
