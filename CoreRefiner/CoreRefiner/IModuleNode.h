@@ -37,6 +37,7 @@ namespace ModuleNodeKindFill
 		Color(192u, 192u, 192u, 255u), // Passive   RGB(192,192,192) #C0C0C0 银
 		Color(200u, 160u, 255u, 255u), // Other     RGB(200,160,255) #C8A0FF 紫
 		Color(  0u,   0u,   0u,   0u), // Fusion    表槽；外观对半用子节点 Kind 色
+		Color(255u, 255u, 255u, 255u), // Ultra     RGB(255,255,255) #FFFFFF 白
 	};
 
 	static_assert(sizeof(kFill) / sizeof(kFill[0]) == ModuleNodeKindCount(), "ModuleNodeKindFill::kFill size must match ModuleNodeKindCount");

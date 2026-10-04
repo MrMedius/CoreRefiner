@@ -297,6 +297,11 @@ namespace NodeIconAtlas
 		// ————————————————————————————————————————————————————
 		// Label::Fusion 下标槽；绘制走主体/素材对半 blit，不用这张图。
 		inline constexpr IconAtlas::IconBits kFusion{};
+		// ————————————————————————————————————————————————————
+		// Kind —— Ultra
+		// ————————————————————————————————————————————————————
+		// 图集槽用圆框。实例图案以后存在奥义自己身上。
+		inline constexpr IconAtlas::IconBits kUltra = kRoundFrame;
 	}
 
 	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
@@ -317,6 +322,7 @@ namespace NodeIconAtlas
 
 		detail::kOtherRepeat,         // Other_Repeat
 		detail::kFusion,              // Fusion
+		detail::kUltra,               // Ultra
 	};
 
 	static_assert(kNodeIcons.size() == ModuleNodeLabelCount());

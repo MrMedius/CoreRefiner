@@ -415,6 +415,7 @@ void NodeInfoPanel::ShowFor(ModuleNodeLabel label, DirectX::XMFLOAT2 anchorGameX
 		cachedInstanceId_.reset();
 		cachedLevel_.reset();
 		cachedBuyPrice_.reset();
+		cachedUltraRevision_.reset();
 		cachedLanguage_ = lang;
 	}
 
@@ -435,6 +436,9 @@ void NodeInfoPanel::ShowFor(const IModuleNode& node, DirectX::XMFLOAT2 anchorGam
 	}
 
 	const Language lang = GameStatsCodex::GetLanguage();
+	const auto* ultra = dynamic_cast<const ModuleNode_Ultra*>(&node);
+	const bool ultraDirty = ultra != nullptr
+		&& (!cachedUltraRevision_.has_value() || *cachedUltraRevision_ != ultra->GetContentRevision());
 	const bool contentDirty =
 		!cachedInstanceId_.has_value()
 		|| !cachedLanguage_.has_value()
@@ -444,7 +448,8 @@ void NodeInfoPanel::ShowFor(const IModuleNode& node, DirectX::XMFLOAT2 anchorGam
 		|| !cachedLevel_.has_value()
 		|| *cachedLevel_ != node.GetLevel()
 		|| !cachedBuyPrice_.has_value()
-		|| *cachedBuyPrice_ != node.GetBuyPrice();
+		|| *cachedBuyPrice_ != node.GetBuyPrice()
+		|| ultraDirty;
 
 	anchor_ = anchor;
 	maxWidthPx_ = maxWidthPx;
@@ -456,6 +461,14 @@ void NodeInfoPanel::ShowFor(const IModuleNode& node, DirectX::XMFLOAT2 anchorGam
 		cachedInstanceId_ = node.GetInstanceId();
 		cachedLevel_ = node.GetLevel();
 		cachedBuyPrice_ = node.GetBuyPrice();
+		if (ultra != nullptr)
+		{
+			cachedUltraRevision_ = ultra->GetContentRevision();
+		}
+		else
+		{
+			cachedUltraRevision_.reset();
+		}
 		cachedLanguage_ = lang;
 	}
 

@@ -24,7 +24,14 @@
     "shop.refine.fuse": "合成",
     "shop.refine.evolve": "进化",
     "shop.refine.return": "退回",
-    "node.cost": "造价"
+    "node.cost": "造价",
+    "shop.ultra.forge": "锻造",
+    "shop.ultra.punch": "打孔",
+    "shop.ultra.rename": "更名",
+    "shop.ultra.redraw": "重绘",
+    "ui.confirm": "确定",
+    "ui.exit": "退出",
+    "shop.sell.confirm": "卖出可获得 {0}，确定吗？"
   },
   "ja": {
     "title.new_game": "ニューゲーム",
@@ -51,7 +58,14 @@
     "shop.refine.fuse": "合成",
     "shop.refine.evolve": "進化",
     "shop.refine.return": "戻す",
-    "node.cost": "コスト"
+    "node.cost": "コスト",
+    "shop.ultra.forge": "鍛造",
+    "shop.ultra.punch": "穴開け",
+    "shop.ultra.rename": "改名",
+    "shop.ultra.redraw": "再描画",
+    "ui.confirm": "決定",
+    "ui.exit": "戻る",
+    "shop.sell.confirm": "{0} で売却しますか？"
   },
   "en": {
     "title.new_game": "New Game",
@@ -78,6 +92,13 @@
     "shop.refine.fuse": "Fuse",
     "shop.refine.evolve": "Evolve",
     "shop.refine.return": "Return",
-    "node.cost": "Cost"
+    "node.cost": "Cost",
+    "shop.ultra.forge": "Forge",
+    "shop.ultra.punch": "Punch",
+    "shop.ultra.rename": "Rename",
+    "shop.ultra.redraw": "Redraw",
+    "ui.confirm": "OK",
+    "ui.exit": "Exit",
+    "shop.sell.confirm": "Sell for {0}?"
   }
 }

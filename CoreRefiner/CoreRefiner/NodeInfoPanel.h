@@ -91,6 +91,8 @@ private:
 	std::optional<int> cachedLevel_;
 	std::optional<int> cachedBuyPrice_;
 	std::optional<Language> cachedLanguage_;
+	// 只在悬停奥义时有值。和等级、造价分开记。
+	std::optional<std::uint32_t> cachedUltraRevision_;
 	Anchor anchor_{ Anchor::Above };
 	float maxWidthPx_{ kMaxWidthPx_ };
 	unsigned contentW_{ 1u };

@@ -10,6 +10,7 @@ enum class ModuleNodeKind : unsigned char
 	Passive,
 	Other,
 	Fusion,
+	Ultra,
 	Count
 };
 
@@ -49,6 +50,10 @@ enum class ModuleNodeLabel : unsigned char
 	// Kind —— Fusion
 	// ————————————————————————————————————————————————————
 	Fusion,
+	// ————————————————————————————————————————————————————
+	// Kind —— Ultra
+	// ————————————————————————————————————————————————————
+	Ultra,
 	// ————————————————————————————————————————————————————
 	Count
 };
@@ -122,6 +127,12 @@ inline constexpr ModuleNodeLabel kOtherLabels[] = {
 inline constexpr ModuleNodeLabel kFusionLabels[] = {
 	ModuleNodeLabel::Fusion,
 };
+// ————————————————————————————————————————————————————
+// Kind —— Ultra
+// ————————————————————————————————————————————————————
+inline constexpr ModuleNodeLabel kUltraLabels[] = {
+	ModuleNodeLabel::Ultra,
+};
 
 struct ModuleNodeLabelTable
 {
@@ -169,6 +180,8 @@ template<std::size_t N>
 		return MakeLabelTable(kOtherLabels);
 	case ModuleNodeKind::Fusion:
 		return MakeLabelTable(kFusionLabels);
+	case ModuleNodeKind::Ultra:
+		return MakeLabelTable(kUltraLabels);
 	default:
 		return { nullptr, 0 };
 	}

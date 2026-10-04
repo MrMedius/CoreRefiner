@@ -4,6 +4,7 @@
 #include "Channels.h"
 #include "Graphics.h"
 #include "ModuleNodes.h"
+#include "ModuleNodeFactory.h"
 #include "IModuleZone.h"
 #include "InputCodex.h"
 #include "ObjectCodex.h"
@@ -199,13 +200,32 @@ void ModuleWorkbench::PlaceDemoField_()
 	field_.AddNode<ModuleNode_Attribute_LifetimeRate>(DirectX::XMFLOAT2{ -110.0f, 0.0f });
 	
 	field_.AddNode<ModuleNode_Attribute_DamageRate>(DirectX::XMFLOAT2{ 110.0f, 50.0f });
-	
-	field_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
 }
 
 void ModuleWorkbench::PlaceDemoWarehouse_()
 {
 	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+
+	warehouse_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
+
+	// H1 时删除。扫描、彩虹、Panel 验收用。
+	ModuleNode_Ultra* ultra = warehouse_.AddNode<ModuleNode_Ultra>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->AddCapacity();
+	const ModuleNodeLabel contents[] = {
+		ModuleNodeLabel::Spawn_Ball,
+		ModuleNodeLabel::Attribute_LifetimeRate,
+		ModuleNodeLabel::Attribute_SpeedRate,
+		ModuleNodeLabel::Rule_Orbit,
+	};
+	for (std::size_t i = 0; i < 4u; ++i)
+	{
+		std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeModuleNode(contents[i], {});
+		(void)ultra->TryPut(i, node);
+	}
 }
 
 void ModuleWorkbench::Reset()

@@ -1,5 +1,7 @@
 #include "ModuleNodeFactory.h"
 #include "ModuleNodes.h"
+#include "ModuleNodeInfoCopy.h"
+#include "IconAtlas.h"
 
 namespace ModuleNodeFactory
 {
@@ -44,6 +46,11 @@ namespace ModuleNodeFactory
 		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Fusion:					return nullptr;
 		// ————————————————————————————————————————————————————
+		// Kind —— Ultra
+		// ————————————————————————————————————————————————————
+		// 奥义走 MakeUltra，不从 Label 直接造。
+		case ModuleNodeLabel::Ultra:					return nullptr;
+		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Count:					return nullptr;
 		default:										return nullptr;
 		}
@@ -61,5 +68,13 @@ namespace ModuleNodeFactory
 			return nullptr;
 		}
 		return std::make_unique<ModuleNode_Fusion>(std::move(primary), std::move(material), localPos);
+	}
+
+	std::unique_ptr<IModuleNode> MakeUltra(DirectX::XMFLOAT2 localPos)
+	{
+		auto ultra = std::make_unique<ModuleNode_Ultra>(localPos);
+		ultra->SetName(GetModuleNodeInfoCopy(ModuleNodeLabel::Ultra).title);
+		ultra->SetIconBits(NodeIconAtlas::detail::kRoundFrame);
+		return ultra;
 	}
 }

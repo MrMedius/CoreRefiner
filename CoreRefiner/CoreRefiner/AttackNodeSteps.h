@@ -583,6 +583,10 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 	// ————————————————————————————————————————————————————
 	case ModuleNodeLabel::Fusion:	break;
 	// ————————————————————————————————————————————————————
+	// Kind —— Ultra
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Ultra:	break;
+	// ————————————————————————————————————————————————————
 	case ModuleNodeLabel::Count:	break;
 	default:						break;
 	}

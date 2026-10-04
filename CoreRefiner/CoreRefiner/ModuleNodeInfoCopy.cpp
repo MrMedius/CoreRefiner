@@ -72,6 +72,10 @@ namespace
 		// ————————————————————————————————————————————————————
 		if (name == "Fusion")					{ return ModuleNodeLabel::Fusion; }
 		// ————————————————————————————————————————————————————
+		// Kind —— Ultra
+		// ————————————————————————————————————————————————————
+		if (name == "Ultra")					{ return ModuleNodeLabel::Ultra; }
+		// ————————————————————————————————————————————————————
 		return std::nullopt;
 	}
 
@@ -84,6 +88,7 @@ namespace
 		if (name == "Passive")	{ return ModuleNodeKind::Passive; }
 		if (name == "Other")		{ return ModuleNodeKind::Other; }
 		if (name == "Fusion")	{ return ModuleNodeKind::Fusion; }
+		if (name == "Ultra")	{ return ModuleNodeKind::Ultra; }
 		return std::nullopt;
 	}
 
@@ -113,6 +118,7 @@ namespace
 		case ModuleNodeKind::Passive:	return "Passive";
 		case ModuleNodeKind::Other:		return "Other";
 		case ModuleNodeKind::Fusion:	return "Fusion";
+		case ModuleNodeKind::Ultra:		return "Ultra";
 		case ModuleNodeKind::Count:		return "";
 		}
 		return "";
@@ -314,6 +320,10 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	// Kind —— Fusion
 	// ————————————————————————————————————————————————————
 	case ModuleNodeLabel::Fusion:					return "Fusion";
+	// ————————————————————————————————————————————————————
+	// Kind —— Ultra
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Ultra:					return "Ultra";
 	// ————————————————————————————————————————————————————
 	case ModuleNodeLabel::Count:					return "";
 	}

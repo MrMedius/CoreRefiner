@@ -7,7 +7,8 @@
       "Rule": "规则类",
       "Passive": "被动类",
       "Other": "其他类",
-      "Fusion": "合成类"
+      "Fusion": "合成类",
+      "Ultra": "奥义类"
     },
     "stats": {
       "node_radius": "节点半径",
@@ -200,6 +201,10 @@
           "weight": "bold"
         }
       ]
+    },
+    "Ultra": {
+      "title": "新·奥义",
+      "body": ""
     }
   },
   "ja": {
@@ -210,7 +215,8 @@
       "Rule": "ルールタイプ",
       "Passive": "パッシブタイプ",
       "Other": "その他タイプ",
-      "Fusion": "合成タイプ"
+      "Fusion": "合成タイプ",
+      "Ultra": "奥義タイプ"
     },
     "stats": {
       "node_radius": "ノード半径",
@@ -403,6 +409,10 @@
           "weight": "bold"
         }
       ]
+    },
+    "Ultra": {
+      "title": "新・奥義",
+      "body": ""
     }
   },
   "en": {
@@ -413,7 +423,8 @@
       "Rule": "Rule",
       "Passive": "Passive",
       "Other": "Other",
-      "Fusion": "Fusion"
+      "Fusion": "Fusion",
+      "Ultra": "Ultra"
     },
     "stats": {
       "node_radius": "Node Radius",
@@ -606,6 +617,10 @@
           "weight": "bold"
         }
       ]
+    },
+    "Ultra": {
+      "title": "New Ultra",
+      "body": ""
     }
   }
 }

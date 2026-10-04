@@ -1570,11 +1570,17 @@ bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const 
 	{
 		return false;
 	}
-	// 买卖框里的商品不能停进炼成格。
+	// 买卖框里的商品不能停进炼成。
 	if (FindSlotIndex_(&node) < kSlotCount)
 	{
 		return false;
 	}
+	// 奥义不能进炼成。
+	if (node.GetKind() == ModuleNodeKind::Ultra)
+	{
+		return false;
+	}
+	// 满级核心类 Node 不能进炼成。
 	if (node.IsCore() && node.GetLevel() >= ModuleNodeLevel::kMax)
 	{
 		return false;

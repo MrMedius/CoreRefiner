@@ -2,9 +2,11 @@
 #include "IModuleNode.h"
 #include "AttackNodeSteps.h"
 #include "IconAtlas.h"
+#include "Util.h"
 
 #include <DirectXMath.h>
 #include <memory>
+#include <string>
 #include <vector>
 
 // ————————————————————————————————————————————————————
@@ -637,4 +639,236 @@ private:
 
 	std::unique_ptr<IModuleNode> primary_;
 	std::unique_ptr<IModuleNode> material_;
+};
+
+// ————————————————————————————————————————————————————
+// Kind —— Ultra
+// ————————————————————————————————————————————————————
+class ModuleNode_Ultra final : public IModuleNode
+{
+public:
+	static constexpr int kBornCapacity = 3;
+	static constexpr std::size_t kMaxNameCodepoints = 20;
+	static constexpr float kEmptyStat = 10.0f;
+
+	explicit ModuleNode_Ultra(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Ultra)
+	{
+		localPos_ = localPos;
+		slots_.resize(static_cast<std::size_t>(kBornCapacity));
+		iconBits_ = NodeIconAtlas::detail::kRoundFrame;
+		SetBuyPrice(0);
+		SetLevel(3);
+		RecomputeStats_();
+	}
+
+	[[nodiscard]] int GetCapacity() const noexcept
+	{
+		return static_cast<int>(slots_.size());
+	}
+
+	void AddCapacity()
+	{
+		slots_.push_back(nullptr);
+		Touch_();
+	}
+
+	[[nodiscard]] bool CanHold(const IModuleNode& node) const noexcept
+	{
+		const ModuleNodeKind kind = node.GetKind();
+		return kind != ModuleNodeKind::Core && kind != ModuleNodeKind::Ultra;
+	}
+
+	[[nodiscard]] bool TryPut(std::size_t index, std::unique_ptr<IModuleNode>& node)
+	{
+		if (node == nullptr || index >= slots_.size() || slots_[index] != nullptr || !CanHold(*node))
+		{
+			return false;
+		}
+		slots_[index] = std::move(node);
+		RecomputeStats_();
+		Touch_();
+		return true;
+	}
+
+	[[nodiscard]] std::unique_ptr<IModuleNode> Take(std::size_t index)
+	{
+		if (index >= slots_.size() || slots_[index] == nullptr)
+		{
+			return nullptr;
+		}
+		std::unique_ptr<IModuleNode> taken = std::move(slots_[index]);
+		RecomputeStats_();
+		Touch_();
+		return taken;
+	}
+
+	[[nodiscard]] std::unique_ptr<IModuleNode> Take(IModuleNode* node)
+	{
+		if (node == nullptr)
+		{
+			return nullptr;
+		}
+		for (std::size_t i = 0; i < slots_.size(); ++i)
+		{
+			if (slots_[i].get() == node)
+			{
+				return Take(i);
+			}
+		}
+		return nullptr;
+	}
+
+	[[nodiscard]] IModuleNode* GetSlot(std::size_t index) noexcept
+	{
+		return (index < slots_.size()) ? slots_[index].get() : nullptr;
+	}
+
+	[[nodiscard]] const IModuleNode* GetSlot(std::size_t index) const noexcept
+	{
+		return (index < slots_.size()) ? slots_[index].get() : nullptr;
+	}
+
+	[[nodiscard]] const std::string& GetName() const noexcept
+	{
+		return name_;
+	}
+
+	void SetName(std::string name)
+	{
+		if (Utf8CodepointCount(name) > kMaxNameCodepoints)
+		{
+			std::size_t end = 0;
+			for (std::size_t n = 0; n < kMaxNameCodepoints && end < name.size(); ++n)
+			{
+				end = Utf8Next(name, end);
+			}
+			name.resize(end);
+		}
+		if (name_ == name)
+		{
+			return;
+		}
+		name_ = std::move(name);
+		Touch_();
+	}
+
+	[[nodiscard]] const IconAtlas::IconBits& GetIconBits() const noexcept
+	{
+		return iconBits_;
+	}
+
+	void SetIconBits(const IconAtlas::IconBits& bits)
+	{
+		if (iconBits_ == bits)
+		{
+			return;
+		}
+		iconBits_ = bits;
+		Touch_();
+	}
+
+	void ApplyTo(DeployContext& ctx) override
+	{
+		for (const std::unique_ptr<IModuleNode>& slot : slots_)
+		{
+			if (slot != nullptr)
+			{
+				slot->ApplyTo(ctx);
+			}
+		}
+	}
+
+	void ApplyWarehouseBonus(Attack& attack) override
+	{
+		for (const std::unique_ptr<IModuleNode>& slot : slots_)
+		{
+			if (slot != nullptr)
+			{
+				slot->ApplyWarehouseBonus(attack);
+			}
+		}
+	}
+
+	[[nodiscard]] bool HasKind(ModuleNodeKind k) const noexcept override
+	{
+		if (GetKind() == k)
+		{
+			return true;
+		}
+		for (const std::unique_ptr<IModuleNode>& slot : slots_)
+		{
+			if (slot != nullptr && slot->HasKind(k))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 名字、图案、容量、栏位变化次数。Panel 用它判断要不要重画，不进原来的等级/造价缓存。
+	[[nodiscard]] std::uint32_t GetContentRevision() const noexcept
+	{
+		return contentRevision_;
+	}
+
+	void BlitIcon(Canvas& canvas, bool asMask) const override
+	{
+		const Color color = asMask ? Color(0u, 0u, 0u, 160u) : GetReadyFillColor();
+		IconAtlas::BlitIcon(canvas, iconBits_, color);
+	}
+
+protected:
+	void ApplyLevelStats_() override {}
+
+private:
+	void Touch_() noexcept
+	{
+		++contentRevision_;
+	}
+
+	// 有内容时四项取普通平均、造价求和；空奥义四项为 10、造价为 0。
+	void RecomputeStats_()
+	{
+		float hit = 0.0f;
+		float cooldown = 0.0f;
+		float scanRadius = 0.0f;
+		float scanSpeed = 0.0f;
+		int price = 0;
+		std::size_t count = 0;
+		for (const std::unique_ptr<IModuleNode>& slot : slots_)
+		{
+			if (slot == nullptr)
+			{
+				continue;
+			}
+			hit += slot->GetHitRadius();
+			cooldown += slot->GetCooldownDuration();
+			scanRadius += slot->GetScanMaxRadius();
+			scanSpeed += slot->GetScanExpandSpeed();
+			price += slot->GetBuyPrice();
+			++count;
+		}
+		if (count == 0u)
+		{
+			SetHitRadius(kEmptyStat);
+			SetCooldownDuration(kEmptyStat);
+			SetScanMaxRadius(kEmptyStat);
+			SetScanExpandSpeed(kEmptyStat);
+			SetBuyPrice(0);
+			return;
+		}
+		const float inv = 1.0f / static_cast<float>(count);
+		SetHitRadius(hit * inv);
+		SetCooldownDuration(cooldown * inv);
+		SetScanMaxRadius(scanRadius * inv);
+		SetScanExpandSpeed(scanSpeed * inv);
+		SetBuyPrice(price);
+	}
+
+	std::vector<std::unique_ptr<IModuleNode>> slots_;
+	std::string name_;
+	IconAtlas::IconBits iconBits_{};
+	std::uint32_t contentRevision_{ 0 };
 };
