@@ -33,6 +33,82 @@ namespace IconAtlas
 			}
 		}
 	}
+
+	// 16×16 上 x+y 最大是 30。除以 31，斜向走完一整圈色相，首尾不会撞成同色。
+	static constexpr float kRainbowPeriod = 31.0f;
+
+	// 色相 [0,1) 转纯色。0 是红，沿斜向递增。
+	[[nodiscard]] inline Color HueToRgb(float hue) noexcept
+	{
+		hue = hue - static_cast<float>(static_cast<int>(hue));
+		if (hue < 0.0f)
+		{
+			hue += 1.0f;
+		}
+		const float scaled = hue * 6.0f;
+		const int sector = static_cast<int>(scaled);
+		const float frac = scaled - static_cast<float>(sector);
+		const auto up = static_cast<unsigned char>(frac * 255.0f);
+		const auto down = static_cast<unsigned char>((1.0f - frac) * 255.0f);
+		switch (sector)
+		{
+		case 0: return Color(255u, up, 0u);
+		case 1: return Color(down, 255u, 0u);
+		case 2: return Color(0u, 255u, up);
+		case 3: return Color(0u, down, 255u);
+		case 4: return Color(up, 0u, 255u);
+		default: return Color(255u, 0u, down);
+		}
+	}
+
+	// 亮像素按 x+y+phase 取斜向色相。yOffset 是写到画布上的行起点，色相仍用图标自己的 y。
+	inline void BlitIconRainbow(
+		Canvas& canvas,
+		const IconBits& bits,
+		float phase,
+		unsigned x0 = 0u,
+		unsigned x1 = 16u,
+		unsigned yOffset = 0u)
+	{
+		const unsigned w = canvas.GetCanvasWidth();
+		const unsigned h = canvas.GetCanvasHeight();
+		const unsigned cols = (w < 16u) ? w : 16u;
+		const unsigned xBegin = (x0 < cols) ? x0 : cols;
+		const unsigned xEnd = (x1 < cols) ? x1 : cols;
+
+		for (unsigned y = 0u; y < 16u; ++y)
+		{
+			const unsigned dstY = yOffset + y;
+			if (dstY >= h)
+			{
+				break;
+			}
+			const std::uint16_t row = bits[y];
+			for (unsigned x = xBegin; x < xEnd; ++x)
+			{
+				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0u)
+				{
+					continue;
+				}
+				const float hue = (static_cast<float>(x + y) + phase) / kRainbowPeriod;
+				canvas.PutPixel(x, dstY, HueToRgb(hue));
+			}
+		}
+	}
+
+	// N 帧竖排。第 f 帧的相位沿斜向错开，一整张图走完一圈。
+	inline void BakeRainbowSheet(Canvas& canvas, const IconBits& bits, unsigned frames)
+	{
+		if (frames == 0u)
+		{
+			return;
+		}
+		for (unsigned f = 0u; f < frames; ++f)
+		{
+			const float phase = kRainbowPeriod * static_cast<float>(f) / static_cast<float>(frames);
+			BlitIconRainbow(canvas, bits, phase, 0u, 16u, f * 16u);
+		}
+	}
 }
 
 namespace NodeIconAtlas

@@ -1,8 +1,14 @@
 #pragma once
 #include "IModuleNode.h"
 #include "AttackNodeSteps.h"
+#include "Canvas2DSpriteUV.h"
+#include "Graphics.h"
 #include "IconAtlas.h"
+#include "RenderGraph.h"
+#include "TimeCodex.h"
 #include "Util.h"
+
+#include <cmath>
 
 #include <DirectXMath.h>
 #include <memory>
@@ -650,6 +656,7 @@ public:
 	static constexpr int kBornCapacity = 3;
 	static constexpr std::size_t kMaxNameCodepoints = 20;
 	static constexpr float kEmptyStat = 10.0f;
+	static constexpr unsigned kRainbowFrames = 16u;
 
 	explicit ModuleNode_Ultra(DirectX::XMFLOAT2 localPos) noexcept
 		:
@@ -661,6 +668,51 @@ public:
 		SetBuyPrice(0);
 		SetLevel(3);
 		RecomputeStats_();
+	}
+
+	void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin) override
+	{
+		zoneOrigin_ = zoneOrigin;
+
+		// 16 帧斜向彩虹竖排。UV 先停在第 0 帧，和静止彩虹一致。
+		auto sheet = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize * kRainbowFrames);
+		sheet->Clear(Colors::None);
+		IconAtlas::BakeRainbowSheet(*sheet, iconBits_, kRainbowFrames);
+		sheet->NotifyPixelsChanged();
+		sheet->LinkTechniques(rg);
+		sheet->SetUVOffset(0.0f, 0.0f);
+		sheet->SetUVScale(1.0f, 1.0f);
+		sheet->SetSampleScale(1.0f, 1.0f / static_cast<float>(kRainbowFrames));
+		icon_ = std::move(sheet);
+
+		mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
+		mask_->Clear(Colors::None);
+		BlitIcon(*mask_, true);
+		mask_->NotifyPixelsChanged();
+		mask_->LinkTechniques(rg);
+		mask_->SetUVOffset(0.0f, 0.0f);
+		mask_->SetUVScale(1.0f, 0.0f);
+
+		visualReady_ = true;
+		SyncMaskUV_();
+		ApplyVisualTransform_();
+	}
+
+	// 重绘图案后重烘焙整图和冷却遮罩。
+	void RebakeIcon_()
+	{
+		if (icon_ != nullptr)
+		{
+			icon_->Clear(Colors::None);
+			IconAtlas::BakeRainbowSheet(*icon_, iconBits_, kRainbowFrames);
+			icon_->NotifyPixelsChanged();
+		}
+		if (mask_ != nullptr)
+		{
+			mask_->Clear(Colors::None);
+			BlitIcon(*mask_, true);
+			mask_->NotifyPixelsChanged();
+		}
 	}
 
 	[[nodiscard]] int GetCapacity() const noexcept
@@ -813,10 +865,27 @@ public:
 		return contentRevision_;
 	}
 
+	void SubmitIcon() override
+	{
+		// 按全局时间切斜向彩虹。V 每次挪一帧高度，U 保持整宽。
+		if (auto* sheet = dynamic_cast<Canvas2DSpriteUV*>(icon_.get()))
+		{
+			const float cycle = std::fmod(TimeCodex::Get().GetTotalTime(), 1.0f);
+			const unsigned frame = static_cast<unsigned>(cycle * static_cast<float>(kRainbowFrames)) % kRainbowFrames;
+			sheet->SetUVOffset(0.0f, static_cast<float>(frame) / static_cast<float>(kRainbowFrames));
+		}
+		IModuleNode::SubmitIcon();
+	}
+
 	void BlitIcon(Canvas& canvas, bool asMask) const override
 	{
-		const Color color = asMask ? Color(0u, 0u, 0u, 160u) : GetReadyFillColor();
-		IconAtlas::BlitIcon(canvas, iconBits_, color);
+		if (asMask)
+		{
+			IconAtlas::BlitIcon(canvas, iconBits_, Color(0u, 0u, 0u, 160u));
+			return;
+		}
+		// 静止斜向彩虹。流动留到切帧。
+		IconAtlas::BlitIconRainbow(canvas, iconBits_, 0.0f);
 	}
 
 protected:

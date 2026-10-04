@@ -455,7 +455,7 @@ public:
 	void SubmitVisual();
 	// 残影与图标分开交，整理态才能先画全区残影、再画全区图标。
 	void SubmitGhost();
-	void SubmitIcon();
+	virtual void SubmitIcon();
 	void BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept;
 	void EndLayoutGhost() noexcept;
 	[[nodiscard]] bool IsLayoutGhostActive() const noexcept { return layoutGhostActive_; }
@@ -464,7 +464,7 @@ protected:
 	void ApplyVisualTransform_();
 	void SyncMaskUV_();
 
-	std::unique_ptr<Canvas2D> icon_;
+	std::unique_ptr<Canvas> icon_;
 	std::unique_ptr<Canvas2DSpriteUV> mask_;
 	DirectX::XMFLOAT3 zoneOrigin_{ 0.0f, 0.0f, 0.0f };
 	float zoneVisualScale_{ 1.0f };

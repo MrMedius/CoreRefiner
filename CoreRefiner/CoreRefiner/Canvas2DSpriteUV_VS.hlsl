@@ -13,7 +13,7 @@ VSOut main(float3 pos : Position, float2 tc : Texcoord)
     VSOut o;
     o.pos = mul(float4(pos, 1.0f), modelViewProj);
 
-    o.tc = tc;
+    o.tc = tc * uvSampleScale + uvOffset;
 
     o.reveal = uvScale;
     

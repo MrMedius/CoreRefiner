@@ -21,6 +21,9 @@ struct SpriteUVTag
     {
         XMFLOAT2 offset{ 0.0f, 0.0f };
         XMFLOAT2 scale{ 1.0f, 1.0f };
+        // 采样窗口。遮罩不改它，仍用 scale 做裁切。
+        XMFLOAT2 sampleScale{ 1.0f, 1.0f };
+        XMFLOAT2 padding{ 0.0f, 0.0f };
     };
     static constexpr value_type Default() noexcept { return {}; }
 };

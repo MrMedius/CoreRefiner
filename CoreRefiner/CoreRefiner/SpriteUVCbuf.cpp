@@ -39,7 +39,7 @@ namespace Bind
 
         const auto uv = TryProvide<SpriteUVTag>(pParent);
 
-        return { uv.offset, uv.scale };
+        return { uv.offset, uv.scale, uv.sampleScale, uv.padding };
     }
 
     std::unique_ptr<VertexConstantBuffer<SpriteUVCbuf::UVData>> SpriteUVCbuf::pVcbuf;
