@@ -2,9 +2,7 @@
 #include "IModule.h"
 #include "Attack.h"
 
-/**
- * @brief 加算 lifetime.rate；开火后由 Ball 按拍板秒数倒计时，扣完 RequestDisable。
- */
+// 加算 lifetime.rate；开火后由 Ball 按拍板秒数倒计时，扣完 RequestDisable。
 class Module_Attribute_LifetimeRate : public IModule
 {
 public:

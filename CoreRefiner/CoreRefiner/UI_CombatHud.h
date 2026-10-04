@@ -9,10 +9,8 @@
 
 class ModuleField;
 
-/**
- * @brief 战斗内 UI：迷你 Field + 顶居中波次/倒计时 + 左上角血条/经验条/资源。不走 UiRoot。
- * @note 不拥有 Field；文本按整秒/波次/资源变化才重绘；血条与经验条按量化后重绘。
- */
+// 战斗内 UI：迷你 Field + 顶居中波次/倒计时 + 左上角血条/经验条/资源。不走 UiRoot。
+// 不拥有 Field；文本按整秒/波次/资源变化才重绘；血条与经验条按量化后重绘。
 class UI_CombatHud
 {
 public:
@@ -25,11 +23,11 @@ public:
 	void SetWave(int wave);
 	void SetRemain(float remainSec);
 	void SetHpRatio(float ratio);
-	/** @brief 开局清量化 key，避免与上一局数值相同而不重绘。 */
+	// 开局清量化 key，避免与上一局数值相同而不重绘。
 	void Invalidate();
-	/** @brief 提交战斗 Field（底板 + 棋子）。 */
+	// 提交战斗 Field（底板 + 棋子）。
 	void SubmitField();
-	/** @brief 提交波次 / 倒计时 / 血条 / 经验条 / 资源。 */
+	// 提交波次 / 倒计时 / 血条 / 经验条 / 资源。
 	void SubmitHud();
 	void Submit();
 

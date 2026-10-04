@@ -53,12 +53,12 @@ public:
 	[[nodiscard]] DirectX::XMFLOAT3 GetShopOrigin() const noexcept { return shopOrigin_; }
 
 	void SetOnFight(std::function<void()> cb) { onFight_ = std::move(cb); }
-	/** @brief 刷新战斗按钮文案；波次不变则不重绘。 */
+	// 刷新战斗按钮文案；波次不变则不重绘。
 	void SetNextWave(int wave);
 	// 按当前语言与 Field 是否有 Core，刷新战斗键文案和灰态
 	void RefreshFightLabel();
 
-	/** @brief 新开一局：Field 回到演示布局，仓清空，商店重进货并清刷新次数。 */
+	// 新开一局：Field 回到演示布局，仓清空，商店重进货并清刷新次数。
 	void Reset();
 
 	void Update(float dt, AttackManager* attackManager);
@@ -67,9 +67,9 @@ public:
 	void EndLayoutEdit();
 	void UpdateLayoutEdit(float dt, Window* hostWindow);
 
-	/** @brief 战斗叠层：只交 Field 底板与棋子。 */
+	// 战斗叠层：只交 Field 底板与棋子。
 	void SubmitField();
-	/** @brief 战备页：Field + Shop + Warehouse + 编辑器 + 战斗按钮。 */
+	// 战备页：Field + Shop + Warehouse + 编辑器 + 战斗按钮。
 	void SubmitPrep();
 
 private:
@@ -80,7 +80,7 @@ private:
 	void PlaceDemoWarehouse_();
 	void SyncFieldWaves_();
 	void InitFightButton_();
-	/** @brief 战备布局：左 Shop、右列 Field / Warehouse / 战斗按钮，统一缝隙。 */
+	// 战备布局：左 Shop、右列 Field / Warehouse / 战斗按钮，统一缝隙。
 	void ComputeLayout_() noexcept;
 
 	Graphics& gfx_;

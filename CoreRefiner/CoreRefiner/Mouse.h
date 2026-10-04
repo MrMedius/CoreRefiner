@@ -106,7 +106,7 @@ public:
 	void DisableRaw() noexcept;
 	bool RawEnabled() const noexcept;
 	std::optional<RawDelta> ReadRawDelta() noexcept;
-	/** @brief 本帧滚轮步进（Up 为正，Down 为负），在 Update 时快照并清零 pending。 */
+	// 本帧滚轮步进（Up 为正，Down 为负），在 Update 时快照并清零 pending。
 	[[nodiscard]] int WheelStepsThisFrame() const noexcept { return wheelStepsThisFrame_; }
 private:
 	void OnMouseMove( int x,int y ) noexcept;

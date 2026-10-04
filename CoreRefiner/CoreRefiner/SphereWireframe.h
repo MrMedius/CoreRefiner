@@ -4,10 +4,8 @@
 #include "Transformation.h"
 #include "ConstantBuffers.h"
 
-/**
- * @brief Debug sphere gizmo: three orthogonal great circles (Unity-style).
- * @note Mesh radius 0.5; DoSubmit diameter scales like CubeWireframe size.
- */
+// Debug sphere gizmo: three orthogonal great circles (Unity-style).
+// Mesh radius 0.5; DoSubmit diameter scales like CubeWireframe size.
 class SphereWireframe : public Drawable
 {
 public:

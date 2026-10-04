@@ -18,11 +18,11 @@ public:
 	void Submit(void);
 	void Reset(void);
 
-	/** @brief 应用本波规则：清场、按预算扩池、按 spawnInterval 开始生成。 */
+	// 应用本波规则：清场、按预算扩池、按 spawnInterval 开始生成。
 	void SetWave(const WaveSpec& spec);
-	/** @brief 停用场上敌人并清空跟踪表；不改变当前 WaveSpec。 */
+	// 停用场上敌人并清空跟踪表；不改变当前 WaveSpec。
 	void ClearAll();
-	/** @brief 停止本波继续刷怪（波末收尾用）。 */
+	// 停止本波继续刷怪（波末收尾用）。
 	void HaltSpawning() noexcept;
 
 private:

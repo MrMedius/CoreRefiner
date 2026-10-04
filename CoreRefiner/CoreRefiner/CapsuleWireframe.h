@@ -4,31 +4,25 @@
 #include <memory>
 #include <string>
 
-/**
- * @brief Debug capsule gizmo: outer hemispheres (uniform scale) + cylinder rails (non-uniform).
- * @note Only the collision surface is drawn — no inner half-sphere inside the capsule.
- */
+// Debug capsule gizmo: outer hemispheres (uniform scale) + cylinder rails (non-uniform).
+// Only the collision surface is drawn — no inner half-sphere inside the capsule.
 class CapsuleWireframe
 {
 public:
 	CapsuleWireframe(Graphics& gfx, DirectX::XMFLOAT3 color, std::string tag = "");
-	/** @brief Link all child drawables into the render graph. */
+	// Link all child drawables into the render graph.
 	void LinkTechniques(Rgph::RenderGraph& rg);
-	/** @brief Submit from hemisphere centers and radius (world space). */
+	// Submit from hemisphere centers and radius (world space).
 	void DoSubmit(DirectX::XMFLOAT3 pointA, DirectX::XMFLOAT3 pointB, float radius);
 
 private:
-	/**
-	 * @brief Outer hemisphere wire: unit mesh radius 0.5, dome toward local +Y.
-	 * @note Uniform scale only — avoids stretching that a shared non-uniform matrix would cause.
-	 */
+	// Outer hemisphere wire: unit mesh radius 0.5, dome toward local +Y.
+	// Uniform scale only — avoids stretching that a shared non-uniform matrix would cause.
 	class HemisphereWire : public Drawable
 	{
 	public:
 		HemisphereWire(Graphics& gfx, DirectX::XMFLOAT3 color, std::string tag);
-		/**
-		 * @brief Place hemisphere at center; local +Y aligns with outwardAxis (away from other end).
-		 */
+		// Place hemisphere at center; local +Y aligns with outwardAxis (away from other end).
 		void DoSubmit(DirectX::XMFLOAT3 center, DirectX::XMFLOAT3 outwardAxis, float radius);
 		DirectX::XMMATRIX GetTransformXM() const noexcept override;
 	private:
@@ -44,7 +38,7 @@ private:
 		float scale_{ 1.0f };
 	};
 
-	/** @brief Two end rings + four rails; unit mesh radius 0.5, segment length 1. */
+	// Two end rings + four rails; unit mesh radius 0.5, segment length 1.
 	class CylinderWire : public Drawable
 	{
 	public:

@@ -24,22 +24,16 @@ public:
 	void Submit(void) override = 0;
 	virtual void OnCollide(Character* other) = 0;
 
-	/**
-	 * @brief Immediate disable: cascade hierarchy, then recycle projectile modules.
-	 * @note Reset / 池回收仍级联子物体；玩法销毁请走 RequestDisable。
-	 */
+	// Immediate disable: cascade hierarchy, then recycle projectile modules.
+	// Reset / 池回收仍级联子物体；玩法销毁请走 RequestDisable。
 	void Deactivate() override;
 
-	/**
-	 * @brief 先把仍存活的子弹卸下并继承速度，再排队销毁自身（不级联子弹）。
-	 */
+	// 先把仍存活的子弹卸下并继承速度，再排队销毁自身（不级联子弹）。
 	void RequestDisable() override;
 
-	/**
-	 * @brief Attach a projectile module owned by this Attack.
-	 * @tparam T Must derive from IModule; first ctor arg is always this owner.
-	 * @return Non-owning pointer to the created module.
-	 */
+	// Attach a projectile module owned by this Attack.
+	// T Must derive from IModule; first ctor arg is always this owner.
+	// Non-owning pointer to the created module.
 	template <typename T, typename... Args>
 	T* AddModule(Args&&... args)
 	{
@@ -50,9 +44,7 @@ public:
 		return raw;
 	}
 
-	/**
-	 * @brief Call OnRecycle on each module then destroy them (pool-safe rebind).
-	 */
+	// Call OnRecycle on each module then destroy them (pool-safe rebind).
 	void ClearModules()
 	{
 		for (auto& module : modules_)
@@ -70,9 +62,7 @@ public:
 		adoptLive_ = {};
 	}
 
-	/**
-	 * @brief FlushStandby 时把当前流水线 Step 快照封到根弹（池化 ClearModules 会清掉）。
-	 */
+	// FlushStandby 时把当前流水线 Step 快照封到根弹（池化 ClearModules 会清掉）。
 	void SealAssembledRecipe(std::vector<AttackStepRecord> recipe)
 	{
 		assembledRecipe_ = std::move(recipe);
@@ -82,26 +72,20 @@ public:
 		return assembledRecipe_;
 	}
 
-	/** @brief 本弹数值袋（damage / size / speed / lifetime）。 */
+	// 本弹数值袋（damage / size / speed / lifetime）。
 	[[nodiscard]] AttackStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const AttackStats& Stats() const noexcept { return stats_; }
 
-	/**
-	 * @brief 锁发射点；Return 等后续 Node 读，Revive 放弹时置位。本步 FireRoots 仍 SpawnAt。
-	 */
+	// 锁发射点；Return 等后续 Node 读，Revive 放弹时置位。本步 FireRoots 仍 SpawnAt。
 	void SetLaunchPosLocked(bool locked) noexcept { launchPosLocked_ = locked; }
 	[[nodiscard]] bool IsLaunchPosLocked() const noexcept { return launchPosLocked_; }
 
-	/**
-	 * @brief 登记「把停放弹纳入活体列表」的回调（FireRoots / AttackManager::AdoptLive 挂上）。
-	 */
+	// 登记「把停放弹纳入活体列表」的回调（FireRoots / AttackManager::AdoptLive 挂上）。
 	void SetAdoptLive(std::function<void(Attack*)> fn)
 	{
 		adoptLive_ = std::move(fn);
 	}
-	/**
-	 * @brief 把 @p live 交给已登记回调；未登记则 no-op。
-	 */
+	// 把 live 交给已登记回调；未登记则 no-op。
 	void AdoptLive(Attack* live)
 	{
 		if (adoptLive_)
@@ -110,13 +94,11 @@ public:
 		}
 	}
 
-	/** @brief 父弹卸下后等待 AttackManager 收进更新列表。 */
+	// 父弹卸下后等待 AttackManager 收进更新列表。
 	void SetAwaitingManagerAdopt(bool awaiting) noexcept { awaitingManagerAdopt_ = awaiting; }
 	[[nodiscard]] bool IsAwaitingManagerAdopt() const noexcept { return awaitingManagerAdopt_; }
 
-	/**
-	 * @brief 对象池可拿走：已非 Active，且玩法模块已清空（OnDisable 尚未 ClearModules 时不可复用）。
-	 */
+	// 对象池可拿走：已非 Active，且玩法模块已清空（OnDisable 尚未 ClearModules 时不可复用）。
 	[[nodiscard]] bool IsReusable() const noexcept override
 	{
 		return !IsActive() && modules_.empty();
@@ -159,25 +141,17 @@ public:
 	void SetMoveAccel(XMFLOAT3 accel) { MoveAccel = accel; }
 	XMFLOAT3 GetMoveAccel(void) const { return MoveAccel; }
 
-	/**
-	 * @brief Write local position for modules (≈ Unity localPosition).
-	 */
+	// Write local position for modules (≈ Unity localPosition).
 	void SetLocalPosition(XMFLOAT3 position) { SetPosition(position); }
-	/**
-	 * @brief Write local scale for modules (host SetSize).
-	 */
+	// Write local scale for modules (host SetSize).
 	void SetLocalScale(XMFLOAT3 scale) { SetSize(scale); }
 
-	/**
-	 * @brief 开火时拍板的寿命秒数（ArmModules 之后 = lifetime.Final()）。
-	 */
+	// 开火时拍板的寿命秒数（ArmModules 之后 = lifetime.Final()）。
 	void SetLifeTime(float seconds) { lifeTime = seconds; }
 	[[nodiscard]] float GetLifeTime() const noexcept { return lifeTime; }
-	/** @brief Reset elapsed life clock (call from SpawnAt). */
+	// Reset elapsed life clock (call from SpawnAt).
 	void ResetLifeTimer() { lastTime = 0.0f; }
-	/**
-	 * @brief Advance life clock; returns true when expired.
-	 */
+	// Advance life clock; returns true when expired.
 	[[nodiscard]] bool TickLifeTimer(float dt)
 	{
 		lastTime += dt;
@@ -197,7 +171,7 @@ public:
 	}
 
 protected:
-	/** @brief Run OnSpawn on all bound modules (call from SpawnAt after pose reset). */
+	// Run OnSpawn on all bound modules (call from SpawnAt after pose reset).
 	void DispatchOnSpawn()
 	{
 		for (auto& module : modules_)
@@ -208,7 +182,7 @@ protected:
 			}
 		}
 	}
-	/** @brief Run OnUpdate on all bound modules. */
+	// Run OnUpdate on all bound modules.
 	void DispatchOnUpdate(float dt)
 	{
 		for (auto& module : modules_)
@@ -219,7 +193,7 @@ protected:
 			}
 		}
 	}
-	/** @brief Run OnHit on all bound modules. */
+	// Run OnHit on all bound modules.
 	void DispatchOnHit(Character* other)
 	{
 		for (auto& module : modules_)
@@ -230,7 +204,7 @@ protected:
 			}
 		}
 	}
-	/** @brief Run OnOwnerWillDisable on all bound modules（ClearModules 之前）。 */
+	// Run OnOwnerWillDisable on all bound modules（ClearModules 之前）。
 	void DispatchOnDisable()
 	{
 		for (auto& module : modules_)
@@ -242,9 +216,7 @@ protected:
 		}
 	}
 
-	/**
-	 * @brief Update active hierarchy children (ObjectBase::Update is virtual).
-	 */
+	// Update active hierarchy children (ObjectBase::Update is virtual).
 	void UpdateChildren(float dt)
 	{
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
@@ -255,9 +227,7 @@ protected:
 			}
 		}
 	}
-	/**
-	 * @brief Submit active hierarchy children.
-	 */
+	// Submit active hierarchy children.
 	void SubmitChildren()
 	{
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
@@ -276,7 +246,7 @@ protected:
 	float lifeTime{ 2.0f };
 
 private:
-	/** @brief Gameplay modules; independent from ObjectBase IComponent list. */
+	// Gameplay modules; independent from ObjectBase IComponent list.
 	std::vector<std::unique_ptr<IModule>> modules_;
 	AttackStats stats_{};
 	bool awaitingManagerAdopt_{ false };
@@ -284,9 +254,7 @@ private:
 	std::vector<AttackStepRecord> assembledRecipe_{};
 	std::function<void(Attack*)> adoptLive_{};
 
-	/**
-	 * @brief 任一模块要求开火时从父物体独立。
-	 */
+	// 任一模块要求开火时从父物体独立。
 	[[nodiscard]] bool WantsDetachFromParent_() const noexcept
 	{
 		for (const auto& module : modules_)
@@ -299,13 +267,9 @@ private:
 		return false;
 	}
 
-	/**
-	 * @brief 烘焙世界坐标、继承父弹速度、ClearParent，并交给 AdoptLive / AM 收养标记。
-	 */
+	// 烘焙世界坐标、继承父弹速度、ClearParent，并交给 AdoptLive / AM 收养标记。
 	void DetachSelfFromParent_();
 
-	/**
-	 * @brief 卸下仍存活的子弹：烘焙世界坐标、继承本弹速度、ClearParent。
-	 */
+	// 卸下仍存活的子弹：烘焙世界坐标、继承本弹速度、ClearParent。
 	void ReleaseLivingChildren_();
 };

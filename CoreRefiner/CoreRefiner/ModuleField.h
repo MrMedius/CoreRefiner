@@ -21,7 +21,7 @@ class ModuleField : public IModuleZone
 {
 public:
 	static constexpr float kHalfExtent = 150.0f;
-	/** @brief 战斗相画布/棋子世界 Scale，不改像素分辨率。 */
+	// 战斗相画布/棋子世界 Scale，不改像素分辨率。
 	static constexpr float kCombatVisualScale = 0.5f;
 
 	ModuleField() = default;
@@ -62,7 +62,7 @@ public:
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetOrigin() const noexcept override { return origin_; }
 
-	/** @brief origin 即中心；半宽半高为 kHalfExtent * visualScale_。 */
+	// origin 即中心；半宽半高为 kHalfExtent * visualScale_。
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
 
 	[[nodiscard]] ModuleFieldCanvas* GetCanvas() noexcept { return canvas_.get(); }
@@ -142,7 +142,7 @@ public:
 	}
 
 	void SetOrigin(DirectX::XMFLOAT3 origin) noexcept override;
-	/** @brief 只改绘制 Scale；1 为战备全尺寸，0.5 为战斗缩小。 */
+	// 只改绘制 Scale；1 为战备全尺寸，0.5 为战斗缩小。
 	void SetVisualScale(float scale) noexcept;
 	[[nodiscard]] float GetVisualScale() const noexcept { return visualScale_; }
 

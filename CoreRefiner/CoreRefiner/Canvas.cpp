@@ -78,7 +78,7 @@ namespace
 		return IsInsideConvexPolygon(px, py, vx, vy, sides);
 	}
 
-	/** @brief 等腰三角形：顶点在顶边中点，底边为底边两角。 */
+	// 等腰三角形：顶点在顶边中点，底边为底边两角。
 	bool IsInsideIsoscelesTriangle(
 		const float px,
 		const float py,

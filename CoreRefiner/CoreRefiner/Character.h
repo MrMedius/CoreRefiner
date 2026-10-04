@@ -8,9 +8,7 @@
 
 using namespace Collider3D;
 
-/**
- * @brief 角色间碰撞要扫的 tag。新增敌人类型时在此加一项。
- */
+// 角色间碰撞要扫的 tag。新增敌人类型时在此加一项。
 inline constexpr Object_Type_Tag kCharacterTags[] = {
 	character_Player,
 	character_Enemy_T,
@@ -64,20 +62,16 @@ public:
 
 	[[nodiscard]] CharacterStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const CharacterStats& Stats() const noexcept { return stats_; }
-	/** @brief 波次开始：夹紧当前 HP。玩家会再叠加波间回血。 */
+	// 波次开始：夹紧当前 HP。玩家会再叠加波间回血。
 	void RecalcStats()
 	{
 		HpCurrent = std::clamp(HpCurrent, 0.0f, GetHpMax());
 	}
 protected:
 	virtual void SetupTransitions(void) = 0;
-	/**
-	 * @brief Box 对场地 AABB + 对弹。非 Box 宿主必须整段 override（不要调基类）。
-	 */
+	// Box 对场地 AABB + 对弹。非 Box 宿主必须整段 override（不要调基类）。
 	virtual void MapItemCollide(void);
-	/**
-	 * @brief HP 刚从正值落到 0（击杀当帧）。玩家默认空；敌人在此关碰撞。
-	 */
+	// HP 刚从正值落到 0（击杀当帧）。玩家默认空；敌人在此关碰撞。
 	virtual void OnHpDepleted_() {}
 	void SetHpMax(float hp)
 	{

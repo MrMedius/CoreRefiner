@@ -11,16 +11,14 @@ namespace dx = DirectX;
 
 namespace
 {
-	/** @brief Segments per great circle (Unity-style three rings). */
+	// Segments per great circle (Unity-style three rings).
 	constexpr int kRingSegments = 48;
 	constexpr float kMeshRadius = 0.5f;
 	constexpr float kPi = 3.14159265358979323846f;
 	constexpr float kTwoPi = 2.0f * kPi;
 
-	/**
-	 * @brief Append one closed ring as LINELIST segments into vertices/indices.
-	 * @param makePoint Maps angle theta in [0, 2pi] to a mesh-space position.
-	 */
+	// Append one closed ring as LINELIST segments into vertices/indices.
+	// makePoint Maps angle theta in [0, 2pi] to a mesh-space position.
 	template <typename F>
 	void AppendRing(
 		Dvtx::VertexBuffer& vertices,

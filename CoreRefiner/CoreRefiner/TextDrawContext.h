@@ -34,10 +34,10 @@ namespace Text
         Text::RenderRequest& Request() noexcept { return request_; }
         const Text::RenderRequest& Request() const noexcept { return request_; }
 
-        /** Measure according to the current Request (does not change canvas pixels). */
+        // Measure according to the current Request (does not change canvas pixels).
         Text::MeasureResult Measure();
 
-        /** Render to the canvas according to the current Request. */
+        // Render to the canvas according to the current Request.
         void Render(Canvas& canvas);
 
     private:

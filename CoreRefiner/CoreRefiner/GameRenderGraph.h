@@ -16,9 +16,7 @@ namespace Bind
 
 namespace Rgph
 {
-	/**
-	 * @brief 局内管线：阴影、Lambert、天空盒、描边模糊、线框，末尾 UIPass。
-	 */
+	// 局内管线：阴影、Lambert、天空盒、描边模糊、线框，末尾 UIPass。
 	class GameRenderGraph : public RenderGraph
 	{
 	public:

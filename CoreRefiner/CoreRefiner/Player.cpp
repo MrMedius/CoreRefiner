@@ -54,9 +54,7 @@ void Player::Update(float dt)
 	ObjectBase::Update(dt);
 }
 
-/**
- * @brief Capsule resolve via contact normal from TrySeparate (floor stick + skin).
- */
+// Capsule resolve via contact normal from TrySeparate (floor stick + skin).
 void Player::MapItemCollide(void)
 {
 	auto* selfCol = pCollider_ != nullptr ? pCollider_ : GetComponent<ColliderComponentBase>();
@@ -67,12 +65,10 @@ void Player::MapItemCollide(void)
 
 	using namespace PlayerCapsuleTuning;
 
-	/**
-	 * @brief Apply depenetration along contact normal; floor contacts clear downward speed.
-	 * @param n Unit contact normal (points out of the other body toward this capsule).
-	 * @param depth Penetration along n (>= 0). Exact touch (0) still gets skin.
-	 * @return true when this contact is a floor (supports OnFloor).
-	 */
+	// Apply depenetration along contact normal; floor contacts clear downward speed.
+	// n Unit contact normal (points out of the other body toward this capsule).
+	// depth Penetration along n (>= 0). Exact touch (0) still gets skin.
+	// true when this contact is a floor (supports OnFloor).
 	auto applyContact = [this, selfCol](DirectX::XMFLOAT3 n, float depth) -> bool
 	{
 		const bool isFloor = n.y > kFloorNormalY;
@@ -217,9 +213,7 @@ void Player::MapItemCollide(void)
 				continue;
 			}
 
-			/**
-			 * @brief MTV 把玩家推出敌人；推开敌人用水平反方向。竖直叠压时改用「敌人 − 玩家」。
-			 */
+			// MTV 把玩家推出敌人；推开敌人用水平反方向。竖直叠压时改用「敌人 − 玩家」。
 			XMFLOAT3 shove{ -n.x, 0.0f, -n.z };
 			if (!NormalizeXZ(shove))
 			{

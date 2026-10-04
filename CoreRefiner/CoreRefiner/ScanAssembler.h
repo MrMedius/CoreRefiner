@@ -2,6 +2,7 @@
 
 #include "AttackContext.h"
 #include "ModuleField.h"
+#include "ModuleNodes.h"
 #include "ScanWave.h"
 #include "XMath.h"
 
@@ -9,9 +10,7 @@
 #include <utility>
 #include <vector>
 
-/**
- * @brief One independent scan/assemble run with its own DeployContext and wave.
- */
+// One independent scan/assemble run with its own DeployContext and wave.
 struct ScanSession
 {
 	DeployContext ctx{};
@@ -25,9 +24,7 @@ struct ScanSession
 	DirectX::XMFLOAT3 aimVel{ 0.0f, 0.0f, 0.0f };
 };
 
-/**
- * @brief One FireRoots submission produced by a finished scan session.
- */
+// One FireRoots submission produced by a finished scan session.
 struct FireBatch
 {
 	std::vector<Attack*> roots;
@@ -35,11 +32,9 @@ struct FireBatch
 	DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.0f };
 };
 
-/**
- * @brief Parallel scan sessions driving independent DeployContexts.
- * @note FireRoots ownership remains with ModuleWorkbench via TakeAllPendingFires().
- * @note Session mutation during Update uses indices so Detach push_back cannot dangle refs.
- */
+// Parallel scan sessions driving independent DeployContexts.
+// FireRoots ownership remains with ModuleWorkbench via TakeAllPendingFires().
+// Session mutation during Update uses indices so Detach push_back cannot dangle refs.
 class ScanAssembler
 {
 public:
@@ -58,9 +53,7 @@ public:
 		return false;
 	}
 
-	/**
-	 * @brief Invoke @p fn for every alive scan wave (multi-ring draw).
-	 */
+	// Invoke fn for every alive scan wave (multi-ring draw).
 	template<typename Fn>
 	void ForEachAliveWave(Fn&& fn) const
 	{
@@ -140,9 +133,7 @@ public:
 		sessions_[index].active = true;
 	}
 
-	/**
-	 * @brief Drop all sessions without firing; Deactivate any held Attack* back to pool.
-	 */
+	// Drop all sessions without firing; Deactivate any held Attack* back to pool.
 	void Reset()
 	{
 		for (ScanSession& session : sessions_)
@@ -152,9 +143,7 @@ public:
 		sessions_.clear();
 	}
 
-	/**
-	 * @brief Advance active waves only. Does not erase; TakeAllPendingFires owns erase.
-	 */
+	// Advance active waves only. Does not erase; TakeAllPendingFires owns erase.
 	void Update(float dt, ModuleField& field)
 	{
 		const std::size_t count = sessions_.size();
@@ -190,11 +179,9 @@ public:
 		}
 	}
 
-	/**
-	 * @brief Abort all active scans: commit assembled shots for fire, cool down Ready nodes.
-	 * @note Does not discard Attack*; caller should TakeAllPendingFires → FireRoots.
-	 * @note Ready nodes enter cooldown so a Flush chain cannot resume the same frame.
-	 */
+	// Abort all active scans: commit assembled shots for fire, cool down Ready nodes.
+	// Does not discard Attack*; caller should TakeAllPendingFires → FireRoots.
+	// Ready nodes enter cooldown so a Flush chain cannot resume the same frame.
 	void ForceFinish(ModuleField& field)
 	{
 		ForceCommit();
@@ -207,10 +194,8 @@ public:
 		});
 	}
 
-	/**
-	 * @brief Take every pendingFire session as a FireBatch and erase those sessions.
-	 * @note Also drops finished sessions with no pending fire (!active && !pendingFire).
-	 */
+	// Take every pendingFire session as a FireBatch and erase those sessions.
+	// Also drops finished sessions with no pending fire (!active && !pendingFire).
 	[[nodiscard]] std::vector<FireBatch> TakeAllPendingFires()
 	{
 		std::vector<FireBatch> batches;
@@ -309,6 +294,11 @@ private:
 		}
 
 		ScanSession& session = sessions_[sessionIndex];
+		if (node.GetKind() == ModuleNodeKind::Ultra)
+		{
+			return ApplyUltraHit_(sessionIndex, static_cast<ModuleNode_Ultra&>(node));
+		}
+
 		const std::size_t shotsBefore = session.ctx.shots.size();
 		session.ctx.BeginRecipeGroup();
 		node.ApplyTo(session.ctx);
@@ -344,9 +334,81 @@ private:
 		return true;
 	}
 
-	/**
-	 * @brief Park ctx.shots on a pendingFire sibling; leave standby on sessions_[index].
-	 */
+	// 奥义本身不计次、不开组。每个非空栏位单独成组并计 1 次。
+	bool ApplyUltraHit_(std::size_t sessionIndex, ModuleNode_Ultra& ultra)
+	{
+		if (sessionIndex >= sessions_.size())
+		{
+			return false;
+		}
+
+		sessions_[sessionIndex].wave.Stop();
+		const int capacity = ultra.GetCapacity();
+		for (int i = 0; i < capacity; ++i)
+		{
+			IModuleNode* child = ultra.GetSlot(static_cast<std::size_t>(i));
+			if (child == nullptr)
+			{
+				continue;
+			}
+
+			ScanSession& current = sessions_[sessionIndex];
+			const std::size_t shotsBefore = current.ctx.shots.size();
+			current.ctx.BeginRecipeGroup();
+			child->ApplyTo(current.ctx);
+			++current.appliedTokenCount;
+
+			if (current.ctx.shots.size() > shotsBefore)
+			{
+				DetachFlushedShotsAsPending_(sessionIndex);
+				sessions_[sessionIndex].appliedTokenCount = 1;
+			}
+
+			ScanSession& after = sessions_[sessionIndex];
+			if (after.appliedTokenCount < kMaxAppliedTokens)
+			{
+				continue;
+			}
+			if (!HasFilledSlotAfter_(ultra, i))
+			{
+				ultra.StartCooldown();
+				EndSessionWithShots_(sessionIndex);
+				return true;
+			}
+
+			// 凑满但后面还有栏位：先发射，计数清零后继续。
+			after.ctx.FlushStandby();
+			DetachFlushedShotsAsPending_(sessionIndex);
+			sessions_[sessionIndex].appliedTokenCount = 0;
+		}
+
+		ScanSession& done = sessions_[sessionIndex];
+		ultra.StartCooldown();
+		done.lastSource = &ultra;
+		done.wave.Start(
+			&ultra,
+			ultra.GetLocalPos(),
+			ultra.GetScanMaxRadius(),
+			ultra.GetScanExpandSpeed());
+		done.active = true;
+		done.pendingFire = false;
+		return true;
+	}
+
+	[[nodiscard]] static bool HasFilledSlotAfter_(const ModuleNode_Ultra& ultra, int index) noexcept
+	{
+		const int capacity = ultra.GetCapacity();
+		for (int i = index + 1; i < capacity; ++i)
+		{
+			if (ultra.GetSlot(static_cast<std::size_t>(i)) != nullptr)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// Park ctx.shots on a pendingFire sibling; leave standby on sessions_[index].
 	void DetachFlushedShotsAsPending_(std::size_t sessionIndex)
 	{
 		if (sessionIndex >= sessions_.size())
@@ -434,10 +496,8 @@ private:
 
 	std::vector<ScanSession> sessions_;
 
-	/**
-	 * @brief Deactivate roots held by a session (committed, shots, standby parent).
-	 * @note Children under parent are cascaded by Attack::Deactivate.
-	 */
+	// Deactivate roots held by a session (committed, shots, standby parent).
+	// Children under parent are cascaded by Attack::Deactivate.
 	static void DiscardSessionAttacks_(ScanSession& session)
 	{
 		auto deactivate = [](Attack* attack)

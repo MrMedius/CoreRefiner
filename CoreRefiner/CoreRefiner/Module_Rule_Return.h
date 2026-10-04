@@ -6,11 +6,9 @@
 #include "Player.h"
 #include "XMath.h"
 
-/**
- * @brief 只作用于主体：开火时出现在鼠标世界坐标，速度指向当时的玩家。
- * @note launchPosLocked 时不改位置（留给 Revive）；仍把速度改成朝向玩家。
- *       与绕玩家 Orbit 同时存在时，由 Orbit 从该起点边转到公转半径。
- */
+// 只作用于主体：开火时出现在鼠标世界坐标，速度指向当时的玩家。
+// launchPosLocked 时不改位置（留给 Revive）；仍把速度改成朝向玩家。
+// 与绕玩家 Orbit 同时存在时，由 Orbit 从该起点边转到公转半径。
 class Module_Rule_Return : public IModule
 {
 public:

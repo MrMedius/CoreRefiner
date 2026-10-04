@@ -6,19 +6,15 @@
 #include "CapsuleWireframe.h"
 #endif
 
-/**
- * @brief Capsule-only collider component (Unity-style CapsuleCollider).
- * @note Axis is world Y; endpoints rebuilt each sync from center, radius, totalHeight.
- */
+// Capsule-only collider component (Unity-style CapsuleCollider).
+// Axis is world Y; endpoints rebuilt each sync from center, radius, totalHeight.
 class CapsuleColliderComponent : public ColliderComponentBase
 {
 public:
-	/**
-	 * @param owner Host entity (injected by AddComponent).
-	 * @param radius Capsule radius.
-	 * @param totalHeight Full height including both hemispheres.
-	 * @param syncMode Must be FollowCenter.
-	 */
+	// owner Host entity (injected by AddComponent).
+	// radius Capsule radius.
+	// totalHeight Full height including both hemispheres.
+	// syncMode Must be FollowCenter.
 	CapsuleColliderComponent(
 		ObjectBase* owner,
 		float radius = 0.5f,
@@ -42,26 +38,20 @@ public:
 		DirectX::XMFLOAT3 color,
 		const char* name = "wireCollider") override;
 
-	/**
-	 * @brief Set radius + total height (axis world Y).
-	 * @note totalHeight includes both hemispheres; segment = max(0, totalHeight - 2*radius).
-	 */
+	// Set radius + total height (axis world Y).
+	// totalHeight includes both hemispheres; segment = max(0, totalHeight - 2*radius).
 	void SetCapsule(float radius, float totalHeight) noexcept;
 	[[nodiscard]] float GetRadius() const noexcept { return capsule_.radius; }
 	[[nodiscard]] float GetTotalHeight() const noexcept { return totalHeight_; }
 
-	/**
-	 * @brief Compatibility helper: diameter = max(x,z), totalHeight = y (legacy SetCollisionSize).
-	 */
+	// Compatibility helper: diameter = max(x,z), totalHeight = y (legacy SetCollisionSize).
 	void SetCollisionSize(DirectX::XMFLOAT3 size) noexcept;
 
 	[[nodiscard]] Collider3D::CapsuleCollider* TryGetCapsule() noexcept { return &capsule_; }
 	[[nodiscard]] const Collider3D::CapsuleCollider* TryGetCapsule() const noexcept { return &capsule_; }
 
 private:
-	/**
-	 * @brief Rebuild Y-up capsule endpoints from center, radius, and total height.
-	 */
+	// Rebuild Y-up capsule endpoints from center, radius, and total height.
 	void SyncCapsuleYUp(DirectX::XMFLOAT3 center) noexcept;
 
 	Collider3D::CapsuleCollider capsule_{};

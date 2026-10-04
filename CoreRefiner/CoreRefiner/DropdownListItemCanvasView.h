@@ -16,7 +16,7 @@ namespace Rgph
 
 namespace Ui
 {
-	/** @brief Dropdown 列表单行 Canvas 视图（bg + focus ring + text）。 */
+	// Dropdown 列表单行 Canvas 视图（bg + focus ring + text）。
 	class DropdownListItemCanvasView
 	{
 	public:

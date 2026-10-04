@@ -14,7 +14,7 @@
 #define SCREEN_WIDTH	(1280)	
 #define SCREEN_HEIGHT	(720)	
 
-/** Game logical coords (mouse mapping); independent of swap chain pixel size. */
+// Game logical coords (mouse mapping); independent of swap chain pixel size.
 #define LOGICAL_CANVAS_WIDTH	SCREEN_WIDTH
 #define LOGICAL_CANVAS_HEIGHT	SCREEN_HEIGHT
 

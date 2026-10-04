@@ -9,10 +9,8 @@
 #include "ColliderComponentBase.h"
 #include "XMath.h"
 
-/**
- * @brief Default Box AABB resolve for Environment / Attack.
- * @note Enemy 先调本函数再互挤。Player 整段 override，不要调基类。
- */
+// Default Box AABB resolve for Environment / Attack.
+// Enemy 先调本函数再互挤。Player 整段 override，不要调基类。
 void Character::MapItemCollide(void)
 {
 	auto* selfCol = GetComponent<ColliderComponentBase>();
@@ -44,9 +42,7 @@ void Character::MapItemCollide(void)
 	float OwnerOldFront =	PositionOld.z - CollHalf.z;	// プレイヤーの古い位置の前端
 	float ItemTop, ItemBottom, ItemRight, ItemLeft, ItemBack, ItemFront;
 
-	/**
-	 * @brief Write a single position axis through the host Transformation API.
-	 */
+	// Write a single position axis through the host Transformation API.
 	auto setPosComponent = [this](char axis, float value)
 	{
 		auto p = GetPosition();

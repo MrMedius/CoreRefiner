@@ -21,7 +21,7 @@ namespace Rgph
 
 namespace Ui
 {
-	/** @brief Dropdown Canvas 组件（Header + 展开列表 + Modal Popup）。 */
+	// Dropdown Canvas 组件（Header + 展开列表 + Modal Popup）。
 	class DropdownCanvasComponent final : public IUiComponent, public IUiPopupConsumer
 	{
 	public:

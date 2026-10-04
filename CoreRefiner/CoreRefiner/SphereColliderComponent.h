@@ -6,18 +6,14 @@
 #include "SphereWireframe.h"
 #endif
 
-/**
- * @brief Sphere-only collider component (Unity-style SphereCollider).
- * @note Sync mode is FollowCenter only (center = host position + center offset).
- */
+// Sphere-only collider component (Unity-style SphereCollider).
+// Sync mode is FollowCenter only (center = host position + center offset).
 class SphereColliderComponent : public ColliderComponentBase
 {
 public:
-	/**
-	 * @param owner Host entity (injected by AddComponent).
-	 * @param radius Sphere radius in world units.
-	 * @param syncMode Must be FollowCenter.
-	 */
+	// owner Host entity (injected by AddComponent).
+	// radius Sphere radius in world units.
+	// syncMode Must be FollowCenter.
 	SphereColliderComponent(
 		ObjectBase* owner,
 		float radius = 1.0f,
@@ -40,15 +36,11 @@ public:
 		DirectX::XMFLOAT3 color,
 		const char* name = "wireCollider") override;
 
-	/**
-	 * @brief Set radius directly.
-	 */
+	// Set radius directly.
 	void SetRadius(float radius) noexcept;
 	[[nodiscard]] float GetRadius() const noexcept { return sphere_.radius; }
 
-	/**
-	 * @brief Compatibility helper: radius = max(size) * 0.5f (legacy SetCollisionSize).
-	 */
+	// Compatibility helper: radius = max(size) * 0.5f (legacy SetCollisionSize).
 	void SetCollisionSize(DirectX::XMFLOAT3 size) noexcept;
 
 	[[nodiscard]] Collider3D::SphereCollider* TryGetSphere() noexcept { return &sphere_; }

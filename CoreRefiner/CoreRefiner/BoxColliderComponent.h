@@ -6,18 +6,14 @@
 #include "CubeWireframe.h"
 #endif
 
-/**
- * @brief Box-only collider component (Unity-style BoxCollider).
- * @note Supports FollowCenter / FollowCenterAxisYFromRotation / FromWorldMatrix sync modes.
- */
+// Box-only collider component (Unity-style BoxCollider).
+// Supports FollowCenter / FollowCenterAxisYFromRotation / FromWorldMatrix sync modes.
 class BoxColliderComponent : public ColliderComponentBase
 {
 public:
-	/**
-	 * @param owner Host entity (injected by AddComponent).
-	 * @param syncMode Transform sync policy for the box.
-	 * @param worldMatrixLocalHalf Used only when syncMode == FromWorldMatrix.
-	 */
+	// owner Host entity (injected by AddComponent).
+	// syncMode Transform sync policy for the box.
+	// worldMatrixLocalHalf Used only when syncMode == FromWorldMatrix.
 	BoxColliderComponent(
 		ObjectBase* owner,
 		ColliderSyncMode syncMode = ColliderSyncMode::FollowCenter,
@@ -42,10 +38,8 @@ public:
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetCollisionSize() const noexcept override;
 
-	/**
-	 * @brief Set full size; stores half = size/2.
-	 * @warning Do not call under FromWorldMatrix sync (overwrites matrix half).
-	 */
+	// Set full size; stores half = size/2.
+	// Do not call under FromWorldMatrix sync (overwrites matrix half).
 	void SetCollisionSize(DirectX::XMFLOAT3 size) noexcept;
 
 	[[nodiscard]] Collider3D::BoxCollider* TryGetBox() noexcept { return &box_; }

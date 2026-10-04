@@ -7,19 +7,15 @@
 #include <type_traits>
 #include <utility>
 
-/**
- * @brief Owns a Drawable, syncs host transform into it, and submits to the RenderGraph.
- */
+// Owns a Drawable, syncs host transform into it, and submits to the RenderGraph.
 class VisualComponent : public IComponent
 {
 public:
-	/**
-	 * @param owner Host entity (injected by AddComponent).
-	 * @param drawable Owned visual mesh/skin.
-	 * @param channelMask RenderGraph channel bits (e.g. Chan::main | Chan::shadow).
-	 * @param yawOnly If true, only yaw is written to the drawable (Enemy_T style).
-	 * @param syncScale If true, also copy host scale each sync.
-	 */
+	// owner Host entity (injected by AddComponent).
+	// drawable Owned visual mesh/skin.
+	// channelMask RenderGraph channel bits (e.g. Chan::main | Chan::shadow).
+	// yawOnly If true, only yaw is written to the drawable (Enemy_T style).
+	// syncScale If true, also copy host scale each sync.
 	VisualComponent(
 		ObjectBase* owner,
 		std::unique_ptr<Drawable> drawable,
@@ -30,21 +26,17 @@ public:
 	~VisualComponent() override;
 
 	void OnEnable() override;
-	/**
-	 * @brief No-op: Drawable stays owned for pool reuse.
-	 */
+	// No-op: Drawable stays owned for pool reuse.
 	void OnDisable() override {}
 	void Update(float dt) override;
 	void Submit() override;
 
-	/** @brief Non-owning access to the owned Drawable. */
+	// Non-owning access to the owned Drawable.
 	[[nodiscard]] Drawable* GetDrawable() noexcept { return drawable_.get(); }
 	[[nodiscard]] const Drawable* GetDrawable() const noexcept { return drawable_.get(); }
 
-	/**
-	 * @brief Typed access to the owned Drawable.
-	 * @tparam T Must derive from Drawable.
-	 */
+	// Typed access to the owned Drawable.
+	// T Must derive from Drawable.
 	template <typename T>
 	[[nodiscard]] T* GetDrawableAs() noexcept
 	{
@@ -59,7 +51,7 @@ public:
 	}
 
 private:
-	/** @brief Copy host transform fields into the drawable. */
+	// Copy host transform fields into the drawable.
 	void SyncFromOwner();
 
 	std::unique_ptr<Drawable> drawable_;

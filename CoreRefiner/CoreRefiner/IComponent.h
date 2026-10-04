@@ -2,10 +2,8 @@
 
 class ObjectBase;
 
-/**
- * @brief Gameplay-side component contract (not UI's IUiComponent).
- * @note Lifecycle mirrors the host ObjectBase: OnEnable / OnDisable / Update / Submit.
- */
+// Gameplay-side component contract (not UI's IUiComponent).
+// Lifecycle mirrors the host ObjectBase: OnEnable / OnDisable / Update / Submit.
 class IComponent
 {
 public:
@@ -17,10 +15,8 @@ public:
 	virtual ~IComponent() = default;
 
 	virtual void OnEnable() {}
-	/**
-	 * @brief Called when host Deactivate runs.
-	 * @note Stop logic / clear transient state only — do not free pooled GPU resources (Drawable etc.).
-	 */
+	// Called when host Deactivate runs.
+	// Stop logic / clear transient state only — do not free pooled GPU resources (Drawable etc.).
 	virtual void OnDisable() {}
 	virtual void Update(float dt) { (void)dt; }
 	virtual void Submit() {}

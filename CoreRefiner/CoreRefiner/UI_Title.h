@@ -134,7 +134,7 @@ public:
 		uiRoot->Submit(Chan::ui);
 	}
 
-	/** @brief 按当前语言刷 New Game / Settings / Quit。 */
+	// 按当前语言刷 New Game / Settings / Quit。
 	void RefreshLabels()
 	{
 		if (btnA_ != nullptr)

@@ -6,9 +6,7 @@
 
 #include <algorithm>
 
-/**
- * @brief 复用基类场地/对弹，再解算敌人互挤。对玩家不写位置、不消速度（Player 调 ShoveXZ）。
- */
+// 复用基类场地/对弹，再解算敌人互挤。对玩家不写位置、不消速度（Player 调 ShoveXZ）。
 void Enemy::MapItemCollide()
 {
 	Character::MapItemCollide();
@@ -133,10 +131,8 @@ void Enemy::MapItemCollide()
 			continue;
 		}
 
-		/**
-		 * @brief 扫边未命中（已叠着 / 斜向挤入 / 出生重叠）时用 MTV 兜底。
-		 *        双方各自 MapItemCollide，每边只推一半深度。
-		 */
+		// 扫边未命中（已叠着 / 斜向挤入 / 出生重叠）时用 MTV 兜底。
+		// 双方各自 MapItemCollide，每边只推一半深度。
 		DirectX::XMFLOAT3 n{};
 		float depth = 0.0f;
 		if (CollisionSystem::TrySeparate(selfCol->GetVolume(), cCol->GetVolume(), n, depth))

@@ -8,7 +8,7 @@
 
 namespace CanvasPixelDraw
 {
-	/** @brief 画布内写像素；越界忽略。 */
+	// 画布内写像素；越界忽略。
 	inline void PutPixelClamped(Canvas& canvas, int x, int y, Color c)
 	{
 		const int w = static_cast<int>(canvas.GetCanvasWidth());
@@ -20,7 +20,7 @@ namespace CanvasPixelDraw
 		canvas.PutPixel(static_cast<unsigned>(x), static_cast<unsigned>(y), c);
 	}
 
-	/** @brief 水平线段，端点会排序；越界像素忽略。 */
+	// 水平线段，端点会排序；越界像素忽略。
 	inline void DrawHLine(Canvas& canvas, int x0, int x1, int y, Color c)
 	{
 		if (x1 < x0)
@@ -33,7 +33,7 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/** @brief 垂直线段，端点会排序；越界像素忽略。 */
+	// 垂直线段，端点会排序；越界像素忽略。
 	inline void DrawVLine(Canvas& canvas, int x, int y0, int y1, Color c)
 	{
 		if (y1 < y0)
@@ -46,7 +46,7 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/** @brief Bresenham 任意直线；越界像素忽略。 */
+	// Bresenham 任意直线；越界像素忽略。
 	inline void DrawLine(Canvas& canvas, int x0, int y0, int x1, int y1, Color c)
 	{
 		const int dx = std::abs(x1 - x0);
@@ -75,7 +75,7 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/** @brief 轴对齐矩形描边。 */
+	// 轴对齐矩形描边。
 	inline void DrawRectOutline(Canvas& canvas, int x0, int y0, int x1, int y1, Color c)
 	{
 		DrawHLine(canvas, x0, x1, y0, c);
@@ -216,10 +216,8 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/**
-	 * @brief 轴对齐矩形描边，thickness 圈向内加厚。
-	 * @param thickness 线宽（像素）；小于 1 时不画。
-	 */
+	// 轴对齐矩形描边，thickness 圈向内加厚。
+	// thickness 线宽（像素）；小于 1 时不画。
 	inline void DrawRectOutlineThick(Canvas& canvas, int x0, int y0, int x1, int y1, int thickness, Color c)
 	{
 		if (thickness < 1)
@@ -232,7 +230,7 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/** @brief 轴对齐实心矩形；坐标钳到画布内。 */
+	// 轴对齐实心矩形；坐标钳到画布内。
 	inline void FillRect(Canvas& canvas, unsigned x0, unsigned y0, unsigned x1, unsigned y1, Color c)
 	{
 		const unsigned w = canvas.GetCanvasWidth();
@@ -256,7 +254,7 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/** @brief 轴对齐矩形边框（四边填充）。厚度为 0 或挤满内宽/内高时不画。 */
+	// 轴对齐矩形边框（四边填充）。厚度为 0 或挤满内宽/内高时不画。
 	inline void DrawRectBorder(
 		Canvas& canvas,
 		unsigned x0,
@@ -289,7 +287,7 @@ namespace CanvasPixelDraw
 		FillRect(canvas, right + 1u - thickness, top + thickness, right, bottom - thickness, c);
 	}
 
-	/** @brief 沿画布内壁绘制加厚矩形焦点环。 */
+	// 沿画布内壁绘制加厚矩形焦点环。
 	inline void DrawFocusRing(Canvas& canvas, Color ring, unsigned thick)
 	{
 		const unsigned w = canvas.GetCanvasWidth();
@@ -327,7 +325,7 @@ namespace CanvasPixelDraw
 		}
 	}
 
-	/** @brief 将画布上所有不透明像素改成指定颜色；透明像素不动。 */
+	// 将画布上所有不透明像素改成指定颜色；透明像素不动。
 	inline void TintOpaquePixels(Canvas& canvas, Color color)
 	{
 		const unsigned w = canvas.GetCanvasWidth();

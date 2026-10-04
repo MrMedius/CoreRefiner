@@ -68,11 +68,11 @@ class Coin : public Environment
 {
 public:
 	static constexpr float kSize = 0.6f;
-	/** @brief World-space radius: inside this, the coin flies toward the player. */
+	// World-space radius: inside this, the coin flies toward the player.
 	static constexpr float kMagnetRadius = 5.0f;
-	/** @brief Magnet travel speed in world units per second. */
+	// Magnet travel speed in world units per second.
 	static constexpr float kMagnetSpeed = 14.0f;
-	/** @brief 波末强制吸取速度；保证场地对角也能在超时前飞到。 */
+	// 波末强制吸取速度；保证场地对角也能在超时前飞到。
 	static constexpr float kVacuumSpeed = 40.0f;
 
 	Coin(
@@ -145,13 +145,13 @@ public:
 		Collect_();
 	}
 
-	/** @brief 立刻结算；已收集则忽略。超时收尾用。 */
+	// 立刻结算；已收集则忽略。超时收尾用。
 	void CollectNow()
 	{
 		Collect_();
 	}
 
-	/** @brief 波末强制吸取：无视半径，改用 kVacuumSpeed。 */
+	// 波末强制吸取：无视半径，改用 kVacuumSpeed。
 	void SetForceMagnet(bool on) noexcept
 	{
 		forceMagnet_ = on;

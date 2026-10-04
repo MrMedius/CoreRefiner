@@ -1,9 +1,7 @@
 #pragma once
 
-/**
- * @brief 单波次内容描述。
- * @note 时长以外的字段先填占位公式，后续加精英怪不必改调用方签名。
- */
+// 单波次内容描述。
+// 时长以外的字段先填占位公式，后续加精英怪不必改调用方签名。
 struct WaveSpec
 {
 	int index{ 1 };
@@ -23,9 +21,7 @@ namespace WaveRules
 		return a + (b - a) * t;
 	}
 
-	/**
-	 * @brief 三段折线时长（秒）：1–5 轮 20→35，6–15 轮 35→70，16–20 轮 70→90。
-	 */
+	// 三段折线时长（秒）：1–5 轮 20→35，6–15 轮 35→70，16–20 轮 70→90。
 	[[nodiscard]] inline constexpr float DurationSeconds_(int wave) noexcept
 	{
 		if (wave <= 5)
@@ -39,20 +35,20 @@ namespace WaveRules
 		return LerpUnclamped_(70.0f, 90.0f, static_cast<float>(wave - 16) / 4.0f);
 	}
 
-	/** @brief 占位：每波敌人预算随波次线性上升。 */
+	// 占位：每波敌人预算随波次线性上升。
 	[[nodiscard]] inline constexpr int EnemyBudget_(int wave) noexcept
 	{
 		return 6 + wave * 2;
 	}
 
-	/** @brief 占位：生成间隔从 1.5s 线性降到 0.6s。 */
+	// 占位：生成间隔从 1.5s 线性降到 0.6s。
 	[[nodiscard]] inline constexpr float SpawnInterval_(int wave) noexcept
 	{
 		const float t = static_cast<float>(wave - 1) / static_cast<float>(kTotalWaves - 1);
 		return LerpUnclamped_(1.5f, 0.6f, t);
 	}
 
-	/** @brief 占位：商店价格系数每波 +4%。 */
+	// 占位：商店价格系数每波 +4%。
 	[[nodiscard]] inline constexpr float PriceScale_(int wave) noexcept
 	{
 		return 1.0f + 0.04f * static_cast<float>(wave - 1);
@@ -71,9 +67,7 @@ namespace WaveRules
 		return wave;
 	}
 
-	/**
-	 * @brief 按 1-based 波次号返回该波规则。越界会被夹到 [1, kTotalWaves]。
-	 */
+	// 按 1-based 波次号返回该波规则。越界会被夹到 [1, kTotalWaves]。
 	[[nodiscard]] inline constexpr WaveSpec GetSpec(int wave) noexcept
 	{
 		const int n = ClampWave_(wave);

@@ -7,16 +7,12 @@
 #include <utility>
 #include <vector>
 
-/**
- * @brief Assemble parent/child ObjectBase graphs via ObjectCodex pools (no pool-algorithm change).
- * @note SpawnPooled reuses inactive instances; this layer only ClearParent / SetParent / setup.
- *       Parent RequestDisable/Deactivate already cascades children and clears links (ObjectBase).
- */
+// Assemble parent/child ObjectBase graphs via ObjectCodex pools (no pool-algorithm change).
+// SpawnPooled reuses inactive instances; this layer only ClearParent / SetParent / setup.
+// Parent RequestDisable/Deactivate already cascades children and clears links (ObjectBase).
 namespace HierarchySpawn
 {
-	/**
-	 * @brief Non-owning pointers into ObjectCodex pools after AssembleParentChildren.
-	 */
+	// Non-owning pointers into ObjectCodex pools after AssembleParentChildren.
 	template <typename ParentT, typename ChildT>
 	struct ParentChildren
 	{
@@ -24,9 +20,7 @@ namespace HierarchySpawn
 		std::vector<ChildT*> children;
 	};
 
-	/**
-	 * @brief Warm up a tag pool: SpawnPooled then Deactivate (same pattern as AttackManager balls).
-	 */
+	// Warm up a tag pool: SpawnPooled then Deactivate (same pattern as AttackManager balls).
 	template <typename T, typename... Args>
 	void WarmupPool(Object_Type_Tag tag, int count, Args&&... args)
 	{
@@ -46,14 +40,12 @@ namespace HierarchySpawn
 		}
 	}
 
-	/**
-	 * @brief Spawn/reuse one parent and N children, wire hierarchy, then run setupChild.
-	 * @tparam SetupChildFn void(ChildT* child, std::size_t index) — local pose / gameplay setup.
-	 * @param parentTag / childTag Must differ so pools do not mix.
-	 * @param childCtorArgs Args pack applied to every child SpawnPooled (refs OK).
-	 * @param parentArgs Forwarded to SpawnPooled&lt;ParentT&gt;.
-	 * @note ClearParent on both sides before SetParent to scrub pooled dirty links.
-	 */
+	// Spawn/reuse one parent and N children, wire hierarchy, then run setupChild.
+	// SetupChildFn void(ChildT* child, std::size_t index) — local pose / gameplay setup.
+	// parentTag / childTag Must differ so pools do not mix.
+	// childCtorArgs Args pack applied to every child SpawnPooled (refs OK).
+	// parentArgs Forwarded to SpawnPooled&lt;ParentT&gt;.
+	// ClearParent on both sides before SetParent to scrub pooled dirty links.
 	template <
 		typename ParentT,
 		typename ChildT,
@@ -106,9 +98,7 @@ namespace HierarchySpawn
 		return out;
 	}
 
-	/**
-	 * @brief Disable hierarchy root (cascades children via ObjectBase).
-	 */
+	// Disable hierarchy root (cascades children via ObjectBase).
 	inline void RequestDisableRoot(ObjectBase* root) noexcept
 	{
 		if (root == nullptr || !root->IsActive())

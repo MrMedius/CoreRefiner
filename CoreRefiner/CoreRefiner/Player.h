@@ -30,24 +30,22 @@ class Player_AttackState;
 class Player_HurtState;
 class Player_DeathState;
 
-/**
- * @brief Player Capsule feel / debug knobs (tune here only; MapItemCollide reads the same values).
- * @note Height 5 沿用旧 Box；半径按身体视觉半宽略放大，让贴身与判定更接近。
- */
+// Player Capsule feel / debug knobs (tune here only; MapItemCollide reads the same values).
+// Height 5 沿用旧 Box；半径按身体视觉半宽略放大，让贴身与判定更接近。
 namespace PlayerCapsuleTuning
 {
-	/** @brief 接近身体视觉半径（Pyramid base 0.5 × size 3 ≈ 1.5）。 */
+	// 接近身体视觉半径（Pyramid base 0.5 × size 3 ≈ 1.5）。
 	constexpr float kRadius = 1.25f;
 	constexpr float kTotalHeight = 5.0f;
-	/** @brief World Y offset from Player::GetPosition() to capsule center. */
+	// World Y offset from Player::GetPosition() to capsule center.
 	constexpr float kCenterOffsetY = 1.0f;
-	/** @brief Extra separation along contact normal (incl. exact touch) to reduce jitter. */
+	// Extra separation along contact normal (incl. exact touch) to reduce jitter.
 	constexpr float kSkin = 0.02f;
-	/** @brief Contact normal.y above this counts as floor support. */
+	// Contact normal.y above this counts as floor support.
 	constexpr float kFloorNormalY = 0.5f;
-	/** @brief Downward probe distance to re-acquire floor after skin push. */
+	// Downward probe distance to re-acquire floor after skin push.
 	constexpr float kFloorProbe = 0.08f;
-	/** @brief Cyan debug wire — contrasts Enemy Box red / Ball Sphere green. */
+	// Cyan debug wire — contrasts Enemy Box red / Ball Sphere green.
 	inline constexpr float kDebugWireR = 0.0f;
 	inline constexpr float kDebugWireG = 1.0f;
 	inline constexpr float kDebugWireB = 1.0f;
@@ -143,26 +141,22 @@ public:
 	void DoMove(float ratio);
 	bool AttackCollide(float damage, XMFLOAT3 repel) override;
 	void AttackCameraShake(int frames, float minRange, float maxRange);
-	/** @brief Hurt 入场：重置无敌计时与闪烁。 */
+	// Hurt 入场：重置无敌计时与闪烁。
 	void BeginHurtIFrames();
-	/** @brief Hurt 每帧：闪烁、HP 归零则死亡，否则到时解除 Hurt。 */
+	// Hurt 每帧：闪烁、HP 归零则死亡，否则到时解除 Hurt。
 	void TickHurtIFrames(float dt);
-	/** @brief Hurt 离场：关掉闪烁隐藏。 */
+	// Hurt 离场：关掉闪烁隐藏。
 	void EndHurtIFrames();
 	[[nodiscard]] bool IsHurtFlashHidden() const noexcept { return hurtFlashHide_; }
-	/**
-	 * @brief 波次开始：重算属性上限，再按 kWaveStartHealRatio 回血。
-	 * @note 1 = 回满；改成 0.3 即回 30% MaxHP。
-	 */
+	// 波次开始：重算属性上限，再按 kWaveStartHealRatio 回血。
+	// 1 = 回满；改成 0.3 即回 30% MaxHP。
 	void ApplyWaveStart()
 	{
 		RecalcStats();
 		CalculateHpCurrent(GetHpMax() * kWaveStartHealRatio);
 	}
 protected:
-	/**
-	 * @brief Player collision resolve via Capsule + TrySeparate (not Character AABB).
-	 */
+	// Player collision resolve via Capsule + TrySeparate (not Character AABB).
 	void MapItemCollide(void) override;
 private:
 	void SetupTransitions(void) override;
@@ -178,7 +172,7 @@ private:
 	bool hurtFlashHide_{ false };
 	static constexpr float kHurtIFrameSec_ = 0.55f;
 	static constexpr float kHurtFlashPeriod_ = 0.07f;
-	/** @brief 波次开始回复 MaxHP 的比例（1 = 回满）。 */
+	// 波次开始回复 MaxHP 的比例（1 = 回满）。
 	static constexpr float kWaveStartHealRatio = 1.0f;
 
 // input related

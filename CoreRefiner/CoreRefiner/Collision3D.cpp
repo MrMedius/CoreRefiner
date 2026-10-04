@@ -279,9 +279,7 @@ namespace Collider3D
         return true;
     }
 
-    /**
-     * @brief OBB-OBB SAT with MTV: pushes A out of B along minimum penetration axis.
-     */
+    // OBB-OBB SAT with MTV: pushes A out of B along minimum penetration axis.
     static bool SeparateOBB_OBB_SAT(
         const BoxCollider& A,
         const BoxCollider& B,
@@ -423,7 +421,7 @@ namespace Collider3D
 
     // --- Capsule helpers / intersections ---
 
-    /** @brief Closest point on segment AB to point P. */
+    // Closest point on segment AB to point P.
     static dx::XMVECTOR ClosestPointOnSegment(dx::FXMVECTOR a, dx::FXMVECTOR b, dx::FXMVECTOR p)
     {
         dx::XMVECTOR ab = dx::XMVectorSubtract(b, a);
@@ -437,9 +435,7 @@ namespace Collider3D
         return dx::XMVectorAdd(a, dx::XMVectorScale(ab, t));
     }
 
-    /**
-     * @brief Closest points between segments AB and CD; returns squared distance.
-     */
+    // Closest points between segments AB and CD; returns squared distance.
     static float ClosestPointsSegmentSegment(
         dx::FXMVECTOR a, dx::FXMVECTOR b,
         dx::FXMVECTOR c, dx::FXMVECTOR d,
@@ -504,7 +500,7 @@ namespace Collider3D
         return LengthSq3(dx::XMVectorSubtract(outP, outQ));
     }
 
-    /** @brief Closest point on AABB (axis-aligned box) to point P. */
+    // Closest point on AABB (axis-aligned box) to point P.
     static dx::XMVECTOR ClosestPointOnAABB(dx::FXMVECTOR p, dx::FXMVECTOR center, float hx, float hy, float hz)
     {
         float px = dx::XMVectorGetX(p);
@@ -520,7 +516,7 @@ namespace Collider3D
             0.0f);
     }
 
-    /** @brief Closest point on OBB to point P (box local clamp). */
+    // Closest point on OBB to point P (box local clamp).
     static dx::XMVECTOR ClosestPointOnOBB(dx::FXMVECTOR p, const BoxCollider& b)
     {
         dx::XMVECTOR c = dx::XMLoadFloat3(&b.center);
@@ -538,7 +534,7 @@ namespace Collider3D
         return q;
     }
 
-    /** @brief Closest point on box surface/volume to P (AABB or OBB). */
+    // Closest point on box surface/volume to P (AABB or OBB).
     static dx::XMVECTOR ClosestPointOnBox(dx::FXMVECTOR p, const BoxCollider& box)
     {
         if (box.aabbKind != BoxAABBKind::OBB)
@@ -549,9 +545,7 @@ namespace Collider3D
         return ClosestPointOnOBB(p, box);
     }
 
-    /**
-     * @brief True when P is strictly inside the box (all local |coords| < half).
-     */
+    // True when P is strictly inside the box (all local |coords| < half).
     static bool IsPointInsideBox(dx::FXMVECTOR p, const BoxCollider& box)
     {
         dx::XMVECTOR c = dx::XMLoadFloat3(&box.center);
@@ -570,10 +564,8 @@ namespace Collider3D
                std::fabs(lz) < box.half.z;
     }
 
-    /**
-     * @brief Minimum translation to push P to the box surface (P assumed inside or on surface).
-     * @return Unit outward normal (from box interior toward exterior) and distance to surface.
-     */
+    // Minimum translation to push P to the box surface (P assumed inside or on surface).
+    // Unit outward normal (from box interior toward exterior) and distance to surface.
     static void MinExitFromBox(
         dx::FXMVECTOR p,
         const BoxCollider& box,
@@ -629,9 +621,7 @@ namespace Collider3D
         }
     }
 
-    /**
-     * @brief Sample closest approach between capsule segment and box (matches Intersect heuristic).
-     */
+    // Sample closest approach between capsule segment and box (matches Intersect heuristic).
     static void ClosestCapsuleSegmentToBox(
         const CapsuleCollider& cap,
         const BoxCollider& box,

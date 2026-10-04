@@ -4,10 +4,8 @@
 
 #include <DirectXMath.h>
 
-/**
- * @brief 一条可重放的装配 Step 快照（label + 少量参数）。
- * @note a/b/c/d/flag 含义随 label 变化；A1 只保存，不重放。
- */
+// 一条可重放的装配 Step 快照（label + 少量参数）。
+// a/b/c/d/flag 含义随 label 变化；A1 只保存，不重放。
 struct AttackStepRecord
 {
 	ModuleNodeLabel label{ ModuleNodeLabel::Count };
@@ -53,7 +51,7 @@ namespace AttackStepRecordMake
 	// ————————————————————————————————————————————————————
 	// Kind —— Attribute
 	// ————————————————————————————————————————————————————
-	/** @brief Attribute_LifetimeRate：a = 加算到 lifetime.rate。 */
+	// Attribute_LifetimeRate：a = 加算到 lifetime.rate。
 	inline AttackStepRecord LifetimeRate(float lifetimeRate) noexcept
 	{
 		AttackStepRecord r{};
@@ -62,7 +60,7 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Attribute_SpeedRate：a = 倍率。 */
+	// Attribute_SpeedRate：a = 倍率。
 	inline AttackStepRecord SpeedRate(float speedRate) noexcept
 	{
 		AttackStepRecord r{};
@@ -71,7 +69,7 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Attribute_SizeRate：a = 加算。 */
+	// Attribute_SizeRate：a = 加算。
 	inline AttackStepRecord SizeRate(float sizeRate) noexcept
 	{
 		AttackStepRecord r{};
@@ -80,7 +78,7 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Attribute_DamageRate：a = 加算。 */
+	// Attribute_DamageRate：a = 加算。
 	inline AttackStepRecord DamageRate(float damageRate) noexcept
 	{
 		AttackStepRecord r{};
@@ -92,7 +90,7 @@ namespace AttackStepRecordMake
 	// ————————————————————————————————————————————————————
 	// Kind —— Rule
 	// ————————————————————————————————————————————————————
-	/** @brief Rule_Orbit：a = 半径，b = 相位。 */
+	// Rule_Orbit：a = 半径，b = 相位。
 	inline AttackStepRecord Orbit(float radius, float phase) noexcept
 	{
 		AttackStepRecord r{};
@@ -102,7 +100,7 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
-	/** @brief Rule_Return：无参数。 */
+	// Rule_Return：无参数。
 	inline AttackStepRecord Return() noexcept
 	{
 		AttackStepRecord r{};

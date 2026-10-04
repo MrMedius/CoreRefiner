@@ -5,13 +5,11 @@
 #include <type_traits>
 #include "ObjectBase.h"
 
-/**
- * @brief Registry + pool for gameplay ObjectBase instances.
- * @note Semantics:
- *   - SpawnPooled: Ball / Enemy etc. — reuse inactive instances; expect RequestDisable/Deactivate recycle.
- *   - AcquirePersistent: Player / Field etc. — long-lived; scene leave should Reset/Activate, not ClearTag.
- *   - Acquire / AcquireDeactive: legacy names kept as thin aliases.
- */
+// Registry + pool for gameplay ObjectBase instances.
+// Semantics:
+// - SpawnPooled: Ball / Enemy etc. — reuse inactive instances; expect RequestDisable/Deactivate recycle.
+// - AcquirePersistent: Player / Field etc. — long-lived; scene leave should Reset/Activate, not ClearTag.
+// - Acquire / AcquireDeactive: legacy names kept as thin aliases.
 class ObjectCodex
 {
 private:
@@ -26,9 +24,7 @@ public:
     ObjectCodex(const ObjectCodex&) = delete;
     ObjectCodex& operator=(const ObjectCodex&) = delete;
 
-    /**
-     * @brief Spawn or reuse a pooled instance and Activate it.
-     */
+    // Spawn or reuse a pooled instance and Activate it.
     template <typename T, typename... Args>
     static T* SpawnPooled(Object_Type_Tag tag, Args&&... args)
     {
@@ -36,9 +32,7 @@ public:
         return Get_().Acquire_<T>(tag, true, std::forward<Args>(args)...);
     }
 
-    /**
-     * @brief Create or reuse without Activate (pool warmup).
-     */
+    // Create or reuse without Activate (pool warmup).
     template <typename T, typename... Args>
     static T* SpawnPooledDeactive(Object_Type_Tag tag, Args&&... args)
     {
@@ -46,10 +40,8 @@ public:
         return Get_().Acquire_<T>(tag, false, std::forward<Args>(args)...);
     }
 
-    /**
-     * @brief Persistent instance path (Player / Field): same storage, different intent.
-     * @note Do not ClearTag these on scene leave; call Activate / host OnEnable to reset.
-     */
+    // Persistent instance path (Player / Field): same storage, different intent.
+    // Do not ClearTag these on scene leave; call Activate / host OnEnable to reset.
     template <typename T, typename... Args>
     static T* AcquirePersistent(Object_Type_Tag tag, Args&&... args)
     {
@@ -57,13 +49,13 @@ public:
         return Get_().Acquire_<T>(tag, true, std::forward<Args>(args)...);
     }
 
-    /** @brief Legacy alias of SpawnPooled. */
+    // Legacy alias of SpawnPooled.
     template <typename T, typename... Args>
     static T* Acquire(Object_Type_Tag tag, Args&&... args)
     {
         return SpawnPooled<T>(tag, std::forward<Args>(args)...);
     }
-    /** @brief Legacy alias of SpawnPooledDeactive. */
+    // Legacy alias of SpawnPooledDeactive.
     template <typename T, typename... Args>
     static T* AcquireDeactive(Object_Type_Tag tag, Args&&... args)
     {
@@ -105,17 +97,13 @@ public:
         return Get_().FindFirstObjectByTag_<T>(tag);
     }
 
-    /**
-     * @brief Destroy all instances of a tag (rare; not used for normal scene leave).
-     */
+    // Destroy all instances of a tag (rare; not used for normal scene leave).
     static void ClearTag(Object_Type_Tag tag)
     {
         Get_().objectPools.erase(tag);
     }
 
-    /**
-     * @brief Destroy every pooled/persistent object (shutdown only; not scene leave).
-     */
+    // Destroy every pooled/persistent object (shutdown only; not scene leave).
     static void ClearAll()
     {
         Get_().objectPools.clear();

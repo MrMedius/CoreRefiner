@@ -9,11 +9,9 @@ struct TransInfo
 	DirectX::XMFLOAT3 rotation{ 0,0,0 };
 	DirectX::XMFLOAT3 scale{ 1,1,1 };
 
-	/**
-	 * @brief Build S*R*T matrix from stored TRS (local space when used under a parent).
-	 * @note `rotation` is interpreted as radians by XMMatrixRotationRollPitchYaw.
-	 * @note Name kept for callers; hierarchical world is ObjectBase::GetWorldMatrix().
-	 */
+	// Build S*R*T matrix from stored TRS (local space when used under a parent).
+	// `rotation` is interpreted as radians by XMMatrixRotationRollPitchYaw.
+	// Name kept for callers; hierarchical world is ObjectBase::GetWorldMatrix().
 	inline DirectX::XMFLOAT4X4 GetWorldMatrix() const
 	{
 		using namespace DirectX;
@@ -38,7 +36,7 @@ public:
 
 	void SetRotationRad(float roll, float pitch, float yaw) noexcept;
 	void SetRotationDegreeToRad(float roll, float pitch, float yaw) noexcept;
-	/** @brief Store rotation components as-is (no unit conversion). */
+	// Store rotation components as-is (no unit conversion).
 	void SetRotationRaw(float roll, float pitch, float yaw) noexcept;
 	void SetRotationRaw(DirectX::XMFLOAT3 rotation) noexcept;
 
@@ -49,24 +47,22 @@ public:
 	void Translate(float x, float y, float z) noexcept;
 	void RotateRad(float roll, float pitch, float yaw) noexcept;
 	void RotateDegreeToRad(float roll, float pitch, float yaw) noexcept;
-	/** @brief Add to rotation components as-is (no unit conversion). */
+	// Add to rotation components as-is (no unit conversion).
 	void RotateRaw(float roll, float pitch, float yaw) noexcept;
 
-	/** @brief Multiply scale (render-oriented). */
+	// Multiply scale (render-oriented).
 	void Scale(float x, float y, float z) noexcept;
 	void Scale(float size) noexcept;
-	/** @brief Add to scale components (matches legacy ObjectBase::Scale). */
+	// Add to scale components (matches legacy ObjectBase::Scale).
 	void AddScale(float x, float y, float z) noexcept;
 
 	DirectX::XMMATRIX GetTransformXM() const noexcept;
-	/**
-	 * @brief Local S*R*T matrix (same as GetTransformXM; name clarifies hierarchy use).
-	 */
+	// Local S*R*T matrix (same as GetTransformXM; name clarifies hierarchy use).
 	DirectX::XMMATRIX GetLocalMatrix() const noexcept;
 	DirectX::XMFLOAT3 GetPosition() const noexcept;
-	/** @brief Wrapped radian-oriented read (render helpers). */
+	// Wrapped radian-oriented read (render helpers).
 	DirectX::XMFLOAT3 GetRotation() const noexcept;
-	/** @brief Raw stored rotation (no wrap / no unit assumption). */
+	// Raw stored rotation (no wrap / no unit assumption).
 	DirectX::XMFLOAT3 GetRotationRaw() const noexcept;
 	DirectX::XMFLOAT3 GetScale() const noexcept;
 

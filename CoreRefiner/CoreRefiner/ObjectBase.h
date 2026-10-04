@@ -34,48 +34,34 @@ public:
 	virtual ~ObjectBase();
 
 	virtual void OnEnable(void) = 0;
-	/**
-	 * @brief Host-driven update: derived gameplay should call ObjectBase::Update at the end.
-	 * @note Default drives attached components (Visual/Collider sync, etc.).
-	 */
+	// Host-driven update: derived gameplay should call ObjectBase::Update at the end.
+	// Default drives attached components (Visual/Collider sync, etc.).
 	virtual void Update(float dt)
 	{
 		UpdateComponents(dt);
 	}
-	/**
-	 * @brief Host-driven submit: derived should call ObjectBase::Submit at the end.
-	 * @note Default submits attached components (Drawable / debug wire).
-	 */
+	// Host-driven submit: derived should call ObjectBase::Submit at the end.
+	// Default submits attached components (Drawable / debug wire).
 	virtual void Submit(void)
 	{
 		SubmitComponents();
 	}
 	Object_Type_Tag GetTag(void) const		{ return Tag; }
-	/**
-	 * @brief True when in use and not marked for deferred disable.
-	 */
+	// True when in use and not marked for deferred disable.
 	bool IsActive(void) const				{ return IsUse && !pendingDisable_; }
-	/**
-	 * @brief 对象池是否可拿走此实例。默认 = 非 Active。
-	 */
+	// 对象池是否可拿走此实例。默认 = 非 Active。
 	[[nodiscard]] virtual bool IsReusable() const noexcept { return !IsActive(); }
 	void Activate();
-	/**
-	 * @brief Immediate disable: cascade children, detach hierarchy, OnDisable components.
-	 * @note Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
-	 *       Attack overrides to ClearModules after the base cascade.
-	 */
+	// Immediate disable: cascade children, detach hierarchy, OnDisable components.
+	// Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
+	// Attack overrides to ClearModules after the base cascade.
 	virtual void Deactivate();
 
-	/**
-	 * @brief Mark inactive for queries, cascade RequestDisable to remaining children, queue Deactivate at frame end.
-	 * @note Attack overrides: first detaches living Attack children so they keep flying.
-	 */
+	// Mark inactive for queries, cascade RequestDisable to remaining children, queue Deactivate at frame end.
+	// Attack overrides: first detaches living Attack children so they keep flying.
 	virtual void RequestDisable();
 
-	/**
-	 * @brief Local position (≈ Unity localPosition; ≡ world when unparented).
-	 */
+	// Local position (≈ Unity localPosition; ≡ world when unparented).
 	XMFLOAT3 GetPosition(void) const		{ return transform_.GetPosition(); }
 	XMFLOAT3 GetRotation(void) const		{ return transform_.GetRotationRaw(); }
 	XMFLOAT3 GetSize(void) const			{ return transform_.GetScale(); }
@@ -180,26 +166,24 @@ protected:
 	}
 protected:
 	bool IsUse{ true };
-	/** @brief Queued for frame-end Deactivate; IsActive is false while set. */
+	// Queued for frame-end Deactivate; IsActive is false while set.
 	bool pendingDisable_{ false };
 	
 	Object_Type_Tag Tag{ Item_Type_None };
 
-	/** @brief Local TRS (≡ world when parent_ is null). */
+	// Local TRS (≡ world when parent_ is null).
 	Transformation transform_;
 
-	/** @brief Owned gameplay components. */
+	// Owned gameplay components.
 	std::vector<std::unique_ptr<IComponent>> components_;
 
 private:
-	/**
-	 * @brief True if `ancestor` appears on the parent chain starting at `node` (inclusive).
-	 */
+	// True if `ancestor` appears on the parent chain starting at `node` (inclusive).
 	[[nodiscard]] static bool IsAncestorOf(const ObjectBase* ancestor, const ObjectBase* node) noexcept;
 	void DetachFromParentOnly_() noexcept;
 	void DetachAllChildren_() noexcept;
 
 	ObjectBase* parent_{ nullptr };
-	/** @brief Non-owning; instances remain owned by ObjectCodex. */
+	// Non-owning; instances remain owned by ObjectCodex.
 	std::vector<ObjectBase*> children_;
 };

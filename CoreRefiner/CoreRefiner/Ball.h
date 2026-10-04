@@ -33,11 +33,9 @@ class Ball : public Attack
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 	}
 
-	/**
-	 * @brief Sync host scale and sphere radius (pool-safe; unit scale ⇒ radius 1).
-	 * @param scale Local visual scale (uniform intended; radius = max component).
-	 * @param enableCollider Whether the sphere collider is active after apply.
-	 */
+	// Sync host scale and sphere radius (pool-safe; unit scale ⇒ radius 1).
+	// scale Local visual scale (uniform intended; radius = max component).
+	// enableCollider Whether the sphere collider is active after apply.
 	void ApplyPresentation(XMFLOAT3 scale, bool enableCollider = true)
 	{
 		SetSize(scale);
@@ -52,9 +50,7 @@ class Ball : public Attack
 		}
 	}
 
-	/**
-	 * @brief 取缩放三分量绝对值最大者（与 ApplyPresentation 半径约定一致）。
-	 */
+	// 取缩放三分量绝对值最大者（与 ApplyPresentation 半径约定一致）。
 	[[nodiscard]] static float MaxScaleComponent(XMFLOAT3 scale) noexcept
 	{
 		return (scale.x > scale.y)
@@ -62,11 +58,9 @@ class Ball : public Attack
 			: ((scale.y > scale.z) ? scale.y : scale.z);
 	}
 
-	/**
-	 * @brief Reset pose/motion; arm modules; apply size/speed from AttackStats.
-	 * @note size.base 取当前组装缩放，避免把 Deployer 的 ApplyPresentation 冲回 1。
-	 *       子弹从父加速度只取方向，再写成 kAimSpeed × 自身 speed.Final()，避免连乘。
-	 */
+	// Reset pose/motion; arm modules; apply size/speed from AttackStats.
+	// size.base 取当前组装缩放，避免把 Deployer 的 ApplyPresentation 冲回 1。
+	// 子弹从父加速度只取方向，再写成 kAimSpeed × 自身 speed.Final()，避免连乘。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
 		Stats().ResetMods();

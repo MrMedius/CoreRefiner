@@ -21,9 +21,7 @@
 
 namespace
 {
-	/**
-	 * @brief 仓内占用节点对 @p atk 调用 ApplyWarehouseBonus。
-	 */
+	// 仓内占用节点对 atk 调用 ApplyWarehouseBonus。
 	void ApplyWarehouseBonuses(ModuleWarehouse& warehouse, Attack& atk)
 	{
 		warehouse.ForEach([&](IModuleNode& node)
@@ -32,9 +30,7 @@ namespace
 		});
 	}
 
-	/**
-	 * @brief 开火前拍平主体与子弹（公转弹随后会卸父子，仍要吃到仓被动）。
-	 */
+	// 开火前拍平主体与子弹（公转弹随后会卸父子，仍要吃到仓被动）。
 	void CollectAttackTree(Attack* atk, std::vector<Attack*>& out)
 	{
 		if (atk == nullptr)
@@ -95,7 +91,7 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 	const float warehouseOuterW = warehouseOuterHalfX * 2.0f;
 	const float rightOuterW = (fieldOuterW > warehouseOuterW) ? fieldOuterW : warehouseOuterW;
 
-	/** 顶 / Field–仓 / 仓–按钮 / 底，以及左右与列间，共用同一 gap。 */
+	// 顶 / Field–仓 / 仓–按钮 / 底，以及左右与列间，共用同一 gap。
 	const float gap = (screenH - fieldOuterH - warehouseOuterH - kFightBtnH) * 0.25f;
 	const float rightLeft = screenW - gap - rightOuterW;
 	const float rightCx = rightLeft + rightOuterW * 0.5f;
@@ -215,13 +211,14 @@ void ModuleWorkbench::PlaceDemoWarehouse_()
 		return;
 	}
 	ultra->AddCapacity();
+	ultra->AddCapacity();
 	const ModuleNodeLabel contents[] = {
 		ModuleNodeLabel::Spawn_Ball,
 		ModuleNodeLabel::Attribute_LifetimeRate,
-		ModuleNodeLabel::Attribute_SpeedRate,
+		ModuleNodeLabel::Attribute_DamageRate,
 		ModuleNodeLabel::Rule_Orbit,
 	};
-	for (std::size_t i = 0; i < 4u; ++i)
+	for (std::size_t i = 0; i < 5u; ++i)
 	{
 		std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeModuleNode(contents[i], {});
 		(void)ultra->TryPut(i, node);

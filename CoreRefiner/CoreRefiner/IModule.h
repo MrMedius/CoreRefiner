@@ -16,12 +16,10 @@ public:
 	virtual void OnUpdate(float dt) { (void)dt; }
 	virtual void OnHit(Character* other) { (void)other; }
 	virtual void OnRecycle() {}
-	/** @brief 宿主即将 Disable / ClearModules；Revive 在此放弹。默认空。 */
+	// 宿主即将 Disable / ClearModules；Revive 在此放弹。默认空。
 	virtual void OnDisable() {}
 
-	/**
-	 * @brief 开火 ArmModules 时是否从父物体卸下（独立世界坐标，由 Attack 执行）。
-	 */
+	// 开火 ArmModules 时是否从父物体卸下（独立世界坐标，由 Attack 执行）。
 	[[nodiscard]] virtual bool WantsDetachFromParent() const noexcept { return false; }
 
 	[[nodiscard]] virtual bool HasModuleNodeLabel() const noexcept { return false; }

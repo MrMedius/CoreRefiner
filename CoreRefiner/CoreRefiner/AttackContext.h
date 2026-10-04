@@ -27,7 +27,7 @@ struct AttackStandby
 	std::vector<Attack*> children;
 	Attack* host{ nullptr };
 	Player* player{ nullptr };
-	/** @brief 当前 parent 是停放克隆，FlushStandby 不得把它当根弹发射。 */
+	// 当前 parent 是停放克隆，FlushStandby 不得把它当根弹发射。
 	bool parked{ false };
 };
 
@@ -35,7 +35,7 @@ struct DeployContext
 {
 	AttackStandby standby;
 	std::vector<Attack*> shots;
-	/** @brief 当前未 Flush 的流水线 Step；FlushStandby 时封到根弹。 */
+	// 当前未 Flush 的流水线 Step；FlushStandby 时封到根弹。
 	std::vector<AttackStepRecord> recipe;
 	// 已完成配方组在 recipe 中的起点，不含当前组。
 	// 组 i 的范围是 [recipeGroupStarts[i], 下一组起点)；最后一组的终点是 recipeGroupStart。
@@ -48,17 +48,13 @@ struct DeployContext
 	// 由 Rule_Revive 的 Apply 置位；新 Context 从 false 开始。
 	bool recordOnly{ false };
 
-	/**
-	 * @brief 记下一条已成功 Apply 的 Step。
-	 */
+	// 记下一条已成功 Apply 的 Step。
 	void Record(const AttackStepRecord& rec)
 	{
 		recipe.push_back(rec);
 	}
 
-	/**
-	 * @brief Revive 之后只记账；调用方若得到 true 应立刻 return。
-	 */
+	// Revive 之后只记账；调用方若得到 true 应立刻 return。
 	[[nodiscard]] bool TryRecordOnly(const AttackStepRecord& rec)
 	{
 		if (!recordOnly)

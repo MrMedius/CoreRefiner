@@ -60,7 +60,7 @@ public:
 	IModuleZone(const IModuleZone&) = delete;
 	IModuleZone& operator=(const IModuleZone&) = delete;
 
-	/** @brief 世界空间轴对齐包围盒（中心 + 半宽半高）。 */
+	// 世界空间轴对齐包围盒（中心 + 半宽半高）。
 	struct BoundsWorld
 	{
 		DirectX::XMFLOAT2 center{ 0.0f, 0.0f };
@@ -71,13 +71,13 @@ public:
 	[[nodiscard]] virtual DirectX::XMFLOAT3 GetOrigin() const noexcept = 0;
 	virtual void SetOrigin(DirectX::XMFLOAT3 origin) noexcept = 0;
 
-	/** @brief 内容框世界包围盒（命中与布局用）。 */
+	// 内容框世界包围盒（命中与布局用）。
 	[[nodiscard]] virtual BoundsWorld GetBoundsWorld() const noexcept = 0;
 
-	/** @brief 外壳相对内容框四周各扩的边距（逻辑像素，不随 visualScale 缩放）。 */
+	// 外壳相对内容框四周各扩的边距（逻辑像素，不随 visualScale 缩放）。
 	static constexpr float kShellPad = 12.0f;
 
-	/** @brief 外壳世界包围盒（仅绘制）；默认 = 内容框四周外扩 kShellPad。 */
+	// 外壳世界包围盒（仅绘制）；默认 = 内容框四周外扩 kShellPad。
 	[[nodiscard]] virtual BoundsWorld GetShellBoundsWorld() const noexcept;
 
 	[[nodiscard]] virtual std::size_t GetNodeCount() const noexcept = 0;
@@ -110,18 +110,18 @@ public:
 
 	[[nodiscard]] virtual DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept = 0;
 
-	/** @brief 同区内移动落点已 Accept 之后；默认空实现。仓库用它换槽。 */
+	// 同区内移动落点已 Accept 之后；默认空实现。仓库用它换槽。
 	virtual void OnSameZoneMove(IModuleNode& node, DirectX::XMFLOAT2 localPos)
 	{
 		(void)node;
 		(void)localPos;
 	}
 
-	/** @brief 初始化本区视觉：先定原点并确保外壳，再交给子类。 */
+	// 初始化本区视觉：先定原点并确保外壳，再交给子类。
 	void InitAllVisuals(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 origin);
-	/** @brief 同步本区变换：先同步外壳，再交给子类。 */
+	// 同步本区变换：先同步外壳，再交给子类。
 	void SyncAllVisuals();
-	/** @brief 提交本区背景：先提交外壳，再交给子类。 */
+	// 提交本区背景：先提交外壳，再交给子类。
 	void SubmitBackground();
 	virtual void SubmitNodes() = 0;
 	// 整理态分两趟提交：先全区残影，再全区图标，避免仓残影盖住场上 Node。
@@ -177,21 +177,21 @@ protected:
 	// 点选半径。默认 VisualRadius（仓）。场地用 hitRadius * DisplayScale。
 	[[nodiscard]] virtual float PickHitRadius_(const IModuleNode& node) const noexcept;
 
-	/** @brief 子类初始化自身内容视觉（不含外壳）。 */
+	// 子类初始化自身内容视觉（不含外壳）。
 	virtual void InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg) = 0;
-	/** @brief 子类同步自身内容变换（不含外壳）。 */
+	// 子类同步自身内容变换（不含外壳）。
 	virtual void SyncZoneTransforms_() = 0;
-	/** @brief 子类提交自身内容背景（不含外壳）。 */
+	// 子类提交自身内容背景（不含外壳）。
 	virtual void SubmitZoneBackground_() = 0;
 
 private:
 	void EnsureShell_(Graphics& gfx, Rgph::RenderGraph& rg);
-	/** @brief 外壳世界尺寸与画布像素不一致时 Resize 并重画，避免 1px 描边被 Scale 采没。 */
+	// 外壳世界尺寸与画布像素不一致时 Resize 并重画，避免 1px 描边被 Scale 采没。
 	void RebuildShellIfNeeded_();
 	void PaintShell_();
 	void SyncShellTransform_() noexcept;
 	void SubmitShell_();
-	/** @brief 按当前外壳世界包围盒取画布像素宽高（至少 1）。 */
+	// 按当前外壳世界包围盒取画布像素宽高（至少 1）。
 	void GetShellPixelSize_(unsigned& w, unsigned& h) const noexcept;
 
 	std::unique_ptr<Canvas2D> shell_;

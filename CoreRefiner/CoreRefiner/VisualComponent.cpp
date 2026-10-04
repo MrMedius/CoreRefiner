@@ -94,10 +94,8 @@ void VisualComponent::SyncFromOwner()
 	}
 
 	const XMMATRIX rotM = XMMatrixRotationQuaternion(quatV);
-	/**
-	 * @brief Extract roll/pitch/yaw (radians) matching XMMatrixRotationRollPitchYaw convention.
-	 * @note Pitch from -m12; yaw/roll from remaining elements (DirectXMath common pattern).
-	 */
+	// Extract roll/pitch/yaw (radians) matching XMMatrixRotationRollPitchYaw convention.
+	// Pitch from -m12; yaw/roll from remaining elements (DirectXMath common pattern).
 	const float r12 = XMVectorGetY(rotM.r[2]);
 	const float r00 = XMVectorGetX(rotM.r[0]);
 	const float r01 = XMVectorGetY(rotM.r[0]);

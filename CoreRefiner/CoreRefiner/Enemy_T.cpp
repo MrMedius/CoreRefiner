@@ -29,10 +29,8 @@ void Enemy_T::Update(float dt)
 	{
 		pCollider_->SyncFromOwner();
 	}
-	/**
-	 * @brief 贴身伤害必须在本帧 Transform 之后、被 MapItemCollide 推开之前测，
-	 *        否则读到的是上一帧已经分离的位置，永远 overlap 不上。
-	 */
+	// 贴身伤害必须在本帧 Transform 之后、被 MapItemCollide 推开之前测，
+	// 否则读到的是上一帧已经分离的位置，永远 overlap 不上。
 	TryContactHit();
 	// Enemy::MapItemCollide → Character 场地/对弹 + 怪互挤
 	MapItemCollide();

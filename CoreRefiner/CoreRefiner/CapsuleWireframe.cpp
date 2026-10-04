@@ -48,10 +48,8 @@ namespace
 		}
 	}
 
-	/**
-	 * @brief Outer hemisphere meridian arcs in local +Y (equator at y=0, pole at +radius).
-	 * @note No equator ring — cylinder end rings already mark the join.
-	 */
+	// Outer hemisphere meridian arcs in local +Y (equator at y=0, pole at +radius).
+	// No equator ring — cylinder end rings already mark the join.
 	void PushHemisphereMeridians(
 		Dvtx::VertexBuffer& vertices,
 		std::vector<unsigned short>& indices,
@@ -94,9 +92,7 @@ namespace
 		}
 	}
 
-	/**
-	 * @brief Orthonormal basis with Y = normalized outward (fallback +Y if degenerate).
-	 */
+	// Orthonormal basis with Y = normalized outward (fallback +Y if degenerate).
 	void BuildOutwardBasis(
 		dx::FXMVECTOR outward,
 		dx::XMFLOAT3& outX,

@@ -9,20 +9,16 @@
 #include <algorithm>
 #include <cmath>
 
-/**
- * @brief 绕圆心公转：圆心只是指针，模块不改父子。
- * @note 实际半径 = max(节点半径, 圆心半径 + 自身半径 + 余量)。
- *       绕玩家时从出生极径边转到目标半径；径向加速度与普通发射相同。
- *       圆心失效时沿当下切线甩出，并继续沿该切线加速。
- */
+// 绕圆心公转：圆心只是指针，模块不改父子。
+// 实际半径 = max(节点半径, 圆心半径 + 自身半径 + 余量)。
+// 绕玩家时从出生极径边转到目标半径；径向加速度与普通发射相同。
+// 圆心失效时沿当下切线甩出，并继续沿该切线加速。
 class Module_Rule_Orbit : public IModule
 {
 public:
 	static constexpr float kClearance{ 0.0f };
 
-	/**
-	 * @param center 公转圆心（玩家或主弹）；空则不公转。
-	 */
+	// center 公转圆心（玩家或主弹）；空则不公转。
 	Module_Rule_Orbit(Attack* owner, float radius, float phase0, ObjectBase* center = nullptr) noexcept
 		:
 		IModule(owner),
@@ -174,9 +170,7 @@ private:
 		return (std::max)(radius_, floorR);
 	}
 
-	/**
-	 * @brief 用当前世界坐标当极径起点（脚边→扩出，远处→收回）。
-	 */
+	// 用当前世界坐标当极径起点（脚边→扩出，远处→收回）。
 	void SampleRadialStart_(const Attack& owner)
 	{
 		const XMFLOAT3 c = center_->GetWorldPosition();
@@ -199,10 +193,8 @@ private:
 		radialVel_ = 0.0f;
 	}
 
-	/**
-	 * @brief 圆心刚失效：沿当下公转切线带上本帧弧长速度，加速度也沿该切线。
-	 * @note 本帧 Ball 已用旧加速度位移，先扳回最后一圈上的切向一步，避免先朝开火方向冲。
-	 */
+	// 圆心刚失效：沿当下公转切线带上本帧弧长速度，加速度也沿该切线。
+	// 本帧 Ball 已用旧加速度位移，先扳回最后一圈上的切向一步，避免先朝开火方向冲。
 	void ReleaseToBallistic_(Attack& owner, float dt)
 	{
 		const float stepDt = (dt > 1.0e-4f) ? dt : (1.0f / 60.0f);

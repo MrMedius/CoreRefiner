@@ -56,9 +56,7 @@ public:
 	}
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
-	/**
-	 * @brief 击杀当帧关掉自身碰撞，避免尸体体积再吃下一发（含 Revive 重放弹）。
-	 */
+	// 击杀当帧关掉自身碰撞，避免尸体体积再吃下一发（含 Revive 重放弹）。
 	void OnHpDepleted_() override
 	{
 		if (auto* col = GetComponent<ColliderComponentBase>())
@@ -86,9 +84,7 @@ public:
 		if (IsInAttackArea) SetIsAttack(true);
 		return IsAttack;
 	}
-	/**
-	 * @brief Melee hit test against AttackTarget via shape-agnostic GetVolume (Player may be Capsule).
-	 */
+	// Melee hit test against AttackTarget via shape-agnostic GetVolume (Player may be Capsule).
 	bool AttackCollide(float damage, XMFLOAT3 repel) override
 	{
 		if (AttackTarget == nullptr)
@@ -122,7 +118,7 @@ public:
 		return false;
 	}
 
-	/** @brief 贴身碰撞伤害 + 击退；Hurt 期间由玩家无敌帧挡住连击。 */
+	// 贴身碰撞伤害 + 击退；Hurt 期间由玩家无敌帧挡住连击。
 	void TryContactHit()
 	{
 		if (GetIsDeath() || GetIsHurt())
@@ -131,11 +127,9 @@ public:
 		}
 		AttackCollide(kContactHpDelta_, kContactRepel_);
 	}
-	/**
-	 * @brief 玩家碰撞推开：只改 XZ 并立刻 Sync；消掉朝推开反方向（往玩家钻）的水平速度。
-	 * @param dx 世界 X 增量。
-	 * @param dz 世界 Z 增量。
-	 */
+	// 玩家碰撞推开：只改 XZ 并立刻 Sync；消掉朝推开反方向（往玩家钻）的水平速度。
+	// dx 世界 X 增量。
+	// dz 世界 Z 增量。
 	void ShoveXZ(float dx, float dz)
 	{
 		auto p = GetPosition();
@@ -174,16 +168,12 @@ public:
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
 protected:
-	/**
-	 * @brief 先 Character 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
-	 */
+	// 先 Character 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
 	void MapItemCollide() override;
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = (V(area) * 0.5f).ToFloat3(); }
 	XMFLOAT3 GetSearchArea(void) const	  { return searchCollider.half; }
-	/**
-	 * @brief Search-volume vs target GetVolume (searchCollider stays Box; target may be Capsule).
-	 */
+	// Search-volume vs target GetVolume (searchCollider stays Box; target may be Capsule).
 	bool CheckIsInArea(void)
 	{
 		auto* targetCol = AttackTarget->GetComponent<ColliderComponentBase>();
@@ -196,9 +186,9 @@ protected:
 private:
 	void SetupTransitions(void) override = 0;
 protected:
-	/** @brief 碰撞扣血（CalculateHpCurrent 的偏移，负数为受伤）。 */
+	// 碰撞扣血（CalculateHpCurrent 的偏移，负数为受伤）。
 	static constexpr float kContactHpDelta_ = -5.0f;
-	/** @brief 水平击退 + 小幅上抬。 */
+	// 水平击退 + 小幅上抬。
 	static constexpr XMFLOAT3 kContactRepel_{ 0.40f, 0.01f, 0.40f };
 	ENEMY_TYPE_ID Type{ ENEMY_TYPE_NONE };	// 敵の種類
 	Player* AttackTarget;					// ターゲット
