@@ -5,6 +5,7 @@
 #include "Graphics.h"
 #include "ModuleNodes.h"
 #include "ModuleNodeFactory.h"
+#include "ModuleNodeInfoCopy.h"
 #include "IModuleZone.h"
 #include "InputCodex.h"
 #include "ObjectCodex.h"
@@ -212,13 +213,19 @@ void ModuleWorkbench::PlaceDemoWarehouse_()
 	}
 	ultra->AddCapacity();
 	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->SetName(GetModuleNodeInfoCopy(ModuleNodeLabel::Ultra).title);
 	const ModuleNodeLabel contents[] = {
 		ModuleNodeLabel::Spawn_Ball,
 		ModuleNodeLabel::Attribute_LifetimeRate,
 		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Attribute_DamageRate,
 		ModuleNodeLabel::Rule_Orbit,
 	};
-	for (std::size_t i = 0; i < 5u; ++i)
+	// 数组只有 4 个。第 5 个栏位留空，容量仍是 5。
+	for (std::size_t i = 0; i < std::size(contents); ++i)
 	{
 		std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeModuleNode(contents[i], {});
 		(void)ultra->TryPut(i, node);

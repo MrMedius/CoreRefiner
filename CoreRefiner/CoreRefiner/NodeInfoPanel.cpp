@@ -25,6 +25,9 @@
 
 namespace
 {
+	// ————————————————————————————————————————————————————
+	// 基础：配色、测量、顶区图标、属性行
+	// ————————————————————————————————————————————————————
 	constexpr Color kPanelBg{ 24u, 26u, 32u, 220u };
 	constexpr Color kPanelFrame{ 200u, 205u, 215u, 200u };
 	constexpr Color kHeaderRule{ 200u, 205u, 215u, 160u };
@@ -99,39 +102,6 @@ namespace
 			return Colors::White;
 		}
 		return c;
-	}
-
-	void CollectHeaderKinds_(
-		const IModuleNode* node,
-		ModuleNodeLabel label,
-		std::vector<ModuleNodeKind>& out)
-	{
-		out.clear();
-		if (node == nullptr)
-		{
-			const ModuleNodeKind kind = KindOf(label);
-			if (kind < ModuleNodeKind::Count)
-			{
-				out.push_back(kind);
-			}
-			return;
-		}
-
-		out.push_back(node->GetKind());
-		if (node->GetKind() != ModuleNodeKind::Fusion)
-		{
-			return;
-		}
-
-		const auto& fusion = static_cast<const ModuleNode_Fusion&>(*node);
-		if (const IModuleNode* primary = fusion.GetPrimary())
-		{
-			out.push_back(primary->GetKind());
-		}
-		if (const IModuleNode* material = fusion.GetMaterial())
-		{
-			out.push_back(material->GetKind());
-		}
 	}
 
 	void BuildKindLine_(
@@ -226,6 +196,90 @@ namespace
 		return w;
 	}
 
+	int DrawStatRows_(
+		Canvas2D& canvas,
+		const std::vector<PanelStatRow>& rows,
+		float fontSize,
+		int pad,
+		int innerW,
+		int valueColW,
+		int y,
+		int lineH,
+		int lineGap,
+		Color ink)
+	{
+		const int labelW = (std::max)(1, innerW - valueColW - 8);
+		for (std::size_t i = 0; i < rows.size(); ++i)
+		{
+			const PanelStatRow& row = rows[i];
+			CanvasTextDraw::Draw(
+				canvas,
+				row.label,
+				fontSize,
+				pad,
+				y,
+				labelW,
+				lineH,
+				ink,
+				false);
+			CanvasTextDraw::Draw(
+				canvas,
+				row.value,
+				fontSize,
+				pad + innerW - valueColW,
+				y,
+				valueColW,
+				lineH,
+				ink,
+				false,
+				{},
+				0,
+				DWRITE_TEXT_ALIGNMENT_TRAILING);
+			y += lineH;
+			if (i + 1u < rows.size())
+			{
+				y += lineGap;
+			}
+		}
+		return y;
+	}
+
+	// ————————————————————————————————————————————————————
+	// Fusion：Kind 行带上主体和素材，Fusion 词条垫白底
+	// ————————————————————————————————————————————————————
+	void CollectHeaderKinds_(
+		const IModuleNode* node,
+		ModuleNodeLabel label,
+		std::vector<ModuleNodeKind>& out)
+	{
+		out.clear();
+		if (node == nullptr)
+		{
+			const ModuleNodeKind kind = KindOf(label);
+			if (kind < ModuleNodeKind::Count)
+			{
+				out.push_back(kind);
+			}
+			return;
+		}
+
+		out.push_back(node->GetKind());
+		if (node->GetKind() != ModuleNodeKind::Fusion)
+		{
+			return;
+		}
+
+		const auto& fusion = static_cast<const ModuleNode_Fusion&>(*node);
+		if (const IModuleNode* primary = fusion.GetPrimary())
+		{
+			out.push_back(primary->GetKind());
+		}
+		if (const IModuleNode* material = fusion.GetMaterial())
+		{
+			out.push_back(material->GetKind());
+		}
+	}
+
 	void FillFusionKindBacks_(
 		Canvas& dst,
 		const std::vector<ModuleNodeKind>& kinds,
@@ -278,6 +332,9 @@ namespace
 		}
 	}
 
+	// ————————————————————————————————————————————————————
+	// 普通 Node：独有属性。Fusion 对主体和素材各调一次。
+	// ————————————————————————————————————————————————————
 	void AppendUniqueStatRows_(const IModuleNode* src, std::vector<PanelStatRow>& dst)
 	{
 		if (src == nullptr)
@@ -320,55 +377,43 @@ namespace
 		}
 	}
 
-	int DrawStatRows_(
-		Canvas2D& canvas,
-		const std::vector<PanelStatRow>& rows,
-		float fontSize,
-		int pad,
-		int innerW,
-		int valueColW,
-		int y,
-		int lineH,
-		int lineGap,
-		Color ink)
+	// ————————————————————————————————————————————————————
+	// Ultra：按面板像素染斜向彩虹。背景不动，字滚动时穿过这层颜色。
+	// ————————————————————————————————————————————————————
+	void TintDiagonalRainbow_(Canvas& canvas, int x, int y, int w, int h, float phase)
 	{
-		const int labelW = (std::max)(1, innerW - valueColW - 8);
-		for (std::size_t i = 0; i < rows.size(); ++i)
+		if (w <= 0 || h <= 0)
 		{
-			const PanelStatRow& row = rows[i];
-			CanvasTextDraw::Draw(
-				canvas,
-				row.label,
-				fontSize,
-				pad,
-				y,
-				labelW,
-				lineH,
-				ink,
-				false);
-			CanvasTextDraw::Draw(
-				canvas,
-				row.value,
-				fontSize,
-				pad + innerW - valueColW,
-				y,
-				valueColW,
-				lineH,
-				ink,
-				false,
-				{},
-				0,
-				DWRITE_TEXT_ALIGNMENT_TRAILING);
-			y += lineH;
-			if (i + 1u < rows.size())
+			return;
+		}
+		const int canvasW = static_cast<int>(canvas.GetCanvasWidth());
+		const int canvasH = static_cast<int>(canvas.GetCanvasHeight());
+		const int x0 = (std::max)(x, 0);
+		const int y0 = (std::max)(y, 0);
+		const int x1 = (std::min)(x + w, canvasW);
+		const int y1 = (std::min)(y + h, canvasH);
+		for (int py = y0; py < y1; ++py)
+		{
+			for (int px = x0; px < x1; ++px)
 			{
-				y += lineGap;
+				const Color cur = canvas.GetPixel(static_cast<unsigned>(px), static_cast<unsigned>(py));
+				if (cur.GetR() == kPanelBg.GetR()
+					&& cur.GetG() == kPanelBg.GetG()
+					&& cur.GetB() == kPanelBg.GetB()
+					&& cur.GetA() == kPanelBg.GetA())
+				{
+					continue;
+				}
+				const float hue = (static_cast<float>(px + py) + phase) / IconAtlas::kRainbowPeriod;
+				canvas.PutPixel(static_cast<unsigned>(px), static_cast<unsigned>(py), IconAtlas::HueToRgb(hue));
 			}
 		}
-		return y;
 	}
 }
 
+// ————————————————————————————————————————————————————
+// 基础：显示、缓存、定位、跑马灯
+// ————————————————————————————————————————————————————
 void NodeInfoPanel::Ensure(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	gfx_ = &gfx;
@@ -488,15 +533,21 @@ void NodeInfoPanel::Submit()
 		return;
 	}
 	TickMarquee_();
+	TickHeaderRainbow_();
 	canvas_->Submit(Chan::ui);
 }
 
+// ————————————————————————————————————————————————————
+// 绘制：基础顶区；普通 Node 和 Fusion 画正文与独有属性；Ultra 改画栏位网格
+// ————————————————————————————————————————————————————
 void NodeInfoPanel::RebuildContent_(
 	const ModuleNodeInfoEntry& entry,
 	const IModuleNode* node,
 	ModuleNodeLabel label)
 {
 	marquees_.clear();
+	headerRainbowBits_.reset();
+	headerRainbowBoxes_.clear();
 
 	std::vector<ModuleNodeKind> kinds;
 	CollectHeaderKinds_(node, label, kinds);
@@ -505,10 +556,19 @@ void NodeInfoPanel::RebuildContent_(
 	std::vector<Text::Span> kindSpans;
 	BuildKindLine_(kinds, kindLine, kindSpans);
 
+	const ModuleNode_Ultra* ultra = (node != nullptr)
+		? dynamic_cast<const ModuleNode_Ultra*>(node)
+		: nullptr;
+
 	std::string levelLine;
 	if (node != nullptr)
 	{
-		if (node->GetLevel() >= ModuleNodeLevel::kMax)
+		if (ultra != nullptr)
+		{
+			// 奥义显示容量，不走等级，也不显示 Max。
+			levelLine = "Lv." + std::to_string(ultra->GetCapacity());
+		}
+		else if (node->GetLevel() >= ModuleNodeLevel::kMax)
 		{
 			levelLine = "Lv.Max";
 		}
@@ -548,7 +608,8 @@ void NodeInfoPanel::RebuildContent_(
 
 	std::vector<PanelStatRow> uniquePrimary;
 	std::vector<PanelStatRow> uniqueMaterial;
-	if (node != nullptr)
+	// Fusion 分主体和素材。普通 Node 只列自己。奥义不列独有属性。
+	if (node != nullptr && ultra == nullptr)
 	{
 		if (node->GetKind() == ModuleNodeKind::Fusion)
 		{
@@ -564,10 +625,14 @@ void NodeInfoPanel::RebuildContent_(
 	const bool hasUnique = !uniquePrimary.empty() || !uniqueMaterial.empty();
 	const bool uniqueSplit = !uniquePrimary.empty() && !uniqueMaterial.empty();
 
+	// 普通 Node 和 Fusion 量正文。Ultra 跳过正文，改量栏位网格。
 	const int pad = kPaddingPx_;
 	const int panelW = (std::max)(pad * 2 + 1, static_cast<int>(maxWidthPx_));
 	const int innerW = (std::max)(1, panelW - pad * 2);
-	const std::vector<std::string> bodyBlocks = entry.BodyBlocks();
+	// 奥义中段不画描述。
+	const std::vector<std::string> bodyBlocks = (ultra != nullptr)
+		? std::vector<std::string>{}
+		: entry.BodyBlocks();
 	std::vector<int> bodyHs;
 	bodyHs.reserve(bodyBlocks.size());
 	int bodySectionH = 0;
@@ -592,10 +657,39 @@ void NodeInfoPanel::RebuildContent_(
 		++bodyDrawnCount;
 	}
 
+	// 空栏位跳过。一行 5 个：5*边长 + 4*间距 + 2*边距 ≈ 面板宽，第 6 个才换行。
+	std::vector<const IModuleNode*> slotIcons;
+	constexpr int kUltraGridCols = 5;
+	int gridCols = 1;
+	int gridH = 0;
+	const int slotBudget = panelW - (kUltraGridCols - 1) * kHeaderLineGap_ - 2 * pad;
+	const int slotSide = (std::max)(1, (slotBudget + kUltraGridCols / 2) / kUltraGridCols);
+	if (ultra != nullptr)
+	{
+		gridCols = kUltraGridCols;
+		for (int i = 0; i < ultra->GetCapacity(); ++i)
+		{
+			if (const IModuleNode* slot = ultra->GetSlot(static_cast<std::size_t>(i)))
+			{
+				slotIcons.push_back(slot);
+			}
+		}
+		if (!slotIcons.empty())
+		{
+			const int rows = static_cast<int>(
+				(slotIcons.size() + static_cast<std::size_t>(gridCols) - 1u) / static_cast<std::size_t>(gridCols));
+			gridH = rows * slotSide + (rows - 1) * kHeaderLineGap_;
+		}
+	}
+
 	int panelH = pad + iconSide + kHeaderRuleGap_ + 1 + pad;
 	if (bodySectionH > 0)
 	{
 		panelH += kHeaderBodyGap_ + bodySectionH + kHeaderRuleGap_ + 1;
+	}
+	if (gridH > 0)
+	{
+		panelH += kHeaderBodyGap_ + gridH + kHeaderRuleGap_ + 1;
 	}
 	if (!baseStats.empty())
 	{
@@ -618,6 +712,13 @@ void NodeInfoPanel::RebuildContent_(
 	const int iconX = pad;
 	const int iconY = pad;
 	const int textX = pad + iconSide + kHeaderIconTextGap_;
+	if (ultra != nullptr)
+	{
+		headerRainbowBits_ = ultra->GetIconBits();
+		headerIconX_ = iconX;
+		headerIconY_ = iconY;
+		headerIconSide_ = iconSide;
+	}
 	BlitHeaderIcon_(*canvas_, node, label, iconX, iconY, static_cast<unsigned>(iconSide));
 
 	const int row0Y = iconY;
@@ -660,6 +761,11 @@ void NodeInfoPanel::RebuildContent_(
 		marquees_.push_back(std::move(row));
 	};
 
+	// 奥义这两行先画白字，提交时再按像素染彩虹。其它 Node 仍用原来的纯色。
+	const std::vector<Text::Span> titleSpans = (ultra != nullptr) ? std::vector<Text::Span>{} : entry.spans;
+	const std::vector<Text::Span> kindDrawSpans = (ultra != nullptr) ? std::vector<Text::Span>{} : kindSpans;
+
+	// 标题行高度固定为 lineH。名字为空时 Draw 直接返回，这一行仍然占位。
 	CanvasTextDraw::Draw(
 		*canvas_,
 		entry.title,
@@ -670,8 +776,8 @@ void NodeInfoPanel::RebuildContent_(
 		lineH,
 		Colors::White,
 		false,
-		entry.spans);
-	considerHeaderMarquee(entry.title, entry.spans, row0Y, false, {});
+		titleSpans);
+	considerHeaderMarquee(entry.title, titleSpans, row0Y, false, {});
 	FillFusionKindBacks_(
 		*canvas_,
 		kinds,
@@ -690,7 +796,7 @@ void NodeInfoPanel::RebuildContent_(
 		lineH,
 		Colors::White,
 		false,
-		kindSpans);
+		kindDrawSpans);
 	bool kindNeedsBack = false;
 	for (ModuleNodeKind k : kinds)
 	{
@@ -700,7 +806,12 @@ void NodeInfoPanel::RebuildContent_(
 			break;
 		}
 	}
-	considerHeaderMarquee(kindLine, kindSpans, row1Y, kindNeedsBack, kinds);
+	considerHeaderMarquee(kindLine, kindDrawSpans, row1Y, kindNeedsBack, kinds);
+	if (ultra != nullptr)
+	{
+		headerRainbowBoxes_.push_back({ textX, row0Y, drawTextW, lineH });
+		headerRainbowBoxes_.push_back({ textX, row1Y, drawTextW, lineH });
+	}
 	CanvasTextDraw::Draw(
 		*canvas_,
 		levelLine,
@@ -761,6 +872,28 @@ void NodeInfoPanel::RebuildContent_(
 		const int bodyRuleY = cursorY + kHeaderRuleGap_;
 		CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, bodyRuleY, kHeaderRule);
 		cursorY = bodyRuleY + 1;
+	}
+
+	if (gridH > 0)
+	{
+		const int gridY = cursorY + kHeaderBodyGap_;
+		const int stride = slotSide + kHeaderLineGap_;
+		for (std::size_t i = 0; i < slotIcons.size(); ++i)
+		{
+			const int col = static_cast<int>(i % static_cast<std::size_t>(gridCols));
+			const int row = static_cast<int>(i / static_cast<std::size_t>(gridCols));
+			BlitHeaderIcon_(
+				*canvas_,
+				slotIcons[i],
+				slotIcons[i]->GetModuleNodeLabel(),
+				pad + col * stride,
+				gridY + row * stride,
+				static_cast<unsigned>(slotSide));
+		}
+		cursorY = gridY + gridH;
+		const int gridRuleY = cursorY + kHeaderRuleGap_;
+		CanvasTextDraw::DrawHRule(*canvas_, pad, panelW - pad - 1, gridRuleY, kHeaderRule);
+		cursorY = gridRuleY + 1;
 	}
 
 	unsigned valueColU = 1u;
@@ -868,6 +1001,53 @@ void NodeInfoPanel::SyncPosition_(DirectX::XMFLOAT2 anchorGameXY)
 	canvas_->SetPosition(DirectX::XMFLOAT3{ center.x, center.y, 0.0f });
 }
 
+// ————————————————————————————————————————————————————
+// Ultra：顶区图标和标题每帧染色
+// ————————————————————————————————————————————————————
+void NodeInfoPanel::TickHeaderRainbow_()
+{
+	if (canvas_ == nullptr)
+	{
+		return;
+	}
+	if (!headerRainbowBits_.has_value() && headerRainbowBoxes_.empty())
+	{
+		return;
+	}
+
+	// 和场上 SubmitIcon 同一套切帧：1 秒 16 帧，相位跟着 BakeRainbowSheet。
+	constexpr unsigned kFrames = ModuleNode_Ultra::kRainbowFrames;
+	const float cycle = std::fmod(TimeCodex::Get().GetTotalTime(), 1.0f);
+	const unsigned frame = static_cast<unsigned>(cycle * static_cast<float>(kFrames)) % kFrames;
+	const float phase = IconAtlas::kRainbowPeriod * static_cast<float>(frame) / static_cast<float>(kFrames);
+
+	if (headerRainbowBits_.has_value() && headerIconSide_ > 0)
+	{
+		Canvas src{
+			IModuleNode::kVisualSize,
+			IModuleNode::kVisualSize,
+			Canvas::Empty
+		};
+		src.Clear(Colors::None);
+		IconAtlas::BlitIconRainbow(src, *headerRainbowBits_, phase);
+		CanvasPixelDraw::BlitNearestCentered(
+			*canvas_,
+			src,
+			headerIconX_,
+			headerIconY_,
+			static_cast<unsigned>(headerIconSide_),
+			static_cast<unsigned>(headerIconSide_));
+	}
+
+	// 跑马灯已经先把超宽的字画回白底。这里只染标题和类型名。
+	for (const HeaderRainbowBox_& box : headerRainbowBoxes_)
+	{
+		TintDiagonalRainbow_(*canvas_, box.x, box.y, box.w, box.h, phase);
+	}
+	canvas_->NotifyPixelsChanged();
+}
+
+// 基础：超宽单行滚动。奥义的彩虹染色在这之后，所以先把字画回白底。
 void NodeInfoPanel::TickMarquee_()
 {
 	if (marquees_.empty() || canvas_ == nullptr)

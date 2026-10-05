@@ -459,6 +459,14 @@ namespace
 
 ModuleNodeInfoEntry ComposeModuleNodeInfoCopy(const IModuleNode& node)
 {
+	if (node.GetKind() == ModuleNodeKind::Ultra)
+	{
+		const auto& ultra = static_cast<const ModuleNode_Ultra&>(node);
+		ModuleNodeInfoEntry out{};
+		out.title = ultra.GetName();
+		return out;
+	}
+
 	if (node.GetKind() != ModuleNodeKind::Fusion)
 	{
 		return GetModuleNodeInfoCopy(node.GetModuleNodeLabel());

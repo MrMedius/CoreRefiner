@@ -2,6 +2,7 @@
 
 #include "ModuleNodeLabel.h"
 #include "ModuleNodeInfoCopy.h"
+#include "IconAtlas.h"
 #include "Colors.h"
 
 #include <cstdint>
@@ -49,6 +50,9 @@ public:
 	void Submit();
 
 private:
+	// ————————————————————————————————————————————————————
+	// 基础：超宽单行滚动
+	// ————————————————————————————————————————————————————
 	struct HeaderMarqueeLine_
 	{
 		std::string text;
@@ -73,14 +77,33 @@ private:
 		bool paintFusionKindBack{ false };
 	};
 
-	void RebuildContent_(
-		const ModuleNodeInfoEntry& entry,
-		const IModuleNode* node,
-		ModuleNodeLabel label);
+	// ————————————————————————————————————————————————————
+	// Ultra：标题和类型名的染色范围
+	// ————————————————————————————————————————————————————
+	struct HeaderRainbowBox_
+	{
+		int x{ 0 };
+		int y{ 0 };
+		int w{ 0 };
+		int h{ 0 };
+	};
+
+	// ————————————————————————————————————————————————————
+	// 基础：重画、定位、跑马灯
+	// ————————————————————————————————————————————————————
+	void RebuildContent_(const ModuleNodeInfoEntry& entry, const IModuleNode* node, ModuleNodeLabel label);
 	void SyncPosition_(DirectX::XMFLOAT2 anchorGameXY);
 	void TickMarquee_();
 	void PaintMarqueeLine_(const HeaderMarqueeLine_& line);
 
+	// ————————————————————————————————————————————————————
+	// Ultra：顶区图标和标题每帧染色
+	// ————————————————————————————————————————————————————
+	void TickHeaderRainbow_();
+
+	// ————————————————————————————————————————————————————
+	// 基础：画布、缓存、位置
+	// ————————————————————————————————————————————————————
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
 	std::unique_ptr<Canvas2D> canvas_;
@@ -91,8 +114,23 @@ private:
 	std::optional<int> cachedLevel_;
 	std::optional<int> cachedBuyPrice_;
 	std::optional<Language> cachedLanguage_;
+
+	// ————————————————————————————————————————————————————
+	// Ultra：内容版本、图案拷贝、染色范围。不留 Node 指针。
+	// ————————————————————————————————————————————————————
 	// 只在悬停奥义时有值。和等级、造价分开记。
 	std::optional<std::uint32_t> cachedUltraRevision_;
+	// 顶区奥义图案的拷贝。没有则不流动。
+	std::optional<IconAtlas::IconBits> headerRainbowBits_;
+	int headerIconX_{ 0 };
+	int headerIconY_{ 0 };
+	int headerIconSide_{ 0 };
+	// 奥义标题和类型名的染色范围。等级和造价不在里面。
+	std::vector<HeaderRainbowBox_> headerRainbowBoxes_;
+
+	// ————————————————————————————————————————————————————
+	// 基础：锚点、跑马灯、尺寸
+	// ————————————————————————————————————————————————————
 	Anchor anchor_{ Anchor::Above };
 	float maxWidthPx_{ kMaxWidthPx_ };
 	unsigned contentW_{ 1u };

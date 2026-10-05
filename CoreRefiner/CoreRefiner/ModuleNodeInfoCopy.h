@@ -98,7 +98,8 @@ class IModuleNode;
 // 属性显示名。缺词条时回退 En、Zh，再没有则返回 JSON 键
 [[nodiscard]] std::string GetStatCopy(ModuleNodeStat stat);
 
-// Fusion 按实例拼：标题「主体 & 素材」，描述分主体/素材两块。其它 Label 等同查表拷贝。
+// Fusion 按实例拼：标题「主体 & 素材」，描述分主体/素材两块。
+// 奥义标题用节点上的名字，正文为空，不跟语言表。其它 Label 等同查表拷贝。
 [[nodiscard]] ModuleNodeInfoEntry ComposeModuleNodeInfoCopy(const IModuleNode& node);
 
 [[nodiscard]] const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept;
