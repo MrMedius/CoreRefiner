@@ -39,6 +39,34 @@ namespace
 		return (std::max)(1, ultraSide * kInnerNumer_ / kInnerDenom_);
 	}
 
+	[[nodiscard]] DirectX::XMFLOAT2 ToLocal_(DirectX::XMFLOAT3 origin, DirectX::XMFLOAT2 world) noexcept
+	{
+		return DirectX::XMFLOAT2{ world.x - origin.x, world.y - origin.y };
+	}
+
+	[[nodiscard]] bool NearLocal_(DirectX::XMFLOAT2 a, DirectX::XMFLOAT2 b) noexcept
+	{
+		const float dx = a.x - b.x;
+		const float dy = a.y - b.y;
+		return dx * dx + dy * dy <= 16.0f;
+	}
+
+	void PlantInSlot_(IModuleNode& node, DirectX::XMFLOAT3 origin, DirectX::XMFLOAT2 local, float radius)
+	{
+		node.SetLocalPos(local);
+		node.SetZoneOrigin(origin);
+		node.SetZoneVisualScale(1.0f);
+		node.SetVisualRadiusOverride(radius);
+		node.SetIconRadiusOverride(radius);
+		node.SyncVisual();
+	}
+
+	void ClearSlotVisual_(IModuleNode& node)
+	{
+		node.ClearIconRadiusOverride();
+		node.ClearVisualRadiusOverride();
+	}
+
 	[[nodiscard]] bool InRect_(float px, float py, int x, int y, int w, int h) noexcept
 	{
 		return w > 0 && h > 0
@@ -492,6 +520,7 @@ void ModuleShopUltra::Sync()
 		Paint_();
 	}
 	ModuleShopDraw::SyncBandTransform_(panel_.get(), bounds_);
+	RealignVisible_();
 }
 
 void ModuleShopUltra::Submit() const
@@ -510,6 +539,7 @@ void ModuleShopUltra::Adopt(std::unique_ptr<IModuleNode> node)
 	{
 		Paint_();
 	}
+	RealignVisible_();
 }
 
 std::unique_ptr<IModuleNode> ModuleShopUltra::Release()
@@ -521,6 +551,13 @@ std::unique_ptr<IModuleNode> ModuleShopUltra::Release()
 		Paint_();
 	}
 	return out;
+}
+
+void ModuleShopUltra::ClearForRunEnd()
+{
+	scroll_ = 0;
+	std::unique_ptr<IModuleNode> dropped = Release();
+	dropped.reset();
 }
 
 IModuleNode* ModuleShopUltra::GetUltra() noexcept
@@ -627,6 +664,7 @@ bool ModuleShopUltra::TryPage_(int direction)
 	{
 		Paint_();
 	}
+	RealignVisible_();
 	return true;
 }
 
@@ -680,6 +718,7 @@ bool ModuleShopUltra::TryPunch()
 	{
 		Paint_();
 	}
+	RealignVisible_();
 	return true;
 }
 
@@ -699,6 +738,341 @@ const IModuleNode* ModuleShopUltra::PickInfoNode(DirectX::XMFLOAT2 worldPos) con
 		return nullptr;
 	}
 	return ultra;
+}
+
+bool ModuleShopUltra::InBand_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return ModuleShopDraw::PointInAabb_(bounds_.center, bounds_.half, worldPos);
+}
+
+bool ModuleShopUltra::HitUltraSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const Layout layout = BuildLayout_();
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!WorldToPixel_(layout, worldPos, px, py))
+	{
+		return false;
+	}
+	return InRect_(px, py, layout.ultraX, layout.ultraY, layout.ultraSide, layout.ultraSide);
+}
+
+int ModuleShopUltra::HitVisibleInnerSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const Layout layout = BuildLayout_();
+	if (ultra_ == nullptr || layout.visibleCount <= 0)
+	{
+		return -1;
+	}
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!WorldToPixel_(layout, worldPos, px, py))
+	{
+		return -1;
+	}
+	const int stride = layout.innerSide + layout.innerGap;
+	for (int i = 0; i < layout.visibleCount; ++i)
+	{
+		const int x = layout.innerX0 + i * stride;
+		if (InRect_(px, py, x, layout.innerY, layout.innerSide, layout.innerSide))
+		{
+			return layout.visibleBegin + i;
+		}
+	}
+	return -1;
+}
+
+bool ModuleShopUltra::Owns(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return false;
+	}
+	if (ultra_.get() == node)
+	{
+		return true;
+	}
+	const int count = GetInnerSlotCount();
+	for (int i = 0; i < count; ++i)
+	{
+		if (GetInnerSlot(static_cast<std::size_t>(i)) == node)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, DirectX::XMFLOAT3 zoneOrigin) const noexcept
+{
+	DropResult result{};
+	result.verdict = DropVerdict::Forbidden;
+	// 正在拖这颗奥义时，它还占着栏位，但整块奥义区仍应能把它放回去。
+	if (!HasUltra() || ultra_.get() == &node)
+	{
+		// 没奥义时整块奥义区都能接，松手后仍落在左侧栏位中心。
+		if (node.GetKind() == ModuleNodeKind::Ultra && InBand_(worldPos))
+		{
+			result.verdict = DropVerdict::Accept;
+			result.localPos = ToLocal_(zoneOrigin, GetUltraSlotCenter());
+			return result;
+		}
+		if (!HasUltra())
+		{
+			return result;
+		}
+	}
+	if (HitUltraSlot_(worldPos))
+	{
+		// 已有奥义时，只有画出来的奥义栏讨论另一颗奥义，并且拒绝。
+		return result;
+	}
+
+	const int inner = HitVisibleInnerSlot_(worldPos);
+	if (inner < 0)
+	{
+		return result;
+	}
+	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	const IModuleNode* held = GetInnerSlot(static_cast<std::size_t>(inner));
+	// 正在从这一格拖走的 Node 不算占用，可以放回原格。
+	if (ultra == nullptr || !ultra->CanHold(node) || (held != nullptr && held != &node))
+	{
+		return result;
+	}
+	result.verdict = DropVerdict::Accept;
+	const DirectX::XMFLOAT2 center = GetInnerSlotCenter(static_cast<std::size_t>(inner));
+	result.localPos = ToLocal_(zoneOrigin, center);
+	return result;
+}
+
+ModuleShopUltra::DropClaim ModuleShopUltra::TryAcceptDrop(
+	std::unique_ptr<IModuleNode>& node,
+	DirectX::XMFLOAT2 localPos,
+	DirectX::XMFLOAT3 zoneOrigin)
+{
+	if (node == nullptr)
+	{
+		return DropClaim::Ignore;
+	}
+
+	const DirectX::XMFLOAT2 ultraLocal = ToLocal_(zoneOrigin, GetUltraSlotCenter());
+	if (NearLocal_(localPos, ultraLocal))
+	{
+		if (HasUltra() || node->GetKind() != ModuleNodeKind::Ultra)
+		{
+			return DropClaim::Reject;
+		}
+		PlantInSlot_(*node, zoneOrigin, ultraLocal, GetUltraSlotRadius());
+		Adopt(std::move(node));
+		return DropClaim::Accept;
+	}
+
+	const int count = GetInnerSlotCount();
+	for (int i = 0; i < count; ++i)
+	{
+		const std::size_t index = static_cast<std::size_t>(i);
+		if (!IsInnerSlotVisible(index))
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 slotLocal = ToLocal_(zoneOrigin, GetInnerSlotCenter(index));
+		if (!NearLocal_(localPos, slotLocal))
+		{
+			continue;
+		}
+		ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+		if (ultra == nullptr || !ultra->TryPut(index, node))
+		{
+			return DropClaim::Reject;
+		}
+		if (IModuleNode* placed = GetInnerSlot(index))
+		{
+			PlantInSlot_(*placed, zoneOrigin, slotLocal, GetInnerSlotRadius());
+		}
+		if (panel_ != nullptr)
+		{
+			Paint_();
+		}
+		return DropClaim::Accept;
+	}
+	return DropClaim::Ignore;
+}
+
+std::unique_ptr<IModuleNode> ModuleShopUltra::TakeNode(IModuleNode* node)
+{
+	if (node == nullptr)
+	{
+		return nullptr;
+	}
+	if (ultra_.get() == node)
+	{
+		std::unique_ptr<IModuleNode> taken = Release();
+		if (taken != nullptr)
+		{
+			ClearSlotVisual_(*taken);
+		}
+		return taken;
+	}
+	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	if (ultra == nullptr)
+	{
+		return nullptr;
+	}
+	std::unique_ptr<IModuleNode> taken = ultra->Take(node);
+	if (taken == nullptr)
+	{
+		return nullptr;
+	}
+	ClearSlotVisual_(*taken);
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+	return taken;
+}
+
+void ModuleShopUltra::PinHomeGhost(IModuleNode& node, DirectX::XMFLOAT3 zoneOrigin) noexcept
+{
+	DirectX::XMFLOAT2 center = GetUltraSlotCenter();
+	float radius = GetUltraSlotRadius();
+	if (ultra_.get() != &node)
+	{
+		const std::size_t index = FindInnerIndex(&node);
+		if (index == static_cast<std::size_t>(-1))
+		{
+			return;
+		}
+		center = GetInnerSlotCenter(index);
+		radius = GetInnerSlotRadius();
+	}
+	const DirectX::XMFLOAT2 local = ToLocal_(zoneOrigin, center);
+	node.SetZoneOrigin(zoneOrigin);
+	node.SetLocalPos(local);
+	node.BeginLayoutGhost(local);
+	node.SetVisualRadiusOverride(radius);
+	node.SyncVisual();
+}
+
+void ModuleShopUltra::Restore(std::unique_ptr<IModuleNode> node, DirectX::XMFLOAT3 zoneOrigin)
+{
+	if (node == nullptr || node->GetKind() != ModuleNodeKind::Ultra || HasUltra())
+	{
+		return;
+	}
+	node->EndLayoutGhost();
+	PlantInSlot_(*node, zoneOrigin, ToLocal_(zoneOrigin, GetUltraSlotCenter()), GetUltraSlotRadius());
+	Adopt(std::move(node));
+}
+
+void ModuleShopUltra::SetHostOrigin(DirectX::XMFLOAT3 origin) noexcept
+{
+	hostOrigin_ = origin;
+}
+
+std::size_t ModuleShopUltra::FindInnerIndex(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return static_cast<std::size_t>(-1);
+	}
+	const int count = GetInnerSlotCount();
+	for (int i = 0; i < count; ++i)
+	{
+		if (GetInnerSlot(static_cast<std::size_t>(i)) == node)
+		{
+			return static_cast<std::size_t>(i);
+		}
+	}
+	return static_cast<std::size_t>(-1);
+}
+
+void ModuleShopUltra::RestoreInner(std::unique_ptr<IModuleNode> node, std::size_t index, DirectX::XMFLOAT3 zoneOrigin)
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	node->EndLayoutGhost();
+	if (ultra == nullptr || !ultra->TryPut(index, node))
+	{
+		return;
+	}
+	if (IModuleNode* placed = GetInnerSlot(index))
+	{
+		PlantInSlot_(*placed, zoneOrigin, ToLocal_(zoneOrigin, GetInnerSlotCenter(index)), GetInnerSlotRadius());
+	}
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+}
+
+void ModuleShopUltra::RealignVisible_()
+{
+	const int count = GetInnerSlotCount();
+	if (count <= 0)
+	{
+		return;
+	}
+	const float radius = GetInnerSlotRadius();
+	for (int i = 0; i < count; ++i)
+	{
+		const std::size_t index = static_cast<std::size_t>(i);
+		IModuleNode* node = GetInnerSlot(index);
+		if (node == nullptr || node->IsLayoutGhostActive() || !IsInnerSlotVisible(index))
+		{
+			continue;
+		}
+		if (!node->IsVisualReady() && gfx_ != nullptr && rg_ != nullptr)
+		{
+			node->InitVisual(*gfx_, *rg_, hostOrigin_);
+		}
+		PlantInSlot_(*node, hostOrigin_, ToLocal_(hostOrigin_, GetInnerSlotCenter(index)), radius);
+	}
+}
+
+IModuleNode* ModuleShopUltra::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
+{
+	IModuleNode* best = nullptr;
+	float bestDistSq = 1.0e9f;
+
+	// 点选范围是画出来的整格奥义栏，空奥义也能从这一格拖出来。
+	if (IModuleNode* body = GetUltra(); body != nullptr && HitUltraSlot_(worldPos))
+	{
+		const DirectX::XMFLOAT2 center = GetUltraSlotCenter();
+		const float dx = worldPos.x - center.x;
+		const float dy = worldPos.y - center.y;
+		const float distSq = dx * dx + dy * dy;
+		if (distSq < bestDistSq)
+		{
+			bestDistSq = distSq;
+			best = body;
+		}
+	}
+	// 内部栏点选整格，空出来的边也能把 Node 拖出来。
+	if (const int inner = HitVisibleInnerSlot_(worldPos); inner >= 0)
+	{
+		const std::size_t index = static_cast<std::size_t>(inner);
+		if (IModuleNode* held = GetInnerSlot(index))
+		{
+			const DirectX::XMFLOAT2 center = GetInnerSlotCenter(index);
+			const float dx = worldPos.x - center.x;
+			const float dy = worldPos.y - center.y;
+			const float distSq = dx * dx + dy * dy;
+			if (distSq < bestDistSq)
+			{
+				bestDistSq = distSq;
+				best = held;
+			}
+		}
+	}
+	if (best != nullptr)
+	{
+		outDistSq = bestDistSq;
+	}
+	return best;
 }
 
 DirectX::XMFLOAT2 ModuleShopUltra::GetUltraSlotCenter() const noexcept

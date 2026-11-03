@@ -43,9 +43,11 @@ namespace
 		for (std::size_t i = 0; i < ModuleNodeLabelCount(); ++i)
 		{
 			const auto label = static_cast<ModuleNodeLabel>(i);
+			// 进化、核心、融合、奥义都不进货。奥义从 Label 造出来是空货槽。
 			if (LabelTableContains(kEvolveLabels, label)
 				|| LabelTableContains(kCoreLabels, label)
-				|| LabelTableContains(kFusionLabels, label))
+				|| LabelTableContains(kFusionLabels, label)
+				|| LabelTableContains(kUltraLabels, label))
 			{
 				continue;
 			}
@@ -361,8 +363,10 @@ bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) con
 	(void)radius;
 	const BoundsWorld trade = GetTradeBoundsWorld();
 	const BoundsWorld refine = GetRefineBoundsWorld_();
+	const BoundsWorld ultra = FunctionBandBounds_(1);
 	return PointInAabb_(trade.center, trade.half, worldCenter)
-		|| PointInAabb_(refine.center, refine.half, worldCenter);
+		|| PointInAabb_(refine.center, refine.half, worldCenter)
+		|| PointInAabb_(ultra.center, ultra.half, worldCenter);
 }
 
 void ModuleShop::FillStock()
@@ -382,8 +386,21 @@ void ModuleShop::FillStock()
 
 void ModuleShop::BeginVisit()
 {
+	// 同一局再次打开商店只刷新货架，奥义区保留。
 	ResetVisit();
 	RerollStock_();
+}
+
+void ModuleShop::ClearUltra()
+{
+	for (IModuleNode*& parked : refineParked_)
+	{
+		if (parked != nullptr && ultra_.Owns(parked))
+		{
+			parked = nullptr;
+		}
+	}
+	ultra_.ClearForRunEnd();
 }
 
 void ModuleShop::RestockSlot_(std::size_t index, ModuleNodeLabel label)
@@ -634,10 +651,32 @@ void ModuleShop::RelayoutSlots_()
 	RefreshSlotCards_();
 }
 
+void ModuleShop::RestoreShelfNode_(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	if (node == nullptr || index >= kSlotCount)
+	{
+		return;
+	}
+	node->EndLayoutGhost();
+	Slot& slot = slots_[index];
+	slot.node = std::move(node);
+	slot.sold = false;
+	slot.price = slot.node->GetBuyPrice();
+	RelayoutSlots_();
+}
+
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
 {
-	(void)localPos;
-	if (node == nullptr || node->IsCore())
+	if (node == nullptr)
+	{
+		return false;
+	}
+	const ModuleShopUltra::DropClaim claim = ultra_.TryAcceptDrop(node, localPos, origin_);
+	if (claim != ModuleShopUltra::DropClaim::Ignore)
+	{
+		return claim == ModuleShopUltra::DropClaim::Accept;
+	}
+	if (node->IsCore() || node->GetKind() == ModuleNodeKind::Ultra)
 	{
 		return false;
 	}
@@ -688,6 +727,46 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 		return result;
 	}
 
+	const BoundsWorld ultra = FunctionBandBounds_(1);
+	if (PointInAabb_(ultra.center, ultra.half, worldPos))
+	{
+		// 奥义区的落点由奥义区自己定。这里拦住，避免掉进货架或卖掉。
+		DropResult ultraDrop = ultra_.EvalDrop(node, worldPos, origin_);
+		if (FindSlotIndex_(&node) < kSlotCount)
+		{
+			// 货架只买进已有奥义的空内部栏。钱不够用红圈。
+			const bool canBuy = IsDropAccepted(ultraDrop.verdict)
+				&& ultra_.HasUltra()
+				&& !node.IsCore()
+				&& node.GetKind() != ModuleNodeKind::Ultra;
+			if (!canBuy)
+			{
+				if (IsDropAccepted(ultraDrop.verdict))
+				{
+					ultraDrop.verdict = DropVerdict::Forbidden;
+				}
+				return ultraDrop;
+			}
+			if (GameStatsCodex::GetCurrency() < node.GetBuyPrice())
+			{
+				ultraDrop.verdict = DropVerdict::Unaffordable;
+			}
+		}
+		return ultraDrop;
+	}
+	if (IsShopUltraOwned(&node))
+	{
+		// 奥义区拖到买卖框：卖掉。不写 localPos，避免停在商店原点或进货架。
+		result.verdict = DropVerdict::Accept;
+		return result;
+	}
+	if (node.GetKind() == ModuleNodeKind::Ultra)
+	{
+		// 场上或仓库的奥义不进货架。
+		result.verdict = DropVerdict::Forbidden;
+		return result;
+	}
+
 	if (shopOwned)
 	{
 		// 店有炼成 Node：买卖框非 Core 可进货或卖掉；场/仓不能丢进结果格（上面已拒）。
@@ -732,6 +811,10 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 	if (node == nullptr)
 	{
 		return nullptr;
+	}
+	if (std::unique_ptr<IModuleNode> taken = ultra_.TakeNode(node))
+	{
+		return taken;
 	}
 
 	auto takeOwned = [this](std::unique_ptr<IModuleNode>& held) -> std::unique_ptr<IModuleNode>
@@ -866,6 +949,16 @@ IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) no
 		{
 			bestDistSq = distSq;
 			best = node;
+		}
+	}
+
+	float ultraDistSq = 1.0e9f;
+	if (IModuleNode* ultraNode = ultra_.PickAt(worldPos, ultraDistSq))
+	{
+		if (ultraDistSq < bestDistSq)
+		{
+			bestDistSq = ultraDistSq;
+			best = ultraNode;
 		}
 	}
 
@@ -1427,8 +1520,8 @@ bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const 
 	{
 		return false;
 	}
-	// 奥义不能进炼成。
-	if (node.GetKind() == ModuleNodeKind::Ultra)
+	// 奥义不能进炼成。栏里的 Node 也不进，避免和内部栏抢所有权。
+	if (node.GetKind() == ModuleNodeKind::Ultra || IsShopUltraOwned(&node))
 	{
 		return false;
 	}
@@ -1505,6 +1598,118 @@ bool ModuleShop::IsShopRefineOwned(const IModuleNode* node) const noexcept
 	return node == refineResult_.get()
 		|| node == refineFeedOwned_[0].get()
 		|| node == refineFeedOwned_[1].get();
+}
+
+bool ModuleShop::IsShopUltraOwned(const IModuleNode* node) const noexcept
+{
+	return ultra_.Owns(node);
+}
+
+bool ModuleShop::IsUltraBody(const IModuleNode* node) const noexcept
+{
+	return node != nullptr && ultra_.GetUltra() == node;
+}
+
+void ModuleShop::PinUltraHomeGhost(IModuleNode& node) noexcept
+{
+	ultra_.PinHomeGhost(node, origin_);
+}
+
+void ModuleShop::RestoreUltra(std::unique_ptr<IModuleNode> node)
+{
+	ultra_.Restore(std::move(node), origin_);
+}
+
+std::size_t ModuleShop::FindUltraInnerIndex(const IModuleNode* node) const noexcept
+{
+	return ultra_.FindInnerIndex(node);
+}
+
+void ModuleShop::RestoreUltraInner(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	ultra_.RestoreInner(std::move(node), index, origin_);
+}
+
+bool ModuleShop::TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
+{
+	if (node == nullptr)
+	{
+		return false;
+	}
+	return ultra_.TryAcceptDrop(node, localPos, origin_) == ModuleShopUltra::DropClaim::Accept;
+}
+
+bool ModuleShop::IsShelfStock(const IModuleNode* node) const noexcept
+{
+	return FindSlotIndex_(node) < kSlotCount;
+}
+
+bool ModuleShop::HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const BoundsWorld ultra = FunctionBandBounds_(1);
+	return PointInAabb_(ultra.center, ultra.half, worldPos);
+}
+
+bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 localPos)
+{
+	const std::size_t index = FindSlotIndex_(node);
+	if (node == nullptr || index >= kSlotCount)
+	{
+		return false;
+	}
+	const int price = node->GetBuyPrice();
+	std::unique_ptr<IModuleNode> taken = TakeNode(node);
+	if (taken == nullptr)
+	{
+		return false;
+	}
+	if (!TryAcceptUltraDrop(taken, localPos))
+	{
+		RestoreShelfNode_(std::move(taken), index);
+		return false;
+	}
+	if (!GameStatsCodex::TrySpendCurrency(price))
+	{
+		std::unique_ptr<IModuleNode> back = TakeNode(node);
+		if (back != nullptr)
+		{
+			RestoreShelfNode_(std::move(back), index);
+		}
+		return false;
+	}
+	MarkSold(index);
+	return true;
+}
+
+void ModuleShop::SellFromUltra(IModuleNode* node)
+{
+	if (node == nullptr || !IsShopUltraOwned(node))
+	{
+		return;
+	}
+	const int price = node->GetSellPrice();
+	if (IsUltraBody(node))
+	{
+		for (IModuleNode*& parked : refineParked_)
+		{
+			if (parked != nullptr && ultra_.Owns(parked))
+			{
+				parked = nullptr;
+			}
+		}
+		ultra_.ClearForRunEnd();
+	}
+	else
+	{
+		UnbindRefine(node);
+		std::unique_ptr<IModuleNode> taken = TakeNode(node);
+		if (taken == nullptr)
+		{
+			return;
+		}
+		taken.reset();
+	}
+	GameStatsCodex::AddCurrency(price);
 }
 
 std::size_t ModuleShop::FindRefineParkIndex(const IModuleNode* node) const noexcept
@@ -2265,5 +2470,6 @@ void ModuleShop::EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg)
 void ModuleShop::SyncUltraArea_()
 {
 	ultra_.SetBounds(FunctionBandBounds_(1));
+	ultra_.SetHostOrigin(origin_);
 	ultra_.Sync();
 }

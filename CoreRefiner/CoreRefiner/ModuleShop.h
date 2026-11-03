@@ -93,6 +93,8 @@ public:
 
 	void FillStock();
 	void BeginVisit();
+	// 结束本局时清空奥义区。再次打开商店不调用它。
+	void ClearUltra();
 	[[nodiscard]] bool TryRefresh();
 	void ResetVisit();
 	void RefreshCopy();
@@ -122,6 +124,7 @@ private:
 	[[nodiscard]] float CardCenterLocalY_() const noexcept;
 	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
 	void RelayoutSlots_();
+	void RestoreShelfNode_(std::unique_ptr<IModuleNode> node, std::size_t index);
 	void RestockSlot_(std::size_t index, ModuleNodeLabel label);
 	[[nodiscard]] bool HasRerollableSlot_() const noexcept;
 	void DenyRefresh_();
@@ -190,6 +193,33 @@ public:
 	[[nodiscard]] bool IsRefineParked(const IModuleNode* node) const noexcept;
 	[[nodiscard]] bool IsRefineResultParked(const IModuleNode* node) const noexcept;
 	[[nodiscard]] bool IsShopRefineOwned(const IModuleNode* node) const noexcept;
+	// 奥义本体和内部栏里的 Node，含滚出画面的。
+	[[nodiscard]] bool IsShopUltraOwned(const IModuleNode* node) const noexcept;
+	// 商店悬停弹 Panel：炼成停放、奥义本体、内部栏。货架不弹。
+	[[nodiscard]] bool ShowsHoverInfo(const IModuleNode* node) const noexcept
+	{
+		return IsRefineParked(node) || IsShopUltraOwned(node);
+	}
+	// 只认奥义栏里的那一颗，不含内部栏。
+	[[nodiscard]] bool IsUltraBody(const IModuleNode* node) const noexcept;
+	// 残影留在奥义栏。跟手图标由调用方清掉 Icon 覆盖。
+	void PinUltraHomeGhost(IModuleNode& node) noexcept;
+	// 拖出失败时放回奥义栏。
+	void RestoreUltra(std::unique_ptr<IModuleNode> node);
+	// 内部栏下标。不在里面时返回 npos。
+	[[nodiscard]] std::size_t FindUltraInnerIndex(const IModuleNode* node) const noexcept;
+	// 拖出失败时放回这个内部栏。
+	void RestoreUltraInner(std::unique_ptr<IModuleNode> node, std::size_t index);
+	// 只接奥义区落点。对不上就原样退回，不进货架、不卖掉。
+	bool TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos);
+	// 还在货架上的商品。
+	[[nodiscard]] bool IsShelfStock(const IModuleNode* node) const noexcept;
+	// 点在奥义区整块里。
+	[[nodiscard]] bool HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept;
+	// 从货架买进内部栏。失败时商品回到原货槽。
+	bool TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 localPos);
+	// 从奥义区卖到买卖框。奥义本体连同内部 Node 一起销毁。
+	void SellFromUltra(IModuleNode* node);
 	// 格内 Icon 按仓库格比例缩放；素材/主体残影仍走来源尺寸。
 	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
 	// 店有炼成 Node：残影钉在结果格（格内尺寸），跟手图标另清 Icon 覆盖。
@@ -199,7 +229,7 @@ public:
 	// 奥义区按钮。编辑器只问有没有点到，锻造、打孔和翻页由奥义区自己分。
 	[[nodiscard]] bool HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept;
 	bool TryClickUltra(DirectX::XMFLOAT2 worldPos);
-	// 鼠标在奥义图标上时返回它，给 Panel 用。还没进 PickAt，所以没有选中圈。
+	// 鼠标在奥义图标上时返回它，给 Panel 用。选中圈走 PickAt。
 	[[nodiscard]] const IModuleNode* PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept;
 
 private:
@@ -280,7 +310,7 @@ private:
 	ModuleShopUltra ultra_;
 };
 
-// 这颗 Node 现在归谁。店有炼成必须先于场/仓 FindNodeIndex，否则结果格再炼会认错主人。
+// 这颗 Node 现在归谁。奥义和店有炼成必须先于场/仓 FindNodeIndex，否则会认错主人。
 [[nodiscard]] inline IModuleZone* FindNodeOwnerZone(
 	const IModuleNode* node,
 	IModuleZone* const* zones,
@@ -299,7 +329,7 @@ private:
 			continue;
 		}
 		if (const auto* shop = dynamic_cast<const ModuleShop*>(zone);
-			shop != nullptr && shop->IsShopRefineOwned(node))
+			shop != nullptr && (shop->IsShopUltraOwned(node) || shop->IsShopRefineOwned(node)))
 		{
 			return zone;
 		}

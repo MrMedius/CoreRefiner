@@ -173,6 +173,12 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 				shop->PinShopRefineHomeGhost(*dragged_);
 				dragged_->ClearIconRadiusOverride();
 			}
+			else if (shop != nullptr && shop->IsShopUltraOwned(dragged_))
+			{
+				// 奥义栏和内部栏：残影留在格子里，跟手图标恢复原尺寸。
+				shop->PinUltraHomeGhost(*dragged_);
+				dragged_->ClearIconRadiusOverride();
+			}
 			else if (!dragged_->IsLayoutGhostActive())
 			{
 				dragged_->BeginLayoutGhost(dragStartLocalPos_);
@@ -239,21 +245,10 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	bool showInfo = dragged_ == nullptr && hover_ != nullptr;
 	if (showInfo && hoverSource_ == ZoneId::Shop)
 	{
-		showInfo = shop != nullptr && shop->IsRefineParked(hover_);
+		// 货架不弹。炼成停放和奥义区里的 Node 弹。
+		showInfo = shop != nullptr && shop->ShowsHoverInfo(hover_);
 	}
-	// 奥义还没进 PickAt，Panel 先问商店要这颗 Node。选中圈要等它进入悬停。
-	const IModuleNode* ultraInfo = nullptr;
-	if (!showInfo && dragged_ == nullptr && shop != nullptr)
-	{
-		ultraInfo = shop->PickUltraInfo(mouseGame);
-	}
-	if (ultraInfo != nullptr)
-	{
-		const DirectX::XMFLOAT3 origin = shop->GetOrigin();
-		const DirectX::XMFLOAT2 local = ultraInfo->GetLocalPos();
-		infoPanel_.ShowFor(*ultraInfo, DirectX::XMFLOAT2{ origin.x + local.x, origin.y + local.y });
-	}
-	else if (!showInfo)
+	if (!showInfo)
 	{
 		infoPanel_.Hide();
 	}
@@ -424,7 +419,9 @@ ZoneLayoutEditor::DropEval_ ZoneLayoutEditor::EvalDrop_(const IModuleNode& node)
 		IModuleZone* owner = OwnerZoneOf_(&node);
 		auto* ownerShop = dynamic_cast<ModuleShop*>(owner);
 		const bool fromShopRefine = ownerShop != nullptr && ownerShop->IsShopRefineOwned(&node);
+		const bool fromUltraOwned = ownerShop != nullptr && ownerShop->IsShopUltraOwned(&node);
 		if (!fromShopRefine
+			&& !fromUltraOwned
 			&& owner != nullptr
 			&& owner->GetZoneId() == ZoneId::Shop
 			&& target != ZoneId::Shop)
@@ -555,9 +552,86 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	if (shop != nullptr && shop->IsUltraBody(node))
+	{
+		node->EndLayoutGhost();
+		if (target == shop && !shop->HitUltraArea(world))
+		{
+			// 买卖框：卖掉并销毁，不进货架，也不停在商店原点。
+			shop->SellFromUltra(node);
+			return;
+		}
+		// 奥义栏拖出：不扣钱、不记售出。放不下就回到原栏。
+		std::unique_ptr<IModuleNode> taken = shop->TakeNode(node);
+		if (taken == nullptr || !target->TryAcceptDrop(taken, drop.localPos))
+		{
+			if (taken != nullptr)
+			{
+				shop->RestoreUltra(std::move(taken));
+			}
+			RevertDrag_();
+			return;
+		}
+		return;
+	}
+
+	if (shop != nullptr && shop->IsShopUltraOwned(node) && !shop->IsUltraBody(node))
+	{
+		if (target == shop && !shop->HitUltraArea(world))
+		{
+			// 买卖框：按这颗 Node 自己的卖价销毁，奥义还在。
+			node->EndLayoutGhost();
+			shop->SellFromUltra(node);
+			return;
+		}
+		// 内部栏拖出或换格：不扣钱、不记售出。放不下就回到原格。
+		const std::size_t home = shop->FindUltraInnerIndex(node);
+		if (home == static_cast<std::size_t>(-1))
+		{
+			RevertDrag_();
+			return;
+		}
+		node->EndLayoutGhost();
+		shop->UnbindRefine(node);
+		std::unique_ptr<IModuleNode> taken = shop->TakeNode(node);
+		bool placed = false;
+		if (taken != nullptr)
+		{
+			if (target == shop)
+			{
+				placed = shop->TryAcceptUltraDrop(taken, drop.localPos);
+			}
+			else
+			{
+				placed = target->TryAcceptDrop(taken, drop.localPos);
+			}
+		}
+		if (!placed)
+		{
+			if (taken != nullptr)
+			{
+				shop->RestoreUltraInner(std::move(taken), home);
+			}
+			RevertDrag_();
+			return;
+		}
+		return;
+	}
+
 	if (shop != nullptr)
 	{
 		shop->UnbindRefine(node);
+	}
+
+	if (shop != nullptr && owner == shop && target == shop && shop->IsShelfStock(node) && shop->HitUltraArea(world))
+	{
+		// 货架买进内部栏：不走同区 SetLocalPos，否则图标离开货卡又进不了格子。
+		node->EndLayoutGhost();
+		if (!shop->TryPurchaseShelfIntoUltra(node, drop.localPos))
+		{
+			RevertDrag_();
+		}
+		return;
 	}
 
 	if (owner == target)
