@@ -463,4 +463,141 @@ namespace CanvasPixelDraw
 			}
 		}
 	}
+
+	// 有向面积的两倍。三点共线时为 0。
+	[[nodiscard]] inline int TriangleOrient(int ax, int ay, int bx, int by, int cx, int cy) noexcept
+	{
+		return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+	}
+
+	// 像素是否在三角形内（含边）。退化三角形返回 false。
+	[[nodiscard]] inline bool TriangleContains(
+		int x0,
+		int y0,
+		int x1,
+		int y1,
+		int x2,
+		int y2,
+		int x,
+		int y) noexcept
+	{
+		const int area = TriangleOrient(x0, y0, x1, y1, x2, y2);
+		if (area == 0)
+		{
+			return false;
+		}
+		const int o0 = TriangleOrient(x0, y0, x1, y1, x, y);
+		const int o1 = TriangleOrient(x1, y1, x2, y2, x, y);
+		const int o2 = TriangleOrient(x2, y2, x0, y0, x, y);
+		const bool hasNeg = (o0 < 0) || (o1 < 0) || (o2 < 0);
+		const bool hasPos = (o0 > 0) || (o1 > 0) || (o2 > 0);
+		return !(hasNeg && hasPos);
+	}
+
+	// 实心三角形，含边。
+	inline void FillTriangle(Canvas& canvas, int x0, int y0, int x1, int y1, int x2, int y2, Color c)
+	{
+		if (TriangleOrient(x0, y0, x1, y1, x2, y2) == 0)
+		{
+			return;
+		}
+		const int left = (std::min)(x0, (std::min)(x1, x2));
+		const int right = (std::max)(x0, (std::max)(x1, x2));
+		const int top = (std::min)(y0, (std::min)(y1, y2));
+		const int bottom = (std::max)(y0, (std::max)(y1, y2));
+		for (int y = top; y <= bottom; ++y)
+		{
+			for (int x = left; x <= right; ++x)
+			{
+				if (TriangleContains(x0, y0, x1, y1, x2, y2, x, y))
+				{
+					PutPixelClamped(canvas, x, y, c);
+				}
+			}
+		}
+	}
+
+	// 三角形描边（1 像素，向内）。与 FillTriangle 共用同一条边。
+	inline void DrawTriangleOutline(Canvas& canvas, int x0, int y0, int x1, int y1, int x2, int y2, Color c)
+	{
+		if (TriangleOrient(x0, y0, x1, y1, x2, y2) == 0)
+		{
+			return;
+		}
+		const int left = (std::min)(x0, (std::min)(x1, x2));
+		const int right = (std::max)(x0, (std::max)(x1, x2));
+		const int top = (std::min)(y0, (std::min)(y1, y2));
+		const int bottom = (std::max)(y0, (std::max)(y1, y2));
+		for (int y = top; y <= bottom; ++y)
+		{
+			for (int x = left; x <= right; ++x)
+			{
+				if (!TriangleContains(x0, y0, x1, y1, x2, y2, x, y))
+				{
+					continue;
+				}
+				const bool edge =
+					!TriangleContains(x0, y0, x1, y1, x2, y2, x - 1, y)
+					|| !TriangleContains(x0, y0, x1, y1, x2, y2, x + 1, y)
+					|| !TriangleContains(x0, y0, x1, y1, x2, y2, x, y - 1)
+					|| !TriangleContains(x0, y0, x1, y1, x2, y2, x, y + 1);
+				if (edge)
+				{
+					PutPixelClamped(canvas, x, y, c);
+				}
+			}
+		}
+	}
+
+	// 实心圆，含边。radius < 0 不画，0 画一个像素。
+	inline void FillCircle(Canvas& canvas, int cx, int cy, int radius, Color c)
+	{
+		if (radius < 0)
+		{
+			return;
+		}
+		if (radius == 0)
+		{
+			PutPixelClamped(canvas, cx, cy, c);
+			return;
+		}
+		const int r2 = radius * radius;
+		for (int y = -radius; y <= radius; ++y)
+		{
+			for (int x = -radius; x <= radius; ++x)
+			{
+				if (x * x + y * y <= r2)
+				{
+					PutPixelClamped(canvas, cx + x, cy + y, c);
+				}
+			}
+		}
+	}
+
+	// 圆描边（最外一圈）。radius < 0 不画，0 画一个像素。
+	inline void DrawCircleOutline(Canvas& canvas, int cx, int cy, int radius, Color c)
+	{
+		if (radius < 0)
+		{
+			return;
+		}
+		if (radius == 0)
+		{
+			PutPixelClamped(canvas, cx, cy, c);
+			return;
+		}
+		const int outer = radius * radius;
+		const int inner = (radius - 1) * (radius - 1);
+		for (int y = -radius; y <= radius; ++y)
+		{
+			for (int x = -radius; x <= radius; ++x)
+			{
+				const int d2 = x * x + y * y;
+				if (d2 <= outer && d2 > inner)
+				{
+					PutPixelClamped(canvas, cx + x, cy + y, c);
+				}
+			}
+		}
+	}
 }

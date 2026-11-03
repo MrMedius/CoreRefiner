@@ -142,6 +142,15 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 			(void)shop->ToggleLockAt(mouseGame);
 		}
 	}
+	else if (shop != nullptr && shop->HitUltraButton(mouseGame))
+	{
+		hover_ = nullptr;
+		hoverSource_ = kNoZone_;
+		if (input.MouseLeftTriggered())
+		{
+			(void)shop->TryClickUltra(mouseGame);
+		}
+	}
 	else
 	{
 		hover_ = PickHover_(mouseGame, hoverSource_);
@@ -232,7 +241,19 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 	{
 		showInfo = shop != nullptr && shop->IsRefineParked(hover_);
 	}
-	if (!showInfo)
+	// 奥义还没进 PickAt，Panel 先问商店要这颗 Node。选中圈要等它进入悬停。
+	const IModuleNode* ultraInfo = nullptr;
+	if (!showInfo && dragged_ == nullptr && shop != nullptr)
+	{
+		ultraInfo = shop->PickUltraInfo(mouseGame);
+	}
+	if (ultraInfo != nullptr)
+	{
+		const DirectX::XMFLOAT3 origin = shop->GetOrigin();
+		const DirectX::XMFLOAT2 local = ultraInfo->GetLocalPos();
+		infoPanel_.ShowFor(*ultraInfo, DirectX::XMFLOAT2{ origin.x + local.x, origin.y + local.y });
+	}
+	else if (!showInfo)
 	{
 		infoPanel_.Hide();
 	}

@@ -13,6 +13,7 @@
 #include "CanvasPixelDraw.h"
 
 #include "ModuleShop.h"
+#include "ModuleShopDraw.h"
 #include "ModuleNodeFactory.h"
 #include "NodeEvolveRecipes.h"
 #include "UiCopy.h"
@@ -24,6 +25,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+using namespace ModuleShopDraw;
 
 namespace
 {
@@ -73,128 +76,6 @@ namespace
 
 namespace
 {
-	[[nodiscard]] bool EnsureCanvasSize_(std::unique_ptr<Canvas2D>& canvas, Graphics& gfx, Rgph::RenderGraph& rg, unsigned w, unsigned h)
-	{
-		if (canvas == nullptr)
-		{
-			canvas = std::make_unique<Canvas2D>(gfx, w, h);
-			canvas->LinkTechniques(rg);
-			return true;
-		}
-		if (canvas->GetCanvasWidth() != w || canvas->GetCanvasHeight() != h)
-		{
-			canvas->Resize(w, h);
-			return true;
-		}
-		return false;
-	}
-
-	void PaintBandChrome_(Canvas2D& canvas)
-	{
-		constexpr Color kBg{ 36u, 48u, 68u, 150u };
-		constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-		canvas.Clear(kBg);
-		const int w = static_cast<int>(canvas.GetCanvasWidth());
-		const int h = static_cast<int>(canvas.GetCanvasHeight());
-		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
-	}
-
-	// 货卡造价、顶栏金额、亮起的炼成费用共用。
-	constexpr Color kMoneyYellow{ 255u, 220u, 90u, 255u };
-
-	// 商店 UI 共用字体栈：YaHei，回退 Yu Gothic / Segoe。
-	void FillUiLabelRequest_(Text::RenderRequest& rq, const std::string& text, float fontSize, Color color)
-	{
-		rq.text = text;
-		rq.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
-		rq.fallbackFonts.clear();
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Yu Gothic UI"));
-		rq.fallbackFonts.push_back(Text::FontSource::System(L"Segoe UI"));
-		rq.style.fontSize = fontSize;
-		rq.defaultColor = color;
-	}
-
-	[[nodiscard]] bool PointInAabb_(DirectX::XMFLOAT2 center, DirectX::XMFLOAT2 half, DirectX::XMFLOAT2 pos) noexcept
-	{
-		return std::fabs(pos.x - center.x) <= half.x
-			&& std::fabs(pos.y - center.y) <= half.y;
-	}
-
-	// Fixed 用 dest 做排版盒（不再认 maxWidthPx）。价格/描述各自收成一条带。
-	void DrawShopText_(
-		Canvas2D& canvas,
-		const std::string& text,
-		float fontSize,
-		int boxX,
-		int boxY,
-		int boxW,
-		int boxH,
-		int paddingPx,
-		DWRITE_TEXT_ALIGNMENT align,
-		DWRITE_PARAGRAPH_ALIGNMENT para,
-		Color color,
-		const std::vector<Text::Span>& spans = {},
-		bool wrap = true)
-	{
-		if (text.empty() || boxW <= 0 || boxH <= 0)
-		{
-			return;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillUiLabelRequest_(rq, text, fontSize, color);
-		rq.canvasMode = Text::CanvasMode::Fixed;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.style.wordWrapEnabled = wrap;
-		rq.style.textAlign = align;
-		rq.style.paragraphAlign = para;
-		rq.paddingPx = paddingPx;
-		rq.SetDestRect(
-			static_cast<float>(boxX),
-			static_cast<float>(boxY),
-			static_cast<float>(boxW),
-			static_cast<float>(boxH));
-		rq.backgroundColor = Colors::None;
-		rq.spans = spans;
-		ctx.Render(canvas);
-	}
-
-	void DrawShopLabelInBox_(
-		Canvas2D& canvas,
-		const std::string& text,
-		float fontSize,
-		int boxX,
-		int boxY,
-		int boxW,
-		int boxH,
-		Color color,
-		const std::vector<Text::Span>& spans = {})
-	{
-		if (text.empty() || boxW <= 0 || boxH <= 0)
-		{
-			return;
-		}
-
-		auto ctx = TextCodex::Get().BeginDraw();
-		Text::RenderRequest& rq = ctx.Request();
-		FillUiLabelRequest_(rq, text, fontSize, color);
-		rq.canvasMode = Text::CanvasMode::Fixed;
-		rq.clearMode = Text::ClearMode::NoClear;
-		rq.style.wordWrapEnabled = false;
-		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_CENTER;
-		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-		rq.paddingPx = 1;
-		rq.SetDestRect(
-			static_cast<float>(boxX),
-			static_cast<float>(boxY),
-			static_cast<float>(boxW),
-			static_cast<float>(boxH));
-		rq.backgroundColor = Colors::None;
-		rq.spans = spans;
-		ctx.Render(canvas);
-	}
-
 	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
 	{
 		if (scale == 0u)
@@ -227,63 +108,6 @@ namespace
 				}
 			}
 		}
-	}
-
-	// 整数倍率贴进矩形中心，不拉长变形。
-	void BlitIconInBox_(
-		Canvas& dest,
-		const IconAtlas::IconBits& bits,
-		Color color,
-		int boxX,
-		int boxY,
-		int boxW,
-		int boxH)
-	{
-		if (boxW <= 0 || boxH <= 0)
-		{
-			return;
-		}
-
-		const int scale = (std::max)(1, (std::min)(boxW, boxH) / 16);
-		const int glyph = 16 * scale;
-		const int ox = boxX + (boxW - glyph) / 2;
-		const int oy = boxY + (boxH - glyph) / 2;
-		for (unsigned y = 0u; y < 16u; ++y)
-		{
-			const std::uint16_t row = bits[y];
-			for (unsigned x = 0u; x < 16u; ++x)
-			{
-				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
-				{
-					continue;
-				}
-				for (int sy = 0; sy < scale; ++sy)
-				{
-					for (int sx = 0; sx < scale; ++sx)
-					{
-						CanvasPixelDraw::PutPixelClamped(
-							dest,
-							ox + static_cast<int>(x) * scale + sx,
-							oy + static_cast<int>(y) * scale + sy,
-							color);
-					}
-				}
-			}
-		}
-	}
-
-	void SyncBandTransform_(Canvas2D* canvas, const IModuleZone::BoundsWorld& b)
-	{
-		if (canvas == nullptr)
-		{
-			return;
-		}
-		canvas->SetPosition(DirectX::XMFLOAT3{ b.center.x, b.center.y, 0.0f });
-		canvas->SetScale(DirectX::XMFLOAT3{
-			b.half.x * 2.0f,
-			b.half.y * 2.0f,
-			1.0f
-		});
 	}
 }
 
@@ -348,7 +172,7 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
-	SyncFunction3Transform_();
+	SyncUltraArea_();
 }
 
 void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
@@ -359,13 +183,13 @@ void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
 	{
 		EnsureTradePanelVisual_(*gfx_, *rg_);
 		EnsureRefineVisuals_(*gfx_, *rg_);
-		EnsureFunction3Visuals_(*gfx_, *rg_);
+		EnsureUltraArea_(*gfx_, *rg_);
 	}
 	RelayoutSlots_();
 	PlaceRefineResultVisual_();
 	SyncTradePanelTransform_();
 	SyncRefineTransform_();
-	SyncFunction3Transform_();
+	SyncUltraArea_();
 }
 
 void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -376,7 +200,7 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	EnsureSlotCardVisuals_(gfx, rg);
 	EnsureLockButtonVisuals_(gfx, rg);
 	EnsureRefineVisuals_(gfx, rg);
-	EnsureFunction3Visuals_(gfx, rg);
+	EnsureUltraArea_(gfx, rg);
 	FillStock();
 	for (Slot& slot : slots_)
 	{
@@ -390,7 +214,7 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
-	SyncFunction3Transform_();
+	SyncUltraArea_();
 }
 
 void ModuleShop::SyncZoneTransforms_()
@@ -399,7 +223,7 @@ void ModuleShop::SyncZoneTransforms_()
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
-	SyncFunction3Transform_();
+	SyncUltraArea_();
 	for (Slot& slot : slots_)
 	{
 		if (slot.node != nullptr)
@@ -419,6 +243,18 @@ void ModuleShop::SyncZoneTransforms_()
 	syncOwned(refineResult_.get());
 	syncOwned(refineFeedOwned_[0].get());
 	syncOwned(refineFeedOwned_[1].get());
+	syncOwned(ultra_.GetUltra());
+	const int innerCount = ultra_.GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		// 滚出视野的仍由奥义持有，这里不跟着同步。
+		if (!ultra_.IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		syncOwned(ultra_.GetInnerSlot(slot));
+	}
 	SyncHud();
 }
 
@@ -436,10 +272,7 @@ void ModuleShop::SubmitZoneBackground_()
 	{
 		refinePanel_->Submit(Chan::ui);
 	}
-	if (function3Panel_ != nullptr)
-	{
-		function3Panel_->Submit(Chan::ui);
-	}
+	ultra_.Submit();
 }
 
 // ---- 买卖区 · 逻辑 ----
@@ -629,6 +462,8 @@ void ModuleShop::TickHud(float dt)
 	{
 		PaintRefinePanel_();
 	}
+	// 锻造/打孔的亮灭和黄色数字跟着当前的钱走。
+	SyncUltraArea_();
 }
 
 bool ModuleShop::TryRefresh()
@@ -962,6 +797,23 @@ void ModuleShop::SubmitNodes()
 		if (held != nullptr)
 		{
 			held->SubmitVisual();
+		}
+	}
+	if (IModuleNode* ultra = ultra_.GetUltra())
+	{
+		ultra->SubmitVisual();
+	}
+	const int innerCount = ultra_.GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (!ultra_.IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		if (IModuleNode* node = ultra_.GetInnerSlot(slot))
+		{
+			node->SubmitVisual();
 		}
 	}
 }
@@ -2187,12 +2039,6 @@ void ModuleShop::PaintRefinePanel_()
 	constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
 	constexpr Color kSlotText{ 220u, 228u, 236u, 255u };
 	constexpr Color kArrow{ 180u, 195u, 215u, 220u };
-	constexpr Color kBtnBg{ 48u, 52u, 60u, 220u };
-	constexpr Color kBtnFrame{ 96u, 100u, 108u, 200u };
-	constexpr Color kBtnText{ 210u, 214u, 220u, 255u };
-	constexpr Color kBtnBgLit{ 56u, 92u, 72u, 230u };
-	constexpr Color kBtnFrameLit{ 140u, 210u, 170u, 220u };
-	constexpr Color kBtnTextLit{ 236u, 244u, 238u, 255u };
 	const std::string slotLabels[kRefineSlotCount_] = {
 		GetUiCopy("shop.refine.material"),
 		GetUiCopy("shop.refine.subject"),
@@ -2311,51 +2157,113 @@ void ModuleShop::SyncRefineTransform_() noexcept
 	SyncBandTransform_(refinePanel_.get(), GetRefineBoundsWorld_());
 }
 
-// ---- Function3 · 逻辑 ----
-ModuleShop::BoundsWorld ModuleShop::GetFunction3BoundsWorld_() const noexcept
+// ---- 奥义区 ----
+std::size_t ModuleShop::GetNodeCount() const noexcept
 {
-	return FunctionBandBounds_(1);
-}
-
-// ---- Function3 · 绘制 ----
-void ModuleShop::EnsureFunction3Visuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const BoundsWorld b = GetFunction3BoundsWorld_();
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.x * 2.0f)));
-	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.y * 2.0f)));
-	if (EnsureCanvasSize_(function3Panel_, gfx, rg, w, h))
+	std::size_t count = kSlotCount + 3;
+	if (!ultra_.HasUltra())
 	{
-		PaintFunction3Panel_();
+		return count;
 	}
-	SyncFunction3Transform_();
-}
-
-void ModuleShop::PaintFunction3Panel_()
-{
-	if (function3Panel_ == nullptr)
+	++count;
+	const int innerCount = ultra_.GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
 	{
-		return;
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (ultra_.IsInnerSlotVisible(slot) && ultra_.GetInnerSlot(slot) != nullptr)
+		{
+			++count;
+		}
 	}
-
-	Canvas2D& canvas = *function3Panel_;
-	PaintBandChrome_(canvas);
-	constexpr Color kTitle{ 180u, 195u, 215u, 200u };
-	DrawShopText_(
-		canvas,
-		"Function3",
-		16.0f,
-		0,
-		0,
-		static_cast<int>(canvas.GetCanvasWidth()),
-		static_cast<int>(canvas.GetCanvasHeight()),
-		4,
-		DWRITE_TEXT_ALIGNMENT_CENTER,
-		DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-		kTitle);
-	canvas.NotifyPixelsChanged();
+	return count;
 }
 
-void ModuleShop::SyncFunction3Transform_() noexcept
+IModuleNode* ModuleShop::GetNode(std::size_t index) const noexcept
 {
-	SyncBandTransform_(function3Panel_.get(), GetFunction3BoundsWorld_());
+	if (index < kSlotCount)
+	{
+		return slots_[index].node.get();
+	}
+	if (index == kSlotCount)
+	{
+		return refineResult_.get();
+	}
+	if (index == kSlotCount + 1)
+	{
+		return refineFeedOwned_[0].get();
+	}
+	if (index == kSlotCount + 2)
+	{
+		return refineFeedOwned_[1].get();
+	}
+	if (!ultra_.HasUltra())
+	{
+		return nullptr;
+	}
+
+	// 区接口要求 const 方法交出可改的 Node。
+	ModuleShopUltra& area = const_cast<ModuleShopUltra&>(ultra_);
+	std::size_t cursor = kSlotCount + 3;
+	if (index == cursor)
+	{
+		return area.GetUltra();
+	}
+	++cursor;
+	const int innerCount = area.GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (!area.IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		IModuleNode* node = area.GetInnerSlot(slot);
+		if (node == nullptr)
+		{
+			continue;
+		}
+		if (index == cursor)
+		{
+			return node;
+		}
+		++cursor;
+	}
+	return nullptr;
+}
+
+ModuleShopUltra& ModuleShop::GetUltraArea() noexcept
+{
+	return ultra_;
+}
+
+const ModuleShopUltra& ModuleShop::GetUltraArea() const noexcept
+{
+	return ultra_;
+}
+
+bool ModuleShop::HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return ultra_.HitButton(worldPos) != ModuleShopUltra::Button::None;
+}
+
+bool ModuleShop::TryClickUltra(DirectX::XMFLOAT2 worldPos)
+{
+	return ultra_.TryClick(worldPos, origin_);
+}
+
+const IModuleNode* ModuleShop::PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return ultra_.PickInfoNode(worldPos);
+}
+
+void ModuleShop::EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg)
+{
+	ultra_.SetBounds(FunctionBandBounds_(1));
+	ultra_.Ensure(gfx, rg);
+}
+
+void ModuleShop::SyncUltraArea_()
+{
+	ultra_.SetBounds(FunctionBandBounds_(1));
+	ultra_.Sync();
 }

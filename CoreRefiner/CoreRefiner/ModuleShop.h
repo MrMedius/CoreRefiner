@@ -4,6 +4,7 @@
 #include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleShopPanel.h"
+#include "ModuleShopUltra.h"
 
 #include <array>
 #include <cstddef>
@@ -26,7 +27,7 @@ public:
 	ModuleShop(const ModuleShop&) = delete;
 	ModuleShop& operator=(const ModuleShop&) = delete;
 
-	// ---- 外壳：整店外框与 2:1:1 竖切（买卖 / 炼成 / Function3）----
+	// ---- 外壳：整店外框与 2:1:1 竖切（买卖 / 炼成 / 奥义）----
 	static constexpr float kFrozenShellHalfX = 332.0f;
 	static constexpr float kFrozenShellHalfY = 230.0f;
 	// origin.y 到买卖框顶边的距离（Workbench 排版用，Q4 前保留）。
@@ -80,28 +81,11 @@ public:
 		int price{ 0 };
 	};
 
-	// 货槽 + 结果 + 素材店有 + 主体店有。买卖勿把 GetNodeCount 当货槽数。
-	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return kSlotCount + 3; }
-	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override
-	{
-		if (index < kSlotCount)
-		{
-			return slots_[index].node.get();
-		}
-		if (index == kSlotCount)
-		{
-			return refineResult_.get();
-		}
-		if (index == kSlotCount + 1)
-		{
-			return refineFeedOwned_[0].get();
-		}
-		if (index == kSlotCount + 2)
-		{
-			return refineFeedOwned_[1].get();
-		}
-		return nullptr;
-	}
+	// 货槽 + 炼成结果 + 两颗店有炼成 Node，再加奥义本体和可见内部 Node。买卖勿把 GetNodeCount 当货槽数。
+	[[nodiscard]] std::size_t GetNodeCount() const noexcept override;
+	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override;
+	[[nodiscard]] ModuleShopUltra& GetUltraArea() noexcept;
+	[[nodiscard]] const ModuleShopUltra& GetUltraArea() const noexcept;
 
 	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
@@ -212,6 +196,11 @@ public:
 	void PinShopRefineHomeGhost(IModuleNode& node) noexcept;
 	[[nodiscard]] bool HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept;
 	bool TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse);
+	// 奥义区按钮。编辑器只问有没有点到，锻造、打孔和翻页由奥义区自己分。
+	[[nodiscard]] bool HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	bool TryClickUltra(DirectX::XMFLOAT2 worldPos);
+	// 鼠标在奥义图标上时返回它，给 Panel 用。还没进 PickAt，所以没有选中圈。
+	[[nodiscard]] const IModuleNode* PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept;
 
 private:
 	static constexpr std::size_t kRefineSlotCount_ = 3;
@@ -284,15 +273,11 @@ private:
 	bool paintedReturnLit_{ false };
 	int paintedRefineCurrency_{ -1 };
 
-	// ---- Function3：占位，宽度与买卖框对齐 ----
-private:
-	[[nodiscard]] BoundsWorld GetFunction3BoundsWorld_() const noexcept;
+	// ---- 奥义区：第三块，宽度与买卖框对齐 ----
+	void EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg);
+	void SyncUltraArea_();
 
-	void EnsureFunction3Visuals_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintFunction3Panel_();
-	void SyncFunction3Transform_() noexcept;
-
-	std::unique_ptr<Canvas2D> function3Panel_;
+	ModuleShopUltra ultra_;
 };
 
 // 这颗 Node 现在归谁。店有炼成必须先于场/仓 FindNodeIndex，否则结果格再炼会认错主人。
