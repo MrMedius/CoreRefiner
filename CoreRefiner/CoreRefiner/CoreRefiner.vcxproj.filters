@@ -748,6 +748,9 @@
     <ClCompile Include="ModuleShopPanel.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClCompile>
+    <ClCompile Include="ModuleShopUltra.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1559,6 +1562,12 @@
     </ClInclude>
     <ClInclude Include="CanvasTextDraw.h">
       <Filter>Tool\Art</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleShopDraw.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleShopUltra.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

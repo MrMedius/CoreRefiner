@@ -4,6 +4,7 @@
 #include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleShopPanel.h"
+#include "ModuleShopUltra.h"
 
 #include <array>
 #include <cstddef>
@@ -26,7 +27,7 @@ public:
 	ModuleShop(const ModuleShop&) = delete;
 	ModuleShop& operator=(const ModuleShop&) = delete;
 
-	// ---- 外壳：整店外框与 2:1:1 竖切（买卖 / 炼成 / Function3）----
+	// ---- 外壳：整店外框与 2:1:1 竖切（买卖 / 炼成 / 奥义）----
 	static constexpr float kFrozenShellHalfX = 332.0f;
 	static constexpr float kFrozenShellHalfY = 230.0f;
 	// origin.y 到买卖框顶边的距离（Workbench 排版用，Q4 前保留）。
@@ -80,28 +81,11 @@ public:
 		int price{ 0 };
 	};
 
-	// 货槽 + 结果 + 素材店有 + 主体店有。买卖勿把 GetNodeCount 当货槽数。
-	[[nodiscard]] std::size_t GetNodeCount() const noexcept override { return kSlotCount + 3; }
-	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override
-	{
-		if (index < kSlotCount)
-		{
-			return slots_[index].node.get();
-		}
-		if (index == kSlotCount)
-		{
-			return refineResult_.get();
-		}
-		if (index == kSlotCount + 1)
-		{
-			return refineFeedOwned_[0].get();
-		}
-		if (index == kSlotCount + 2)
-		{
-			return refineFeedOwned_[1].get();
-		}
-		return nullptr;
-	}
+	// 货槽 + 炼成结果 + 两颗店有炼成 Node，再加奥义本体和可见内部 Node。买卖勿把 GetNodeCount 当货槽数。
+	[[nodiscard]] std::size_t GetNodeCount() const noexcept override;
+	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override;
+	[[nodiscard]] ModuleShopUltra& GetUltraArea() noexcept;
+	[[nodiscard]] const ModuleShopUltra& GetUltraArea() const noexcept;
 
 	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
@@ -109,6 +93,8 @@ public:
 
 	void FillStock();
 	void BeginVisit();
+	// 结束本局时清空奥义区。再次打开商店不调用它。
+	void ClearUltra();
 	[[nodiscard]] bool TryRefresh();
 	void ResetVisit();
 	void RefreshCopy();
@@ -138,6 +124,7 @@ private:
 	[[nodiscard]] float CardCenterLocalY_() const noexcept;
 	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
 	void RelayoutSlots_();
+	void RestoreShelfNode_(std::unique_ptr<IModuleNode> node, std::size_t index);
 	void RestockSlot_(std::size_t index, ModuleNodeLabel label);
 	[[nodiscard]] bool HasRerollableSlot_() const noexcept;
 	void DenyRefresh_();
@@ -206,12 +193,44 @@ public:
 	[[nodiscard]] bool IsRefineParked(const IModuleNode* node) const noexcept;
 	[[nodiscard]] bool IsRefineResultParked(const IModuleNode* node) const noexcept;
 	[[nodiscard]] bool IsShopRefineOwned(const IModuleNode* node) const noexcept;
+	// 奥义本体和内部栏里的 Node，含滚出画面的。
+	[[nodiscard]] bool IsShopUltraOwned(const IModuleNode* node) const noexcept;
+	// 商店悬停弹 Panel：炼成停放、奥义本体、内部栏。货架不弹。
+	[[nodiscard]] bool ShowsHoverInfo(const IModuleNode* node) const noexcept
+	{
+		return IsRefineParked(node) || IsShopUltraOwned(node);
+	}
+	// 只认奥义栏里的那一颗，不含内部栏。
+	[[nodiscard]] bool IsUltraBody(const IModuleNode* node) const noexcept;
+	// 残影留在奥义栏。跟手图标由调用方清掉 Icon 覆盖。
+	void PinUltraHomeGhost(IModuleNode& node) noexcept;
+	// 拖出失败时放回奥义栏。
+	void RestoreUltra(std::unique_ptr<IModuleNode> node);
+	// 内部栏下标。不在里面时返回 npos。
+	[[nodiscard]] std::size_t FindUltraInnerIndex(const IModuleNode* node) const noexcept;
+	// 拖出失败时放回这个内部栏。
+	void RestoreUltraInner(std::unique_ptr<IModuleNode> node, std::size_t index);
+	// 只接奥义区落点。对不上就原样退回，不进货架、不卖掉。
+	bool TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos);
+	// 还在货架上的商品。
+	[[nodiscard]] bool IsShelfStock(const IModuleNode* node) const noexcept;
+	// 点在奥义区整块里。
+	[[nodiscard]] bool HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept;
+	// 从货架买进内部栏。失败时商品回到原货槽。
+	bool TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 localPos);
+	// 从奥义区卖到买卖框。奥义本体连同内部 Node 一起销毁。
+	void SellFromUltra(IModuleNode* node);
 	// 格内 Icon 按仓库格比例缩放；素材/主体残影仍走来源尺寸。
 	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
 	// 店有炼成 Node：残影钉在结果格（格内尺寸），跟手图标另清 Icon 覆盖。
 	void PinShopRefineHomeGhost(IModuleNode& node) noexcept;
 	[[nodiscard]] bool HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept;
 	bool TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse);
+	// 奥义区按钮。编辑器只问有没有点到，锻造、打孔和翻页由奥义区自己分。
+	[[nodiscard]] bool HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	bool TryClickUltra(DirectX::XMFLOAT2 worldPos);
+	// 鼠标在奥义图标上时返回它，给 Panel 用。选中圈走 PickAt。
+	[[nodiscard]] const IModuleNode* PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept;
 
 private:
 	static constexpr std::size_t kRefineSlotCount_ = 3;
@@ -284,18 +303,14 @@ private:
 	bool paintedReturnLit_{ false };
 	int paintedRefineCurrency_{ -1 };
 
-	// ---- Function3：占位，宽度与买卖框对齐 ----
-private:
-	[[nodiscard]] BoundsWorld GetFunction3BoundsWorld_() const noexcept;
+	// ---- 奥义区：第三块，宽度与买卖框对齐 ----
+	void EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg);
+	void SyncUltraArea_();
 
-	void EnsureFunction3Visuals_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintFunction3Panel_();
-	void SyncFunction3Transform_() noexcept;
-
-	std::unique_ptr<Canvas2D> function3Panel_;
+	ModuleShopUltra ultra_;
 };
 
-// 这颗 Node 现在归谁。店有炼成必须先于场/仓 FindNodeIndex，否则结果格再炼会认错主人。
+// 这颗 Node 现在归谁。奥义和店有炼成必须先于场/仓 FindNodeIndex，否则会认错主人。
 [[nodiscard]] inline IModuleZone* FindNodeOwnerZone(
 	const IModuleNode* node,
 	IModuleZone* const* zones,
@@ -314,7 +329,7 @@ private:
 			continue;
 		}
 		if (const auto* shop = dynamic_cast<const ModuleShop*>(zone);
-			shop != nullptr && shop->IsShopRefineOwned(node))
+			shop != nullptr && (shop->IsShopUltraOwned(node) || shop->IsShopRefineOwned(node)))
 		{
 			return zone;
 		}

@@ -265,6 +265,8 @@ void ModuleWorkbench::Reset()
 	shop_.FillStock();
 	shop_.ResetVisit();
 	shop_.ClearRefineResult();
+	// 结束本局才清奥义区。开战和再次打开整理都不清。
+	shop_.ClearUltra();
 
 	paintedWave_ = -1;
 	SetNextWave(1);

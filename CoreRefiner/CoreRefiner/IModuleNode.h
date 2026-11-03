@@ -447,6 +447,7 @@ protected:
 public:
 	// ---- 绘制与拖放残影 ----
 	virtual void InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin);
+	[[nodiscard]] bool IsVisualReady() const noexcept { return visualReady_; }
 	// 把图集 Icon 画到任意 Canvas。asMask 为冷却/残影遮罩色。买卖卡不走这条。
 	virtual void BlitIcon(Canvas& canvas, bool asMask = false) const;
 	void SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept;
