@@ -173,9 +173,9 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 				shop->PinShopRefineHomeGhost(*dragged_);
 				dragged_->ClearIconRadiusOverride();
 			}
-			else if (shop != nullptr && shop->IsShopUltraOwned(dragged_))
+			else if (shop != nullptr && shop->IsShopUltraOwned(dragged_) && !shop->IsRefineParked(dragged_))
 			{
-				// 奥义栏和内部栏：残影留在格子里，跟手图标恢复原尺寸。
+				// 第一次从奥义栏拿起才钉残影。已停在炼成格的从当前位置跟手。
 				shop->PinUltraHomeGhost(*dragged_);
 				dragged_->ClearIconRadiusOverride();
 			}

@@ -1520,8 +1520,8 @@ bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const 
 	{
 		return false;
 	}
-	// 奥义不能进炼成。栏里的 Node 也不进，避免和内部栏抢所有权。
-	if (node.GetKind() == ModuleNodeKind::Ultra || IsShopUltraOwned(&node))
+	// 奥义本体不能当素材或主体。内部栏的 Node 可以停进来，实体仍留在奥义栏。
+	if (node.GetKind() == ModuleNodeKind::Ultra)
 	{
 		return false;
 	}
@@ -1879,6 +1879,11 @@ void ModuleShop::BounceRefinePark_(IModuleNode& node)
 	}
 	node.EndLayoutGhost();
 	node.SyncVisual();
+	// 从奥义栏借出去的 Node：回退时按当前格子重新摆好。
+	if (IsShopUltraOwned(&node))
+	{
+		SyncUltraArea_();
+	}
 }
 
 void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node, IModuleZone* owner)
@@ -2182,7 +2187,7 @@ bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, 
 
 void ModuleShop::ClearRefineParks()
 {
-	// 素材/主体：场/仓回残影；店有 Node 回结果栏。结果格 unique_ptr 留下直到 Reset 或拖出。
+	// 素材/主体：场/仓回残影，奥义内部栏回原格，店有 Node 回结果栏。结果格留下直到 Reset 或拖出。
 	for (std::size_t i = 0; i < 2u; ++i)
 	{
 		IModuleNode* node = refineParked_[i];
