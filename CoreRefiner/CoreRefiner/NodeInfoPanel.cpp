@@ -6,6 +6,7 @@
 #include "CanvasTextDraw.h"
 #include "Channels.h"
 #include "Colors.h"
+#include "GameRulesCodex.h"
 #include "GameStatsCodex.h"
 #include "Graphics.h"
 #include "IconAtlas.h"
@@ -404,7 +405,7 @@ namespace
 				{
 					continue;
 				}
-				const float hue = (static_cast<float>(px + py) + phase) / IconAtlas::kRainbowPeriod;
+				const float hue = (static_cast<float>(px + py) + phase) / GameRulesCodex::RainbowPeriod;
 				canvas.PutPixel(static_cast<unsigned>(px), static_cast<unsigned>(py), IconAtlas::HueToRgb(hue));
 			}
 		}
@@ -1016,10 +1017,10 @@ void NodeInfoPanel::TickHeaderRainbow_()
 	}
 
 	// 和场上 SubmitIcon 同一套切帧：1 秒 16 帧，相位跟着 BakeRainbowSheet。
-	constexpr unsigned kFrames = ModuleNode_Ultra::kRainbowFrames;
+	constexpr unsigned kFrames = GameRulesCodex::RainbowFrames;
 	const float cycle = std::fmod(TimeCodex::Get().GetTotalTime(), 1.0f);
 	const unsigned frame = static_cast<unsigned>(cycle * static_cast<float>(kFrames)) % kFrames;
-	const float phase = IconAtlas::kRainbowPeriod * static_cast<float>(frame) / static_cast<float>(kFrames);
+	const float phase = GameRulesCodex::RainbowPeriod * static_cast<float>(frame) / static_cast<float>(kFrames);
 
 	if (headerRainbowBits_.has_value() && headerIconSide_ > 0)
 	{

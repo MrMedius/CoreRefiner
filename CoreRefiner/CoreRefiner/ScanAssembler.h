@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AttackContext.h"
+#include "GameRulesCodex.h"
 #include "ModuleField.h"
 #include "ModuleNodes.h"
 #include "ScanWave.h"
@@ -39,7 +40,6 @@ class ScanAssembler
 {
 public:
 	static constexpr std::size_t kMaxSessions = 8;
-	static constexpr std::size_t kMaxAppliedTokens = 10;
 
 	[[nodiscard]] bool IsSessionActive() const noexcept
 	{
@@ -119,7 +119,7 @@ public:
 		const std::size_t index = sessions_.size() - 1;
 
 		if (sessions_[index].ctx.shots.size() > shotsBefore
-			|| sessions_[index].appliedTokenCount >= kMaxAppliedTokens)
+			|| sessions_[index].appliedTokenCount >= GameRulesCodex::MaxAppliedTokens)
 		{
 			EndSessionWithShots_(index);
 			return;
@@ -318,7 +318,7 @@ private:
 		}
 
 		ScanSession& after = sessions_[sessionIndex];
-		if (after.appliedTokenCount >= kMaxAppliedTokens)
+		if (after.appliedTokenCount >= GameRulesCodex::MaxAppliedTokens)
 		{
 			EndSessionWithShots_(sessionIndex);
 			return true;
@@ -365,7 +365,7 @@ private:
 			}
 
 			ScanSession& after = sessions_[sessionIndex];
-			if (after.appliedTokenCount < kMaxAppliedTokens)
+			if (after.appliedTokenCount < GameRulesCodex::MaxAppliedTokens)
 			{
 				continue;
 			}

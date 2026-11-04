@@ -13,6 +13,7 @@
 #include "TextTypes.h"
 #include "UiCopy.h"
 #include "UiRoot.h"
+#include "UI_SellConfirm.h"
 #include "Win.h"
 #include "Window.h"
 
@@ -71,6 +72,7 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	shop_.InitAllVisuals(gfx_, rg_, shopOrigin_);
 	InitFightButton_();
+	BindSellConfirm_();
 }
 
 ModuleWorkbench::~ModuleWorkbench() = default;
@@ -176,6 +178,52 @@ void ModuleWorkbench::RefreshFightLabel()
 	}
 	const int wave = (paintedWave_ < 1) ? 1 : paintedWave_;
 	fightBtn_->Button().SetLabel(GetUiCopy("prep.fight", wave));
+}
+
+void ModuleWorkbench::BindSellConfirm_()
+{
+	sellConfirm_ = std::make_unique<UI_SellConfirm>(gfx_, rg_);
+	sellConfirm_->SetOnConfirm([this]
+	{
+		const std::uint32_t id = pendingSellId_;
+		CloseOverlay();
+		layoutEditor_.ConfirmSell(id);
+	});
+	sellConfirm_->SetOnExit([this]
+	{
+		CloseOverlay();
+	});
+	layoutEditor_.SetOnOverlayRequest([this](const OverlayUiRequest& request)
+	{
+		if (request.kind != OverlayUiKind::SellConfirm || sellConfirm_ == nullptr)
+		{
+			return;
+		}
+		pendingSellId_ = request.instanceId;
+		sellConfirm_->Show(request.sellPrice);
+	});
+}
+
+bool ModuleWorkbench::IsOverlayOpen() const noexcept
+{
+	return sellConfirm_ != nullptr && sellConfirm_->IsOpen();
+}
+
+void ModuleWorkbench::CloseOverlay() noexcept
+{
+	pendingSellId_ = 0;
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->Hide();
+	}
+}
+
+void ModuleWorkbench::RefreshOverlayLabels()
+{
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->RefreshLabels();
+	}
 }
 
 void ModuleWorkbench::PlaceDemoField_()
@@ -371,17 +419,30 @@ void ModuleWorkbench::BeginLayoutEdit()
 
 void ModuleWorkbench::EndLayoutEdit()
 {
+	CloseOverlay();
 	field_.SetVisualScale(ModuleField::kCombatVisualScale);
 	layoutEditor_.End();
 }
 
 void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
 {
+	if (IsOverlayOpen())
+	{
+		layoutEditor_.ClearPointerState();
+		sellConfirm_->Update(dt);
+		return;
+	}
+
 	if (uiRoot_ != nullptr)
 	{
 		uiRoot_->UpdateAfterInput();
 	}
 	layoutEditor_.Update(dt, hostWindow);
+	if (IsOverlayOpen())
+	{
+		// 松手这一帧里刚弹出，清掉补上的悬停。
+		layoutEditor_.ClearPointerState();
+	}
 	// 停放/拖出后同一帧刷新并重绘：Core 拖回 Field 立刻恢复战斗键
 	RefreshFightLabel();
 	if (fightBtn_ != nullptr)
@@ -420,6 +481,10 @@ void ModuleWorkbench::SubmitPrep()
 	if (uiRoot_ != nullptr)
 	{
 		uiRoot_->Submit(Chan::ui);
+	}
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->Submit();
 	}
 }
 

@@ -3,6 +3,7 @@
 #include "AttackNodeSteps.h"
 #include "Canvas2DSpriteUV.h"
 #include "Graphics.h"
+#include "GameRulesCodex.h"
 #include "IconAtlas.h"
 #include "RenderGraph.h"
 #include "TimeCodex.h"
@@ -653,17 +654,12 @@ private:
 class ModuleNode_Ultra final : public IModuleNode
 {
 public:
-	static constexpr int kBornCapacity = 3;
-	static constexpr std::size_t kMaxNameCodepoints = 20;
-	static constexpr float kEmptyStat = 10.0f;
-	static constexpr unsigned kRainbowFrames = 16u;
-
 	explicit ModuleNode_Ultra(DirectX::XMFLOAT2 localPos) noexcept
 		:
 		IModuleNode(ModuleNodeLabel::Ultra)
 	{
 		localPos_ = localPos;
-		slots_.resize(static_cast<std::size_t>(kBornCapacity));
+		slots_.resize(static_cast<std::size_t>(GameRulesCodex::UltraBornCapacity));
 		iconBits_ = NodeIconAtlas::detail::kRoundFrame;
 		SetBuyPrice(0);
 		SetLevel(3);
@@ -675,14 +671,14 @@ public:
 		zoneOrigin_ = zoneOrigin;
 
 		// 16 帧斜向彩虹竖排。UV 先停在第 0 帧，和静止彩虹一致。
-		auto sheet = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize * kRainbowFrames);
+		auto sheet = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize * GameRulesCodex::RainbowFrames);
 		sheet->Clear(Colors::None);
-		IconAtlas::BakeRainbowSheet(*sheet, iconBits_, kRainbowFrames);
+		IconAtlas::BakeRainbowSheet(*sheet, iconBits_, GameRulesCodex::RainbowFrames);
 		sheet->NotifyPixelsChanged();
 		sheet->LinkTechniques(rg);
 		sheet->SetUVOffset(0.0f, 0.0f);
 		sheet->SetUVScale(1.0f, 1.0f);
-		sheet->SetSampleScale(1.0f, 1.0f / static_cast<float>(kRainbowFrames));
+		sheet->SetSampleScale(1.0f, 1.0f / static_cast<float>(GameRulesCodex::RainbowFrames));
 		icon_ = std::move(sheet);
 
 		mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
@@ -704,7 +700,7 @@ public:
 		if (icon_ != nullptr)
 		{
 			icon_->Clear(Colors::None);
-			IconAtlas::BakeRainbowSheet(*icon_, iconBits_, kRainbowFrames);
+			IconAtlas::BakeRainbowSheet(*icon_, iconBits_, GameRulesCodex::RainbowFrames);
 			icon_->NotifyPixelsChanged();
 		}
 		if (mask_ != nullptr)
@@ -789,10 +785,10 @@ public:
 
 	void SetName(std::string name)
 	{
-		if (Utf8CodepointCount(name) > kMaxNameCodepoints)
+		if (Utf8CodepointCount(name) > GameRulesCodex::UltraNameMaxCodepoints)
 		{
 			std::size_t end = 0;
-			for (std::size_t n = 0; n < kMaxNameCodepoints && end < name.size(); ++n)
+			for (std::size_t n = 0; n < GameRulesCodex::UltraNameMaxCodepoints && end < name.size(); ++n)
 			{
 				end = Utf8Next(name, end);
 			}
@@ -871,8 +867,8 @@ public:
 		if (auto* sheet = dynamic_cast<Canvas2DSpriteUV*>(icon_.get()))
 		{
 			const float cycle = std::fmod(TimeCodex::Get().GetTotalTime(), 1.0f);
-			const unsigned frame = static_cast<unsigned>(cycle * static_cast<float>(kRainbowFrames)) % kRainbowFrames;
-			sheet->SetUVOffset(0.0f, static_cast<float>(frame) / static_cast<float>(kRainbowFrames));
+			const unsigned frame = static_cast<unsigned>(cycle * static_cast<float>(GameRulesCodex::RainbowFrames)) % GameRulesCodex::RainbowFrames;
+			sheet->SetUVOffset(0.0f, static_cast<float>(frame) / static_cast<float>(GameRulesCodex::RainbowFrames));
 		}
 		IModuleNode::SubmitIcon();
 	}
@@ -921,10 +917,10 @@ private:
 		}
 		if (count == 0u)
 		{
-			SetHitRadius(kEmptyStat);
-			SetCooldownDuration(kEmptyStat);
-			SetScanMaxRadius(kEmptyStat);
-			SetScanExpandSpeed(kEmptyStat);
+			SetHitRadius(GameRulesCodex::DefaultStat);
+			SetCooldownDuration(GameRulesCodex::DefaultStat);
+			SetScanMaxRadius(GameRulesCodex::DefaultStat);
+			SetScanExpandSpeed(GameRulesCodex::DefaultStat);
 			SetBuyPrice(0);
 			return;
 		}

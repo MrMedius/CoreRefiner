@@ -5,9 +5,12 @@
 #include "ScanAssembler.h"
 #include "ZoneLayoutEditor.h"
 
+#include <cstdint>
 #include <DirectXMath.h>
 #include <functional>
 #include <memory>
+
+class UI_SellConfirm;
 
 class AttackManager;
 class Graphics;
@@ -46,6 +49,8 @@ public:
 	[[nodiscard]] const ScanAssembler& GetAssembler() const noexcept { return assembler_; }
 
 	[[nodiscard]] bool IsLayoutEditActive() const noexcept { return layoutEditor_.IsActive(); }
+	[[nodiscard]] bool IsOverlayOpen() const noexcept;
+	void CloseOverlay() noexcept;
 
 	[[nodiscard]] DirectX::XMFLOAT3 GetCombatFieldOrigin() const noexcept { return combatFieldOrigin_; }
 	[[nodiscard]] DirectX::XMFLOAT3 GetLayoutFieldOrigin() const noexcept { return layoutFieldOrigin_; }
@@ -57,6 +62,7 @@ public:
 	void SetNextWave(int wave);
 	// 按当前语言与 Field 是否有 Core，刷新战斗键文案和灰态
 	void RefreshFightLabel();
+	void RefreshOverlayLabels();
 
 	// 新开一局：Field 回到演示布局，仓清空，商店重进货并清刷新次数。
 	void Reset();
@@ -80,6 +86,7 @@ private:
 	void PlaceDemoWarehouse_();
 	void SyncFieldWaves_();
 	void InitFightButton_();
+	void BindSellConfirm_();
 	// 战备布局：左 Shop、右列 Field / Warehouse / 战斗按钮，统一缝隙。
 	void ComputeLayout_() noexcept;
 
@@ -97,6 +104,8 @@ private:
 	ModuleShop shop_;
 	ScanAssembler assembler_;
 	ZoneLayoutEditor layoutEditor_;
+	std::unique_ptr<UI_SellConfirm> sellConfirm_;
+	std::uint32_t pendingSellId_{ 0 };
 
 	std::unique_ptr<Ui::UiRoot> uiRoot_;
 	std::unique_ptr<Ui::ButtonCanvasComponent> fightBtn_;

@@ -1,6 +1,7 @@
 #include "ModuleShopUltra.h"
 
 #include "Channels.h"
+#include "GameRulesCodex.h"
 #include "GameStatsCodex.h"
 #include "ModuleNodeFactory.h"
 #include "ModuleNodes.h"
@@ -674,7 +675,7 @@ bool ModuleShopUltra::TryForge(DirectX::XMFLOAT3 zoneOrigin)
 	{
 		return false;
 	}
-	if (GameStatsCodex::GetCurrency() < kForgeCost)
+	if (GameStatsCodex::GetCurrency() < GameRulesCodex::ForgeCost)
 	{
 		return false;
 	}
@@ -694,7 +695,7 @@ bool ModuleShopUltra::TryForge(DirectX::XMFLOAT3 zoneOrigin)
 	node->SetVisualRadiusOverride(radius);
 	node->SetIconRadiusOverride(radius);
 	node->SyncVisual();
-	if (!GameStatsCodex::TrySpendCurrency(kForgeCost))
+	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::ForgeCost))
 	{
 		return false;
 	}
@@ -705,11 +706,11 @@ bool ModuleShopUltra::TryForge(DirectX::XMFLOAT3 zoneOrigin)
 bool ModuleShopUltra::TryPunch()
 {
 	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-	if (ultra == nullptr || GameStatsCodex::GetCurrency() < kPunchCost)
+	if (ultra == nullptr || GameStatsCodex::GetCurrency() < GameRulesCodex::PunchCost)
 	{
 		return false;
 	}
-	if (!GameStatsCodex::TrySpendCurrency(kPunchCost))
+	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::PunchCost))
 	{
 		return false;
 	}
@@ -1178,7 +1179,7 @@ void ModuleShopUltra::Paint_()
 	if (ultra_ == nullptr)
 	{
 		// 无奥义：区域正中只有锻造。钱够才亮，亮了数字变黄。
-		const bool lit = currency >= kForgeCost;
+		const bool lit = currency >= GameRulesCodex::ForgeCost;
 		DrawActionButton_(
 			canvas,
 			layout.forgeX,
@@ -1186,7 +1187,7 @@ void ModuleShopUltra::Paint_()
 			layout.forgeW,
 			layout.forgeH,
 			GetUiCopy("shop.ultra.forge"),
-			kForgeCost,
+			GameRulesCodex::ForgeCost,
 			lit);
 	}
 	else
@@ -1205,9 +1206,9 @@ void ModuleShopUltra::Paint_()
 			GetUiCopy("shop.ultra.rename"),
 			GetUiCopy("shop.ultra.redraw")
 		};
-		const int costs[kButtonCount_] = { kPunchCost, -1, -1 };
+		const int costs[kButtonCount_] = { GameRulesCodex::PunchCost, -1, -1 };
 		const bool lits[kButtonCount_] = {
-			currency >= kPunchCost,
+			currency >= GameRulesCodex::PunchCost,
 			true,
 			true
 		};

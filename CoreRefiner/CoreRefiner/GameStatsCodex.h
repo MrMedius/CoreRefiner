@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include "imgui/imgui.h"
+#include "GameRulesCodex.h"
 #include "JsonTextCopy.h"
 
 struct GlobalData
@@ -96,13 +97,11 @@ namespace
 
     struct CurrencyData
     {
-        // 测试用初始金钱，正式数值以后改回 0。
-        static constexpr int kTestStartAmount = 10000;
-        int amount{ kTestStartAmount };
+        int amount{ GameRulesCodex::TestStartCurrency };
 
         void Reset() noexcept
         {
-            amount = kTestStartAmount;
+            amount = GameRulesCodex::TestStartCurrency;
         }
     };
 

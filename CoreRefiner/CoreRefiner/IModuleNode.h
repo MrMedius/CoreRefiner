@@ -3,6 +3,7 @@
 #include "Canvas2D.h"
 #include "Canvas2DSpriteUV.h"
 #include "Colors.h"
+#include "GameRulesCodex.h"
 #include "ModuleNodeLabel.h"
 
 #include <cstddef>
@@ -107,7 +108,7 @@ struct ModuleNodeUniqueStatRow
 // Node 买入造价。卖出价恒为买入的一半。不随等级自动变。
 struct ModuleNodePrice
 {
-	int buy{ 4 };
+	int buy{ GameRulesCodex::DefaultBuyPrice };
 
 	// 写入买入造价。小于等于 0 存 0。
 	void SetBuy(int price) noexcept
@@ -125,14 +126,14 @@ struct ModuleNodePrice
 		return buy / 2;
 	}
 };
-static_assert(ModuleNodePrice{}.GetBuy() == 4);
-static_assert(ModuleNodePrice{}.GetSell() == 2);
+static_assert(ModuleNodePrice{}.GetBuy() == GameRulesCodex::DefaultBuyPrice);
+static_assert(ModuleNodePrice{}.GetSell() == GameRulesCodex::DefaultBuyPrice / 2);
 
 // Node 冷却：时长、剩余、Ready/Cooling。
 struct ModuleNodeCooldown
 {
 	ModuleReadyState state{ ModuleReadyState::Ready };
-	float duration{ 10.0f };
+	float duration{ GameRulesCodex::DefaultStat };
 	float remaining{ 0.0f };
 
 	// 写入冷却时长。小于 0 存 0。
@@ -214,8 +215,8 @@ struct ModuleNodeCooldown
 // 扫描波：最大半径与扩散速度。
 struct ModuleNodeScan
 {
-	float maxRadius{ 10.0f };
-	float expandSpeed{ 10.0f };
+	float maxRadius{ GameRulesCodex::DefaultStat };
+	float expandSpeed{ GameRulesCodex::DefaultStat };
 
 	void SetMaxRadius(float radius) noexcept
 	{
@@ -438,7 +439,7 @@ public:
 
 protected:
 	DirectX::XMFLOAT2 localPos_{ 0.0f, 0.0f };
-	float hitRadius_{ 10.0f };
+	float hitRadius_{ GameRulesCodex::DefaultStat };
 	// <= 0 表示不覆盖，绘制走 hitRadius_。
 	float visualRadiusOverride_{ 0.0f };
 	// <= 0 表示不覆盖。炼成格 Icon 单独缩放，不放大场上残影。

@@ -14,10 +14,6 @@ class ModuleNode_Ultra;
 class ModuleShopUltra
 {
 public:
-	// 锻造、打孔的花费。更名和重绘不花钱，按钮上不标价。
-	static constexpr int kForgeCost = 3;
-	static constexpr int kPunchCost = 1;
-
 	enum class Button : unsigned char
 	{
 		None,

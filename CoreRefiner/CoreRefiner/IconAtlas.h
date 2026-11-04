@@ -2,6 +2,7 @@
 #include "ModuleNodeLabel.h"
 #include "Canvas.h"
 #include "Colors.h"
+#include "GameRulesCodex.h"
 
 #include <array>
 #include <cassert>
@@ -33,9 +34,6 @@ namespace IconAtlas
 			}
 		}
 	}
-
-	// 16×16 上 x+y 最大是 30。除以 31，斜向走完一整圈色相，首尾不会撞成同色。
-	static constexpr float kRainbowPeriod = 31.0f;
 
 	// 色相 [0,1) 转纯色。0 是红，沿斜向递增。
 	[[nodiscard]] inline Color HueToRgb(float hue) noexcept
@@ -90,7 +88,7 @@ namespace IconAtlas
 				{
 					continue;
 				}
-				const float hue = (static_cast<float>(x + y) + phase) / kRainbowPeriod;
+				const float hue = (static_cast<float>(x + y) + phase) / GameRulesCodex::RainbowPeriod;
 				canvas.PutPixel(x, dstY, HueToRgb(hue));
 			}
 		}
@@ -105,7 +103,7 @@ namespace IconAtlas
 		}
 		for (unsigned f = 0u; f < frames; ++f)
 		{
-			const float phase = kRainbowPeriod * static_cast<float>(f) / static_cast<float>(frames);
+			const float phase = GameRulesCodex::RainbowPeriod * static_cast<float>(f) / static_cast<float>(frames);
 			BlitIconRainbow(canvas, bits, phase, 0u, 16u, f * 16u);
 		}
 	}

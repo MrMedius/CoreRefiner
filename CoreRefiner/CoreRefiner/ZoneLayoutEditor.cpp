@@ -1,5 +1,6 @@
 #include "ZoneLayoutEditor.h"
 #include "ModuleShop.h"
+#include "GameRulesCodex.h"
 #include "GameStatsCodex.h"
 #include "InputCodex.h"
 #include "Colors.h"
@@ -488,6 +489,138 @@ void ZoneLayoutEditor::ClearActiveDrag_()
 	dragOrigin_ = {};
 }
 
+void ZoneLayoutEditor::SetOnOverlayRequest(std::function<void(const OverlayUiRequest&)> cb)
+{
+	onOverlay_ = std::move(cb);
+}
+
+bool ZoneLayoutEditor::RequestSellConfirm_(IModuleNode& node)
+{
+	const int price = node.GetSellPrice();
+	// 卖价不超过确认线就直接卖。
+	if (price <= GameRulesCodex::SellConfirmPrice)
+	{
+		return false;
+	}
+
+	const std::uint32_t instanceId = node.GetInstanceId();
+	RevertDrag_();
+	dragged_ = nullptr;
+	dragSource_ = kNoZone_;
+	dragOrigin_ = {};
+	if (onOverlay_)
+	{
+		onOverlay_(OverlayUiRequest{ OverlayUiKind::SellConfirm, instanceId, price });
+	}
+	return true;
+}
+
+IModuleNode* ZoneLayoutEditor::FindByInstanceId_(std::uint32_t instanceId) const noexcept
+{
+	for (IModuleZone* zone : zones_)
+	{
+		if (zone == nullptr)
+		{
+			continue;
+		}
+		const std::size_t count = zone->GetNodeCount();
+		for (std::size_t i = 0; i < count; ++i)
+		{
+			IModuleNode* node = zone->GetNode(i);
+			if (node != nullptr && node->GetInstanceId() == instanceId)
+			{
+				return node;
+			}
+		}
+	}
+
+	// 滚出当前页的内部 Node 不在 GetNode 里，仍要能确认卖掉。
+	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	if (shop == nullptr)
+	{
+		return nullptr;
+	}
+	ModuleShopUltra& ultra = shop->GetUltraArea();
+	const int innerCount = ultra.GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		IModuleNode* node = ultra.GetInnerSlot(static_cast<std::size_t>(i));
+		if (node != nullptr && node->GetInstanceId() == instanceId)
+		{
+			return node;
+		}
+	}
+	return nullptr;
+}
+
+bool ZoneLayoutEditor::ConfirmSell(std::uint32_t instanceId)
+{
+	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	if (shop == nullptr)
+	{
+		return false;
+	}
+	IModuleNode* node = FindByInstanceId_(instanceId);
+	if (node == nullptr)
+	{
+		return false;
+	}
+	if (shop->IsShopUltraOwned(node))
+	{
+		shop->SellFromUltra(node);
+		return true;
+	}
+	if (shop->IsShelfStock(node))
+	{
+		return false;
+	}
+
+	shop->UnbindRefine(node);
+	IModuleZone* owner = OwnerZoneOf_(node);
+	if (owner == nullptr)
+	{
+		return false;
+	}
+	node->EndLayoutGhost();
+	std::unique_ptr<IModuleNode> taken = owner->TakeNode(node);
+	if (taken == nullptr)
+	{
+		return false;
+	}
+	GameStatsCodex::AddCurrency(taken->GetSellPrice());
+	taken.reset();
+	owner->SyncAllVisuals();
+	return true;
+}
+
+void ZoneLayoutEditor::ClearPointerState()
+{
+	if (dragged_ != nullptr)
+	{
+		RevertDrag_();
+		dragged_ = nullptr;
+		dragSource_ = kNoZone_;
+		dragOrigin_ = {};
+	}
+	hover_ = nullptr;
+	hoverSource_ = kNoZone_;
+	infoPanel_.Hide();
+}
+
+bool ZoneLayoutEditor::TryDeferTradeSell_(IModuleNode& node, IModuleZone* target, DirectX::XMFLOAT2 world)
+{
+	auto* shop = dynamic_cast<ModuleShop*>(target);
+	if (shop == nullptr || shop->HitUltraArea(world) || shop->HitRefineParkSlot(world) < 3u)
+	{
+		return false;
+	}
+	if (!shop->SellsOnTradeDrop(node))
+	{
+		return false;
+	}
+	return RequestSellConfirm_(node);
+}
+
 void ZoneLayoutEditor::ResolveRelease_()
 {
 	if (dragged_ == nullptr)
@@ -536,6 +669,10 @@ void ZoneLayoutEditor::ResolveRelease_()
 	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
 	if (shop != nullptr && shop->IsShopRefineOwned(node))
 	{
+		if (TryDeferTradeSell_(*node, target, world))
+		{
+			return;
+		}
 		// 店有炼成 Node：Field / 仓 / 买卖框。失败仍归店、弹回原格影子。
 		const std::size_t heldSlot = shop->FindRefineParkIndex(node);
 		node->EndLayoutGhost();
@@ -554,13 +691,18 @@ void ZoneLayoutEditor::ResolveRelease_()
 
 	if (shop != nullptr && shop->IsUltraBody(node))
 	{
-		node->EndLayoutGhost();
 		if (target == shop && !shop->HitUltraArea(world))
 		{
+			if (RequestSellConfirm_(*node))
+			{
+				return;
+			}
 			// 买卖框：卖掉并销毁，不进货架，也不停在商店原点。
+			node->EndLayoutGhost();
 			shop->SellFromUltra(node);
 			return;
 		}
+		node->EndLayoutGhost();
 		// 奥义栏拖出：不扣钱、不记售出。放不下就回到原栏。
 		std::unique_ptr<IModuleNode> taken = shop->TakeNode(node);
 		if (taken == nullptr || !target->TryAcceptDrop(taken, drop.localPos))
@@ -579,6 +721,10 @@ void ZoneLayoutEditor::ResolveRelease_()
 	{
 		if (target == shop && !shop->HitUltraArea(world))
 		{
+			if (RequestSellConfirm_(*node))
+			{
+				return;
+			}
 			// 买卖框：按这颗 Node 自己的卖价销毁，奥义还在。
 			node->EndLayoutGhost();
 			shop->SellFromUltra(node);
@@ -618,6 +764,11 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	if (owner != target && TryDeferTradeSell_(*node, target, world))
+	{
+		return;
+	}
+
 	if (shop != nullptr)
 	{
 		shop->UnbindRefine(node);
@@ -652,7 +803,15 @@ void ZoneLayoutEditor::ResolveRelease_()
 	{
 		if (taken != nullptr)
 		{
-			(void)owner->TryAcceptDrop(taken, dragStartLocalPos_);
+			if (auto* shopOwner = dynamic_cast<ModuleShop*>(owner);
+				shopOwner != nullptr && sourceIndex < ModuleShop::kSlotCount)
+			{
+				shopOwner->RestoreShelfNode(std::move(taken), sourceIndex);
+			}
+			else
+			{
+				(void)owner->TryAcceptDrop(taken, dragStartLocalPos_);
+			}
 		}
 		RevertDrag_();
 		return;
@@ -669,7 +828,10 @@ void ZoneLayoutEditor::ResolveRelease_()
 		std::unique_ptr<IModuleNode> back = target->TakeNode(node);
 		if (back != nullptr)
 		{
-			(void)owner->TryAcceptDrop(back, dragStartLocalPos_);
+			if (auto* shopOwner = dynamic_cast<ModuleShop*>(owner))
+			{
+				shopOwner->RestoreShelfNode(std::move(back), sourceIndex);
+			}
 		}
 		RevertDrag_();
 		return;

@@ -147,7 +147,15 @@ void GameScene::Update(float dt)
 
 	if (InputCodex::Get().KeyTriggered(VK_ESCAPE))
 	{
-		TryTogglePauseMenu_();
+		if (moduleWorkbench_ != nullptr && moduleWorkbench_->IsOverlayOpen())
+		{
+			moduleWorkbench_->CloseOverlay();
+			InputCodex::Get().FlushKeyboard();
+		}
+		else
+		{
+			TryTogglePauseMenu_();
+		}
 	}
 
 	if (uiPause_ != nullptr)
@@ -358,6 +366,7 @@ void GameScene::RefreshIfLanguageChanged_()
 	if (moduleWorkbench_ != nullptr)
 	{
 		moduleWorkbench_->RefreshFightLabel();
+		moduleWorkbench_->RefreshOverlayLabels();
 		moduleWorkbench_->GetShop().RefreshCopy();
 	}
 	if (uiCombatHud_ != nullptr)

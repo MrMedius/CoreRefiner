@@ -2,6 +2,7 @@
 #include "RenderGraph.h"
 #include "Channels.h"
 
+#include "GameRulesCodex.h"
 #include "GameStatsCodex.h"
 #include "TextCodex.h"
 
@@ -676,21 +677,12 @@ bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFL
 	{
 		return claim == ModuleShopUltra::DropClaim::Accept;
 	}
-	if (node->IsCore() || node->GetKind() == ModuleNodeKind::Ultra)
+	if (node->IsCore())
 	{
 		return false;
 	}
 
-	for (Slot& slot : slots_)
-	{
-		if (!slot.sold && slot.node == nullptr)
-		{
-			slot.node = std::move(node);
-			RelayoutSlots_();
-			return true;
-		}
-	}
-
+	// 买卖框只卖玩家的 Node。奥义本体也卖，里面的 Node 一起销毁。
 	GameStatsCodex::AddCurrency(node->GetSellPrice());
 	node.reset();
 	return true;
@@ -762,14 +754,14 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	}
 	if (node.GetKind() == ModuleNodeKind::Ultra)
 	{
-		// 场上或仓库的奥义不进货架。
-		result.verdict = DropVerdict::Forbidden;
+		// 场上或仓库的奥义拖到买卖框：卖掉，不放进货架。
+		result.verdict = DropVerdict::Accept;
 		return result;
 	}
 
 	if (shopOwned)
 	{
-		// 店有炼成 Node：买卖框非 Core 可进货或卖掉；场/仓不能丢进结果格（上面已拒）。
+		// 店有炼成 Node：买卖框非 Core 卖掉。场/仓不能丢进结果格（上面已拒）。
 		if (node.IsCore())
 		{
 			result.verdict = DropVerdict::Forbidden;
@@ -1712,6 +1704,20 @@ void ModuleShop::SellFromUltra(IModuleNode* node)
 	GameStatsCodex::AddCurrency(price);
 }
 
+void ModuleShop::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	RestoreShelfNode_(std::move(node), index);
+}
+
+bool ModuleShop::SellsOnTradeDrop(const IModuleNode& node) const noexcept
+{
+	if (node.IsCore() || IsShelfStock(&node))
+	{
+		return false;
+	}
+	return true;
+}
+
 std::size_t ModuleShop::FindRefineParkIndex(const IModuleNode* node) const noexcept
 {
 	if (node == nullptr)
@@ -1921,7 +1927,7 @@ bool ModuleShop::HasRefinePairReady_() const noexcept
 	{
 		return false;
 	}
-	return GameStatsCodex::GetCurrency() >= kRefineOpCost_;
+	return GameStatsCodex::GetCurrency() >= GameRulesCodex::RefineOpCost;
 }
 
 bool ModuleShop::CanUpgradeRefine_() const noexcept
@@ -2014,7 +2020,7 @@ bool ModuleShop::TryTakeRefinePair_(IModuleZone* field, IModuleZone* warehouse, 
 	{
 		return false;
 	}
-	if (!GameStatsCodex::TrySpendCurrency(kRefineOpCost_))
+	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::RefineOpCost))
 	{
 		return false;
 	}
@@ -2329,7 +2335,7 @@ void ModuleShop::PaintRefinePanel_()
 		if (i < 3u)
 		{
 			// 升级/合成/进化常驻费用；亮起时只有数字变黄。
-			const std::string cost = std::to_string(kRefineOpCost_);
+			const std::string cost = std::to_string(GameRulesCodex::RefineOpCost);
 			const UINT32 digitAt = static_cast<UINT32>(
 				Utf16CodeUnitCount(label) + Utf16CodeUnitCount(" "));
 			label += " " + cost;

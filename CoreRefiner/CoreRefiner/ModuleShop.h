@@ -106,6 +106,8 @@ public:
 	bool ToggleLockAt(DirectX::XMFLOAT2 worldPos);
 	[[nodiscard]] int GetRefreshCost() const noexcept;
 	void MarkSold(std::size_t index);
+	// 购买没完成时，商品回到原来的货槽，不卖掉。
+	void RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index);
 
 	[[nodiscard]] bool TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos) override;
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
@@ -220,6 +222,8 @@ public:
 	bool TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 localPos);
 	// 从奥义区卖到买卖框。奥义本体连同内部 Node 一起销毁。
 	void SellFromUltra(IModuleNode* node);
+	// 拖到买卖框时会卖掉。货架上的商品和核心不算。
+	[[nodiscard]] bool SellsOnTradeDrop(const IModuleNode& node) const noexcept;
 	// 格内 Icon 按仓库格比例缩放；素材/主体残影仍走来源尺寸。
 	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
 	// 店有炼成 Node：残影钉在结果格（格内尺寸），跟手图标另清 Icon 覆盖。
@@ -236,7 +240,6 @@ private:
 	static constexpr std::size_t kRefineSlotCount_ = 3;
 	static constexpr std::size_t kRefineButtonCount_ = 4;
 	static constexpr float kRefineSlotLabelFont_ = 20.0f;
-	static constexpr int kRefineOpCost_{ 1 };
 
 	struct RefineLayout_
 	{
