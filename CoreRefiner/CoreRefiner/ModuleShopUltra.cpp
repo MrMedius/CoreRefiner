@@ -629,6 +629,14 @@ bool ModuleShopUltra::TryClick(DirectX::XMFLOAT2 worldPos, DirectX::XMFLOAT3 zon
 		return TryForge(zoneOrigin);
 	case Button::Punch:
 		return TryPunch();
+	case Button::Rename:
+		if (ultra_ == nullptr)
+		{
+			return false;
+		}
+		// 只记一笔。编辑器取走后再请工作台打开更名界面。
+		renameRequested_ = true;
+		return true;
 	case Button::PageLeft:
 		return TryPage_(-1);
 	case Button::PageRight:
@@ -701,6 +709,13 @@ bool ModuleShopUltra::TryForge(DirectX::XMFLOAT3 zoneOrigin)
 	}
 	Adopt(std::move(node));
 	return true;
+}
+
+bool ModuleShopUltra::TakeRenameRequest() noexcept
+{
+	const bool requested = renameRequested_;
+	renameRequested_ = false;
+	return requested;
 }
 
 bool ModuleShopUltra::TryPunch()

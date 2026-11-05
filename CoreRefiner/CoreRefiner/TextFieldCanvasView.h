@@ -8,6 +8,7 @@
 #include "TextTypes.h"
 
 #include <memory>
+#include <string_view>
 
 namespace Ui
 {
@@ -39,6 +40,11 @@ namespace Ui
 		void SyncFrom(const TextFieldViewModel& vm);
 		void ApplyLayout(float centerX, float centerY, float width, float height) noexcept;
 
+		// 画布像素宽。点击的横坐标先换算到这个宽度再定位。
+		[[nodiscard]] unsigned GetPixelWidth() const noexcept;
+		// 按画布横坐标找最近的字缝，返回正文里的字节下标。点在输入法组合上时停在组合开头。
+		[[nodiscard]] std::size_t HitTestCaretByte(float canvasX, const TextFieldViewModel& vm) const;
+
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
 
@@ -47,7 +53,12 @@ namespace Ui
 		[[nodiscard]] Color TextColorForPhase(UiVisualPhase phase) const noexcept;
 		[[nodiscard]] std::string BuildDisplayText_(const TextFieldViewModel& vm) const;
 		[[nodiscard]] std::size_t CaretIndexInDisplay_(const TextFieldViewModel& vm) const;
-		[[nodiscard]] float ComputeScrollOffsetX_(const std::string& displayText, float fontSize) const;
+		// 量一段文字去掉左右内边距后的宽度，和画光标用的是同一套参数。
+		[[nodiscard]] int MeasureContentWidth_(std::string_view text, float fontSize) const;
+		// 让光标留在可见范围内。字比框窄时不滚动。
+		void UpdateScroll_(const std::string& displayText, std::size_t caretIndex, float fontSize);
+		// 显示文字里的下标换回正文下标。组合中的字还没进正文。
+		[[nodiscard]] std::size_t BufferIndexForDisplay_(const TextFieldViewModel& vm, std::size_t displayIndex) const;
 
 		void RepaintBackground_(UiVisualPhase phase);
 		void RepaintText_(const TextFieldViewModel& vm, float scrollOffsetX);
@@ -62,5 +73,7 @@ namespace Ui
 
 		TextFieldViewModel lastPainted_{};
 		bool hasPainted_ = false;
+		// 正文横向滚动。负值表示整行往左挪，用来把光标留在框里。
+		float scrollOffsetX_ = 0.0f;
 	};
 }

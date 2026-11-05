@@ -29,6 +29,13 @@ namespace Ui
 		ClampToMaxLength_();
 	}
 
+	void UiTextField::SetCaretByteIndex(const std::size_t byteIndex) noexcept
+	{
+		buffer_.SetCaretByteIndex(byteIndex);
+		showCaret_ = true;
+		blinkFrameCounter_ = 0u;
+	}
+
 	void UiTextField::SetMaxLength(const std::size_t maxCodepoints)
 	{
 		maxLength_ = maxCodepoints;
@@ -166,6 +173,44 @@ namespace Ui
 
 		if (in.KeyTriggered(KK_ENTER))
 			buffer_.InsertUtf8("\n");
+
+		// 左右键一次移动一个码点。按住时和退格一样，先等再重复。
+		const std::size_t caretBefore = buffer_.GetCaretByteIndex();
+		if (in.KeyTriggered(KK_LEFT))
+		{
+			buffer_.MoveCaretLeft();
+			leftHoldFrames_ = 0u;
+		}
+		else if (in.KeyPressed(KK_LEFT))
+		{
+			++leftHoldFrames_;
+			if (leftHoldFrames_ > kBackspaceInitialDelay
+				&& leftHoldFrames_ % kBackspaceRepeatInterval == 0u)
+				buffer_.MoveCaretLeft();
+		}
+		else
+			leftHoldFrames_ = 0u;
+
+		if (in.KeyTriggered(KK_RIGHT))
+		{
+			buffer_.MoveCaretRight();
+			rightHoldFrames_ = 0u;
+		}
+		else if (in.KeyPressed(KK_RIGHT))
+		{
+			++rightHoldFrames_;
+			if (rightHoldFrames_ > kBackspaceInitialDelay
+				&& rightHoldFrames_ % kBackspaceRepeatInterval == 0u)
+				buffer_.MoveCaretRight();
+		}
+		else
+			rightHoldFrames_ = 0u;
+
+		if (buffer_.GetCaretByteIndex() != caretBefore)
+		{
+			showCaret_ = true;
+			blinkFrameCounter_ = 0u;
+		}
 
 		if (buffer_.GetText().size() != beforeSize)
 			NotifyTextChangedIfNeeded_();

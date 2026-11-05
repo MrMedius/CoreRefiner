@@ -31,6 +31,9 @@ namespace Ui
 		void SetText(std::string utf8);
 		[[nodiscard]] const std::string& GetText() const noexcept { return buffer_.GetText(); }
 
+		// 把光标放到这个字节下标。超出正文就收到末尾。点击定位用。
+		void SetCaretByteIndex(std::size_t byteIndex) noexcept;
+
 		void SetPlaceholder(std::string utf8) { placeholderUtf8_ = std::move(utf8); }
 		[[nodiscard]] const std::string& GetPlaceholder() const noexcept { return placeholderUtf8_; }
 
@@ -90,6 +93,9 @@ namespace Ui
 		static constexpr unsigned kBackspaceRepeatInterval = 3u;
 		unsigned backspaceHoldFrames_ = 0u;
 		unsigned deleteHoldFrames_ = 0u;
+		// 左右键按住的帧数。超过等待后再按间隔移动光标。
+		unsigned leftHoldFrames_ = 0u;
+		unsigned rightHoldFrames_ = 0u;
 
 		std::function<void(const std::string&)> onTextChanged_;
 	};

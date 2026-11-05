@@ -9,8 +9,10 @@
 #include <DirectXMath.h>
 #include <functional>
 #include <memory>
+#include <string>
 
 class UI_SellConfirm;
+class UI_UltraRename;
 
 class AttackManager;
 class Graphics;
@@ -86,7 +88,10 @@ private:
 	void PlaceDemoWarehouse_();
 	void SyncFieldWaves_();
 	void InitFightButton_();
-	void BindSellConfirm_();
+	// 接上卖出确认和更名。两边都从编辑器的叠加请求打开。
+	void BindOverlays_();
+	// 按编号找到商店里的那颗奥义并改名。找不到就不改。
+	void ApplyRename_(std::uint32_t instanceId, std::string name);
 	// 战备布局：左 Shop、右列 Field / Warehouse / 战斗按钮，统一缝隙。
 	void ComputeLayout_() noexcept;
 
@@ -105,7 +110,12 @@ private:
 	ScanAssembler assembler_;
 	ZoneLayoutEditor layoutEditor_;
 	std::unique_ptr<UI_SellConfirm> sellConfirm_;
+	// 更名界面。打开时和卖出确认一样挡住整理。
+	std::unique_ptr<UI_UltraRename> rename_;
+	// 正在等确认卖掉的 Node 编号。
 	std::uint32_t pendingSellId_{ 0 };
+	// 正在更名的奥义编号。确定时再按这个编号去找。
+	std::uint32_t pendingRenameId_{ 0 };
 
 	std::unique_ptr<Ui::UiRoot> uiRoot_;
 	std::unique_ptr<Ui::ButtonCanvasComponent> fightBtn_;

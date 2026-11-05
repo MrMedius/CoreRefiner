@@ -754,6 +754,9 @@
     <ClCompile Include="UI_SellConfirm.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="UI_UltraRename.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1577,6 +1580,9 @@
     </ClInclude>
     <ClInclude Include="GameRulesCodex.h">
       <Filter>Tool</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_UltraRename.h">
+      <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
