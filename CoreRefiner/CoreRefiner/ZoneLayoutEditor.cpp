@@ -150,6 +150,11 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		if (input.MouseLeftTriggered())
 		{
 			(void)shop->TryClickUltra(mouseGame);
+			// 商店只回答这次是不是更名。编辑器不分辨锻造、打孔和翻页。
+			if (shop->TakeUltraRenameRequest())
+			{
+				RequestRename_();
+			}
 		}
 	}
 	else
@@ -492,6 +497,25 @@ void ZoneLayoutEditor::ClearActiveDrag_()
 void ZoneLayoutEditor::SetOnOverlayRequest(std::function<void(const OverlayUiRequest&)> cb)
 {
 	onOverlay_ = std::move(cb);
+}
+
+void ZoneLayoutEditor::RequestRename_()
+{
+	if (!onOverlay_)
+	{
+		return;
+	}
+	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	if (shop == nullptr)
+	{
+		return;
+	}
+	IModuleNode* ultra = shop->GetUltraArea().GetUltra();
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	onOverlay_(OverlayUiRequest{ OverlayUiKind::Rename, ultra->GetInstanceId(), 0 });
 }
 
 bool ZoneLayoutEditor::RequestSellConfirm_(IModuleNode& node)

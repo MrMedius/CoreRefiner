@@ -90,6 +90,23 @@ namespace Ui
 	void TextFieldCanvasComponent::Update(const UiInputFrame& frame, FocusManager& focus)
 	{
 		field_->Update(frame, focus);
+		if (field_ == nullptr || view_ == nullptr || !frame.pointer.primaryPressed)
+			return;
+		if (!field_->IsEnabled() || !focus.IsFocused(focusHandle_))
+			return;
+
+		const UiRect& bounds = field_->GetBounds();
+		if (!bounds.Contains(frame.pointer.logicalX, frame.pointer.logicalY))
+			return;
+
+		const float boundsW = bounds.maxX - bounds.minX;
+		const unsigned canvasW = view_->GetPixelWidth();
+		if (boundsW <= 0.0f || canvasW == 0u)
+			return;
+
+		// 逻辑坐标换成画布像素，再落到最近的字缝。
+		const float canvasX = (frame.pointer.logicalX - bounds.minX) * static_cast<float>(canvasW) / boundsW;
+		field_->SetCaretByteIndex(view_->HitTestCaretByte(canvasX, MakeTextFieldViewModel(*field_)));
 	}
 
 	void TextFieldCanvasComponent::SyncView()

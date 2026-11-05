@@ -233,6 +233,8 @@ public:
 	// 奥义区按钮。编辑器只问有没有点到，锻造、打孔和翻页由奥义区自己分。
 	[[nodiscard]] bool HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept;
 	bool TryClickUltra(DirectX::XMFLOAT2 worldPos);
+	// 这次点的是更名时返回 true。调用后记号消失。
+	bool TakeUltraRenameRequest() noexcept;
 	// 鼠标在奥义图标上时返回它，给 Panel 用。选中圈走 PickAt。
 	[[nodiscard]] const IModuleNode* PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept;
 

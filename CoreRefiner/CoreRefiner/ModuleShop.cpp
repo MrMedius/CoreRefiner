@@ -2467,6 +2467,11 @@ bool ModuleShop::TryClickUltra(DirectX::XMFLOAT2 worldPos)
 	return ultra_.TryClick(worldPos, origin_);
 }
 
+bool ModuleShop::TakeUltraRenameRequest() noexcept
+{
+	return ultra_.TakeRenameRequest();
+}
+
 const IModuleNode* ModuleShop::PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	return ultra_.PickInfoNode(worldPos);

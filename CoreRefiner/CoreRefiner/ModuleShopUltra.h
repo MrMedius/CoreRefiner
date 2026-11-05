@@ -10,7 +10,7 @@
 
 class ModuleNode_Ultra;
 
-// 商店第三块的奥义区。锻造、打孔和左右翻页在这里处理。圆点不能点。更名、重绘还没接。
+// 商店第三块的奥义区。锻造、打孔、更名和左右翻页在这里处理。圆点不能点。重绘还没接。
 class ModuleShopUltra
 {
 public:
@@ -60,8 +60,10 @@ public:
 
 	// 鼠标落在当前画出来的按钮上。没有奥义时只有锻造；有奥义时是右侧三个和左右三角。圆点不算。
 	[[nodiscard]] Button HitButton(DirectX::XMFLOAT2 worldPos) const noexcept;
-	// 点到锻造、打孔，或还能翻的三角就执行。到头的三角和更名、重绘先不响应。
+	// 点到锻造、打孔、更名，或还能翻的三角就执行。到头的三角和重绘先不响应。
 	bool TryClick(DirectX::XMFLOAT2 worldPos, DirectX::XMFLOAT3 zoneOrigin);
+	// 这次点击是更名时返回 true，并清掉记号。编辑器据此发请求，不看按钮种类。
+	bool TakeRenameRequest() noexcept;
 	// 钱够且还没有奥义时扣 3 元，造一颗默认奥义放进左侧栏位。
 	bool TryForge(DirectX::XMFLOAT3 zoneOrigin);
 	// 已有奥义且钱够时扣 1 元，容量加 1，并重画栏位。
@@ -156,6 +158,8 @@ private:
 	Rgph::RenderGraph* rg_{ nullptr };
 	DirectX::XMFLOAT3 hostOrigin_{ 0.0f, 0.0f, 0.0f };
 	int scroll_{ 0 };
+	// 更名按钮刚被点下。TakeRenameRequest 取走后清掉。
+	bool renameRequested_{ false };
 	bool painted_ = false;
 	int paintedScroll_ = 0;
 	bool paintedHas_ = false;

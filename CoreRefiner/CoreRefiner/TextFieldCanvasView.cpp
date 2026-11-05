@@ -5,8 +5,10 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "TextCodex.h"
+#include "Util.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace Ui
 {
@@ -110,21 +112,19 @@ namespace Ui
 		bgCanvas_->Clear(BackgroundForPhase(phase));
 	}
 
-	float TextFieldCanvasView::ComputeScrollOffsetX_(
-		const std::string& displayText,
-		const float fontSize) const
+	unsigned TextFieldCanvasView::GetPixelWidth() const noexcept
 	{
-		if (displayText.empty())
-			return 0.0f;
+		return textCanvas_->GetCanvasWidth();
+	}
 
-		const int canvasW = static_cast<int>(textCanvas_->GetCanvasWidth());
-		const int innerW = canvasW - style_.paddingPx * 2;
-		if (innerW <= 0)
-			return 0.0f;
+	int TextFieldCanvasView::MeasureContentWidth_(const std::string_view text, const float fontSize) const
+	{
+		if (text.empty())
+			return 0;
 
 		auto ctx = TextCodex::Get().BeginDraw();
 		Text::RenderRequest& rq = ctx.Request();
-		rq.text = displayText;
+		rq.text = std::string(text);
 		rq.canvasMode = Text::CanvasMode::Fixed;
 		rq.clearMode = Text::ClearMode::NoClear;
 		rq.primaryFont = style_.primaryFont;
@@ -133,16 +133,101 @@ namespace Ui
 		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
 		rq.style.wordWrapEnabled = false;
 		rq.paddingPx = style_.paddingPx;
-		rq.maxWidthPx = static_cast<float>(canvasW);
+		rq.maxWidthPx = static_cast<float>(textCanvas_->GetCanvasWidth());
 		rq.backgroundColor = Colors::None;
 
 		const Text::MeasureResult measure = ctx.Measure();
-		const int textW = static_cast<int>(measure.widthPx) - style_.paddingPx * 2;
-		if (textW <= innerW)
-			return 0.0f;
+		const int width = static_cast<int>(measure.widthPx) - style_.paddingPx * 2;
+		return (width > 0) ? width : 0;
+	}
 
-		// 文字超出框宽时左移，使末端（输入处）保持可见
-		return -static_cast<float>(textW - innerW);
+	void TextFieldCanvasView::UpdateScroll_(
+		const std::string& displayText,
+		const std::size_t caretIndex,
+		const float fontSize)
+	{
+		const int canvasW = static_cast<int>(textCanvas_->GetCanvasWidth());
+		const int innerW = canvasW - style_.paddingPx * 2;
+		if (innerW <= 0 || displayText.empty())
+		{
+			scrollOffsetX_ = 0.0f;
+			return;
+		}
+
+		const int textW = MeasureContentWidth_(displayText, fontSize);
+		if (textW <= innerW)
+		{
+			scrollOffsetX_ = 0.0f;
+			return;
+		}
+
+		const std::size_t clamped = (std::min)(caretIndex, displayText.size());
+		const int prefixW = MeasureContentWidth_(std::string_view(displayText).substr(0, clamped), fontSize);
+		const float visibleLeft = -scrollOffsetX_;
+		const float visibleRight = visibleLeft + static_cast<float>(innerW);
+		if (static_cast<float>(prefixW) < visibleLeft)
+			scrollOffsetX_ = -static_cast<float>(prefixW);
+		else if (static_cast<float>(prefixW) > visibleRight)
+			scrollOffsetX_ = static_cast<float>(innerW) - static_cast<float>(prefixW);
+
+		const float minScroll = static_cast<float>(innerW - textW);
+		if (scrollOffsetX_ > 0.0f)
+			scrollOffsetX_ = 0.0f;
+		if (scrollOffsetX_ < minScroll)
+			scrollOffsetX_ = minScroll;
+	}
+
+	std::size_t TextFieldCanvasView::BufferIndexForDisplay_(
+		const TextFieldViewModel& vm,
+		const std::size_t displayIndex) const
+	{
+		if (!vm.imeCompositionActive || vm.imeCompositionUtf8.empty())
+			return (std::min)(displayIndex, vm.textUtf8.size());
+
+		const std::size_t compStart = (std::min)(vm.caretByteIndex, vm.textUtf8.size());
+		const std::size_t compEnd = compStart + vm.imeCompositionUtf8.size();
+		if (displayIndex <= compStart)
+			return displayIndex;
+		// 组合中的字还没进正文，点在这段上就停在组合开头。
+		if (displayIndex < compEnd)
+			return compStart;
+
+		const std::size_t after = displayIndex - vm.imeCompositionUtf8.size();
+		return (std::min)(after, vm.textUtf8.size());
+	}
+
+	std::size_t TextFieldCanvasView::HitTestCaretByte(
+		const float canvasX,
+		const TextFieldViewModel& vm) const
+	{
+		const bool showPlaceholder = vm.textUtf8.empty()
+			&& !vm.imeCompositionActive
+			&& !vm.placeholderUtf8.empty();
+		if (showPlaceholder)
+			return 0u;
+
+		const std::string displayText = BuildDisplayText_(vm);
+		if (displayText.empty())
+			return 0u;
+
+		const float fontSize = vm.fontSize > 0.0f ? vm.fontSize : style_.fontSize;
+		const float contentX = canvasX - static_cast<float>(style_.paddingPx) - scrollOffsetX_;
+
+		std::size_t best = 0u;
+		int bestDist = std::abs(MeasureContentWidth_({}, fontSize) - static_cast<int>(contentX));
+		std::size_t index = 0u;
+		while (index < displayText.size())
+		{
+			index = Utf8Next(displayText, index);
+			const int width = MeasureContentWidth_(std::string_view(displayText).substr(0, index), fontSize);
+			const int dist = std::abs(width - static_cast<int>(contentX));
+			if (dist < bestDist)
+			{
+				bestDist = dist;
+				best = index;
+			}
+		}
+		return BufferIndexForDisplay_(vm, best);
 	}
 
 	void TextFieldCanvasView::RepaintText_(const TextFieldViewModel& vm, const float scrollOffsetX)
@@ -202,28 +287,7 @@ namespace Ui
 
 		const std::string prefix(displayText.substr(0, std::min(caretIndex, displayText.size())));
 		const float fontSize = vm.fontSize > 0.0f ? vm.fontSize : style_.fontSize;
-
-		// caret X：测量 caret 前缀宽度（与正文同样的无换行 / 居中段落参数）
-		int prefixW = 0;
-		if (!prefix.empty())
-		{
-			auto ctx = TextCodex::Get().BeginDraw();
-			Text::RenderRequest& rq = ctx.Request();
-			rq.text = prefix;
-			rq.canvasMode = Text::CanvasMode::Fixed;
-			rq.clearMode = Text::ClearMode::NoClear;
-			rq.primaryFont = style_.primaryFont;
-			rq.style.fontSize = fontSize;
-			rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-			rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-			rq.style.wordWrapEnabled = false;
-			rq.paddingPx = style_.paddingPx;
-			rq.maxWidthPx = static_cast<float>(c.GetCanvasWidth());
-			rq.backgroundColor = Colors::None;
-
-			const Text::MeasureResult measure = ctx.Measure();
-			prefixW = static_cast<int>(measure.widthPx) - style_.paddingPx * 2;
-		}
+		const int prefixW = MeasureContentWidth_(prefix, fontSize);
 
 		// X = padding + 前缀宽度 + 水平滚动偏移（与正文一致，保证竖线贴在最后一个字后）
 		const int caretX = style_.paddingPx + prefixW + static_cast<int>(scrollOffsetX);
@@ -260,20 +324,24 @@ namespace Ui
 			|| IsDisabledPhase(vm.phase) != IsDisabledPhase(lastPainted_.phase);
 		const bool ringDirty = !hasPainted_
 			|| (vm.phase == UiVisualPhase::Focused) != (lastPainted_.phase == UiVisualPhase::Focused);
+
+		const float fontSize = vm.fontSize > 0.0f ? vm.fontSize : style_.fontSize;
+		const float scrollBefore = scrollOffsetX_;
+		if (showPlaceholder)
+			scrollOffsetX_ = 0.0f;
+		else
+			UpdateScroll_(displayText, CaretIndexInDisplay_(vm), fontSize);
+		const bool scrollDirty = scrollOffsetX_ != scrollBefore;
 		const bool caretDirty = !hasPainted_
 			|| vm.caretByteIndex != lastPainted_.caretByteIndex
 			|| vm.showCaret != lastPainted_.showCaret
-			|| textDirty;
-
-		const float fontSize = vm.fontSize > 0.0f ? vm.fontSize : style_.fontSize;
-		const float scrollOffsetX = showPlaceholder
-			? 0.0f
-			: ComputeScrollOffsetX_(displayText, fontSize);
+			|| textDirty
+			|| scrollDirty;
 
 		if (bgDirty)
 			RepaintBackground_(vm.phase);
-		if (textDirty)
-			RepaintText_(vm, scrollOffsetX);
+		if (textDirty || scrollDirty)
+			RepaintText_(vm, scrollOffsetX_);
 		if (ringDirty)
 			RepaintFocusRing_(vm.phase);
 		if (caretDirty)
@@ -281,7 +349,7 @@ namespace Ui
 			const std::size_t caretIndex = showPlaceholder
 				? 0u
 				: CaretIndexInDisplay_(vm);
-			RepaintCaret_(vm, displayText, caretIndex, scrollOffsetX);
+			RepaintCaret_(vm, displayText, caretIndex, scrollOffsetX_);
 		}
 
 		if (bgDirty || textDirty || ringDirty || caretDirty)

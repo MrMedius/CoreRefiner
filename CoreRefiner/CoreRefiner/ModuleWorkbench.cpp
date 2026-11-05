@@ -14,6 +14,7 @@
 #include "UiCopy.h"
 #include "UiRoot.h"
 #include "UI_SellConfirm.h"
+#include "UI_UltraRename.h"
 #include "Win.h"
 #include "Window.h"
 
@@ -72,7 +73,7 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	shop_.InitAllVisuals(gfx_, rg_, shopOrigin_);
 	InitFightButton_();
-	BindSellConfirm_();
+	BindOverlays_();
 }
 
 ModuleWorkbench::~ModuleWorkbench() = default;
@@ -180,7 +181,7 @@ void ModuleWorkbench::RefreshFightLabel()
 	fightBtn_->Button().SetLabel(GetUiCopy("prep.fight", wave));
 }
 
-void ModuleWorkbench::BindSellConfirm_()
+void ModuleWorkbench::BindOverlays_()
 {
 	sellConfirm_ = std::make_unique<UI_SellConfirm>(gfx_, rg_);
 	sellConfirm_->SetOnConfirm([this]
@@ -193,28 +194,77 @@ void ModuleWorkbench::BindSellConfirm_()
 	{
 		CloseOverlay();
 	});
+
+	rename_ = std::make_unique<UI_UltraRename>(gfx_, rg_);
+	rename_->SetOnConfirm([this](std::string name)
+	{
+		const std::uint32_t id = pendingRenameId_;
+		CloseOverlay();
+		ApplyRename_(id, std::move(name));
+	});
+	rename_->SetOnExit([this]
+	{
+		CloseOverlay();
+	});
+
 	layoutEditor_.SetOnOverlayRequest([this](const OverlayUiRequest& request)
 	{
-		if (request.kind != OverlayUiKind::SellConfirm || sellConfirm_ == nullptr)
+		if (request.kind == OverlayUiKind::SellConfirm && sellConfirm_ != nullptr)
 		{
+			pendingSellId_ = request.instanceId;
+			sellConfirm_->Show(request.sellPrice);
 			return;
 		}
-		pendingSellId_ = request.instanceId;
-		sellConfirm_->Show(request.sellPrice);
+		if (request.kind == OverlayUiKind::Rename && rename_ != nullptr)
+		{
+			pendingRenameId_ = request.instanceId;
+			std::string current;
+			const IModuleNode* node = shop_.GetUltraArea().GetUltra();
+			if (node != nullptr && node->GetInstanceId() == request.instanceId)
+			{
+				if (const auto* ultra = dynamic_cast<const ModuleNode_Ultra*>(node))
+				{
+					current = ultra->GetName();
+				}
+			}
+			rename_->Show(std::move(current));
+		}
 	});
+}
+
+void ModuleWorkbench::ApplyRename_(std::uint32_t instanceId, std::string name)
+{
+	IModuleNode* node = shop_.GetUltraArea().GetUltra();
+	if (node == nullptr || node->GetInstanceId() != instanceId)
+	{
+		return;
+	}
+	auto* ultra = dynamic_cast<ModuleNode_Ultra*>(node);
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->SetName(std::move(name));
 }
 
 bool ModuleWorkbench::IsOverlayOpen() const noexcept
 {
-	return sellConfirm_ != nullptr && sellConfirm_->IsOpen();
+	const bool sellOpen = sellConfirm_ != nullptr && sellConfirm_->IsOpen();
+	const bool renameOpen = rename_ != nullptr && rename_->IsOpen();
+	return sellOpen || renameOpen;
 }
 
 void ModuleWorkbench::CloseOverlay() noexcept
 {
 	pendingSellId_ = 0;
+	pendingRenameId_ = 0;
 	if (sellConfirm_ != nullptr)
 	{
 		sellConfirm_->Hide();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->Hide();
 	}
 }
 
@@ -223,6 +273,10 @@ void ModuleWorkbench::RefreshOverlayLabels()
 	if (sellConfirm_ != nullptr)
 	{
 		sellConfirm_->RefreshLabels();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->RefreshLabels();
 	}
 }
 
@@ -429,7 +483,14 @@ void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
 	if (IsOverlayOpen())
 	{
 		layoutEditor_.ClearPointerState();
-		sellConfirm_->Update(dt);
+		if (sellConfirm_ != nullptr)
+		{
+			sellConfirm_->Update(dt);
+		}
+		if (rename_ != nullptr)
+		{
+			rename_->Update(dt);
+		}
 		return;
 	}
 
@@ -485,6 +546,10 @@ void ModuleWorkbench::SubmitPrep()
 	if (sellConfirm_ != nullptr)
 	{
 		sellConfirm_->Submit();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->Submit();
 	}
 }
 
