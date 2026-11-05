@@ -125,6 +125,8 @@ void UI_UltraRename::Show(std::string currentName)
 	if (field_ != nullptr)
 	{
 		field_->Field().SetText(std::move(currentName));
+		// 字节末尾就是最后一个码点之后。空名字时光标仍在开头。
+		field_->Field().SetCaretByteIndex(field_->Field().GetText().size());
 	}
 	if (uiRoot_ != nullptr)
 	{

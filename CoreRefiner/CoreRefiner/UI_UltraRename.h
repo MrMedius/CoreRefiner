@@ -29,7 +29,7 @@ public:
 	// 退出时不改名字。界面自己不关闭。
 	void SetOnExit(std::function<void()> cb);
 
-	// 打开并预填当前名字，焦点放在输入栏。
+	// 打开并预填当前名字，光标放在名字末尾，焦点放在输入栏。
 	void Show(std::string currentName);
 	// 关掉界面，不清输入栏。
 	void Hide() noexcept;

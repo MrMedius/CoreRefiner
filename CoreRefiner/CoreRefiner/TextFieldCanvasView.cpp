@@ -125,7 +125,8 @@ namespace Ui
 		auto ctx = TextCodex::Get().BeginDraw();
 		Text::RenderRequest& rq = ctx.Request();
 		rq.text = std::string(text);
-		rq.canvasMode = Text::CanvasMode::Fixed;
+		// 自动宽度且不换行：按字的自然宽度量，不被输入栏的框宽截断。
+		rq.canvasMode = Text::CanvasMode::Auto;
 		rq.clearMode = Text::ClearMode::NoClear;
 		rq.primaryFont = style_.primaryFont;
 		rq.style.fontSize = fontSize;
@@ -133,7 +134,6 @@ namespace Ui
 		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
 		rq.style.wordWrapEnabled = false;
 		rq.paddingPx = style_.paddingPx;
-		rq.maxWidthPx = static_cast<float>(textCanvas_->GetCanvasWidth());
 		rq.backgroundColor = Colors::None;
 
 		const Text::MeasureResult measure = ctx.Measure();

@@ -53,7 +53,7 @@ namespace Ui
 		[[nodiscard]] Color TextColorForPhase(UiVisualPhase phase) const noexcept;
 		[[nodiscard]] std::string BuildDisplayText_(const TextFieldViewModel& vm) const;
 		[[nodiscard]] std::size_t CaretIndexInDisplay_(const TextFieldViewModel& vm) const;
-		// 量一段文字去掉左右内边距后的宽度，和画光标用的是同一套参数。
+		// 量一段文字的自然宽度，去掉左右内边距。不按输入栏的框宽排版，超框时滚动和光标才贴得住字。
 		[[nodiscard]] int MeasureContentWidth_(std::string_view text, float fontSize) const;
 		// 让光标留在可见范围内。字比框窄时不滚动。
 		void UpdateScroll_(const std::string& displayText, std::size_t caretIndex, float fontSize);
