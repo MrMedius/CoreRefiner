@@ -104,14 +104,24 @@ namespace Ui
 		if (boundsW <= 0.0f || canvasW == 0u)
 			return;
 
-		// 逻辑坐标换成画布像素，再落到最近的字缝。
+		// 逻辑坐标换成画布像素。多行还会用纵坐标选行。
 		const float canvasX = (frame.pointer.logicalX - bounds.minX) * static_cast<float>(canvasW) / boundsW;
-		field_->SetCaretByteIndex(view_->HitTestCaretByte(canvasX, MakeTextFieldViewModel(*field_)));
+		const float boundsH = bounds.maxY - bounds.minY;
+		const unsigned canvasH = view_->GetPixelHeight();
+		if (boundsH <= 0.0f || canvasH == 0u)
+			return;
+		const float canvasY = (frame.pointer.logicalY - bounds.minY) * static_cast<float>(canvasH) / boundsH;
+		field_->SetCaretByteIndex(view_->HitTestCaretByte(canvasX, canvasY, MakeTextFieldViewModel(*field_)));
 	}
 
 	void TextFieldCanvasComponent::SyncView()
 	{
 		view_->SyncFrom(MakeTextFieldViewModel(*field_));
+		// 自动换行的显示行交回逻辑层，下一帧的上下键和到顶到底用同一套行。
+		if (field_->IsMultiline() && field_->IsAutoWrap())
+			field_->SetVisualLines(view_->BuildVisualLines(field_->GetText(), field_->GetFontSize(), true));
+		else
+			field_->ClearVisualLines();
 	}
 
 	void TextFieldCanvasComponent::LinkTechniques(Rgph::RenderGraph& rg)
@@ -137,6 +147,16 @@ namespace Ui
 	bool TextFieldCanvasComponent::ConsumesDirectionalNavigation() const noexcept
 	{
 		return field_->ConsumesDirectionalNavigation();
+	}
+
+	bool TextFieldCanvasComponent::ConsumesNavUp() const noexcept
+	{
+		return field_->ConsumesNavUp();
+	}
+
+	bool TextFieldCanvasComponent::ConsumesNavDown() const noexcept
+	{
+		return field_->ConsumesNavDown();
 	}
 
 	bool TextFieldCanvasComponent::ConsumesTextInput() const noexcept

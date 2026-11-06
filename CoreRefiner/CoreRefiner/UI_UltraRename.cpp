@@ -62,6 +62,8 @@ UI_UltraRename::UI_UltraRename(Graphics& gfx, Rgph::RenderGraph& rg)
 			fieldStyle);
 		field_->Field().SetFontSize(kFieldFont);
 		field_->Field().SetMaxLength(GameRulesCodex::UltraNameMaxCodepoints);
+		// 更名保持单行。回车不换行。
+		field_->Field().SetMultiline(false);
 		field_->RegisterTo(*uiRoot_);
 	}
 
@@ -125,6 +127,8 @@ void UI_UltraRename::Show(std::string currentName)
 	if (field_ != nullptr)
 	{
 		field_->Field().SetText(std::move(currentName));
+		// 字节末尾就是最后一个码点之后。空名字时光标仍在开头。
+		field_->Field().SetCaretByteIndex(field_->Field().GetText().size());
 	}
 	if (uiRoot_ != nullptr)
 	{

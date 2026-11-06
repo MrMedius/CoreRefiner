@@ -80,6 +80,72 @@ namespace Ui
 		caretByteIndex_ = OffsetFromColumn(nextLineStart, nextLineEnd, column);
 	}
 
+	bool UiUtf8EditBuffer::IsCaretOnFirstLine() const noexcept
+	{
+		return FindLineStart(caretByteIndex_) == 0u;
+	}
+
+	bool UiUtf8EditBuffer::IsCaretOnLastLine() const noexcept
+	{
+		const std::size_t lineStart = FindLineStart(caretByteIndex_);
+		return FindLineEnd(lineStart) >= text_.size();
+	}
+
+	std::size_t UiUtf8EditBuffer::FindDisplayLine_(const std::vector<EditLineSpan>& lines) const noexcept
+	{
+		if (lines.empty())
+			return 0u;
+
+		std::size_t found = lines.size() - 1u;
+		for (std::size_t n = 0u; n < lines.size(); ++n)
+		{
+			const bool last = (n + 1u == lines.size());
+			if (caretByteIndex_ < lines[n].begin)
+				break;
+			if (last || caretByteIndex_ <= lines[n].end)
+			{
+				found = n;
+				break;
+			}
+		}
+		return found;
+	}
+
+	bool UiUtf8EditBuffer::IsCaretOnFirstOf(const std::vector<EditLineSpan>& lines) const noexcept
+	{
+		return FindDisplayLine_(lines) == 0u;
+	}
+
+	bool UiUtf8EditBuffer::IsCaretOnLastOf(const std::vector<EditLineSpan>& lines) const noexcept
+	{
+		if (lines.empty())
+			return true;
+		return FindDisplayLine_(lines) + 1u == lines.size();
+	}
+
+	void UiUtf8EditBuffer::MoveCaretByDisplayLines(const std::vector<EditLineSpan>& lines, const bool up)
+	{
+		if (lines.empty())
+			return;
+
+		const std::size_t line = FindDisplayLine_(lines);
+		if (up)
+		{
+			if (line == 0u)
+				return;
+		}
+		else if (line + 1u >= lines.size())
+			return;
+
+		const EditLineSpan& current = lines[line];
+		const std::size_t caretOnLine = (caretByteIndex_ < current.begin)
+			? current.begin
+			: ((caretByteIndex_ > current.end) ? current.end : caretByteIndex_);
+		const std::size_t column = ColumnOnLine(current.begin, caretOnLine);
+		const EditLineSpan& target = up ? lines[line - 1u] : lines[line + 1u];
+		caretByteIndex_ = OffsetFromColumn(target.begin, target.end, column);
+	}
+
 	void UiUtf8EditBuffer::MoveCaretLineHome()
 	{
 		caretByteIndex_ = FindLineStart(caretByteIndex_);

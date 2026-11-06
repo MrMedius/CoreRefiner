@@ -13,7 +13,7 @@ public:
 	static constexpr int ForgeCost = 3;          // 锻造花费。没有奥义时按下锻造扣的钱
 	static constexpr int PunchCost = 1;          // 打孔花费。已有奥义时容量加 1 扣的钱
 	static constexpr int RefineOpCost = 1;       // 炼成花费。升级、融合、进化各扣一次
-	static constexpr int SellConfirmPrice = 40;  // 卖出确认线。卖价超过这个数才弹确认
+	static constexpr int SellConfirmPrice = 20;  // 卖出确认线。卖价超过这个数才弹确认
 	static constexpr int DefaultBuyPrice = 4;    // 默认造价。卖价是它的一半
 
 	// Node 与奥义。空奥义的四项用默认属性。

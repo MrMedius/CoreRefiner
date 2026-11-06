@@ -235,6 +235,8 @@ public:
 	bool TryClickUltra(DirectX::XMFLOAT2 worldPos);
 	// 这次点的是更名时返回 true。调用后记号消失。
 	bool TakeUltraRenameRequest() noexcept;
+	// 这次点的是重绘时返回 true。调用后记号消失。
+	bool TakeUltraRedrawRequest() noexcept;
 	// 鼠标在奥义图标上时返回它，给 Panel 用。选中圈走 PickAt。
 	[[nodiscard]] const IModuleNode* PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept;
 

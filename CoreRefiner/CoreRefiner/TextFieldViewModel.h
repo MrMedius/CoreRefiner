@@ -17,6 +17,10 @@ namespace Ui
 		std::size_t caretByteIndex = 0u;
 		bool showCaret = false;
 		float fontSize = 18.0f;
+		// 为真时按多行排版，光标落在当前行。为假时整段当成一行。
+		bool multiline = false;
+		// 为真时超宽另起一行显示，正文里不插入换行符。
+		bool autoWrap = false;
 	};
 
 	inline TextFieldViewModel MakeTextFieldViewModel(const UiTextField& field)
@@ -29,7 +33,9 @@ namespace Ui
 			.imeCompositionActive = field.ImeCompositionActive(),
 			.caretByteIndex = field.GetCaretByteIndex(),
 			.showCaret = field.ShowCaret() && field.GetVisualPhase() == UiVisualPhase::Focused,
-			.fontSize = field.GetFontSize()
+			.fontSize = field.GetFontSize(),
+			.multiline = field.IsMultiline(),
+			.autoWrap = field.IsAutoWrap()
 		};
 	}
 }

@@ -13,7 +13,7 @@
 #include <functional>
 #include <memory>
 
-// 布局编辑器请上层打开的叠加界面。卖出确认和更名会发；重绘以后也走这一条。
+// 布局编辑器请上层打开的叠加界面。卖出确认、更名和重绘都会发。
 enum class OverlayUiKind : unsigned char
 {
 	SellConfirm,
@@ -94,6 +94,8 @@ private:
 	bool RequestSellConfirm_(IModuleNode& node);
 	// 更名：只交当前奥义的编号，不留 Node 指针。
 	void RequestRename_();
+	// 重绘：只交当前奥义的编号，不留 Node 指针。
+	void RequestRedraw_();
 	// 这次松手会在买卖框卖掉时，超过阈值就改成请求确认。返回 true 表示已经拦住。
 	bool TryDeferTradeSell_(IModuleNode& node, IModuleZone* target, DirectX::XMFLOAT2 world);
 	[[nodiscard]] IModuleNode* FindByInstanceId_(std::uint32_t instanceId) const noexcept;

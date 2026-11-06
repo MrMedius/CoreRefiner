@@ -270,20 +270,37 @@ public:
 					});
 			}
 
-			// TextField
+			// 单行输入栏。字数上限仍由上面的 Limit 步进器改。回车不换行。
 			{
 				const float textFieldW = static_cast<float>(btnWidth) * 2.5f;
 				const float textFieldH = static_cast<float>(btnHeight);
-				const float textFieldX = static_cast<float>(centerX) - static_cast<float>(btnWidth) * 2.65f;
+				const float textFieldX = static_cast<float>(centerX) - static_cast<float>(btnWidth) * 3.0f;
 				const float textFieldY = static_cast<float>(centerY) + static_cast<float>(spacingY) * 6.0f;
 				textField_ = std::make_unique<Ui::TextFieldCanvasComponent>(
 					gfx, 518u, textFieldX, textFieldY, textFieldW, textFieldH);
 				textField_->Field().SetPlaceholder("Enter name...");
 				textField_->Field().SetMaxLength(10);
 				textField_->Field().SetFontSize(16.0f);
+				textField_->Field().SetMultiline(false);
 				textField_->Field().SetOnTextChanged([this](const std::string& s) {
 					btnB_->Button().SetLabel(s.empty() ? "TestBtn" : ("Name: " + s));
 					});
+			}
+
+			// 多行输入栏。打开自动换行，超宽另起一行显示，正文里不写换行符。
+			{
+				const float multiW = static_cast<float>(btnWidth) * 2.5f;
+				const float multiH = static_cast<float>(btnHeight) * 1.5f;
+				const float multiX = static_cast<float>(centerX) - static_cast<float>(btnWidth) * 0.3f;
+				const float multiY = static_cast<float>(centerY) + static_cast<float>(spacingY) * 6.0f;
+				multilineField_ = std::make_unique<Ui::TextFieldCanvasComponent>(
+					gfx, 519u, multiX, multiY, multiW, multiH);
+				multilineField_->Field().SetPlaceholder("Newline");
+				multilineField_->Field().SetMaxLength(100);
+				multilineField_->Field().SetFontSize(20.0f);
+				multilineField_->Field().SetMultiline(true);
+				// 超宽时按框宽另起一行显示，不往正文里写换行符。
+				multilineField_->Field().SetAutoWrap(true);
 			}
 
 
@@ -306,6 +323,7 @@ public:
 
 			stepperDemo_->RegisterTo(*uiRoot);
 			textField_->RegisterTo(*uiRoot);
+			multilineField_->RegisterTo(*uiRoot);
 
 			dropdownCustom_->RegisterTo(*uiRoot);
 
@@ -365,6 +383,8 @@ private:
 	std::unique_ptr<Ui::UiOptionList> qualityOptions_{};
 	std::unique_ptr<Ui::StepperCanvasComponent> stepperQuality_{};
 	std::unique_ptr<Ui::TextFieldCanvasComponent> textField_{};
+	// 测试页的多行输入栏。字号和字数上限不跟 Limit 步进器走。
+	std::unique_ptr<Ui::TextFieldCanvasComponent> multilineField_{};
 
 	std::function<void()> onNewGame_{};
 };

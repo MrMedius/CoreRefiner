@@ -30,6 +30,11 @@ namespace Ui
 
 		[[nodiscard]] virtual bool ConsumesDirectionalNavigation() const noexcept { return false; }
 
+		// 这一下上键是否留给自己。默认和 ConsumesDirectionalNavigation 一样。
+		[[nodiscard]] virtual bool ConsumesNavUp() const noexcept { return ConsumesDirectionalNavigation(); }
+		// 这一下下键是否留给自己。默认和 ConsumesDirectionalNavigation 一样。
+		[[nodiscard]] virtual bool ConsumesNavDown() const noexcept { return ConsumesDirectionalNavigation(); }
+
 		[[nodiscard]] virtual bool ConsumesTextInput() const noexcept { return false; }
 	};
 }

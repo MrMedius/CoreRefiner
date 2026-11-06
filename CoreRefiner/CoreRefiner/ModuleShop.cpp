@@ -2472,6 +2472,11 @@ bool ModuleShop::TakeUltraRenameRequest() noexcept
 	return ultra_.TakeRenameRequest();
 }
 
+bool ModuleShop::TakeUltraRedrawRequest() noexcept
+{
+	return ultra_.TakeRedrawRequest();
+}
+
 const IModuleNode* ModuleShop::PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	return ultra_.PickInfoNode(worldPos);

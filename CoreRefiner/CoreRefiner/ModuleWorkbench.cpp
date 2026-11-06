@@ -14,6 +14,7 @@
 #include "UiCopy.h"
 #include "UiRoot.h"
 #include "UI_SellConfirm.h"
+#include "UI_UltraRedraw.h"
 #include "UI_UltraRename.h"
 #include "Win.h"
 #include "Window.h"
@@ -78,6 +79,8 @@ ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 
 ModuleWorkbench::~ModuleWorkbench() = default;
 
+// 布局。算出战备页上商店、场、仓和战斗按钮的原点。
+
 void ModuleWorkbench::ComputeLayout_() noexcept
 {
 	const float screenW = static_cast<float>(SCREEN_WIDTH);
@@ -121,6 +124,104 @@ void ModuleWorkbench::ComputeLayout_() noexcept
 	shopOrigin_ = DirectX::XMFLOAT3{ shopLeft + shopHalfX, shopTop + shopHalfY, 0.0f };
 	shop_.SetShellExtent(shopHalfX, shopHalfY);
 }
+
+// 演示摆放。场和仓的开局棋子。Reset 清掉再摆一次。
+
+void ModuleWorkbench::PlaceDemoField_()
+{
+	field_.AddNode<ModuleNode_Core_Ball>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+
+	field_.AddNode<ModuleNode_Rule_Child>(DirectX::XMFLOAT2{ -70.0f, 40.0f });
+	field_.AddNode<ModuleNode_Rule_Child>(DirectX::XMFLOAT2{ 80.0f, 40.0f });
+	
+	field_.AddNode<ModuleNode_Spawn_Ball>(DirectX::XMFLOAT2{ -50.0f, -40.0f });
+	field_.AddNode<ModuleNode_Spawn_Ball>(DirectX::XMFLOAT2{ 40.0f, -40.0f });
+	
+	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, 75.0f });
+	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, -95.0f });
+	
+	field_.AddNode<ModuleNode_Rule_Return>(DirectX::XMFLOAT2{ 50.0f, -95.0f });
+	field_.AddNode<ModuleNode_Other_Repeat>(DirectX::XMFLOAT2{ 90.0f, -68.0f });
+	
+	field_.AddNode<ModuleNode_Attribute_LifetimeRate>(DirectX::XMFLOAT2{ -110.0f, 0.0f });
+	
+	field_.AddNode<ModuleNode_Attribute_DamageRate>(DirectX::XMFLOAT2{ 110.0f, 50.0f });
+}
+
+void ModuleWorkbench::PlaceDemoWarehouse_()
+{
+	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+
+	warehouse_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
+
+	// 留在仓库里，给扫描、彩虹和 Panel 做测试。收尾不删。
+	ModuleNode_Ultra* ultra = warehouse_.AddNode<ModuleNode_Ultra>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->SetName(GetModuleNodeInfoCopy(ModuleNodeLabel::Ultra).title);
+	const ModuleNodeLabel contents[] = {
+		ModuleNodeLabel::Spawn_Ball,
+		ModuleNodeLabel::Attribute_LifetimeRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Rule_Orbit,
+	};
+	// 按栏位顺序装进去。出生容量 3，再加 4 格，装完还空一格。
+	for (std::size_t i = 0; i < std::size(contents); ++i)
+	{
+		std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeModuleNode(contents[i], {});
+		(void)ultra->TryPut(i, node);
+	}
+}
+
+void ModuleWorkbench::Reset()
+{
+	assembler_.Reset();
+
+	while (field_.GetNodeCount() > 0)
+	{
+		(void)field_.TakeNode(static_cast<std::size_t>(0));
+	}
+	PlaceDemoField_();
+	for (std::size_t i = 0; i < field_.GetNodeCount(); ++i)
+	{
+		IModuleNode* node = field_.GetNode(i);
+		if (node != nullptr)
+		{
+			node->InitVisual(gfx_, rg_, field_.GetOrigin());
+		}
+	}
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
+	field_.ResetAllCooldowns();
+	field_.ClearWaves();
+	field_.SyncAllVisuals();
+
+	for (std::size_t i = 0; i < ModuleWarehouse::kMaxSlots; ++i)
+	{
+		(void)warehouse_.TakeNode(i);
+	}
+	warehouse_.SetEnabledSlotCount(ModuleWarehouse::kInitialEnabledSlots);
+	PlaceDemoWarehouse_();
+	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
+
+	shop_.FillStock();
+	shop_.ResetVisit();
+	shop_.ClearRefineResult();
+	// 结束本局才清奥义区。开战和再次打开整理都不清。
+	shop_.ClearUltra();
+
+	paintedWave_ = -1;
+	SetNextWave(1);
+}
+
+// 战斗按钮。文案随语言和有没有 Core 变，波次没变就不重画。
 
 void ModuleWorkbench::InitFightButton_()
 {
@@ -181,6 +282,87 @@ void ModuleWorkbench::RefreshFightLabel()
 	fightBtn_->Button().SetLabel(GetUiCopy("prep.fight", wave));
 }
 
+// 整理。进出战备页，以及这一页的每帧更新。
+
+void ModuleWorkbench::BeginLayoutEdit()
+{
+	if (field_.GetCanvas() == nullptr)
+	{
+		return;
+	}
+
+	assembler_.Reset();
+	field_.ClearWaves();
+	field_.ResetAllCooldowns();
+	field_.SetVisualScale(1.0f);
+
+	std::array<IModuleZone*, ZoneCount()> zones{};
+	zones[ToIndex(ZoneId::Field)] = &field_;
+	zones[ToIndex(ZoneId::Warehouse)] = &warehouse_;
+	zones[ToIndex(ZoneId::Shop)] = &shop_;
+
+	std::array<DirectX::XMFLOAT3, ZoneCount()> origins{};
+	origins[ToIndex(ZoneId::Field)] = layoutFieldOrigin_;
+	origins[ToIndex(ZoneId::Warehouse)] = warehouseOrigin_;
+	origins[ToIndex(ZoneId::Shop)] = shopOrigin_;
+
+	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
+	shop_.BeginVisit();
+	// Vacuum 切 Prep 的当帧可能先 Submit 再 Update，进整理立刻对齐战斗键
+	RefreshFightLabel();
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SyncView();
+	}
+}
+
+void ModuleWorkbench::EndLayoutEdit()
+{
+	CloseOverlay();
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
+	layoutEditor_.End();
+}
+
+void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
+{
+	if (IsOverlayOpen())
+	{
+		layoutEditor_.ClearPointerState();
+		if (sellConfirm_ != nullptr)
+		{
+			sellConfirm_->Update(dt);
+		}
+		if (rename_ != nullptr)
+		{
+			rename_->Update(dt);
+		}
+		if (redraw_ != nullptr)
+		{
+			redraw_->Update(dt);
+		}
+		return;
+	}
+
+	if (uiRoot_ != nullptr)
+	{
+		uiRoot_->UpdateAfterInput();
+	}
+	layoutEditor_.Update(dt, hostWindow);
+	if (IsOverlayOpen())
+	{
+		// 松手这一帧里刚弹出，清掉补上的悬停。
+		layoutEditor_.ClearPointerState();
+	}
+	// 停放/拖出后同一帧刷新并重绘：Core 拖回 Field 立刻恢复战斗键
+	RefreshFightLabel();
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SyncView();
+	}
+}
+
+// 叠加界面。卖出确认、更名、重绘。打开时不更新编辑器。
+
 void ModuleWorkbench::BindOverlays_()
 {
 	sellConfirm_ = std::make_unique<UI_SellConfirm>(gfx_, rg_);
@@ -207,6 +389,20 @@ void ModuleWorkbench::BindOverlays_()
 		CloseOverlay();
 	});
 
+	redraw_ = std::make_unique<UI_UltraRedraw>(gfx_, rg_);
+	redraw_->SetOnConfirm([this](const IconAtlas::IconBits& bits)
+	{
+		const std::uint32_t id = pendingRedrawId_;
+		// 先抄一份。关界面不会清图案，但确定之后不再读界面里的那份。
+		const IconAtlas::IconBits painted = bits;
+		CloseOverlay();
+		ApplyRedraw_(id, painted);
+	});
+	redraw_->SetOnExit([this]
+	{
+		CloseOverlay();
+	});
+
 	layoutEditor_.SetOnOverlayRequest([this](const OverlayUiRequest& request)
 	{
 		if (request.kind == OverlayUiKind::SellConfirm && sellConfirm_ != nullptr)
@@ -228,6 +424,24 @@ void ModuleWorkbench::BindOverlays_()
 				}
 			}
 			rename_->Show(std::move(current));
+			return;
+		}
+		if (request.kind == OverlayUiKind::Redraw && redraw_ != nullptr)
+		{
+			pendingRedrawId_ = request.instanceId;
+			const IModuleNode* node = shop_.GetUltraArea().GetUltra();
+			if (node == nullptr || node->GetInstanceId() != request.instanceId)
+			{
+				pendingRedrawId_ = 0;
+				return;
+			}
+			const auto* ultra = dynamic_cast<const ModuleNode_Ultra*>(node);
+			if (ultra == nullptr)
+			{
+				pendingRedrawId_ = 0;
+				return;
+			}
+			redraw_->Show(ultra->GetIconBits());
 		}
 	});
 }
@@ -247,17 +461,35 @@ void ModuleWorkbench::ApplyRename_(std::uint32_t instanceId, std::string name)
 	ultra->SetName(std::move(name));
 }
 
+void ModuleWorkbench::ApplyRedraw_(std::uint32_t instanceId, const IconAtlas::IconBits& bits)
+{
+	IModuleNode* node = shop_.GetUltraArea().GetUltra();
+	if (node == nullptr || node->GetInstanceId() != instanceId)
+	{
+		return;
+	}
+	auto* ultra = dynamic_cast<ModuleNode_Ultra*>(node);
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->SetIconBits(bits);
+	ultra->RebakeIcon_();
+}
+
 bool ModuleWorkbench::IsOverlayOpen() const noexcept
 {
 	const bool sellOpen = sellConfirm_ != nullptr && sellConfirm_->IsOpen();
 	const bool renameOpen = rename_ != nullptr && rename_->IsOpen();
-	return sellOpen || renameOpen;
+	const bool redrawOpen = redraw_ != nullptr && redraw_->IsOpen();
+	return sellOpen || renameOpen || redrawOpen;
 }
 
 void ModuleWorkbench::CloseOverlay() noexcept
 {
 	pendingSellId_ = 0;
 	pendingRenameId_ = 0;
+	pendingRedrawId_ = 0;
 	if (sellConfirm_ != nullptr)
 	{
 		sellConfirm_->Hide();
@@ -265,6 +497,10 @@ void ModuleWorkbench::CloseOverlay() noexcept
 	if (rename_ != nullptr)
 	{
 		rename_->Hide();
+	}
+	if (redraw_ != nullptr)
+	{
+		redraw_->Hide();
 	}
 }
 
@@ -278,101 +514,60 @@ void ModuleWorkbench::RefreshOverlayLabels()
 	{
 		rename_->RefreshLabels();
 	}
+	if (redraw_ != nullptr)
+	{
+		redraw_->RefreshLabels();
+	}
 }
 
-void ModuleWorkbench::PlaceDemoField_()
+// 提交。战斗叠层只交场；战备页再交仓、商店和按钮。
+
+void ModuleWorkbench::SubmitField()
 {
-	field_.AddNode<ModuleNode_Core_Ball>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
-
-	field_.AddNode<ModuleNode_Rule_Child>(DirectX::XMFLOAT2{ -70.0f, 40.0f });
-	field_.AddNode<ModuleNode_Rule_Child>(DirectX::XMFLOAT2{ 80.0f, 40.0f });
-	
-	field_.AddNode<ModuleNode_Spawn_Ball>(DirectX::XMFLOAT2{ -50.0f, -40.0f });
-	field_.AddNode<ModuleNode_Spawn_Ball>(DirectX::XMFLOAT2{ 40.0f, -40.0f });
-	
-	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, 75.0f });
-	field_.AddNode<ModuleNode_Rule_Orbit>(DirectX::XMFLOAT2{ 0.0f, -95.0f });
-	
-	field_.AddNode<ModuleNode_Rule_Return>(DirectX::XMFLOAT2{ 50.0f, -95.0f });
-	field_.AddNode<ModuleNode_Other_Repeat>(DirectX::XMFLOAT2{ 90.0f, -68.0f });
-	
-	field_.AddNode<ModuleNode_Attribute_LifetimeRate>(DirectX::XMFLOAT2{ -110.0f, 0.0f });
-	
-	field_.AddNode<ModuleNode_Attribute_DamageRate>(DirectX::XMFLOAT2{ 110.0f, 50.0f });
+	field_.SubmitBackground();
+	field_.SubmitNodes();
 }
 
-void ModuleWorkbench::PlaceDemoWarehouse_()
+void ModuleWorkbench::SubmitPrep()
 {
-	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
-
-	warehouse_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
-
-	// H1 时删除。扫描、彩虹、Panel 验收用。
-	ModuleNode_Ultra* ultra = warehouse_.AddNode<ModuleNode_Ultra>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
-	if (ultra == nullptr)
+	field_.SubmitBackground();
+	if (layoutEditor_.IsActive())
 	{
-		return;
+		warehouse_.SubmitBackground();
+		shop_.SubmitBackground();
+		// 先全区残影，再全区图标：仓影子不会压在拖动中的场上 Node 上面。
+		field_.SubmitNodeGhosts();
+		warehouse_.SubmitNodeGhosts();
+		shop_.SubmitNodeGhosts();
+		field_.SubmitNodeIcons();
+		warehouse_.SubmitNodeIcons();
+		shop_.SubmitNodeIcons();
+		shop_.SubmitHud();
+		layoutEditor_.SubmitOverlay();
 	}
-	ultra->AddCapacity();
-	ultra->AddCapacity();
-	ultra->AddCapacity();
-	ultra->AddCapacity();
-	ultra->SetName(GetModuleNodeInfoCopy(ModuleNodeLabel::Ultra).title);
-	const ModuleNodeLabel contents[] = {
-		ModuleNodeLabel::Spawn_Ball,
-		ModuleNodeLabel::Attribute_LifetimeRate,
-		ModuleNodeLabel::Attribute_DamageRate,
-		ModuleNodeLabel::Attribute_DamageRate,
-		ModuleNodeLabel::Attribute_DamageRate,
-		ModuleNodeLabel::Rule_Orbit,
-	};
-	// 数组只有 4 个。第 5 个栏位留空，容量仍是 5。
-	for (std::size_t i = 0; i < std::size(contents); ++i)
+	else
 	{
-		std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeModuleNode(contents[i], {});
-		(void)ultra->TryPut(i, node);
+		field_.SubmitNodes();
+	}
+	if (uiRoot_ != nullptr)
+	{
+		uiRoot_->Submit(Chan::ui);
+	}
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->Submit();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->Submit();
+	}
+	if (redraw_ != nullptr)
+	{
+		redraw_->Submit();
 	}
 }
 
-void ModuleWorkbench::Reset()
-{
-	assembler_.Reset();
-
-	while (field_.GetNodeCount() > 0)
-	{
-		(void)field_.TakeNode(static_cast<std::size_t>(0));
-	}
-	PlaceDemoField_();
-	for (std::size_t i = 0; i < field_.GetNodeCount(); ++i)
-	{
-		IModuleNode* node = field_.GetNode(i);
-		if (node != nullptr)
-		{
-			node->InitVisual(gfx_, rg_, field_.GetOrigin());
-		}
-	}
-	field_.SetVisualScale(ModuleField::kCombatVisualScale);
-	field_.ResetAllCooldowns();
-	field_.ClearWaves();
-	field_.SyncAllVisuals();
-
-	for (std::size_t i = 0; i < ModuleWarehouse::kMaxSlots; ++i)
-	{
-		(void)warehouse_.TakeNode(i);
-	}
-	warehouse_.SetEnabledSlotCount(ModuleWarehouse::kInitialEnabledSlots);
-	PlaceDemoWarehouse_();
-	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
-
-	shop_.FillStock();
-	shop_.ResetVisit();
-	shop_.ClearRefineResult();
-	// 结束本局才清奥义区。开战和再次打开整理都不清。
-	shop_.ClearUltra();
-
-	paintedWave_ = -1;
-	SetNextWave(1);
-}
+// 战斗。冷却、扫描、开火，以及把扫描波交给场。
 
 void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 {
@@ -437,120 +632,6 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	}
 
 	SyncFieldWaves_();
-}
-
-void ModuleWorkbench::BeginLayoutEdit()
-{
-	if (field_.GetCanvas() == nullptr)
-	{
-		return;
-	}
-
-	assembler_.Reset();
-	field_.ClearWaves();
-	field_.ResetAllCooldowns();
-	field_.SetVisualScale(1.0f);
-
-	std::array<IModuleZone*, ZoneCount()> zones{};
-	zones[ToIndex(ZoneId::Field)] = &field_;
-	zones[ToIndex(ZoneId::Warehouse)] = &warehouse_;
-	zones[ToIndex(ZoneId::Shop)] = &shop_;
-
-	std::array<DirectX::XMFLOAT3, ZoneCount()> origins{};
-	origins[ToIndex(ZoneId::Field)] = layoutFieldOrigin_;
-	origins[ToIndex(ZoneId::Warehouse)] = warehouseOrigin_;
-	origins[ToIndex(ZoneId::Shop)] = shopOrigin_;
-
-	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
-	shop_.BeginVisit();
-	// Vacuum 切 Prep 的当帧可能先 Submit 再 Update，进整理立刻对齐战斗键
-	RefreshFightLabel();
-	if (fightBtn_ != nullptr)
-	{
-		fightBtn_->SyncView();
-	}
-}
-
-void ModuleWorkbench::EndLayoutEdit()
-{
-	CloseOverlay();
-	field_.SetVisualScale(ModuleField::kCombatVisualScale);
-	layoutEditor_.End();
-}
-
-void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
-{
-	if (IsOverlayOpen())
-	{
-		layoutEditor_.ClearPointerState();
-		if (sellConfirm_ != nullptr)
-		{
-			sellConfirm_->Update(dt);
-		}
-		if (rename_ != nullptr)
-		{
-			rename_->Update(dt);
-		}
-		return;
-	}
-
-	if (uiRoot_ != nullptr)
-	{
-		uiRoot_->UpdateAfterInput();
-	}
-	layoutEditor_.Update(dt, hostWindow);
-	if (IsOverlayOpen())
-	{
-		// 松手这一帧里刚弹出，清掉补上的悬停。
-		layoutEditor_.ClearPointerState();
-	}
-	// 停放/拖出后同一帧刷新并重绘：Core 拖回 Field 立刻恢复战斗键
-	RefreshFightLabel();
-	if (fightBtn_ != nullptr)
-	{
-		fightBtn_->SyncView();
-	}
-}
-
-void ModuleWorkbench::SubmitField()
-{
-	field_.SubmitBackground();
-	field_.SubmitNodes();
-}
-
-void ModuleWorkbench::SubmitPrep()
-{
-	field_.SubmitBackground();
-	if (layoutEditor_.IsActive())
-	{
-		warehouse_.SubmitBackground();
-		shop_.SubmitBackground();
-		// 先全区残影，再全区图标：仓影子不会压在拖动中的场上 Node 上面。
-		field_.SubmitNodeGhosts();
-		warehouse_.SubmitNodeGhosts();
-		shop_.SubmitNodeGhosts();
-		field_.SubmitNodeIcons();
-		warehouse_.SubmitNodeIcons();
-		shop_.SubmitNodeIcons();
-		shop_.SubmitHud();
-		layoutEditor_.SubmitOverlay();
-	}
-	else
-	{
-		field_.SubmitNodes();
-	}
-	if (uiRoot_ != nullptr)
-	{
-		uiRoot_->Submit(Chan::ui);
-	}
-	if (sellConfirm_ != nullptr)
-	{
-		sellConfirm_->Submit();
-	}
-	if (rename_ != nullptr)
-	{
-		rename_->Submit();
-	}
 }
 
 void ModuleWorkbench::SyncFieldWaves_()
