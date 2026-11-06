@@ -80,6 +80,17 @@ namespace Ui
 		caretByteIndex_ = OffsetFromColumn(nextLineStart, nextLineEnd, column);
 	}
 
+	bool UiUtf8EditBuffer::IsCaretOnFirstLine() const noexcept
+	{
+		return FindLineStart(caretByteIndex_) == 0u;
+	}
+
+	bool UiUtf8EditBuffer::IsCaretOnLastLine() const noexcept
+	{
+		const std::size_t lineStart = FindLineStart(caretByteIndex_);
+		return FindLineEnd(lineStart) >= text_.size();
+	}
+
 	void UiUtf8EditBuffer::MoveCaretLineHome()
 	{
 		caretByteIndex_ = FindLineStart(caretByteIndex_);

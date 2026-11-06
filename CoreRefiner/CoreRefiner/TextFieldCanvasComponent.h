@@ -62,6 +62,8 @@ namespace Ui
 		void ResetPointerInteraction() noexcept override;
 		[[nodiscard]] bool IsFocusable() const noexcept override;
 		[[nodiscard]] bool ConsumesDirectionalNavigation() const noexcept override;
+		[[nodiscard]] bool ConsumesNavUp() const noexcept override;
+		[[nodiscard]] bool ConsumesNavDown() const noexcept override;
 		[[nodiscard]] bool ConsumesTextInput() const noexcept override;
 
 		void RegisterTo(UiRoot& root);

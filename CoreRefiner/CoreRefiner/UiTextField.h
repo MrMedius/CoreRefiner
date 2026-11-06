@@ -40,6 +40,10 @@ namespace Ui
 		void SetFontSize(float size) noexcept { fontSize_ = size; }
 		[[nodiscard]] float GetFontSize() const noexcept { return fontSize_; }
 
+		// 是否允许回车换行。关着时回车不插入换行，重命名和单行栏用这个。
+		void SetMultiline(bool multiline) noexcept { multiline_ = multiline; }
+		[[nodiscard]] bool IsMultiline() const noexcept { return multiline_; }
+
 		// 限制输入的最大字符数（按 UTF-8 codepoint 计）；0 表示不限制。
 		// 若当前文本已超过新上限，会立即裁剪到上限并触发一次 OnTextChanged。
 		void SetMaxLength(std::size_t maxCodepoints);
@@ -59,6 +63,10 @@ namespace Ui
 		void ResetPointerInteraction() noexcept override;
 		[[nodiscard]] bool IsFocusable() const noexcept override { return enabled_; }
 		[[nodiscard]] bool ConsumesDirectionalNavigation() const noexcept;
+		// 上键是否还留在这一栏。多行、已聚焦、光标不在第一行时才留下。
+		[[nodiscard]] bool ConsumesNavUp() const noexcept;
+		// 下键是否还留在这一栏。多行、已聚焦、光标不在最后一行时才留下。
+		[[nodiscard]] bool ConsumesNavDown() const noexcept;
 		[[nodiscard]] bool ConsumesTextInput() const noexcept { return enabled_; }
 
 	private:
@@ -67,7 +75,8 @@ namespace Ui
 
 		void RecomputeVisualPhase(const UiInputFrame& frame, const FocusManager& focus) noexcept;
 		void ApplyTextInput(const UiTextInputPayload& text);
-		void ApplyEditingKeys(const UiInputFrame& frame);
+		// allowLineMove：这一帧之前已经聚焦时，上下键才改行。刚被选中的那一下不改行。
+		void ApplyEditingKeys(const UiInputFrame& frame, bool allowLineMove);
 		void NotifyTextChangedIfNeeded_();
 		void ClampToMaxLength_();
 
@@ -76,6 +85,8 @@ namespace Ui
 		bool enabled_ = true;
 		float fontSize_ = 18.0f;
 		std::size_t maxLength_ = 0u;
+		// 允许回车插入换行，并按多行排版。默认关，避免单行栏被回车撑开。
+		bool multiline_ = false;
 
 		UiUtf8EditBuffer buffer_;
 		std::string placeholderUtf8_;
@@ -96,6 +107,9 @@ namespace Ui
 		// 左右键按住的帧数。超过等待后再按间隔移动光标。
 		unsigned leftHoldFrames_ = 0u;
 		unsigned rightHoldFrames_ = 0u;
+		// 多行时上下键按住的帧数。用来在行与行之间移动光标。
+		unsigned upHoldFrames_ = 0u;
+		unsigned downHoldFrames_ = 0u;
 
 		std::function<void(const std::string&)> onTextChanged_;
 	};

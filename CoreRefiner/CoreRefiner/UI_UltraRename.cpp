@@ -62,6 +62,8 @@ UI_UltraRename::UI_UltraRename(Graphics& gfx, Rgph::RenderGraph& rg)
 			fieldStyle);
 		field_->Field().SetFontSize(kFieldFont);
 		field_->Field().SetMaxLength(GameRulesCodex::UltraNameMaxCodepoints);
+		// 更名保持单行。回车不换行。
+		field_->Field().SetMultiline(false);
 		field_->RegisterTo(*uiRoot_);
 	}
 

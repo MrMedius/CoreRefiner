@@ -28,6 +28,11 @@ namespace Ui
 		void MoveCaretLineHome();
 		void MoveCaretLineEnd();
 
+		// 光标是否已在第一行。第一行再按上键就把焦点让出去。
+		[[nodiscard]] bool IsCaretOnFirstLine() const noexcept;
+		// 光标是否已在最后一行。最后一行再按下键就把焦点让出去。
+		[[nodiscard]] bool IsCaretOnLastLine() const noexcept;
+
 	private:
 		[[nodiscard]] std::size_t FindLineStart(std::size_t byteIndex) const noexcept;
 		[[nodiscard]] std::size_t FindLineEnd(std::size_t byteIndex) const noexcept;

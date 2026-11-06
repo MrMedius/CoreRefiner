@@ -149,27 +149,46 @@ namespace Ui
 
 		focus_.ApplyNavigation(navigationFrame);
 
-		IUiComponent* directionalConsumer = nullptr;
+		// 上键和下键分开问。多行输入栏到顶只放走上键，到底只放走下键。
+		IUiComponent* focusedConsumer = nullptr;
+		IUiComponent* fallbackConsumer = nullptr;
 		for (IUiComponent* c : components_)
 		{
-			if (!c->ConsumesDirectionalNavigation())
+			const bool consumeUp = c->ConsumesNavUp();
+			const bool consumeDown = c->ConsumesNavDown();
+			if (!consumeUp && !consumeDown)
 				continue;
 
 			if (focus_.IsFocused(c->GetFocusHandle()))
 			{
-				directionalConsumer = c;
+				focusedConsumer = c;
 				break;
 			}
 
-			if (directionalConsumer == nullptr)
-				directionalConsumer = c;
+			if (fallbackConsumer == nullptr)
+				fallbackConsumer = c;
 		}
 
-		const bool consumeDirectional = directionalConsumer != nullptr;
-		if (consumeDirectional && (frame.navigation.navUp || frame.navigation.navDown))
-			focus_.RequestFocus(directionalConsumer->GetFocusHandle());
-
-		if (!consumeDirectional)
+		if (focusedConsumer != nullptr)
+		{
+			if (frame.navigation.navUp)
+			{
+				if (focusedConsumer->ConsumesNavUp())
+					focus_.RequestFocus(focusedConsumer->GetFocusHandle());
+				else
+					focus_.FocusPrev();
+			}
+			if (frame.navigation.navDown)
+			{
+				if (focusedConsumer->ConsumesNavDown())
+					focus_.RequestFocus(focusedConsumer->GetFocusHandle());
+				else
+					focus_.FocusNext();
+			}
+		}
+		else if (fallbackConsumer != nullptr && (frame.navigation.navUp || frame.navigation.navDown))
+			focus_.RequestFocus(fallbackConsumer->GetFocusHandle());
+		else
 		{
 			if (frame.navigation.navUp)
 				focus_.FocusPrev();
