@@ -757,6 +757,9 @@
     <ClCompile Include="UI_UltraRename.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="UI_UltraRedraw.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1582,6 +1585,9 @@
       <Filter>Tool</Filter>
     </ClInclude>
     <ClInclude Include="UI_UltraRename.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI_UltraRedraw.h">
       <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>

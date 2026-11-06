@@ -637,6 +637,14 @@ bool ModuleShopUltra::TryClick(DirectX::XMFLOAT2 worldPos, DirectX::XMFLOAT3 zon
 		// 只记一笔。编辑器取走后再请工作台打开更名界面。
 		renameRequested_ = true;
 		return true;
+	case Button::Redraw:
+		if (ultra_ == nullptr)
+		{
+			return false;
+		}
+		// 只记一笔。编辑器取走后再请工作台打开重绘界面。
+		redrawRequested_ = true;
+		return true;
 	case Button::PageLeft:
 		return TryPage_(-1);
 	case Button::PageRight:
@@ -715,6 +723,13 @@ bool ModuleShopUltra::TakeRenameRequest() noexcept
 {
 	const bool requested = renameRequested_;
 	renameRequested_ = false;
+	return requested;
+}
+
+bool ModuleShopUltra::TakeRedrawRequest() noexcept
+{
+	const bool requested = redrawRequested_;
+	redrawRequested_ = false;
 	return requested;
 }
 

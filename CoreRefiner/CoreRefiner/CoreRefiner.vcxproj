@@ -243,6 +243,7 @@
     <ClCompile Include="UI_Pause.cpp" />
     <ClCompile Include="UI_SellConfirm.cpp" />
     <ClCompile Include="UI_Setting.cpp" />
+    <ClCompile Include="UI_UltraRedraw.cpp" />
     <ClCompile Include="UI_UltraRename.cpp" />
     <ClCompile Include="UserInterfaceRenderGraph.cpp" />
     <ClCompile Include="VisualComponent.cpp" />
@@ -516,6 +517,7 @@
     <ClInclude Include="UI_Pause.h" />
     <ClInclude Include="UI_Prep.h" />
     <ClInclude Include="UI_SellConfirm.h" />
+    <ClInclude Include="UI_UltraRedraw.h" />
     <ClInclude Include="UI_UltraRename.h" />
     <ClInclude Include="UserInterfaceRenderGraph.h" />
     <ClInclude Include="VisualComponent.h" />

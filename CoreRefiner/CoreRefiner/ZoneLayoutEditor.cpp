@@ -150,10 +150,14 @@ void ZoneLayoutEditor::Update(float dt, Window* hostWindow)
 		if (input.MouseLeftTriggered())
 		{
 			(void)shop->TryClickUltra(mouseGame);
-			// 商店只回答这次是不是更名。编辑器不分辨锻造、打孔和翻页。
+			// 商店只回答这次是不是更名或重绘。编辑器不分辨锻造、打孔和翻页。
 			if (shop->TakeUltraRenameRequest())
 			{
 				RequestRename_();
+			}
+			if (shop->TakeUltraRedrawRequest())
+			{
+				RequestRedraw_();
 			}
 		}
 	}
@@ -518,6 +522,25 @@ void ZoneLayoutEditor::RequestRename_()
 	onOverlay_(OverlayUiRequest{ OverlayUiKind::Rename, ultra->GetInstanceId(), 0 });
 }
 
+void ZoneLayoutEditor::RequestRedraw_()
+{
+	if (!onOverlay_)
+	{
+		return;
+	}
+	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	if (shop == nullptr)
+	{
+		return;
+	}
+	IModuleNode* ultra = shop->GetUltraArea().GetUltra();
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	onOverlay_(OverlayUiRequest{ OverlayUiKind::Redraw, ultra->GetInstanceId(), 0 });
+}
+
 bool ZoneLayoutEditor::RequestSellConfirm_(IModuleNode& node)
 {
 	const int price = node.GetSellPrice();
@@ -647,6 +670,7 @@ bool ZoneLayoutEditor::TryDeferTradeSell_(IModuleNode& node, IModuleZone* target
 
 void ZoneLayoutEditor::ResolveRelease_()
 {
+	// 没有正在拖的 Node。
 	if (dragged_ == nullptr)
 	{
 		return;
@@ -659,6 +683,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	{
 		owner = ZoneAt_(dragSource_);
 	}
+	// 落点放不下，或找不到目标、来源，弹回拖之前的位置。
 	if (!eval.placeable || target == nullptr || owner == nullptr)
 	{
 		RevertDrag_();
@@ -668,12 +693,14 @@ void ZoneLayoutEditor::ResolveRelease_()
 	IModuleNode* node = dragged_;
 	const DirectX::XMFLOAT2 world = WorldPosOf_(*node, dragOrigin_);
 	const DropResult drop = target->EvalDrop(*node, world, dragSource_);
+	// 目标区拒绝这个落点，弹回。
 	if (!IsDropAccepted(drop.verdict))
 	{
 		RevertDrag_();
 		return;
 	}
 
+	// 松在炼成格上。能停靠就停，停靠不拿走 Node；不能就弹回。
 	if (auto* shop = dynamic_cast<ModuleShop*>(target))
 	{
 		const std::size_t refineSlot = shop->HitRefineParkSlot(world);
@@ -691,6 +718,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 	}
 
 	auto* shop = dynamic_cast<ModuleShop*>(ZoneAt_(ZoneId::Shop));
+	// 店里的炼成结果往外放。买卖框上超过确认价先弹框。放不下仍归店。
 	if (shop != nullptr && shop->IsShopRefineOwned(node))
 	{
 		if (TryDeferTradeSell_(*node, target, world))
@@ -713,6 +741,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	// 奥义本体。落在买卖框上就卖；其它落点拖走，放不下回到奥义栏。
 	if (shop != nullptr && shop->IsUltraBody(node))
 	{
 		if (target == shop && !shop->HitUltraArea(world))
@@ -741,6 +770,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	// 奥义内部的 Node。落在买卖框上只卖这颗；换格或拖到场、仓，放不下回到原格。
 	if (shop != nullptr && shop->IsShopUltraOwned(node) && !shop->IsUltraBody(node))
 	{
 		if (target == shop && !shop->HitUltraArea(world))
@@ -788,16 +818,19 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	// 其余 Node 拖到别的区的买卖框。超过确认价就先弹框。
 	if (owner != target && TryDeferTradeSell_(*node, target, world))
 	{
 		return;
 	}
 
+	// 走到这里说明没有停在炼成格上，解开停靠。
 	if (shop != nullptr)
 	{
 		shop->UnbindRefine(node);
 	}
 
+	// 货架上的商品买进奥义内部栏。不走下面的同区挪位。
 	if (shop != nullptr && owner == shop && target == shop && shop->IsShelfStock(node) && shop->HitUltraArea(world))
 	{
 		// 货架买进内部栏：不走同区 SetLocalPos，否则图标离开货卡又进不了格子。
@@ -809,6 +842,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	// 同一个区里换位置。
 	if (owner == target)
 	{
 		node->SetLocalPos(drop.localPos);
@@ -820,9 +854,11 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	// 跨区拿走再放下。
 	node->EndLayoutGhost();
 	const std::size_t sourceIndex = owner->FindNodeIndex(node);
 	std::unique_ptr<IModuleNode> taken = owner->TakeNode(node);
+	// 放下失败。货架商品回到原货槽，其它回到拖起前的坐标。
 	if (!target->TryAcceptDrop(taken, drop.localPos))
 	{
 		if (taken != nullptr)
@@ -841,12 +877,14 @@ void ZoneLayoutEditor::ResolveRelease_()
 		return;
 	}
 
+	// 不是从商店买到场上或仓库，不用扣钱。
 	if (owner->GetZoneId() != ZoneId::Shop || target->GetZoneId() == ZoneId::Shop)
 	{
 		return;
 	}
 
 	const int price = node->GetBuyPrice();
+	// 钱不够。从目标区拿回来，放回原货槽。
 	if (!GameStatsCodex::TrySpendCurrency(price))
 	{
 		std::unique_ptr<IModuleNode> back = target->TakeNode(node);
@@ -860,6 +898,7 @@ void ZoneLayoutEditor::ResolveRelease_()
 		RevertDrag_();
 		return;
 	}
+	// 扣款成功。这个货槽记成已售。
 	if (auto* shop = dynamic_cast<ModuleShop*>(owner))
 	{
 		shop->MarkSold(sourceIndex);
