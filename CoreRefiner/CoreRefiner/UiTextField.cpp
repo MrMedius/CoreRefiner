@@ -81,12 +81,41 @@ namespace Ui
 
 	bool UiTextField::ConsumesNavUp() const noexcept
 	{
-		return multiline_ && focused_ && !buffer_.IsCaretOnFirstLine();
+		return multiline_ && focused_ && !IsOnFirstLine_();
 	}
 
 	bool UiTextField::ConsumesNavDown() const noexcept
 	{
-		return multiline_ && focused_ && !buffer_.IsCaretOnLastLine();
+		return multiline_ && focused_ && !IsOnLastLine_();
+	}
+
+	bool UiTextField::UsesVisualLines_() const noexcept
+	{
+		return multiline_ && autoWrap_ && !visualLines_.empty();
+	}
+
+	bool UiTextField::IsOnFirstLine_() const noexcept
+	{
+		if (UsesVisualLines_())
+			return buffer_.IsCaretOnFirstOf(visualLines_);
+		return buffer_.IsCaretOnFirstLine();
+	}
+
+	bool UiTextField::IsOnLastLine_() const noexcept
+	{
+		if (UsesVisualLines_())
+			return buffer_.IsCaretOnLastOf(visualLines_);
+		return buffer_.IsCaretOnLastLine();
+	}
+
+	void UiTextField::MoveCaretLine_(const bool up)
+	{
+		if (UsesVisualLines_())
+			buffer_.MoveCaretByDisplayLines(visualLines_, up);
+		else if (up)
+			buffer_.MoveCaretUp();
+		else
+			buffer_.MoveCaretDown();
 	}
 
 	void UiTextField::RecomputeVisualPhase(
@@ -240,7 +269,7 @@ namespace Ui
 		{
 			if (in.KeyTriggered(KK_UP))
 			{
-				buffer_.MoveCaretUp();
+				MoveCaretLine_(true);
 				upHoldFrames_ = 0u;
 			}
 			else if (in.KeyPressed(KK_UP))
@@ -248,14 +277,14 @@ namespace Ui
 				++upHoldFrames_;
 				if (upHoldFrames_ > kBackspaceInitialDelay
 					&& upHoldFrames_ % kBackspaceRepeatInterval == 0u)
-					buffer_.MoveCaretUp();
+					MoveCaretLine_(true);
 			}
 			else
 				upHoldFrames_ = 0u;
 
 			if (in.KeyTriggered(KK_DOWN))
 			{
-				buffer_.MoveCaretDown();
+				MoveCaretLine_(false);
 				downHoldFrames_ = 0u;
 			}
 			else if (in.KeyPressed(KK_DOWN))
@@ -263,7 +292,7 @@ namespace Ui
 				++downHoldFrames_;
 				if (downHoldFrames_ > kBackspaceInitialDelay
 					&& downHoldFrames_ % kBackspaceRepeatInterval == 0u)
-					buffer_.MoveCaretDown();
+					MoveCaretLine_(false);
 			}
 			else
 				downHoldFrames_ = 0u;

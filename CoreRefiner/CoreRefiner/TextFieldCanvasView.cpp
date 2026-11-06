@@ -165,23 +165,53 @@ namespace Ui
 		return (height > 0) ? height : static_cast<int>(fontSize);
 	}
 
-	TextFieldCanvasView::TextLayout_ TextFieldCanvasView::LayoutText_(
+	std::vector<EditLineSpan> TextFieldCanvasView::SplitVisualLines_(
 		const std::string_view text,
-		std::size_t caretIndex,
-		const float fontSize) const
+		const float fontSize,
+		const bool autoWrap) const
 	{
-		TextLayout_ out;
-		out.lineHeight = MeasureLineHeight_(fontSize);
-		if (out.lineHeight < 1)
-			out.lineHeight = 1;
+		std::vector<EditLineSpan> lines;
+		const int canvasW = static_cast<int>(textCanvas_->GetCanvasWidth());
+		const int innerW = canvasW - style_.paddingPx * 2;
+		const bool wrap = autoWrap && innerW > 0;
 
-		if (caretIndex > text.size())
-			caretIndex = text.size();
+		auto pushHardLine = [&](const std::size_t hardBegin, const std::size_t hardEnd)
+		{
+			if (!wrap || hardBegin >= hardEnd)
+			{
+				lines.push_back(EditLineSpan{ hardBegin, hardEnd });
+				return;
+			}
+
+			std::size_t lineBegin = hardBegin;
+			while (lineBegin < hardEnd)
+			{
+				std::size_t index = lineBegin;
+				std::size_t lineEnd = lineBegin;
+				while (index < hardEnd)
+				{
+					const std::size_t next = Utf8Next(text, index);
+					if (next <= index)
+						break;
+					const std::size_t clipped = (next > hardEnd) ? hardEnd : next;
+					const int width = MeasureContentWidth_(text.substr(lineBegin, clipped - lineBegin), fontSize);
+					// 至少留下一个码点，单个字比框宽时仍靠左右滚动。
+					if (width > innerW && lineEnd > lineBegin)
+						break;
+					lineEnd = clipped;
+					index = clipped;
+				}
+				if (lineEnd <= lineBegin)
+					break;
+				lines.push_back(EditLineSpan{ lineBegin, lineEnd });
+				lineBegin = lineEnd;
+			}
+		};
 
 		if (text.empty())
 		{
-			out.lines.push_back(LineSpan_{ 0u, 0u });
-			return out;
+			lines.push_back(EditLineSpan{ 0u, 0u });
+			return lines;
 		}
 
 		std::size_t i = 0u;
@@ -190,17 +220,45 @@ namespace Ui
 			const std::size_t begin = i;
 			while (i < text.size() && text[i] != '\n')
 				i = Utf8Next(text, i);
-			out.lines.push_back(LineSpan_{ begin, i });
+			pushHardLine(begin, i);
 			if (i >= text.size())
 				break;
-			// 跳过换行符。末尾再来一个换行时，后面补一行空行给光标。
+			// 跳过真正的换行符。末尾再来一个换行时，后面补一行空行给光标。
 			++i;
 			if (i == text.size())
 			{
-				out.lines.push_back(LineSpan_{ i, i });
+				lines.push_back(EditLineSpan{ i, i });
 				break;
 			}
 		}
+		return lines;
+	}
+
+	std::vector<EditLineSpan> TextFieldCanvasView::BuildVisualLines(
+		const std::string_view text,
+		const float fontSize,
+		const bool autoWrap) const
+	{
+		const float size = fontSize > 0.0f ? fontSize : style_.fontSize;
+		return SplitVisualLines_(text, size, autoWrap);
+	}
+
+	TextFieldCanvasView::TextLayout_ TextFieldCanvasView::LayoutText_(
+		const std::string_view text,
+		std::size_t caretIndex,
+		const float fontSize,
+		const bool autoWrap) const
+	{
+		TextLayout_ out;
+		out.lineHeight = MeasureLineHeight_(fontSize);
+		if (out.lineHeight < 1)
+			out.lineHeight = 1;
+		out.lines = SplitVisualLines_(text, fontSize, autoWrap);
+
+		if (caretIndex > text.size())
+			caretIndex = text.size();
+		if (out.lines.empty())
+			out.lines.push_back(EditLineSpan{ 0u, 0u });
 
 		out.caretLine = static_cast<int>(out.lines.size()) - 1;
 		for (int n = 0; n < static_cast<int>(out.lines.size()); ++n)
@@ -215,7 +273,7 @@ namespace Ui
 			}
 		}
 
-		const LineSpan_& line = out.lines[static_cast<std::size_t>(out.caretLine)];
+		const EditLineSpan& line = out.lines[static_cast<std::size_t>(out.caretLine)];
 		const std::size_t caretOnLine = (caretIndex < line.begin)
 			? line.begin
 			: ((caretIndex > line.end) ? line.end : caretIndex);
@@ -378,7 +436,7 @@ namespace Ui
 			return BufferIndexForDisplay_(vm, best);
 		}
 
-		const TextLayout_ layout = LayoutText_(displayText, 0u, fontSize);
+		const TextLayout_ layout = LayoutText_(displayText, 0u, fontSize, vm.autoWrap);
 		if (layout.lines.empty() || layout.lineHeight <= 0)
 			return 0u;
 
@@ -391,7 +449,7 @@ namespace Ui
 		if (line >= static_cast<int>(layout.lines.size()))
 			line = static_cast<int>(layout.lines.size()) - 1;
 
-		const LineSpan_& span = layout.lines[static_cast<std::size_t>(line)];
+		const EditLineSpan& span = layout.lines[static_cast<std::size_t>(line)];
 		const std::string_view slice = std::string_view(displayText).substr(span.begin, span.end - span.begin);
 		std::size_t best = span.begin;
 		int bestDist = std::abs(static_cast<int>(contentX));
@@ -458,7 +516,7 @@ namespace Ui
 		const int canvasH = static_cast<int>(c.GetCanvasHeight());
 		for (int n = 0; n < static_cast<int>(layout.lines.size()); ++n)
 		{
-			const LineSpan_& line = layout.lines[static_cast<std::size_t>(n)];
+			const EditLineSpan& line = layout.lines[static_cast<std::size_t>(n)];
 			if (line.end <= line.begin)
 				continue;
 
@@ -479,7 +537,7 @@ namespace Ui
 			rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
 			rq.style.wordWrapEnabled = false;
 			rq.paddingPx = 0;
-			// 这一行的槽位。宽给得很大，超框靠滚动，不在这里折行。
+			// 这一行已经按显示行拆好。槽位给得很宽，剩下的超宽靠滚动。
 			rq.SetDestRect(
 				static_cast<float>(style_.paddingPx) + scrollOffsetX_,
 				y,
@@ -575,6 +633,7 @@ namespace Ui
 			|| vm.imeCompositionActive != lastPainted_.imeCompositionActive
 			|| vm.fontSize != lastPainted_.fontSize
 			|| vm.multiline != lastPainted_.multiline
+			|| vm.autoWrap != lastPainted_.autoWrap
 			|| IsDisabledPhase(vm.phase) != IsDisabledPhase(lastPainted_.phase);
 		const bool ringDirty = !hasPainted_
 			|| (vm.phase == UiVisualPhase::Focused) != (lastPainted_.phase == UiVisualPhase::Focused);
@@ -587,7 +646,7 @@ namespace Ui
 		{
 			// 空栏也按多行排。占位字和光标从第一行左上角开始，不拿到整框正中。
 			const std::size_t caretIndex = showPlaceholder ? 0u : CaretIndexInDisplay_(vm);
-			layout = LayoutText_(displayText, caretIndex, fontSize);
+			layout = LayoutText_(displayText, caretIndex, fontSize, vm.autoWrap);
 			if (showPlaceholder)
 			{
 				scrollOffsetX_ = 0.0f;

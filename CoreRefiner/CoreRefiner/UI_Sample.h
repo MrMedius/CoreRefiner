@@ -287,7 +287,7 @@ public:
 					});
 			}
 
-			// 多行输入栏。字号固定 30，最多 50 个码点。用来看光标贴字和超框后的滚动。
+			// 多行输入栏。打开自动换行，超宽另起一行显示，正文里不写换行符。
 			{
 				const float multiW = static_cast<float>(btnWidth) * 2.5f;
 				const float multiH = static_cast<float>(btnHeight) * 1.5f;
@@ -299,6 +299,8 @@ public:
 				multilineField_->Field().SetMaxLength(100);
 				multilineField_->Field().SetFontSize(20.0f);
 				multilineField_->Field().SetMultiline(true);
+				// 超宽时按框宽另起一行显示，不往正文里写换行符。
+				multilineField_->Field().SetAutoWrap(true);
 			}
 
 

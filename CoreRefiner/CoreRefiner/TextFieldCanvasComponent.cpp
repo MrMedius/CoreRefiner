@@ -117,6 +117,11 @@ namespace Ui
 	void TextFieldCanvasComponent::SyncView()
 	{
 		view_->SyncFrom(MakeTextFieldViewModel(*field_));
+		// 自动换行的显示行交回逻辑层，下一帧的上下键和到顶到底用同一套行。
+		if (field_->IsMultiline() && field_->IsAutoWrap())
+			field_->SetVisualLines(view_->BuildVisualLines(field_->GetText(), field_->GetFontSize(), true));
+		else
+			field_->ClearVisualLines();
 	}
 
 	void TextFieldCanvasComponent::LinkTechniques(Rgph::RenderGraph& rg)

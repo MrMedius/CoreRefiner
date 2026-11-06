@@ -47,6 +47,8 @@ namespace Ui
 		[[nodiscard]] unsigned GetPixelHeight() const noexcept;
 		// 按画布坐标找最近的字缝，返回正文里的字节下标。单行只用横坐标。点在输入法组合上时停在组合开头。
 		[[nodiscard]] std::size_t HitTestCaretByte(float canvasX, float canvasY, const TextFieldViewModel& vm) const;
+		// 按框的内宽拆出显示行。autoWrap 为真时超宽另起一行，正文里不插入换行符。
+		[[nodiscard]] std::vector<EditLineSpan> BuildVisualLines(std::string_view text, float fontSize, bool autoWrap) const;
 
 		void LinkTechniques(Rgph::RenderGraph& rg) override;
 		void Submit(std::size_t channelMask) const override;
@@ -56,16 +58,11 @@ namespace Ui
 		[[nodiscard]] Color TextColorForPhase(UiVisualPhase phase) const noexcept;
 		[[nodiscard]] std::string BuildDisplayText_(const TextFieldViewModel& vm) const;
 		[[nodiscard]] std::size_t CaretIndexInDisplay_(const TextFieldViewModel& vm) const;
-		// 一行的起止字节。end 不含换行符。
-		struct LineSpan_
-		{
-			std::size_t begin = 0u;
-			std::size_t end = 0u;
-		};
-		// 按换行拆开后的排版。光标前缀宽和当前行宽用来摆光标、做滚动。
+		// 一行的起止字节。end 不含换行符，自动换行时也不含折到下一行的字。
+		// 按换行和自动换行拆开后的排版。光标前缀宽和当前行宽用来摆光标、做滚动。
 		struct TextLayout_
 		{
-			std::vector<LineSpan_> lines;
+			std::vector<EditLineSpan> lines;
 			int lineHeight = 1;
 			int caretLine = 0;
 			int caretPrefixW = 0;
@@ -76,8 +73,10 @@ namespace Ui
 		[[nodiscard]] int MeasureContentWidth_(std::string_view text, float fontSize) const;
 		// 一行的像素高。多行的行距和光标高度都用这个，字和光标才落在同一行。
 		[[nodiscard]] int MeasureLineHeight_(float fontSize) const;
-		// 按换行拆行，并算出光标在哪一行、离行首多远。
-		[[nodiscard]] TextLayout_ LayoutText_(std::string_view text, std::size_t caretIndex, float fontSize) const;
+		// 按换行拆行。autoWrap 为真时，一行超过内宽就再拆开，不往正文里写换行符。
+		[[nodiscard]] std::vector<EditLineSpan> SplitVisualLines_(std::string_view text, float fontSize, bool autoWrap) const;
+		// 按显示行排版，并算出光标在哪一行、离行首多远。
+		[[nodiscard]] TextLayout_ LayoutText_(std::string_view text, std::size_t caretIndex, float fontSize, bool autoWrap) const;
 		// 单行：让光标留在可见范围内。字比框窄时不滚动。
 		void UpdateScroll_(const std::string& displayText, std::size_t caretIndex, float fontSize);
 		// 多行：当前行比框宽就左右挪，行数比框高就上下挪，让光标这一行完整留在框里。
