@@ -89,73 +89,6 @@ namespace
 			&& py < static_cast<float>(y + h);
 	}
 
-	// ---- 绘制 ----
-	// 画一个栏位方块：底色加边框。
-	void DrawSlot_(Canvas2D& canvas, int x, int y, int side)
-	{
-		if (side <= 1 || x < 0 || y < 0)
-		{
-			return;
-		}
-		constexpr Color kSlotBg{ 42u, 56u, 78u, 190u };
-		constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
-		const int x1 = x + side - 1;
-		const int y1 = y + side - 1;
-		CanvasPixelDraw::FillRect(
-			canvas,
-			static_cast<unsigned>(x),
-			static_cast<unsigned>(y),
-			static_cast<unsigned>(x1),
-			static_cast<unsigned>(y1),
-			kSlotBg);
-		CanvasPixelDraw::DrawRectOutline(canvas, x, y, x1, y1, kSlotFrame);
-	}
-
-	// cost < 0 表示不标价。亮起时只有价格数字变黄，和炼成按钮一致。
-	void DrawActionButton_(
-		Canvas2D& canvas,
-		int x,
-		int y,
-		int w,
-		int h,
-		const std::string& caption,
-		int cost,
-		bool lit)
-	{
-		if (w <= 0 || h <= 0)
-		{
-			return;
-		}
-		const int x1 = x + w - 1;
-		const int y1 = y + h - 1;
-		const int corner = (std::max)(4, (std::min)(8, h / 2));
-		const Color bg = lit ? ModuleShopDraw::kBtnBgLit : ModuleShopDraw::kBtnBg;
-		const Color frame = lit ? ModuleShopDraw::kBtnFrameLit : ModuleShopDraw::kBtnFrame;
-		const Color text = lit ? ModuleShopDraw::kBtnTextLit : ModuleShopDraw::kBtnText;
-		CanvasPixelDraw::FillRoundedRect(canvas, x, y, x1, y1, corner, bg);
-		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x, y, x1, y1, corner, frame);
-
-		std::string label = caption;
-		std::vector<Text::Span> spans;
-		if (cost >= 0)
-		{
-			const std::string digits = std::to_string(cost);
-			const UINT32 digitAt = static_cast<UINT32>(
-				Utf16CodeUnitCount(label) + Utf16CodeUnitCount(" "));
-			label += " " + digits;
-			if (lit)
-			{
-				Text::Span money{};
-				money.start = digitAt;
-				money.length = static_cast<UINT32>(Utf16CodeUnitCount(digits));
-				money.color = ModuleShopDraw::kMoneyYellow;
-				spans.push_back(money);
-			}
-		}
-		const float font = (h < 22) ? 11.0f : 13.0f;
-		ModuleShopDraw::DrawShopLabelInBox_(canvas, label, font, x, y, w, h, text, spans);
-	}
-
 	// ---- 翻页条 ----
 	// 翻页条上一组三角和圆点的位置。打孔改变容量后整组重算。
 	struct PagerGlyphs_
@@ -1207,7 +1140,7 @@ void ModuleShopUltra::Paint_()
 	{
 		// 无奥义：区域正中只有锻造。钱够才亮，亮了数字变黄。
 		const bool lit = currency >= GameRulesCodex::ForgeCost;
-		DrawActionButton_(
+		ModuleShopDraw::DrawActionButton_(
 			canvas,
 			layout.forgeX,
 			layout.forgeY,
@@ -1219,12 +1152,12 @@ void ModuleShopUltra::Paint_()
 	}
 	else
 	{
-		DrawSlot_(canvas, layout.ultraX, layout.ultraY, layout.ultraSide);
+		ModuleShopDraw::DrawSlotSquare_(canvas, layout.ultraX, layout.ultraY, layout.ultraSide);
 		const int stride = layout.innerSide + layout.innerGap;
 		for (int i = 0; i < layout.visibleCount; ++i)
 		{
 			const int x = layout.innerX0 + i * stride;
-			DrawSlot_(canvas, x, layout.innerY, layout.innerSide);
+			ModuleShopDraw::DrawSlotSquare_(canvas, x, layout.innerY, layout.innerSide);
 		}
 		DrawPager_(canvas, layout);
 
@@ -1242,7 +1175,7 @@ void ModuleShopUltra::Paint_()
 		for (int i = 0; i < kButtonCount_; ++i)
 		{
 			const int y = layout.btnY + i * (layout.btnH + layout.btnGap);
-			DrawActionButton_(canvas, layout.btnX, y, layout.btnW, layout.btnH, captions[i], costs[i], lits[i]);
+			ModuleShopDraw::DrawActionButton_(canvas, layout.btnX, y, layout.btnW, layout.btnH, captions[i], costs[i], lits[i]);
 		}
 	}
 

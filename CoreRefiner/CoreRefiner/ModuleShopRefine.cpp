@@ -664,8 +664,6 @@ void ModuleShopRefine::Paint_()
 	const int btnTop = layout.btnTop;
 	const int btnGap = layout.btnGap;
 
-	constexpr Color kSlotBg{ 42u, 56u, 78u, 190u };
-	constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
 	constexpr Color kSlotText{ 220u, 228u, 236u, 255u };
 	constexpr Color kArrow{ 180u, 195u, 215u, 220u };
 	const std::string slotLabels[kParkCount] = {
@@ -674,23 +672,12 @@ void ModuleShopRefine::Paint_()
 		GetUiCopy("shop.refine.result")
 	};
 	const UiIconId arrowIds[2] = { UiIconId::RefineFeed, UiIconId::RefineYield };
-	const float btnFont = (btnH < 22) ? 11.0f : 13.0f;
-	const int btnCorner = (std::max)(4, (std::min)(8, btnH / 2));
 	// 素材、主体、结果是直角正方形。右侧四键才圆角。
 	for (std::size_t i = 0; i < kParkCount; ++i)
 	{
 		const int x0 = slotXs[i];
 		const int y0 = slotTop;
-		const int x1 = x0 + side - 1;
-		const int y1 = y0 + side - 1;
-		CanvasPixelDraw::FillRect(
-			canvas,
-			static_cast<unsigned>(x0),
-			static_cast<unsigned>(y0),
-			static_cast<unsigned>(x1),
-			static_cast<unsigned>(y1),
-			kSlotBg);
-		CanvasPixelDraw::DrawRectOutline(canvas, x0, y0, x1, y1, kSlotFrame);
+		DrawSlotSquare_(canvas, x0, y0, side);
 		if (parked_[i] != nullptr)
 		{
 			// 格内有 Node 时不画素材、主体、结果标题，避免压在图标上。
@@ -736,41 +723,9 @@ void ModuleShopRefine::Paint_()
 	{
 		const int x0 = btnX;
 		const int y0 = btnTop + static_cast<int>(i) * (btnH + btnGap);
-		const int x1 = x0 + btnW - 1;
-		const int y1 = y0 + btnH - 1;
-		const Color bg = btnLit[i] ? kBtnBgLit : kBtnBg;
-		const Color frame = btnLit[i] ? kBtnFrameLit : kBtnFrame;
-		const Color text = btnLit[i] ? kBtnTextLit : kBtnText;
-		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, btnCorner, bg);
-		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, btnCorner, frame);
-		std::string label = btnLabels[i];
-		std::vector<Text::Span> spans;
-		if (i < 3u)
-		{
-			// 升级、合成、进化常驻费用。亮起时只有数字变黄。
-			const std::string cost = std::to_string(GameRulesCodex::RefineOpCost);
-			const UINT32 digitAt = static_cast<UINT32>(
-				Utf16CodeUnitCount(label) + Utf16CodeUnitCount(" "));
-			label += " " + cost;
-			if (btnLit[i])
-			{
-				Text::Span money{};
-				money.start = digitAt;
-				money.length = static_cast<UINT32>(Utf16CodeUnitCount(cost));
-				money.color = kMoneyYellow;
-				spans.push_back(money);
-			}
-		}
-		DrawShopLabelInBox_(
-			canvas,
-			label,
-			btnFont,
-			x0,
-			y0,
-			btnW,
-			btnH,
-			text,
-			spans);
+		// 升级、合成、进化常驻费用。退回不标价。
+		const int cost = (i < 3u) ? GameRulesCodex::RefineOpCost : -1;
+		DrawActionButton_(canvas, x0, y0, btnW, btnH, btnLabels[i], cost, btnLit[i]);
 	}
 
 	paintedUpgradeLit_ = btnLit[0];

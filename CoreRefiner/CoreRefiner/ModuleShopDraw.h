@@ -5,6 +5,7 @@
 #include "IModuleZone.h"
 #include "RenderGraph.h"
 #include "TextCodex.h"
+#include "Util.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,7 +16,7 @@
 // 商店各块共用的纯绘制。买卖、炼成、奥义自己的排版和重画仍留在各自的块里。
 namespace ModuleShopDraw
 {
-	// ---- 通用：钱色、按钮色、画布、字体、贴图、矩形判断 ----
+	// ---- 通用：钱色、按钮色、栏位方块、圆角按钮、画布、字体、贴图、矩形判断 ----
 
 	// 货卡造价、顶栏金额、亮起的费用数字共用。
 	inline constexpr Color kMoneyYellow{ 255u, 220u, 90u, 255u };
@@ -181,6 +182,81 @@ namespace ModuleShopDraw
 				}
 			}
 		}
+	}
+
+	// 炼成停放格和奥义栏共用的底色、边框。
+	inline constexpr Color kSlotBg{ 42u, 56u, 78u, 190u };
+	inline constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
+
+	// 画一个直角栏位方块：底色加细边。x、y 是左上角，side 是边长。side 不大于 1，或左上角在画布外时不画。
+	inline void DrawSlotSquare_(Canvas2D& canvas, int x, int y, int side)
+	{
+		if (side <= 1 || x < 0 || y < 0)
+		{
+			return;
+		}
+		// x1、y1 是方块右下角，含端点。
+		const int x1 = x + side - 1;
+		const int y1 = y + side - 1;
+		CanvasPixelDraw::FillRect(
+			canvas,
+			static_cast<unsigned>(x),
+			static_cast<unsigned>(y),
+			static_cast<unsigned>(x1),
+			static_cast<unsigned>(y1),
+			kSlotBg);
+		CanvasPixelDraw::DrawRectOutline(canvas, x, y, x1, y1, kSlotFrame);
+	}
+
+	// 画一颗圆角操作按钮。x、y 是左上角，w、h 是宽高，caption 是标题。cost 小于 0 时不标价。lit 为真时按钮亮起，并且只有价格数字用 kMoneyYellow。
+	inline void DrawActionButton_(
+		Canvas2D& canvas,
+		int x,
+		int y,
+		int w,
+		int h,
+		const std::string& caption,
+		int cost,
+		bool lit)
+	{
+		// w、h 是按钮宽高。不大于 0 时没有可画的矩形。
+		if (w <= 0 || h <= 0)
+		{
+			return;
+		}
+		const int x1 = x + w - 1;
+		const int y1 = y + h - 1;
+		// corner 是圆角半径，随按钮高度夹在 4 到 8。
+		const int corner = (std::max)(4, (std::min)(8, h / 2));
+		// bg、frame、text 按是否亮起取一对颜色。
+		const Color bg = lit ? kBtnBgLit : kBtnBg;
+		const Color frame = lit ? kBtnFrameLit : kBtnFrame;
+		const Color text = lit ? kBtnTextLit : kBtnText;
+		CanvasPixelDraw::FillRoundedRect(canvas, x, y, x1, y1, corner, bg);
+		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x, y, x1, y1, corner, frame);
+
+		// label 是按钮上的整行字。有费用时在标题后加空格和数字。
+		std::string label = caption;
+		std::vector<Text::Span> spans;
+		if (cost >= 0)
+		{
+			const std::string digits = std::to_string(cost);
+			// digitAt 是价格数字在 UTF-16 里的起点，供黄色 Span 使用。
+			const UINT32 digitAt = static_cast<UINT32>(
+				Utf16CodeUnitCount(label) + Utf16CodeUnitCount(" "));
+			label += " " + digits;
+			if (lit)
+			{
+				Text::Span money{};
+				money.start = digitAt;
+				money.length = static_cast<UINT32>(Utf16CodeUnitCount(digits));
+				money.color = kMoneyYellow;
+				spans.push_back(money);
+			}
+		}
+		// font 是字号。矮按钮用 11，否则用 13。
+		const float font = (h < 22) ? 11.0f : 13.0f;
+		DrawShopLabelInBox_(canvas, label, font, x, y, w, h, text, spans);
 	}
 
 	// 把画布的位置和缩放对齐到这一块的世界矩形。
