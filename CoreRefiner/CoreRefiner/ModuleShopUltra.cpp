@@ -17,16 +17,6 @@
 
 namespace
 {
-	// ---- 布局 ----
-	// 右侧按钮个数。锻造单独画在左边，不占这三颗。
-	constexpr int kButtonCount_ = 3;
-	// 内部栏位边长 = 奥义栏位 * 3/4。顶边与奥义栏齐平，下面的空档画翻页条。
-	constexpr int kInnerNumer_ = 3;
-	constexpr int kInnerDenom_ = 4;
-	// 翻页条至少要能放下可点的三角。空档更矮时，两栏一起缩小。
-	constexpr int kPagerMinH_ = 16;
-	constexpr int kPagerTriMax_ = 16;
-
 	// ---- 本体 ----
 	// 把 Node 认成奥义。不是奥义时为空。
 	[[nodiscard]] const ModuleNode_Ultra* AsUltra_(const IModuleNode* node) noexcept
@@ -37,12 +27,6 @@ namespace
 	[[nodiscard]] ModuleNode_Ultra* AsUltra_(IModuleNode* node) noexcept
 	{
 		return dynamic_cast<ModuleNode_Ultra*>(node);
-	}
-
-	// 内部栏边长。奥义栏边长乘 3/4，至少 1 像素。
-	[[nodiscard]] int InnerSideOf_(int ultraSide) noexcept
-	{
-		return (std::max)(1, ultraSide * kInnerNumer_ / kInnerDenom_);
 	}
 
 	// ---- 落点 ----
@@ -89,161 +73,6 @@ namespace
 			&& py < static_cast<float>(y + h);
 	}
 
-	// ---- 翻页条 ----
-	// 翻页条上一组三角和圆点的位置。打孔改变容量后整组重算。
-	struct PagerGlyphs_
-	{
-		bool valid = false;
-		int leftX = 0;
-		int rightX = 0;
-		int triY = 0;
-		int triW = 0;
-		int triH = 0;
-		int count = 0;
-		int radius = 0;
-		int gap = 0;
-		int firstCx = 0;
-		int cy = 0;
-		int stride = 0;
-	};
-
-	[[nodiscard]] int PagerDotDiam_(int radius) noexcept
-	{
-		return (radius <= 0) ? 1 : (radius * 2 + 1);
-	}
-
-	[[nodiscard]] int PagerDotsWidth_(int count, int radius, int gap) noexcept
-	{
-		if (count <= 0)
-		{
-			return 0;
-		}
-		return count * PagerDotDiam_(radius) + (std::max)(0, count - 1) * gap;
-	}
-
-	// 左三角、圆点、右三角排成一组，相邻空隙相同，整组在条带里居中。
-	[[nodiscard]] PagerGlyphs_ BuildPagerGlyphs_(int pagerX, int pagerY, int pagerW, int pagerH, int capacity) noexcept
-	{
-		PagerGlyphs_ glyphs{};
-		if (capacity <= 0 || pagerW < 8 || pagerH < 6)
-		{
-			return glyphs;
-		}
-		const int triH = (std::min)(kPagerTriMax_, (std::max)(1, pagerH - 4));
-		const int triW = (std::max)(8, triH);
-		if (triW * 2 >= pagerW)
-		{
-			return glyphs;
-		}
-
-		int radius = (std::min)(4, (std::max)(2, triH / 5));
-		int gap = (std::max)(3, radius);
-		auto groupWidth = [&](int r, int g) noexcept
-		{
-			return triW + g + PagerDotsWidth_(capacity, r, g) + g + triW;
-		};
-		for (;;)
-		{
-			if (groupWidth(radius, gap) <= pagerW || (radius <= 0 && gap <= 0))
-			{
-				break;
-			}
-			if (gap > 1)
-			{
-				--gap;
-			}
-			else if (radius > 1)
-			{
-				--radius;
-			}
-			else if (gap > 0)
-			{
-				--gap;
-			}
-			else if (radius > 0)
-			{
-				--radius;
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		glyphs.valid = true;
-		glyphs.count = capacity;
-		glyphs.triW = triW;
-		glyphs.triH = triH;
-		glyphs.triY = pagerY + (std::max)(0, pagerH - triH) / 2;
-		glyphs.cy = glyphs.triY + (triH - 1) / 2;
-		glyphs.radius = radius;
-		glyphs.gap = gap;
-
-		const int used = groupWidth(radius, gap);
-		if (used <= pagerW)
-		{
-			const int origin = pagerX + (pagerW - used) / 2;
-			glyphs.leftX = origin;
-			const int dotsLeft = origin + triW + gap;
-			glyphs.firstCx = dotsLeft + ((radius <= 0) ? 0 : radius);
-			glyphs.stride = PagerDotDiam_(radius) + gap;
-			glyphs.rightX = dotsLeft + PagerDotsWidth_(capacity, radius, gap) + gap;
-			return glyphs;
-		}
-
-		// 缩到极限仍超宽时，三角留在条带内，点挤在两条三角中间。
-		glyphs.leftX = pagerX;
-		glyphs.rightX = pagerX + pagerW - triW;
-		glyphs.radius = 0;
-		glyphs.gap = 0;
-		const int innerL = glyphs.leftX + triW;
-		const int innerR = glyphs.rightX;
-		if (capacity <= 1)
-		{
-			glyphs.firstCx = (innerL + innerR) / 2;
-			glyphs.stride = 0;
-		}
-		else
-		{
-			const int span = (std::max)(0, innerR - innerL - 1);
-			glyphs.stride = span / (capacity - 1);
-			glyphs.firstCx = innerL;
-		}
-		return glyphs;
-	}
-
-	// 翻页三角。顶点交给 CanvasPixelDraw，颜色用商店按钮的亮灭。
-	void DrawPagerArrow_(Canvas2D& canvas, int x, int y, int w, int h, bool pointRight, bool lit)
-	{
-		if (w <= 1 || h <= 1)
-		{
-			return;
-		}
-		const Color fill = lit ? ModuleShopDraw::kBtnBgLit : ModuleShopDraw::kBtnBg;
-		const Color frame = lit ? ModuleShopDraw::kBtnFrameLit : ModuleShopDraw::kBtnFrame;
-		const int midY = y + (h - 1) / 2;
-		const int baseX = pointRight ? x : (x + w - 1);
-		const int tipX = pointRight ? (x + w - 1) : x;
-		CanvasPixelDraw::FillTriangle(canvas, tipX, midY, baseX, y, baseX, y + h - 1, fill);
-		CanvasPixelDraw::DrawTriangleOutline(canvas, tipX, midY, baseX, y, baseX, y + h - 1, frame);
-	}
-
-	// 翻页圆点。实心先填再描边，空心只描灭按钮的灰边。
-	void DrawPagerDot_(Canvas2D& canvas, int cx, int cy, int radius, bool filled)
-	{
-		const Color fill = ModuleShopDraw::kBtnBgLit;
-		const Color frame = filled ? ModuleShopDraw::kBtnFrameLit : ModuleShopDraw::kBtnFrame;
-		if (radius <= 0)
-		{
-			CanvasPixelDraw::FillCircle(canvas, cx, cy, 0, filled ? fill : frame);
-			return;
-		}
-		if (filled)
-		{
-			CanvasPixelDraw::FillCircle(canvas, cx, cy, radius, fill);
-		}
-		CanvasPixelDraw::DrawCircleOutline(canvas, cx, cy, radius, frame);
-	}
 }
 
 
@@ -589,8 +418,8 @@ ModuleShopUltra::Button ModuleShopUltra::HitButton(DirectX::XMFLOAT2 worldPos) c
 			? Button::Forge
 			: Button::None;
 	}
-	const Button buttons[kButtonCount_] = { Button::Punch, Button::Rename, Button::Redraw };
-	for (int i = 0; i < kButtonCount_; ++i)
+	const Button buttons[ModuleShopDraw::kUltraButtonCount] = { Button::Punch, Button::Rename, Button::Redraw };
+	for (int i = 0; i < ModuleShopDraw::kUltraButtonCount; ++i)
 	{
 		const int y = layout.btnY + i * (layout.btnH + layout.btnGap);
 		if (InRect_(px, py, layout.btnX, y, layout.btnW, layout.btnH))
@@ -598,7 +427,7 @@ ModuleShopUltra::Button ModuleShopUltra::HitButton(DirectX::XMFLOAT2 worldPos) c
 			return buttons[i];
 		}
 	}
-	const PagerGlyphs_ glyphs = BuildPagerGlyphs_(
+	const ModuleShopDraw::UltraPagerGlyphs glyphs = ModuleShopDraw::BuildUltraPagerGlyphs(
 		layout.pagerX,
 		layout.pagerY,
 		layout.pagerW,
@@ -944,110 +773,13 @@ ModuleShopUltra::Layout ModuleShopUltra::BuildLayout_() const noexcept
 	}
 	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
 	layout.capacity = (ultra != nullptr) ? ultra->GetCapacity() : 0;
-	FillLayout_(layout);
+	// 像素位置只看画布宽高和容量。当前页在下面按 scroll_ 截断。
+	ModuleShopDraw::FillUltraLayout(layout.cw, layout.ch, layout.capacity, layout);
 	const int begin = ClampedScroll_(layout);
 	layout.visibleBegin = begin;
 	const int remain = layout.capacity - begin;
 	layout.visibleCount = (remain > 0) ? (std::min)(layout.windowCount, remain) : 0;
 	return layout;
-}
-
-void ModuleShopUltra::FillLayout_(Layout& layout) noexcept
-{
-	layout.pad = (std::max)(6, layout.ch / 16);
-	const int innerW = (std::max)(1, layout.cw - layout.pad * 2);
-	const int innerH = (std::max)(1, layout.ch - layout.pad * 2);
-
-	layout.btnGap = 4;
-	layout.btnW = (std::min)(120, (std::max)(72, innerW / 5));
-	layout.btnH = (std::max)(14, (innerH - layout.btnGap * (kButtonCount_ - 1)) / kButtonCount_);
-	layout.innerGap = (std::max)(4, layout.pad / 2);
-
-	int ultraSide = innerH;
-	int innerSide = InnerSideOf_(ultraSide);
-	// 顶对齐后，内部栏下面剩的高度就是翻页条。不够一条时，两栏一起缩小。
-	if (layout.capacity > 0 && innerH - innerSide < kPagerMinH_)
-	{
-		const int innerMax = (std::max)(1, innerH - kPagerMinH_);
-		ultraSide = innerMax * kInnerDenom_ / kInnerNumer_;
-		ultraSide = (std::min)((std::max)(8, ultraSide), innerH);
-		innerSide = InnerSideOf_(ultraSide);
-		while (ultraSide > 8 && innerH - innerSide < kPagerMinH_)
-		{
-			--ultraSide;
-			innerSide = InnerSideOf_(ultraSide);
-		}
-	}
-	// 窄到连一格都放不下时，奥义栏和内部栏按 4:3 一起缩小。
-	if (layout.capacity > 0)
-	{
-		const int room = innerW - layout.btnW - layout.innerGap * 2;
-		if (ultraSide + innerSide > room && room > 8)
-		{
-			const int fitted = (std::min)(
-				ultraSide,
-				(std::max)(24, room * kInnerDenom_ / (kInnerDenom_ + kInnerNumer_)));
-			ultraSide = (std::min)(fitted, innerH);
-			innerSide = InnerSideOf_(ultraSide);
-		}
-	}
-
-	layout.ultraSide = (std::max)(1, (std::min)(ultraSide, innerH));
-	layout.innerSide = InnerSideOf_(layout.ultraSide);
-	layout.ultraX = layout.pad;
-	layout.ultraY = layout.pad;
-	layout.btnX = layout.cw - layout.pad - layout.btnW;
-	const int maxUltra = layout.btnX - layout.innerGap - layout.ultraX;
-	if (maxUltra > 0 && layout.ultraSide > maxUltra)
-	{
-		layout.ultraSide = maxUltra;
-		layout.innerSide = InnerSideOf_(layout.ultraSide);
-	}
-	layout.innerX0 = layout.ultraX + layout.ultraSide + layout.innerGap;
-	layout.innerY = layout.ultraY;
-
-	const int colH = layout.btnH * kButtonCount_ + layout.btnGap * (kButtonCount_ - 1);
-	layout.btnY = layout.pad + (std::max)(0, innerH - colH) / 2;
-	layout.windowCount = FitInnerSlots_(layout);
-	layout.visibleBegin = 0;
-	layout.visibleCount = 0;
-
-	layout.forgeW = (std::min)(168, (std::max)(72, layout.cw / 4));
-	layout.forgeH = (std::min)(40, (std::max)(18, layout.ch / 3));
-	layout.forgeW = (std::min)(layout.forgeW, (std::max)(1, layout.cw - 8));
-	layout.forgeH = (std::min)(layout.forgeH, (std::max)(1, layout.ch - 8));
-	layout.forgeX = (std::max)(0, (layout.cw - layout.forgeW) / 2);
-	layout.forgeY = (std::max)(0, (layout.ch - layout.forgeH) / 2);
-
-	const int contentBottom = layout.pad + innerH;
-	layout.pagerX = layout.innerX0;
-	layout.pagerY = layout.innerY + layout.innerSide;
-	layout.pagerW = (std::max)(0, layout.btnX - layout.innerGap - layout.pagerX);
-	layout.pagerH = (std::max)(0, contentBottom - layout.pagerY);
-}
-
-
-// 右侧按钮左边能放下几格，不按容量截断。多出来的格子靠滚动看。
-int ModuleShopUltra::FitInnerSlots_(const Layout& layout) noexcept
-{
-	if (layout.innerSide <= 0)
-	{
-		return 0;
-	}
-	const int limit = layout.btnX - layout.innerGap;
-	const int stride = layout.innerSide + layout.innerGap;
-	if (stride <= 0 || layout.innerX0 > limit)
-	{
-		return 0;
-	}
-	int count = 0;
-	int x = layout.innerX0;
-	while (x + layout.innerSide <= limit)
-	{
-		++count;
-		x += stride;
-	}
-	return count;
 }
 
 int ModuleShopUltra::ClampedScroll_(const Layout& layout) const noexcept
@@ -1092,16 +824,15 @@ bool ModuleShopUltra::WorldToPixel_(const Layout& layout, DirectX::XMFLOAT2 worl
 	return true;
 }
 
-// 与仓库格、炼成格相同：半径/格边 = 15/56。
 float ModuleShopUltra::SlotRadius_(const Layout& layout, int side) noexcept
 {
 	if (side <= 0 || layout.ch <= 0)
 	{
-		return 8.0f;
+		return ModuleShopDraw::kUltraIconRadiusMin;
 	}
+	// worldSide 是这一栏边长在世界上的长度。
 	const float worldSide = static_cast<float>(side) * ((layout.bounds.half.y * 2.0f) / static_cast<float>(layout.ch));
-	constexpr float kIconToSlot = 15.0f / 56.0f;
-	return (std::max)(8.0f, worldSide * kIconToSlot);
+	return ModuleShopDraw::UltraSlotIconRadius(worldSide);
 }
 
 // ---- 私有 · 独有 · 绘制 ----
@@ -1159,20 +890,20 @@ void ModuleShopUltra::Paint_()
 			const int x = layout.innerX0 + i * stride;
 			ModuleShopDraw::DrawSlotSquare_(canvas, x, layout.innerY, layout.innerSide);
 		}
-		DrawPager_(canvas, layout);
+		ModuleShopDraw::DrawUltraPager(canvas, layout, layout.visibleBegin, layout.visibleCount);
 
-		const std::string captions[kButtonCount_] = {
+		const std::string captions[ModuleShopDraw::kUltraButtonCount] = {
 			GetUiCopy("shop.ultra.punch"),
 			GetUiCopy("shop.ultra.rename"),
 			GetUiCopy("shop.ultra.redraw")
 		};
-		const int costs[kButtonCount_] = { GameRulesCodex::PunchCost, -1, -1 };
-		const bool lits[kButtonCount_] = {
+		const int costs[ModuleShopDraw::kUltraButtonCount] = { GameRulesCodex::PunchCost, -1, -1 };
+		const bool lits[ModuleShopDraw::kUltraButtonCount] = {
 			currency >= GameRulesCodex::PunchCost,
 			true,
 			true
 		};
-		for (int i = 0; i < kButtonCount_; ++i)
+		for (int i = 0; i < ModuleShopDraw::kUltraButtonCount; ++i)
 		{
 			const int y = layout.btnY + i * (layout.btnH + layout.btnGap);
 			ModuleShopDraw::DrawActionButton_(canvas, layout.btnX, y, layout.btnW, layout.btnH, captions[i], costs[i], lits[i]);
@@ -1186,30 +917,6 @@ void ModuleShopUltra::Paint_()
 	paintedCapacity_ = (ultra != nullptr) ? ultra->GetCapacity() : 0;
 	paintedRevision_ = (ultra != nullptr) ? ultra->GetContentRevision() : 0u;
 	canvas.NotifyPixelsChanged();
-}
-
-void ModuleShopUltra::DrawPager_(Canvas2D& canvas, const Layout& layout) noexcept
-{
-	const PagerGlyphs_ glyphs = BuildPagerGlyphs_(
-		layout.pagerX,
-		layout.pagerY,
-		layout.pagerW,
-		layout.pagerH,
-		layout.capacity);
-	if (!glyphs.valid)
-	{
-		return;
-	}
-
-	const bool canLeft = layout.visibleBegin > 0;
-	const bool canRight = layout.visibleBegin + layout.windowCount < layout.capacity;
-	DrawPagerArrow_(canvas, glyphs.leftX, glyphs.triY, glyphs.triW, glyphs.triH, false, canLeft);
-	DrawPagerArrow_(canvas, glyphs.rightX, glyphs.triY, glyphs.triW, glyphs.triH, true, canRight);
-	for (int i = 0; i < glyphs.count; ++i)
-	{
-		const bool onScreen = i >= layout.visibleBegin && i < layout.visibleBegin + layout.visibleCount;
-		DrawPagerDot_(canvas, glyphs.firstCx + i * glyphs.stride, glyphs.cy, glyphs.radius, onScreen);
-	}
 }
 
 // ---- 私有 · 独有 · 点击和翻页 ----

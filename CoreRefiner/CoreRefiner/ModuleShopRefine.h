@@ -4,6 +4,7 @@
 #include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleShopBlock.h"
+#include "ModuleShopDraw.h"
 
 #include <array>
 #include <cstddef>
@@ -104,32 +105,24 @@ private:
 	void EnsureVisuals_() override;
 
 	// ---- 独有 · 布局 ----
-	// 这一帧炼成区的像素布局。三格和右侧四键都从这里量。
-	struct Layout
+	// 这一帧的世界矩形、画布尺寸，加上三格和四键的像素位置。
+	// 像素字段在 RefineLayout 里，由 FillRefineLayout 写入。
+	struct Layout : ModuleShopDraw::RefineLayout
 	{
+		// 这一块的世界矩形。点选和摆 Node 用它把像素换回世界坐标。
 		IModuleZone::BoundsWorld bounds{};
+		// 底板像素宽高。优先用画布的真实尺寸。
 		int cw{ 1 };
 		int ch{ 1 };
-		int pad{ 0 };
-		int side{ 0 };
-		int slotTop{ 0 };
-		int slotXs[kParkCount]{};
-		int btnW{ 120 };
-		int btnH{ 14 };
-		int btnX{ 0 };
-		int btnTop{ 0 };
-		int btnGap{ 5 };
 	};
 
 	// 按当前 bounds_ 和底板像素尺寸做出一份 Layout。
 	[[nodiscard]] Layout CurrentLayout_() const noexcept;
-	// 在画布像素里排三格和右侧四键。
-	static void FillLayout_(Layout& layout) noexcept;
 	// 世界坐标换成画布像素。宽或高无效时返回 false。
 	[[nodiscard]] bool WorldToPixel_(DirectX::XMFLOAT2 world, const Layout& layout, float& px, float& py) const noexcept;
 	// 第 slot 格中心的世界坐标。越界时返回这块的中心。
 	[[nodiscard]] DirectX::XMFLOAT2 SlotCenterFrom_(const Layout& layout, std::size_t slot) const noexcept;
-	// 按格子边长换算图标世界半径。和仓库格同一比例。
+	// 按格子边长换算图标世界半径。比例用 ModuleShopDraw::kRefineIconToSlot。
 	[[nodiscard]] float SlotRadiusFrom_(const Layout& layout) const noexcept;
 	// 点落在哪一格。没命中返回 kParkCount。
 	[[nodiscard]] std::size_t HitSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;

@@ -200,6 +200,7 @@
     <ClCompile Include="ModuleNodeFactory.cpp" />
     <ClCompile Include="ModuleNodeInfoCopy.cpp" />
     <ClCompile Include="ModuleShop.cpp" />
+    <ClCompile Include="ModuleShopDraw.cpp" />
     <ClCompile Include="ModuleShopPanel.cpp" />
     <ClCompile Include="ModuleShopRefine.cpp" />
     <ClCompile Include="ModuleShopTrade.cpp" />

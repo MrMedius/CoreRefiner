@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-// 商店各块共用的纯绘制。买卖、炼成、奥义自己的排版和重画仍留在各自的块里。
+// 商店各块共用的颜色、笔触和排版。各块仍决定画不画、亮不亮，并读取自己的 bounds_。
 namespace ModuleShopDraw
 {
 	// ---- 通用：钱色、按钮色、栏位方块、圆角按钮、画布、字体、贴图、矩形判断 ----
@@ -285,5 +285,195 @@ namespace ModuleShopDraw
 		const int w = static_cast<int>(canvas.GetCanvasWidth());
 		const int h = static_cast<int>(canvas.GetCanvasHeight());
 		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
+	}
+
+	// ---- 炼成：三格和右侧四键的像素排版 ----
+
+	// 停放格个数。与 ModuleShopRefine::kParkCount 相同。
+	inline constexpr int kRefineSlotCount = 3;
+	// 右侧按钮个数。与 ModuleShopRefine::kButtonCount 相同。
+	inline constexpr int kRefineButtonCount = 4;
+
+	// 内边距的下限。画布更高时改用高度除以 kRefinePadDiv。
+	inline constexpr int kRefinePadMin = 8;
+	// 用画布高度算内边距时的除数。
+	inline constexpr int kRefinePadDiv = 14;
+	// 格与格、格与按钮之间希望留下的空隙。
+	inline constexpr int kRefineRegionGapWanted = 64;
+	// 空隙再窄也不低于这个值。
+	inline constexpr int kRefineRegionGapMin = 32;
+	// 四键之间的竖直间距。
+	inline constexpr int kRefineButtonGap = 5;
+	// 四键希望的宽度。放不下时再缩小，但不低于 kRefineButtonWMin。
+	inline constexpr int kRefineButtonW = 120;
+	// 四键再矮也不低于这个高度。
+	inline constexpr int kRefineButtonHMin = 14;
+	// 四键再窄也不低于这个宽度。
+	inline constexpr int kRefineButtonWMin = 72;
+	// 格子边长再缩也不低于这个值。
+	inline constexpr int kRefineSideMin = 24;
+	// 图标半径相对格边的比例。和仓库格距 56、半径 15 相同。货卡不用这个数。
+	inline constexpr float kRefineIconToSlot = 15.0f / 56.0f;
+	// 图标世界半径的下限。
+	inline constexpr float kRefineIconRadiusMin = 8.0f;
+
+	// 三格和四键在画布上的像素位置。不含世界矩形。
+	struct RefineLayout
+	{
+		// 内容区离开画布边缘的像素。
+		int pad = 0;
+		// 每一格的边长。
+		int side = 0;
+		// 三格共同的顶边。
+		int slotTop = 0;
+		// 三格的左边。0 素材，1 主体，2 结果。
+		int slotXs[kRefineSlotCount]{};
+		// 右侧按钮的宽、高、左边、顶边和间距。
+		int btnW = kRefineButtonW;
+		int btnH = kRefineButtonHMin;
+		int btnX = 0;
+		int btnTop = 0;
+		int btnGap = kRefineButtonGap;
+	};
+
+	// 按画布像素宽高排三格和四键。cw、ch 是宽和高。不读世界矩形。
+	void FillRefineLayout(int cw, int ch, RefineLayout& layout) noexcept;
+
+	// worldSide 是格子边长换到世界上的长度。半径用 kRefineIconToSlot，至少 kRefineIconRadiusMin。
+	[[nodiscard]] inline float RefineSlotIconRadius(float worldSide) noexcept
+	{
+		return (std::max)(kRefineIconRadiusMin, worldSide * kRefineIconToSlot);
+	}
+
+	// ---- 奥义：栏位、右侧按钮、锻造键和翻页条 ----
+
+	// 有奥义时右侧按钮的个数。锻造单独画在正中，不占这三颗。
+	inline constexpr int kUltraButtonCount = 3;
+	// 内部栏边长 = 奥义栏边长 * kUltraInnerNumer / kUltraInnerDenom。顶边与奥义栏齐平。
+	inline constexpr int kUltraInnerNumer = 3;
+	inline constexpr int kUltraInnerDenom = 4;
+
+	// 内边距的下限。画布更高时改用高度除以 kUltraPadDiv。
+	inline constexpr int kUltraPadMin = 6;
+	inline constexpr int kUltraPadDiv = 16;
+	// 右侧三键的竖直间距。
+	inline constexpr int kUltraButtonGap = 4;
+	// 右侧按钮宽度夹在这两个值之间，再按内容宽度除以 kUltraButtonWDiv 取一档。
+	inline constexpr int kUltraButtonWMin = 72;
+	inline constexpr int kUltraButtonWMax = 120;
+	inline constexpr int kUltraButtonWDiv = 5;
+	// 右侧按钮再矮也不低于这个高度。
+	inline constexpr int kUltraButtonHMin = 14;
+	// 奥义栏和内部栏之间的空隙下限。更宽时取内边距的一半。
+	inline constexpr int kUltraInnerGapMin = 4;
+	// 翻页条至少要这么高，放得下可点的三角。不够时两栏一起缩小。
+	inline constexpr int kUltraPagerMinH = 16;
+	// 为翻页条缩小栏位时，奥义栏边长不低于这个值。
+	inline constexpr int kUltraSideFloor = 8;
+	// 右侧按钮左边的剩余宽度高于这个值，才按比例缩小两栏。
+	inline constexpr int kUltraRoomMin = 8;
+	// 窄宽度下奥义栏边长的下限。
+	inline constexpr int kUltraFittedMin = 24;
+
+	// 没有奥义时，正中锻造键的宽高范围。
+	inline constexpr int kUltraForgeWMin = 72;
+	inline constexpr int kUltraForgeWMax = 168;
+	inline constexpr int kUltraForgeWDiv = 4;
+	inline constexpr int kUltraForgeHMin = 18;
+	inline constexpr int kUltraForgeHMax = 40;
+	inline constexpr int kUltraForgeHDiv = 3;
+	// 锻造键离开画布边缘至少这么多像素。
+	inline constexpr int kUltraForgeMargin = 8;
+
+	// 翻页三角的最大高度。
+	inline constexpr int kUltraPagerTriMax = 16;
+	// 条带宽或高低于这两个值时不画三角和圆点。
+	inline constexpr int kUltraPagerMinW = 8;
+	inline constexpr int kUltraPagerMinDrawH = 6;
+	// 三角高度用条高减去这个边，宽度至少这么多。
+	inline constexpr int kUltraPagerTriInset = 4;
+	inline constexpr int kUltraPagerTriWMin = 8;
+	// 圆点半径夹在这两个值之间，再按三角高度除以 kUltraPagerDotDiv 缩小。
+	inline constexpr int kUltraPagerDotRadiusMin = 2;
+	inline constexpr int kUltraPagerDotRadiusMax = 4;
+	inline constexpr int kUltraPagerDotDiv = 5;
+	// 圆点间距至少这么多，也不小于半径。
+	inline constexpr int kUltraPagerDotGapMin = 3;
+
+	// 图标半径相对格边的比例。和炼成、仓库相同。货卡不用这个数。
+	inline constexpr float kUltraIconToSlot = 15.0f / 56.0f;
+	// 图标世界半径的下限。
+	inline constexpr float kUltraIconRadiusMin = 8.0f;
+
+	// 奥义栏、内部栏、右侧按钮、锻造键和翻页条的像素位置。不含世界矩形，也不含当前页。
+	struct UltraLayout
+	{
+		// 内容区离开画布边缘的像素。
+		int pad = 0;
+		// 奥义栏的左边、顶边和边长。
+		int ultraX = 0;
+		int ultraY = 0;
+		int ultraSide = 0;
+		// 内部栏的边长、间距、第一格左边和顶边。
+		int innerSide = 0;
+		int innerGap = 0;
+		int innerX0 = 0;
+		int innerY = 0;
+		// 内部栏容量。没有奥义时是 0。由奥义区传入。
+		int capacity = 0;
+		// 右侧按钮左边这一屏能放下几格，不按容量截断。
+		int windowCount = 0;
+		// 右侧三键的左边、顶边、宽、高和间距。
+		int btnX = 0;
+		int btnY = 0;
+		int btnW = 0;
+		int btnH = 0;
+		int btnGap = 0;
+		// 没有奥义时，正中锻造键的位置和大小。
+		int forgeX = 0;
+		int forgeY = 0;
+		int forgeW = 0;
+		int forgeH = 0;
+		// 内部栏下面、奥义栏和右侧按钮之间的翻页条。
+		int pagerX = 0;
+		int pagerY = 0;
+		int pagerW = 0;
+		int pagerH = 0;
+	};
+
+	// 翻页条上左三角、圆点和右三角的像素位置。圆点不能点。
+	struct UltraPagerGlyphs
+	{
+		// 条带太窄或容量为 0 时为 false，调用方不画也不响应。
+		bool valid = false;
+		// 左三角、右三角的左边，以及三角的顶边、宽、高。
+		int leftX = 0;
+		int rightX = 0;
+		int triY = 0;
+		int triW = 0;
+		int triH = 0;
+		// 圆点个数，等于容量。
+		int count = 0;
+		// 圆点半径、间距、第一个圆心和竖直中心。stride 是相邻圆心的水平距离。
+		int radius = 0;
+		int gap = 0;
+		int firstCx = 0;
+		int cy = 0;
+		int stride = 0;
+	};
+
+	// 按画布宽高和容量排栏位、按钮和翻页条。cw、ch 是宽和高。capacity 是内部栏个数。不读世界矩形，也不决定当前页。
+	void FillUltraLayout(int cw, int ch, int capacity, UltraLayout& layout) noexcept;
+
+	// 按翻页条矩形和容量排出三角和圆点。capacity 是圆点个数。
+	[[nodiscard]] UltraPagerGlyphs BuildUltraPagerGlyphs(int pagerX, int pagerY, int pagerW, int pagerH, int capacity) noexcept;
+
+	// 画翻页三角和圆点。visibleBegin 是当前页第一格，visibleCount 是这一页画出来的格数。到头的三角不亮。
+	void DrawUltraPager(Canvas2D& canvas, const UltraLayout& layout, int visibleBegin, int visibleCount) noexcept;
+
+	// worldSide 是栏位边长换到世界上的长度。半径用 kUltraIconToSlot，至少 kUltraIconRadiusMin。
+	[[nodiscard]] inline float UltraSlotIconRadius(float worldSide) noexcept
+	{
+		return (std::max)(kUltraIconRadiusMin, worldSide * kUltraIconToSlot);
 	}
 }

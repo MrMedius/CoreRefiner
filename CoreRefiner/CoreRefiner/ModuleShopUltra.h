@@ -4,6 +4,7 @@
 #include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleShopBlock.h"
+#include "ModuleShopDraw.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -131,53 +132,29 @@ private:
 	void EnsureVisuals_() override;
 
 	// ---- 独有 · 布局 ----
-	// 这一帧奥义区的像素布局。栏位、按钮和翻页条都从这里量。
-	struct Layout
+	// 世界矩形、画布尺寸和当前页，加上栏位与按钮的像素位置。
+	// 像素字段在 UltraLayout 里，由 FillUltraLayout 写入。当前页由 scroll_ 决定。
+	struct Layout : ModuleShopDraw::UltraLayout
 	{
+		// 这一块的世界矩形。点选和摆 Node 用它把像素换回世界坐标。
 		IModuleZone::BoundsWorld bounds{};
+		// 底板像素宽高。优先用画布的真实尺寸。
 		int cw = 1;
 		int ch = 1;
-		int pad = 0;
-		int ultraX = 0;
-		int ultraY = 0;
-		int ultraSide = 0;
-		int innerSide = 0;
-		int innerGap = 0;
-		int innerX0 = 0;
-		int innerY = 0;
-		int capacity = 0;
-		int windowCount = 0;
+		// 当前窗口从第几格开始，以及这一页画出来几格。
 		int visibleBegin = 0;
 		int visibleCount = 0;
-		int btnX = 0;
-		int btnY = 0;
-		int btnW = 0;
-		int btnH = 0;
-		int btnGap = 0;
-		int forgeX = 0;
-		int forgeY = 0;
-		int forgeW = 0;
-		int forgeH = 0;
-		// 内部栏下面、奥义栏和右侧按钮之间的翻页条。
-		int pagerX = 0;
-		int pagerY = 0;
-		int pagerW = 0;
-		int pagerH = 0;
 	};
 
 	// 按当前 bounds_、容量和滚动位置做出一份 Layout。
 	[[nodiscard]] Layout BuildLayout_() const noexcept;
-	// 在画布像素里排奥义栏、内部栏、按钮和翻页条。
-	static void FillLayout_(Layout& layout) noexcept;
-	// 右侧按钮左边能放下几格，不按容量截断。
-	[[nodiscard]] static int FitInnerSlots_(const Layout& layout) noexcept;
 	// 把 scroll_ 收进当前容量和窗口能显示的范围。
 	[[nodiscard]] int ClampedScroll_(const Layout& layout) const noexcept;
 	// 画布像素中心换成世界坐标。
 	[[nodiscard]] static DirectX::XMFLOAT2 PixelCenterToWorld_(const Layout& layout, float px, float py) noexcept;
 	// 世界坐标换成画布像素。点在这块外面时返回 false。
 	[[nodiscard]] static bool WorldToPixel_(const Layout& layout, DirectX::XMFLOAT2 world, float& px, float& py) noexcept;
-	// 栏位边长换成 Node 的世界半径。
+	// 栏位边长换成 Node 的世界半径。比例用 ModuleShopDraw::kUltraIconToSlot。
 	[[nodiscard]] static float SlotRadius_(const Layout& layout, int side) noexcept;
 
 	// ---- 独有 · 绘制 ----
@@ -185,8 +162,6 @@ private:
 	[[nodiscard]] bool NeedsPaint_() const noexcept;
 	// 把栏位、按钮、翻页条和钱数画进底板。
 	void Paint_();
-	// 画翻页条上的三角和圆点。圆点不能点。
-	static void DrawPager_(Canvas2D& canvas, const Layout& layout) noexcept;
 
 	// ---- 独有 · 点击和翻页 ----
 	// 点是否落在奥义区整块里。矩形判断交给 ModuleShopBlock。

@@ -24,6 +24,9 @@
 
 using namespace ModuleShopDraw;
 
+static_assert(kRefineSlotCount == static_cast<int>(ModuleShopRefine::kParkCount));
+static_assert(kRefineButtonCount == static_cast<int>(ModuleShopRefine::kButtonCount));
+
 // ---- 公开 · 前置 ----
 
 void ModuleShopRefine::SetHostZone(IModuleZone* host) noexcept
@@ -480,50 +483,9 @@ ModuleShopRefine::Layout ModuleShopRefine::CurrentLayout_() const noexcept
 			layout.ch = ph;
 		}
 	}
-	FillLayout_(layout);
+	// 像素位置只看画布宽高。世界矩形仍在 layout.bounds。
+	FillRefineLayout(layout.cw, layout.ch, layout);
 	return layout;
-}
-
-void ModuleShopRefine::FillLayout_(Layout& layout) noexcept
-{
-	layout.pad = (std::max)(8, layout.ch / 14);
-	const int innerW = (std::max)(1, layout.cw - layout.pad * 2);
-	const int innerH = (std::max)(1, layout.ch - layout.pad * 2);
-	const int regionGapWanted = 64;
-	const int regionGapMin = 32;
-	layout.btnGap = 5;
-	constexpr int slotN = 3;
-	constexpr int buttonN = 4;
-	layout.btnW = 120;
-	layout.btnH = (std::max)(14, (innerH - layout.btnGap * (buttonN - 1)) / buttonN);
-	int side = innerH;
-	int regionGap = regionGapWanted;
-	const int gapN = slotN;
-	auto clusterW = [&]() noexcept
-	{
-		return side * slotN + regionGap * gapN + layout.btnW;
-	};
-	if (clusterW() > innerW)
-	{
-		regionGap = (std::max)(regionGapMin, (innerW - side * slotN - layout.btnW) / gapN);
-	}
-	if (clusterW() > innerW)
-	{
-		side = (std::max)(24, (innerW - regionGap * gapN - layout.btnW) / slotN);
-	}
-	if (clusterW() > innerW)
-	{
-		layout.btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
-	}
-	layout.side = side;
-	layout.slotTop = layout.pad + (std::max)(0, innerH - side) / 2;
-	const int groupX = layout.pad + (std::max)(0, innerW - clusterW()) / 2;
-	layout.slotXs[0] = groupX;
-	layout.slotXs[1] = groupX + side + regionGap;
-	layout.slotXs[2] = groupX + (side + regionGap) * 2;
-	layout.btnX = groupX + (side + regionGap) * slotN;
-	const int btnColH = layout.btnH * buttonN + layout.btnGap * (buttonN - 1);
-	layout.btnTop = layout.pad + (std::max)(0, innerH - btnColH) / 2;
 }
 
 bool ModuleShopRefine::WorldToPixel_(DirectX::XMFLOAT2 world, const Layout& layout, float& px, float& py) const noexcept
@@ -559,12 +521,11 @@ float ModuleShopRefine::SlotRadiusFrom_(const Layout& layout) const noexcept
 {
 	if (layout.side <= 0 || layout.ch <= 0)
 	{
-		return 8.0f;
+		return kRefineIconRadiusMin;
 	}
+	// worldSide 是这一格边长在世界上的长度。
 	const float worldSide = static_cast<float>(layout.side) * ((layout.bounds.half.y * 2.0f) / static_cast<float>(layout.ch));
-	// 与仓库格相同：半径/格边 = 15/56。
-	constexpr float kIconToSlot = 15.0f / 56.0f;
-	return (std::max)(8.0f, worldSide * kIconToSlot);
+	return RefineSlotIconRadius(worldSide);
 }
 
 std::size_t ModuleShopRefine::HitSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
