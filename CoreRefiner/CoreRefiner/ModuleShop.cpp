@@ -6,7 +6,6 @@
 #include "GameStatsCodex.h"
 #include "TextCodex.h"
 
-#include "Collision2D.h"
 #include "Colors.h"
 #include "IconAtlas.h"
 
@@ -22,97 +21,11 @@
 
 #include <algorithm>
 #include <cmath>
-#include <random>
 #include <string>
 #include <utility>
 #include <vector>
 
 using namespace ModuleShopDraw;
-
-namespace
-{
-	struct ShopOffered_
-	{
-		ModuleNodeLabel data[ModuleNodeLabelCount()]{};
-		std::size_t count{ 0 };
-	};
-
-	// 可刷表 = Label 全集 − 进化表 − Core 表 − Fusion 表。
-	[[nodiscard]] constexpr ShopOffered_ MakeShopOffered_() noexcept
-	{
-		ShopOffered_ out{};
-		for (std::size_t i = 0; i < ModuleNodeLabelCount(); ++i)
-		{
-			const auto label = static_cast<ModuleNodeLabel>(i);
-			// 进化、核心、融合、奥义都不进货。奥义从 Label 造出来是空货槽。
-			if (LabelTableContains(kEvolveLabels, label)
-				|| LabelTableContains(kCoreLabels, label)
-				|| LabelTableContains(kFusionLabels, label)
-				|| LabelTableContains(kUltraLabels, label))
-			{
-				continue;
-			}
-			out.data[out.count++] = label;
-		}
-		return out;
-	}
-	constexpr ShopOffered_ kShopOffered_ = MakeShopOffered_();
-	static_assert(kShopOffered_.count >= ModuleShop::kSlotCount);
-
-	void ShuffleLabels_(ModuleNodeLabel* labels, std::size_t count)
-	{
-		if (count < 2u)
-		{
-			return;
-		}
-		static std::mt19937 rng{ std::random_device{}() };
-		for (std::size_t i = count; i > 1u; --i)
-		{
-			std::uniform_int_distribution<std::size_t> dist(0u, i - 1u);
-			const std::size_t j = dist(rng);
-			const ModuleNodeLabel tmp = labels[i - 1u];
-			labels[i - 1u] = labels[j];
-			labels[j] = tmp;
-		}
-	}
-}
-
-namespace
-{
-	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
-	{
-		if (scale == 0u)
-		{
-			return;
-		}
-
-		const int glyph = static_cast<int>(16u * scale);
-		const int ox = (static_cast<int>(canvas.GetCanvasWidth()) - glyph) / 2;
-		const int oy = (static_cast<int>(canvas.GetCanvasHeight()) - glyph) / 2;
-		for (unsigned y = 0u; y < 16u; ++y)
-		{
-			const std::uint16_t row = bits[y];
-			for (unsigned x = 0u; x < 16u; ++x)
-			{
-				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
-				{
-					continue;
-				}
-				for (unsigned sy = 0u; sy < scale; ++sy)
-				{
-					for (unsigned sx = 0u; sx < scale; ++sx)
-					{
-						CanvasPixelDraw::PutPixelClamped(
-							canvas,
-							ox + static_cast<int>(x * scale + sx),
-							oy + static_cast<int>(y * scale + sy),
-							color);
-					}
-				}
-			}
-		}
-	}
-}
 
 // ---- 外壳 ----
 ModuleShop::BoundsWorld ModuleShop::ShellInnerRect_() const noexcept
@@ -169,13 +82,11 @@ ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
 void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 {
 	origin_ = origin;
-	RelayoutSlots_();
 	PlaceRefineResultVisual_();
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
+	// 先把新原点写给买卖区和奥义区，再让货架 Node 对齐。
 	SyncBlocks_();
+	trade_.SyncNodes();
 }
 
 void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
@@ -185,16 +96,15 @@ void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
 	LayoutBlocks_();
 	if (gfx_ != nullptr && rg_ != nullptr)
 	{
-		EnsureTradePanelVisual_(*gfx_, *rg_);
 		EnsureRefineVisuals_(*gfx_, *rg_);
 		for (ModuleShopBlock* block : Blocks_())
 		{
 			block->Ensure(*gfx_, *rg_);
 		}
 	}
-	RelayoutSlots_();
+	// 框变宽后货卡间距变了，商品要按新格子重摆。
+	trade_.Relayout();
 	PlaceRefineResultVisual_();
-	SyncTradePanelTransform_();
 	SyncRefineTransform_();
 	SyncBlocks_();
 }
@@ -204,44 +114,22 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_ = &gfx;
 	rg_ = &rg;
 	LayoutBlocks_();
-	EnsureTradePanelVisual_(gfx, rg);
-	EnsureSlotCardVisuals_(gfx, rg);
-	EnsureLockButtonVisuals_(gfx, rg);
 	EnsureRefineVisuals_(gfx, rg);
 	for (ModuleShopBlock* block : Blocks_())
 	{
 		block->Ensure(gfx, rg);
 	}
+	// 买卖区这时已经记下画面设备，补货时自己给商品建图。
 	FillStock();
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->InitVisual(gfx, rg, origin_);
-		}
-	}
-	RelayoutSlots_();
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
 	SyncBlocks_();
 }
 
 void ModuleShop::SyncZoneTransforms_()
 {
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
 	SyncBlocks_();
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->SyncVisual();
-		}
-	}
+	trade_.SyncNodes();
 	auto syncOwned = [this](IModuleNode* node)
 	{
 		if (node == nullptr)
@@ -261,83 +149,16 @@ void ModuleShop::SyncZoneTransforms_()
 
 void ModuleShop::SubmitZoneBackground_()
 {
-	if (tradePanel_ != nullptr)
-	{
-		tradePanel_->Submit(Chan::ui);
-	}
-	for (ModuleShopPanel& card : slotPanels_)
-	{
-		card.Submit();
-	}
+	// 买卖底板在炼成下面，奥义最后。炼成还不是块，所以不整表循环。
+	trade_.Submit();
 	if (refinePanel_ != nullptr)
 	{
 		refinePanel_->Submit(Chan::ui);
 	}
-	for (ModuleShopBlock* block : Blocks_())
-	{
-		block->Submit();
-	}
+	ultra_.Submit();
 }
 
-// ---- 买卖区 · 逻辑 ----
-float ModuleShop::TradeHalfY_() const noexcept
-{
-	return SplitUnitHeight_() * static_cast<float>(kTradeRatio) * 0.5f;
-}
-
-float ModuleShop::TradeCenterLocalY_() const noexcept
-{
-	return -(shellHalf_.y - kShellInnerPad) + TradeHalfY_();
-}
-
-float ModuleShop::CardCenterLocalY_() const noexcept
-{
-	return TradeCenterLocalY_() - TradeHalfY_() + kHudBarHeight + kSlotMargin + kCardHeight * 0.5f;
-}
-
-float ModuleShop::SlotPitchX_() const noexcept
-{
-	const float innerW = ContentHalfX_() * 2.0f;
-	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
-}
-
-float ModuleShop::CardCenterLocalX_(std::size_t index) const noexcept
-{
-	const float pitch = SlotPitchX_();
-	return (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
-}
-
-float ModuleShop::SlotCardIconRadius_() const
-{
-	return ModuleShopPanel::IconWorldRadius();
-}
-
-DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) const
-{
-	// Icon 在货卡顶区水平居中，其下才是标题/Kind。
-	const float r = SlotCardIconRadius_();
-	const float cardTop = CardCenterLocalY_() - kCardHeight * 0.5f;
-	const float x = CardCenterLocalX_(index);
-	const float y = cardTop + ModuleShopPanel::kIconPad + r;
-	return DirectX::XMFLOAT2{ x, y };
-}
-
-std::size_t ModuleShop::FindSlotIndex_(const IModuleNode* node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return kSlotCount;
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		if (slots_[i].node.get() == node)
-		{
-			return i;
-		}
-	}
-	return kSlotCount;
-}
-
+// ---- 买卖区 · 转发 ----
 ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
 {
 	const BoundsWorld inner = ShellInnerRect_();
@@ -373,24 +194,13 @@ bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) con
 
 void ModuleShop::FillStock()
 {
-	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
-	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
-	{
-		pool[i] = kShopOffered_.data[i];
-	}
-	ShuffleLabels_(pool, kShopOffered_.count);
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		RestockSlot_(i, pool[i]);
-	}
-	RelayoutSlots_();
+	trade_.FillStock();
 }
 
 void ModuleShop::BeginVisit()
 {
 	// 同一局再次打开商店只刷新货架，奥义区保留。
-	ResetVisit();
-	RerollStock_();
+	trade_.BeginVisit();
 }
 
 void ModuleShop::ClearUltra()
@@ -405,73 +215,18 @@ void ModuleShop::ClearUltra()
 	ultra_.ClearForRunEnd();
 }
 
-void ModuleShop::RestockSlot_(std::size_t index, ModuleNodeLabel label)
+bool ModuleShop::TryRefresh()
 {
-	if (index >= kSlotCount)
-	{
-		return;
-	}
-
-	Slot& slot = slots_[index];
-	slot.node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(index));
-	slot.sold = false;
-	slot.locked = false;
-	slot.price = (slot.node != nullptr)
-		? slot.node->GetBuyPrice()
-		: 0;
-
-	if (gfx_ != nullptr && rg_ != nullptr && slot.node != nullptr)
-	{
-		slot.node->InitVisual(*gfx_, *rg_, origin_);
-	}
-}
-
-bool ModuleShop::HasRerollableSlot_() const noexcept
-{
-	for (const Slot& slot : slots_)
-	{
-		const bool keepLocked = slot.locked && !slot.sold && slot.node != nullptr;
-		if (!keepLocked)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-void ModuleShop::DenyRefresh_()
-{
-	refreshDeniedSec_ = 0.35f;
-	PaintHudIcons_();
-}
-
-int ModuleShop::GetRefreshCost() const noexcept
-{
-	return kRefreshBaseCost_ + refreshCount_ * kRefreshCostStep_;
+	return trade_.TryRefresh();
 }
 
 void ModuleShop::ResetVisit()
 {
-	refreshCount_ = 0;
-	refreshDeniedSec_ = 0.0f;
-	paintedRefreshCost_ = -1;
-	if (gfx_ != nullptr)
-	{
-		SyncHud();
-	}
+	trade_.ResetVisit();
 }
 
 void ModuleShop::TickHud(float dt)
 {
-	if (refreshDeniedSec_ > 0.0f)
-	{
-		refreshDeniedSec_ -= dt;
-		if (refreshDeniedSec_ < 0.0f)
-		{
-			refreshDeniedSec_ = 0.0f;
-		}
-	}
-	SyncHud();
 	const bool up = CanUpgradeRefine_();
 	const bool fuse = CanFuseRefine_();
 	const bool evo = CanEvolveRefine_();
@@ -481,7 +236,7 @@ void ModuleShop::TickHud(float dt)
 	{
 		PaintRefinePanel_();
 	}
-	// 先写入矩形和原点，再让各块走自己的每帧刷新。奥义区会重画跟着钱变化的按钮和数字。
+	// 先写入矩形和原点，再让各块走自己的每帧刷新。买卖区走倒计时和顶栏，奥义区重画跟着钱变化的按钮和数字。
 	LayoutBlocks_();
 	for (ModuleShopBlock* block : Blocks_())
 	{
@@ -489,186 +244,44 @@ void ModuleShop::TickHud(float dt)
 	}
 }
 
-bool ModuleShop::TryRefresh()
+void ModuleShop::SyncHud()
 {
-	if (!HasRerollableSlot_())
-	{
-		DenyRefresh_();
-		return false;
-	}
-
-	const int cost = GetRefreshCost();
-	if (!GameStatsCodex::TrySpendCurrency(cost))
-	{
-		DenyRefresh_();
-		return false;
-	}
-	++refreshCount_;
-	RerollStock_();
-	paintedRefreshCost_ = -1;
-	SyncHud();
-	return true;
+	trade_.SyncHud();
 }
 
-void ModuleShop::RerollStock_()
+void ModuleShop::SubmitHud()
 {
-	bool taken[ModuleNodeLabelCount()]{};
-	for (const Slot& slot : slots_)
-	{
-		if (slot.locked && !slot.sold && slot.node != nullptr)
-		{
-			taken[ToIndex(slot.node->GetModuleNodeLabel())] = true;
-		}
-	}
-
-	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
-	std::size_t poolN = 0;
-	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
-	{
-		const ModuleNodeLabel label = kShopOffered_.data[i];
-		if (!taken[ToIndex(label)])
-		{
-			pool[poolN++] = label;
-		}
-	}
-	ShuffleLabels_(pool, poolN);
-
-	std::size_t p = 0;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		if (slot.locked && !slot.sold && slot.node != nullptr)
-		{
-			continue;
-		}
-		if (p >= poolN)
-		{
-			break;
-		}
-		RestockSlot_(i, pool[p++]);
-	}
-	RelayoutSlots_();
-}
-
-Color ModuleShop::RefreshIconTint_() const noexcept
-{
-	if (refreshDeniedSec_ > 0.0f)
-	{
-		return Color{ 230u, 80u, 80u, 255u };
-	}
-	if (GameStatsCodex::GetCurrency() < GetRefreshCost())
-	{
-		return Color{ 160u, 160u, 160u, 255u };
-	}
-	return Color{ 120u, 220u, 180u, 255u };
-}
-
-DirectX::XMFLOAT2 ModuleShop::CurrencyIconCenter_() const noexcept
-{
-	const BoundsWorld b = GetTradeBoundsWorld();
-	const float barY = b.center.y - b.half.y + kHudBarHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		b.center.x - b.half.x + kSlotMargin + kHudIconWorld_ * 0.5f,
-		barY
-	};
-}
-
-DirectX::XMFLOAT2 ModuleShop::RefreshButtonCenter_() const noexcept
-{
-	const BoundsWorld b = GetTradeBoundsWorld();
-	const float barY = b.center.y - b.half.y + kHudBarHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		b.center.x + b.half.x - kSlotMargin - kHudIconWorld_ * 0.5f,
-		barY
-	};
+	trade_.SubmitOverlay();
 }
 
 bool ModuleShop::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	const DirectX::XMFLOAT2 c = RefreshButtonCenter_();
-	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
-	return PointInAabb_(c, DirectX::XMFLOAT2{ half, half }, worldPos);
-}
-
-std::size_t ModuleShop::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const float half = kLockButtonWorld_ * 0.5f + kHudHitPad_;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
-		if (PointInAabb_(c, DirectX::XMFLOAT2{ half, half }, worldPos))
-		{
-			return i;
-		}
-	}
-	return kSlotCount;
+	return trade_.HitRefreshButton(worldPos);
 }
 
 bool ModuleShop::HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	return HitLockSlotIndex_(worldPos) < kSlotCount;
+	return trade_.HitLockButton(worldPos);
 }
 
 bool ModuleShop::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
 {
-	const std::size_t i = HitLockSlotIndex_(worldPos);
-	if (i >= kSlotCount)
-	{
-		return false;
-	}
+	return trade_.ToggleLockAt(worldPos);
+}
 
-	slots_[i].locked = !slots_[i].locked;
-	slotPanels_[i].Rebuild(slots_[i].node.get(), slots_[i].price, slots_[i].sold, slots_[i].locked);
-	PaintLockButton_(i);
-	return true;
+int ModuleShop::GetRefreshCost() const noexcept
+{
+	return trade_.GetRefreshCost();
 }
 
 void ModuleShop::MarkSold(std::size_t index)
 {
-	if (index >= kSlotCount)
-	{
-		return;
-	}
-	slots_[index].sold = true;
-	slots_[index].locked = false;
-	slots_[index].node.reset();
-	RefreshSlotCards_();
+	trade_.MarkSold(index);
 }
 
-void ModuleShop::RelayoutSlots_()
+void ModuleShop::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
 {
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		IModuleNode* node = slots_[i].node.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		node->SetLocalPos(SlotLocalPos_(i));
-		node->SetZoneOrigin(origin_);
-		node->SetVisualRadiusOverride(SlotCardIconRadius_());
-		node->SyncVisual();
-	}
-	RefreshSlotCards_();
-}
-
-void ModuleShop::RestoreShelfNode_(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	if (node == nullptr || index >= kSlotCount)
-	{
-		return;
-	}
-	node->EndLayoutGhost();
-	Slot& slot = slots_[index];
-	slot.node = std::move(node);
-	slot.sold = false;
-	slot.price = slot.node->GetBuyPrice();
-	RelayoutSlots_();
+	trade_.RestoreShelfNode(std::move(node), index);
 }
 
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
@@ -729,7 +342,7 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	{
 		// 奥义区的落点由奥义区自己定。这里拦住，避免掉进货架或卖掉。
 		DropResult ultraDrop = ultra_.EvalDrop(node, worldPos);
-		if (FindSlotIndex_(&node) < kSlotCount)
+		if (trade_.FindSlotIndex(&node) < kSlotCount)
 		{
 			// 货架只买进已有奥义的空内部栏。钱不够用红圈。
 			const bool canBuy = IsDropAccepted(ultraDrop.verdict)
@@ -779,10 +392,10 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	if (from == ZoneId::Shop)
 	{
 		result.verdict = DropVerdict::Accept;
-		const std::size_t i = FindSlotIndex_(&node);
+		const std::size_t i = trade_.FindSlotIndex(&node);
 		if (i < kSlotCount)
 		{
-			result.localPos = SlotLocalPos_(i);
+			result.localPos = trade_.SlotLocalPos(i);
 		}
 		return result;
 	}
@@ -839,35 +452,18 @@ std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
 		return takeOwned(refineFeedOwned_[1]);
 	}
 
-	const std::size_t i = FindSlotIndex_(node);
-	if (i >= kSlotCount)
-	{
-		return nullptr;
-	}
-	std::unique_ptr<IModuleNode> taken = std::move(slots_[i].node);
-	if (taken != nullptr)
-	{
-		taken->ClearVisualRadiusOverride();
-	}
-	RefreshSlotCards_();
-	return taken;
+	return trade_.TakeNode(node);
 }
 
 void ModuleShop::RefreshCopy()
 {
-	RefreshSlotCards_();
+	trade_.RefreshCopy();
 	PaintRefinePanel_();
 }
 
 void ModuleShop::SubmitNodes()
 {
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->SubmitVisual();
-		}
-	}
+	trade_.SubmitNodes();
 	if (refineResult_ != nullptr)
 	{
 		refineResult_->SubmitVisual();
@@ -906,31 +502,13 @@ IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) no
 		}
 	}
 
-	for (Slot& slot : slots_)
+	float shelfDistSq = 1.0e9f;
+	if (IModuleNode* shelfNode = trade_.PickAt(worldPos, shelfDistSq))
 	{
-		IModuleNode* node = slot.node.get();
-		if (node == nullptr)
+		if (shelfDistSq < bestDistSq)
 		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 local = node->GetLocalPos();
-		const DirectX::XMFLOAT2 world{
-			origin_.x + local.x,
-			origin_.y + local.y
-		};
-		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
-		const Collider2D::PointCollider pt{ worldPos };
-		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
-		{
-			continue;
-		}
-		const float dx = worldPos.x - world.x;
-		const float dy = worldPos.y - world.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq < bestDistSq)
-		{
-			bestDistSq = distSq;
-			best = node;
+			bestDistSq = shelfDistSq;
+			best = shelfNode;
 		}
 	}
 
@@ -949,333 +527,6 @@ IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) no
 		outDistSq = bestDistSq;
 	}
 	return best;
-}
-
-// ---- 买卖区 · 绘制 ----
-void ModuleShop::EnsureHudVisuals_()
-{
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return;
-	}
-
-	auto makeIcon = [&](std::unique_ptr<Canvas2D>& canvas)
-	{
-		if (canvas != nullptr)
-		{
-			return;
-		}
-		canvas = std::make_unique<Canvas2D>(*gfx_, IModuleNode::kVisualSize, IModuleNode::kVisualSize);
-		canvas->Clear(Colors::None);
-		canvas->LinkTechniques(*rg_);
-		canvas->SetScale(DirectX::XMFLOAT3{ kHudIconWorld_, kHudIconWorld_, 1.0f });
-	};
-	auto makeText = [&](std::unique_ptr<Canvas2D>& canvas)
-	{
-		if (canvas != nullptr)
-		{
-			return;
-		}
-		canvas = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
-		canvas->Clear(Colors::None);
-		canvas->LinkTechniques(*rg_);
-	};
-
-	makeIcon(currencyIcon_);
-	makeIcon(refreshIcon_);
-	makeText(currencyText_);
-	makeText(refreshCostText_);
-}
-
-void ModuleShop::PaintHudIcons_()
-{
-	EnsureHudVisuals_();
-	if (currencyIcon_ == nullptr || refreshIcon_ == nullptr)
-	{
-		return;
-	}
-
-	auto blit = [](Canvas2D& canvas, const IconAtlas::IconBits& bits, Color color)
-	{
-		canvas.Clear(Colors::None);
-		IconAtlas::BlitIcon(canvas, bits, color);
-		canvas.NotifyPixelsChanged();
-	};
-
-	if (!currencyIconReady_)
-	{
-		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), Color{ 255u, 210u, 80u, 255u });
-		currencyIconReady_ = true;
-	}
-
-	const Color tint = RefreshIconTint_();
-	if (paintedRefreshTint_ != tint)
-	{
-		blit(*refreshIcon_, UiIconAtlas::Get(UiIconId::Refresh), tint);
-		paintedRefreshTint_ = tint;
-	}
-}
-
-void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
-{
-	if (painted == value)
-	{
-		return;
-	}
-
-	auto ctx = TextCodex::Get().BeginDraw();
-	Text::RenderRequest& rq = ctx.Request();
-	FillUiLabelRequest_(rq, std::to_string(value), kPriceFontSize, kMoneyYellow);
-	rq.canvasMode = Text::CanvasMode::Auto;
-	rq.clearMode = Text::ClearMode::Clear;
-	rq.style.wordWrapEnabled = false;
-	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-	rq.maxWidthPx = 80.0f;
-	rq.paddingPx = 2;
-	rq.backgroundColor = Colors::None;
-	ctx.Render(canvas);
-
-	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
-	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
-	canvas.SetScale(DirectX::XMFLOAT3{
-		static_cast<float>(w),
-		static_cast<float>(h),
-		1.0f
-	});
-	painted = value;
-}
-
-void ModuleShop::SyncHudTransforms_() noexcept
-{
-	const DirectX::XMFLOAT2 coin = CurrencyIconCenter_();
-	const DirectX::XMFLOAT2 refresh = RefreshButtonCenter_();
-
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->SetPosition(DirectX::XMFLOAT3{ coin.x, coin.y, 0.0f });
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->SetPosition(DirectX::XMFLOAT3{ refresh.x, refresh.y, 0.0f });
-	}
-	if (currencyText_ != nullptr)
-	{
-		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
-		currencyText_->SetPosition(DirectX::XMFLOAT3{
-			coin.x + kHudIconWorld_ * 0.5f + 4.0f + halfW,
-			coin.y,
-			0.0f
-		});
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		const float halfW = static_cast<float>(refreshCostText_->GetCanvasWidth()) * 0.5f;
-		refreshCostText_->SetPosition(DirectX::XMFLOAT3{
-			refresh.x - kHudIconWorld_ * 0.5f - 4.0f - halfW,
-			refresh.y,
-			0.0f
-		});
-	}
-}
-
-void ModuleShop::SyncHud()
-{
-	EnsureHudVisuals_();
-	PaintHudIcons_();
-	if (currencyText_ != nullptr)
-	{
-		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
-	}
-	SyncHudTransforms_();
-}
-
-void ModuleShop::SubmitHud()
-{
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->Submit(Chan::ui);
-	}
-	if (currencyText_ != nullptr)
-	{
-		currencyText_->Submit(Chan::ui);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		refreshCostText_->Submit(Chan::ui);
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->Submit(Chan::ui);
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		if (lockButtons_[i] == nullptr)
-		{
-			continue;
-		}
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			continue;
-		}
-		lockButtons_[i]->Submit(Chan::ui);
-	}
-}
-
-void ModuleShop::RefreshSlotCards_()
-{
-	if (gfx_ != nullptr && rg_ != nullptr)
-	{
-		EnsureSlotCardVisuals_(*gfx_, *rg_);
-		EnsureLockButtonVisuals_(*gfx_, *rg_);
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		slotPanels_[i].Rebuild(slot.node.get(), slot.price, slot.sold, slot.locked);
-		PaintLockButton_(i);
-	}
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncHud();
-}
-
-void ModuleShop::EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	for (ModuleShopPanel& panel : slotPanels_)
-	{
-		panel.Ensure(gfx, rg);
-	}
-}
-
-void ModuleShop::SyncSlotCardTransforms_() noexcept
-{
-	const float cardCenterLocalY = CardCenterLocalY_();
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		slotPanels_[i].SetWorldCenter(DirectX::XMFLOAT3{
-			origin_.x + CardCenterLocalX_(i),
-			origin_.y + cardCenterLocalY,
-			0.0f
-		});
-	}
-}
-
-DirectX::XMFLOAT2 ModuleShop::LockButtonCenter_(std::size_t index) const noexcept
-{
-	const float cardBottom = origin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		std::round(origin_.x + CardCenterLocalX_(index)),
-		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
-	};
-}
-
-void ModuleShop::EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const unsigned size = kLockButtonPixels_;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		EnsureCanvasSize_(lockButtons_[i], gfx, rg, size, size);
-		if (lockButtons_[i] != nullptr)
-		{
-			lockButtons_[i]->SetScale(DirectX::XMFLOAT3{
-				kLockButtonWorld_,
-				kLockButtonWorld_,
-				1.0f
-			});
-		}
-	}
-}
-
-void ModuleShop::PaintLockButton_(std::size_t index)
-{
-	if (index >= kSlotCount || lockButtons_[index] == nullptr)
-	{
-		return;
-	}
-
-	Canvas2D& canvas = *lockButtons_[index];
-	const Slot& slot = slots_[index];
-	if (slot.sold || slot.node == nullptr)
-	{
-		canvas.Clear(Colors::None);
-		canvas.NotifyPixelsChanged();
-		return;
-	}
-
-	constexpr Color kBtnBg{ 42u, 56u, 78u, 255u };
-	constexpr Color kBtnBgLocked{ 22u, 30u, 42u, 255u };
-	constexpr Color kBtnFrame{ 170u, 190u, 210u, 255u };
-	constexpr Color kBtnFrameLocked{ 88u, 104u, 124u, 255u };
-	constexpr Color kIcon{ 200u, 214u, 230u, 255u };
-
-	canvas.Clear(slot.locked ? kBtnBgLocked : kBtnBg);
-	const int cw = static_cast<int>(canvas.GetCanvasWidth());
-	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	BlitLockIconCentered_(
-		canvas,
-		UiIconAtlas::Get(slot.locked ? UiIconId::LockClosed : UiIconId::LockOpen),
-		kIcon,
-		kLockIconScale_);
-	const Color frame = slot.locked ? kBtnFrameLocked : kBtnFrame;
-	CanvasPixelDraw::DrawRectBorder(canvas, 0u, 0u, static_cast<unsigned>(cw) - 1u, static_cast<unsigned>(ch) - 1u, kLockBorderTexels_, frame);
-	canvas.NotifyPixelsChanged();
-}
-
-void ModuleShop::SyncLockButtonTransforms_() noexcept
-{
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		Canvas2D* canvas = lockButtons_[i].get();
-		if (canvas == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
-		canvas->SetPosition(DirectX::XMFLOAT3{ c.x, c.y, 0.0f });
-		canvas->SetScale(DirectX::XMFLOAT3{ kLockButtonWorld_, kLockButtonWorld_, 1.0f });
-	}
-}
-
-void ModuleShop::EnsureTradePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, ContentHalfX_() * 2.0f)));
-	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfY_() * 2.0f)));
-	if (EnsureCanvasSize_(tradePanel_, gfx, rg, w, h))
-	{
-		PaintTradePanel_();
-	}
-	SyncTradePanelTransform_();
-}
-
-void ModuleShop::PaintTradePanel_()
-{
-	if (tradePanel_ == nullptr)
-	{
-		return;
-	}
-
-	PaintBandChrome_(*tradePanel_);
-	const int w = static_cast<int>(tradePanel_->GetCanvasWidth());
-	constexpr Color kHudBar{ 28u, 38u, 56u, 200u };
-	constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-	const int barBottom = static_cast<int>(std::lround(kHudBarHeight)) - 1;
-	for (int y = 1; y < barBottom; ++y)
-	{
-		CanvasPixelDraw::DrawHLine(*tradePanel_, 1, w - 2, y, kHudBar);
-	}
-	CanvasPixelDraw::DrawHLine(*tradePanel_, 1, w - 2, barBottom, kFrame);
-	tradePanel_->NotifyPixelsChanged();
-}
-
-void ModuleShop::SyncTradePanelTransform_() noexcept
-{
-	SyncBandTransform_(tradePanel_.get(), GetTradeBoundsWorld());
 }
 
 // ---- 炼成区 · 逻辑 ----
@@ -1498,7 +749,7 @@ bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const 
 		return false;
 	}
 	// 买卖框里的商品不能停进炼成。
-	if (FindSlotIndex_(&node) < kSlotCount)
+	if (trade_.Owns(&node))
 	{
 		return false;
 	}
@@ -1623,7 +874,7 @@ bool ModuleShop::TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX:
 
 bool ModuleShop::IsShelfStock(const IModuleNode* node) const noexcept
 {
-	return FindSlotIndex_(node) < kSlotCount;
+	return trade_.Owns(node);
 }
 
 bool ModuleShop::HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept
@@ -1634,7 +885,7 @@ bool ModuleShop::HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept
 
 bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 localPos)
 {
-	const std::size_t index = FindSlotIndex_(node);
+	const std::size_t index = trade_.FindSlotIndex(node);
 	if (node == nullptr || index >= kSlotCount)
 	{
 		return false;
@@ -1647,7 +898,7 @@ bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 
 	}
 	if (!TryAcceptUltraDrop(taken, localPos))
 	{
-		RestoreShelfNode_(std::move(taken), index);
+		RestoreShelfNode(std::move(taken), index);
 		return false;
 	}
 	if (!GameStatsCodex::TrySpendCurrency(price))
@@ -1655,7 +906,7 @@ bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 
 		std::unique_ptr<IModuleNode> back = TakeNode(node);
 		if (back != nullptr)
 		{
-			RestoreShelfNode_(std::move(back), index);
+			RestoreShelfNode(std::move(back), index);
 		}
 		return false;
 	}
@@ -1692,11 +943,6 @@ void ModuleShop::SellFromUltra(IModuleNode* node)
 		taken.reset();
 	}
 	GameStatsCodex::AddCurrency(price);
-}
-
-void ModuleShop::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	RestoreShelfNode_(std::move(node), index);
 }
 
 bool ModuleShop::SellsOnTradeDrop(const IModuleNode& node) const noexcept
@@ -2366,7 +1612,7 @@ void ModuleShop::SyncRefineTransform_() noexcept
 // ---- 奥义区 ----
 std::size_t ModuleShop::GetNodeCount() const noexcept
 {
-	// 货架 5 个，炼成固定再交 3 个。奥义有几颗由奥义区自己算。
+	// 货架长度跟 kSlotCount 走，炼成固定再交 3 个。奥义有几颗由奥义区自己算。
 	return kSlotCount + 3 + ultra_.GetZoneNodeCount();
 }
 
@@ -2374,7 +1620,7 @@ IModuleNode* ModuleShop::GetNode(std::size_t index) const noexcept
 {
 	if (index < kSlotCount)
 	{
-		return slots_[index].node.get();
+		return trade_.GetZoneNode(index);
 	}
 	if (index == kSlotCount)
 	{
@@ -2427,15 +1673,17 @@ const IModuleNode* ModuleShop::PickUltraInfo(DirectX::XMFLOAT2 worldPos) const n
 	return ultra_.PickInfoNode(worldPos);
 }
 
-std::array<ModuleShopBlock*, 1> ModuleShop::Blocks_() noexcept
+std::array<ModuleShopBlock*, 2> ModuleShop::Blocks_() noexcept
 {
-	// 买卖、炼成还留在商店里，所以这份列表现在只有奥义区。
-	return { &ultra_ };
+	// 炼成还留在商店里，所以这份列表是买卖区、奥义区。
+	return { &trade_, &ultra_ };
 }
 
 void ModuleShop::LayoutBlocks_() noexcept
 {
-	// 奥义区用下面那条功能带。各块的矩形不一样，所以在这里逐块写入。
+	// 买卖区用外壳切出的买卖框。奥义区用下面那条功能带。
+	trade_.SetBounds(GetTradeBoundsWorld());
+	trade_.SetHostOrigin(origin_);
 	ultra_.SetBounds(FunctionBandBounds_(1));
 	ultra_.SetHostOrigin(origin_);
 }

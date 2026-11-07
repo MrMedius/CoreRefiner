@@ -1,10 +1,9 @@
 #pragma once
 #include "Canvas2D.h"
-#include "Colors.h"
 #include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleShopBlock.h"
-#include "ModuleShopPanel.h"
+#include "ModuleShopTrade.h"
 #include "ModuleShopUltra.h"
 
 #include <array>
@@ -63,49 +62,50 @@ private:
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
 
-	// ---- 买卖区 ----
+	// ---- 买卖区。货架、锁、刷新和顶栏在 trade_，这里只转发。----
 public:
-	static constexpr int kColumns = 5;
-	static constexpr std::size_t kSlotCount = static_cast<std::size_t>(kColumns);
-	static constexpr float kSlotMargin = 5.0f;
-	static constexpr float kCardWidth = ModuleShopPanel::kWidth;
-	static constexpr float kCardHeight = ModuleShopPanel::kHeight;
-	static constexpr float kHudBarHeight = 32.0f;
-	static constexpr float kPriceFontSize = 14.0f;
-	static constexpr float kStoredVisualRadius = 15.0f;
+	// 货架列数和格数。和买卖区是同一份，编辑器靠 kSlotCount 认出货架下标。
+	static constexpr int kColumns = ModuleShopTrade::kColumns;
+	static constexpr std::size_t kSlotCount = ModuleShopTrade::kSlotCount;
 
-	struct Slot
-	{
-		std::unique_ptr<IModuleNode> node;
-		bool sold{ false };
-		bool locked{ false };
-		int price{ 0 };
-	};
-
-	// 0..4 货架，5 炼成结果，6 和 7 是两颗店有炼成 Node。再往后由奥义区按自己的下标交出。买卖勿把 GetNodeCount 当货槽数。
+	// [0, kSlotCount) 货架，kSlotCount 是炼成结果，后面两格是店有炼成 Node。再往后由奥义区按自己的下标交出。
 	[[nodiscard]] std::size_t GetNodeCount() const noexcept override;
 	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override;
 	[[nodiscard]] ModuleShopUltra& GetUltraArea() noexcept;
 	[[nodiscard]] const ModuleShopUltra& GetUltraArea() const noexcept;
 
+	// 买卖框的世界矩形。外壳按 2:1:1 切出来，交给 trade_ 当 bounds。
 	[[nodiscard]] BoundsWorld GetTradeBoundsWorld() const noexcept;
 	[[nodiscard]] BoundsWorld GetBoundsWorld() const noexcept override;
 	[[nodiscard]] bool ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept override;
 
+	// 按可刷表给货架补货。画面已建好时，买卖区自己给商品建图。
 	void FillStock();
+	// 清掉本局刷新次数，再重抽未锁定的货。
 	void BeginVisit();
 	// 结束本局时清空奥义区。再次打开商店不调用它。
 	void ClearUltra();
+	// 钱够且还有可重抽的货时，交给买卖区扣费并重抽。
 	[[nodiscard]] bool TryRefresh();
+	// 刷新次数和拒绝倒计时归零。
 	void ResetVisit();
+	// 换语言：买卖区重画货卡，商店重画炼成板。
 	void RefreshCopy();
+	// 炼成按钮亮灭仍在商店里算。刷新倒计时和顶栏交给买卖区。
 	void TickHud(float dt);
+	// 重画顶栏金额和刷新价格。
 	void SyncHud();
+	// 提交顶栏和锁按钮，画在 Node 上面。
 	void SubmitHud();
+	// 点是否落在刷新按钮上。
 	[[nodiscard]] bool HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	// 点是否落在某个还在卖的货的锁按钮上。
 	[[nodiscard]] bool HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	// 点在锁上就切换锁定。
 	bool ToggleLockAt(DirectX::XMFLOAT2 worldPos);
+	// 本次刷新要花的钱。
 	[[nodiscard]] int GetRefreshCost() const noexcept;
+	// 这一格卖掉：清掉商品和锁定。
 	void MarkSold(std::size_t index);
 	// 购买没完成时，商品回到原来的货槽，不卖掉。
 	void RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index);
@@ -115,69 +115,6 @@ public:
 	void SubmitNodes() override;
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
-
-private:
-	// 买卖 · 逻辑
-	[[nodiscard]] DirectX::XMFLOAT2 SlotLocalPos_(std::size_t index) const;
-	[[nodiscard]] float SlotCardIconRadius_() const;
-	[[nodiscard]] float SlotPitchX_() const noexcept;
-	[[nodiscard]] float TradeHalfY_() const noexcept;
-	[[nodiscard]] float TradeCenterLocalY_() const noexcept;
-	[[nodiscard]] float CardCenterLocalX_(std::size_t index) const noexcept;
-	[[nodiscard]] float CardCenterLocalY_() const noexcept;
-	[[nodiscard]] std::size_t FindSlotIndex_(const IModuleNode* node) const noexcept;
-	void RelayoutSlots_();
-	void RestoreShelfNode_(std::unique_ptr<IModuleNode> node, std::size_t index);
-	void RestockSlot_(std::size_t index, ModuleNodeLabel label);
-	[[nodiscard]] bool HasRerollableSlot_() const noexcept;
-	void DenyRefresh_();
-	void RerollStock_();
-	[[nodiscard]] DirectX::XMFLOAT2 CurrencyIconCenter_() const noexcept;
-	[[nodiscard]] DirectX::XMFLOAT2 RefreshButtonCenter_() const noexcept;
-	[[nodiscard]] Color RefreshIconTint_() const noexcept;
-	[[nodiscard]] DirectX::XMFLOAT2 LockButtonCenter_(std::size_t index) const noexcept;
-	[[nodiscard]] std::size_t HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
-
-	// 买卖 · 绘制
-	void EnsureTradePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintTradePanel_();
-	void SyncTradePanelTransform_() noexcept;
-	void RefreshSlotCards_();
-	void EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void SyncSlotCardTransforms_() noexcept;
-	void EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintLockButton_(std::size_t index);
-	void SyncLockButtonTransforms_() noexcept;
-	void EnsureHudVisuals_();
-	void PaintHudIcons_();
-	void PaintHudNumber_(Canvas2D& canvas, int value, int& painted);
-	void SyncHudTransforms_() noexcept;
-
-	std::array<Slot, kSlotCount> slots_{};
-	std::unique_ptr<Canvas2D> tradePanel_;
-	std::array<ModuleShopPanel, kSlotCount> slotPanels_{};
-	std::array<std::unique_ptr<Canvas2D>, kSlotCount> lockButtons_{};
-
-	static constexpr float kHudIconWorld_{ 24.0f };
-	static constexpr float kHudHitPad_{ 4.0f };
-	static constexpr float kLockButtonGap_{ 4.0f };
-	static constexpr unsigned kLockButtonPixels_{ 48u };
-	static constexpr float kLockButtonWorld_{ 30.0f };
-	static constexpr unsigned kLockBorderTexels_{ 4u };
-	static constexpr unsigned kLockIconScale_{ 2u };
-	static constexpr int kRefreshBaseCost_{ 1 };
-	static constexpr int kRefreshCostStep_{ 1 };
-
-	int refreshCount_{ 0 };
-	float refreshDeniedSec_{ 0.0f };
-	int paintedCurrency_{ -1 };
-	int paintedRefreshCost_{ -1 };
-	Color paintedRefreshTint_{};
-	bool currencyIconReady_{ false };
-	std::unique_ptr<Canvas2D> currencyIcon_;
-	std::unique_ptr<Canvas2D> refreshIcon_;
-	std::unique_ptr<Canvas2D> currencyText_;
-	std::unique_ptr<Canvas2D> refreshCostText_;
 
 	// ---- 炼成区 ----
 public:
@@ -311,14 +248,17 @@ private:
 	bool paintedReturnLit_{ false };
 	int paintedRefineCurrency_{ -1 };
 
-	// ---- 各块。顺序是买卖、炼成、奥义；前两块还没拆出来，现在只有奥义区。----
+	// ---- 各块。顺序是买卖、炼成、奥义。炼成还没拆出来。----
 	// 按这个顺序交出各块，供布局、画面和每帧刷新共用。
-	[[nodiscard]] std::array<ModuleShopBlock*, 1> Blocks_() noexcept;
+	[[nodiscard]] std::array<ModuleShopBlock*, 2> Blocks_() noexcept;
 	// 按当前外壳把世界矩形和商店原点写给每一块。
 	void LayoutBlocks_() noexcept;
 	// 先布局，再让每一块重画并对齐。
 	void SyncBlocks_() noexcept;
 
+	// 买卖区。货架、货卡、锁、刷新和顶栏。
+	ModuleShopTrade trade_;
+	// 奥义区。锻造、翻页和内部栏。
 	ModuleShopUltra ultra_;
 };
 

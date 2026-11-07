@@ -201,6 +201,7 @@
     <ClCompile Include="ModuleNodeInfoCopy.cpp" />
     <ClCompile Include="ModuleShop.cpp" />
     <ClCompile Include="ModuleShopPanel.cpp" />
+    <ClCompile Include="ModuleShopTrade.cpp" />
     <ClCompile Include="ModuleShopUltra.cpp" />
     <ClCompile Include="ModuleWarehouse.cpp" />
     <ClCompile Include="ModuleField.cpp" />
@@ -386,6 +387,7 @@
     <ClInclude Include="ModuleShopBlock.h" />
     <ClInclude Include="ModuleShopDraw.h" />
     <ClInclude Include="ModuleShopPanel.h" />
+    <ClInclude Include="ModuleShopTrade.h" />
     <ClInclude Include="ModuleShopUltra.h" />
     <ClInclude Include="Module_Attribute_DamageRate.h" />
     <ClInclude Include="Module_Attribute_Lifetime.h" />
