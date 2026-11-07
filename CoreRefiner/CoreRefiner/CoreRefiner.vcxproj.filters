@@ -763,6 +763,9 @@
     <ClCompile Include="ModuleShopTrade.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClCompile>
+    <ClCompile Include="ModuleShopRefine.cpp">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1597,6 +1600,9 @@
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
     <ClInclude Include="ModuleShopTrade.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleShopRefine.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
     </ClInclude>
   </ItemGroup>

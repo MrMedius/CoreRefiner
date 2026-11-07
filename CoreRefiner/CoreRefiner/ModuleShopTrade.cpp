@@ -21,6 +21,7 @@ using namespace ModuleShopDraw;
 
 namespace
 {
+	// ---- 可刷表 ----
 	// 可刷标签表。data 存放标签，count 是有效个数。
 	struct ShopOffered_
 	{
@@ -68,6 +69,7 @@ namespace
 		}
 	}
 
+	// ---- 锁图标 ----
 	// 把锁图标按整数倍率画在画布正中。
 	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
 	{
@@ -104,141 +106,8 @@ namespace
 	}
 }
 
-float ModuleShopTrade::SlotCardIconRadius_() const
-{
-	return ModuleShopPanel::IconWorldRadius();
-}
 
-float ModuleShopTrade::SlotPitchX_() const noexcept
-{
-	const float innerW = bounds_.half.x * 2.0f;
-	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
-}
-
-DirectX::XMFLOAT2 ModuleShopTrade::TradeCenterLocal_() const noexcept
-{
-	return DirectX::XMFLOAT2{
-		bounds_.center.x - hostOrigin_.x,
-		bounds_.center.y - hostOrigin_.y
-	};
-}
-
-float ModuleShopTrade::CardCenterLocalX_(std::size_t index) const noexcept
-{
-	const float pitch = SlotPitchX_();
-	const float fromCenter = (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
-	return TradeCenterLocal_().x + fromCenter;
-}
-
-float ModuleShopTrade::CardCenterLocalY_() const noexcept
-{
-	const DirectX::XMFLOAT2 center = TradeCenterLocal_();
-	return center.y - bounds_.half.y + kHudBarHeight + kSlotMargin + kCardHeight * 0.5f;
-}
-
-DirectX::XMFLOAT2 ModuleShopTrade::SlotLocalPos(std::size_t index) const
-{
-	// 图标在货卡顶区水平居中，下面才是标题和种类。
-	const float radius = SlotCardIconRadius_();
-	const float cardTop = CardCenterLocalY_() - kCardHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		CardCenterLocalX_(index),
-		cardTop + ModuleShopPanel::kIconPad + radius
-	};
-}
-
-std::size_t ModuleShopTrade::FindSlotIndex(const IModuleNode* node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return kSlotCount;
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		if (slots_[i].node.get() == node)
-		{
-			return i;
-		}
-	}
-	return kSlotCount;
-}
-
-void ModuleShopTrade::FillStock()
-{
-	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
-	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
-	{
-		pool[i] = kShopOffered_.data[i];
-	}
-	ShuffleLabels_(pool, kShopOffered_.count);
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		RestockSlot_(i, pool[i]);
-	}
-	RelayoutSlots_();
-}
-
-void ModuleShopTrade::BeginVisit()
-{
-	ResetVisit();
-	RerollStock_();
-}
-
-void ModuleShopTrade::RestockSlot_(std::size_t index, ModuleNodeLabel label)
-{
-	if (index >= kSlotCount)
-	{
-		return;
-	}
-
-	Slot& slot = slots_[index];
-	slot.node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos(index));
-	slot.sold = false;
-	slot.locked = false;
-	slot.price = (slot.node != nullptr)
-		? slot.node->GetBuyPrice()
-		: 0;
-
-	if (gfx_ != nullptr && rg_ != nullptr && slot.node != nullptr)
-	{
-		slot.node->InitVisual(*gfx_, *rg_, hostOrigin_);
-	}
-}
-
-bool ModuleShopTrade::HasRerollableSlot_() const noexcept
-{
-	for (const Slot& slot : slots_)
-	{
-		const bool keepLocked = slot.locked && !slot.sold && slot.node != nullptr;
-		if (!keepLocked)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-void ModuleShopTrade::DenyRefresh_()
-{
-	refreshDeniedSec_ = 0.35f;
-	PaintHudIcons_();
-}
-
-int ModuleShopTrade::GetRefreshCost() const noexcept
-{
-	return kRefreshBaseCost_ + refreshCount_ * kRefreshCostStep_;
-}
-
-void ModuleShopTrade::ResetVisit()
-{
-	refreshCount_ = 0;
-	refreshDeniedSec_ = 0.0f;
-	paintedRefreshCost_ = -1;
-	if (gfx_ != nullptr)
-	{
-		SyncHud();
-	}
-}
+// ---- 公开 · 重载 ----
 
 void ModuleShopTrade::Tick(float dt)
 {
@@ -253,189 +122,62 @@ void ModuleShopTrade::Tick(float dt)
 	SyncHud();
 }
 
-bool ModuleShopTrade::TryRefresh()
+void ModuleShopTrade::Sync()
 {
-	if (!HasRerollableSlot_())
-	{
-		DenyRefresh_();
-		return false;
-	}
-
-	const int cost = GetRefreshCost();
-	if (!GameStatsCodex::TrySpendCurrency(cost))
-	{
-		DenyRefresh_();
-		return false;
-	}
-	++refreshCount_;
-	RerollStock_();
-	paintedRefreshCost_ = -1;
+	SyncTradePanelTransform_();
+	SyncSlotCardTransforms_();
+	SyncLockButtonTransforms_();
 	SyncHud();
-	return true;
 }
 
-void ModuleShopTrade::RerollStock_()
+void ModuleShopTrade::Submit() const
 {
-	bool taken[ModuleNodeLabelCount()]{};
-	for (const Slot& slot : slots_)
+	if (tradePanel_ != nullptr)
 	{
-		if (slot.locked && !slot.sold && slot.node != nullptr)
-		{
-			taken[ToIndex(slot.node->GetModuleNodeLabel())] = true;
-		}
+		tradePanel_->Submit(Chan::ui);
 	}
-
-	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
-	std::size_t poolN = 0;
-	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
+	for (const ModuleShopPanel& card : slotPanels_)
 	{
-		const ModuleNodeLabel label = kShopOffered_.data[i];
-		if (!taken[ToIndex(label)])
-		{
-			pool[poolN++] = label;
-		}
+		card.Submit();
 	}
-	ShuffleLabels_(pool, poolN);
+}
 
-	std::size_t p = 0;
+void ModuleShopTrade::SubmitOverlay() const
+{
+	if (currencyIcon_ != nullptr)
+	{
+		currencyIcon_->Submit(Chan::ui);
+	}
+	if (currencyText_ != nullptr)
+	{
+		currencyText_->Submit(Chan::ui);
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		refreshCostText_->Submit(Chan::ui);
+	}
+	if (refreshIcon_ != nullptr)
+	{
+		refreshIcon_->Submit(Chan::ui);
+	}
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		const Slot& slot = slots_[i];
-		if (slot.locked && !slot.sold && slot.node != nullptr)
+		if (lockButtons_[i] == nullptr)
 		{
 			continue;
 		}
-		if (p >= poolN)
-		{
-			break;
-		}
-		RestockSlot_(i, pool[p++]);
-	}
-	RelayoutSlots_();
-}
-
-Color ModuleShopTrade::RefreshIconTint_() const noexcept
-{
-	if (refreshDeniedSec_ > 0.0f)
-	{
-		return Color{ 230u, 80u, 80u, 255u };
-	}
-	if (GameStatsCodex::GetCurrency() < GetRefreshCost())
-	{
-		return Color{ 160u, 160u, 160u, 255u };
-	}
-	return Color{ 120u, 220u, 180u, 255u };
-}
-
-DirectX::XMFLOAT2 ModuleShopTrade::CurrencyIconCenter_() const noexcept
-{
-	const float barY = bounds_.center.y - bounds_.half.y + kHudBarHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		bounds_.center.x - bounds_.half.x + kSlotMargin + kHudIconWorld_ * 0.5f,
-		barY
-	};
-}
-
-DirectX::XMFLOAT2 ModuleShopTrade::RefreshButtonCenter_() const noexcept
-{
-	const float barY = bounds_.center.y - bounds_.half.y + kHudBarHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		bounds_.center.x + bounds_.half.x - kSlotMargin - kHudIconWorld_ * 0.5f,
-		barY
-	};
-}
-
-bool ModuleShopTrade::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const DirectX::XMFLOAT2 center = RefreshButtonCenter_();
-	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
-	return PointInAabb_(center, DirectX::XMFLOAT2{ half, half }, worldPos);
-}
-
-std::size_t ModuleShopTrade::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const float half = kLockButtonWorld_ * 0.5f + kHudHitPad_;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
 		const Slot& slot = slots_[i];
 		if (slot.sold || slot.node == nullptr)
 		{
 			continue;
 		}
-		const DirectX::XMFLOAT2 center = LockButtonCenter_(i);
-		if (PointInAabb_(center, DirectX::XMFLOAT2{ half, half }, worldPos))
-		{
-			return i;
-		}
+		lockButtons_[i]->Submit(Chan::ui);
 	}
-	return kSlotCount;
 }
 
-bool ModuleShopTrade::HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept
+void ModuleShopTrade::RefreshCopy()
 {
-	return HitLockSlotIndex_(worldPos) < kSlotCount;
-}
-
-bool ModuleShopTrade::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
-{
-	const std::size_t index = HitLockSlotIndex_(worldPos);
-	if (index >= kSlotCount)
-	{
-		return false;
-	}
-
-	slots_[index].locked = !slots_[index].locked;
-	slotPanels_[index].Rebuild(slots_[index].node.get(), slots_[index].price, slots_[index].sold, slots_[index].locked);
-	PaintLockButton_(index);
-	return true;
-}
-
-void ModuleShopTrade::MarkSold(std::size_t index)
-{
-	if (index >= kSlotCount)
-	{
-		return;
-	}
-	slots_[index].sold = true;
-	slots_[index].locked = false;
-	slots_[index].node.reset();
 	RefreshSlotCards_();
-}
-
-void ModuleShopTrade::Relayout()
-{
-	RelayoutSlots_();
-}
-
-void ModuleShopTrade::RelayoutSlots_()
-{
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		IModuleNode* node = slots_[i].node.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		node->SetLocalPos(SlotLocalPos(i));
-		node->SetZoneOrigin(hostOrigin_);
-		node->SetVisualRadiusOverride(SlotCardIconRadius_());
-		node->SyncVisual();
-	}
-	RefreshSlotCards_();
-}
-
-void ModuleShopTrade::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	if (node == nullptr || index >= kSlotCount)
-	{
-		return;
-	}
-	node->EndLayoutGhost();
-	Slot& slot = slots_[index];
-	slot.node = std::move(node);
-	slot.sold = false;
-	slot.price = slot.node->GetBuyPrice();
-	RelayoutSlots_();
 }
 
 bool ModuleShopTrade::Owns(const IModuleNode* node) const noexcept
@@ -534,6 +276,349 @@ void ModuleShopTrade::SyncNodes()
 		node->SetZoneOrigin(hostOrigin_);
 		node->SyncVisual();
 	}
+}
+
+// ---- 公开 · 独有 · 货架 ----
+
+void ModuleShopTrade::FillStock()
+{
+	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
+	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
+	{
+		pool[i] = kShopOffered_.data[i];
+	}
+	ShuffleLabels_(pool, kShopOffered_.count);
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		RestockSlot_(i, pool[i]);
+	}
+	RelayoutSlots_();
+}
+
+void ModuleShopTrade::BeginVisit()
+{
+	ResetVisit();
+	RerollStock_();
+}
+
+void ModuleShopTrade::ResetVisit()
+{
+	refreshCount_ = 0;
+	refreshDeniedSec_ = 0.0f;
+	paintedRefreshCost_ = -1;
+	if (gfx_ != nullptr)
+	{
+		SyncHud();
+	}
+}
+
+bool ModuleShopTrade::TryRefresh()
+{
+	if (!HasRerollableSlot_())
+	{
+		DenyRefresh_();
+		return false;
+	}
+
+	const int cost = GetRefreshCost();
+	if (!GameStatsCodex::TrySpendCurrency(cost))
+	{
+		DenyRefresh_();
+		return false;
+	}
+	++refreshCount_;
+	RerollStock_();
+	paintedRefreshCost_ = -1;
+	SyncHud();
+	return true;
+}
+
+int ModuleShopTrade::GetRefreshCost() const noexcept
+{
+	return kRefreshBaseCost_ + refreshCount_ * kRefreshCostStep_;
+}
+
+void ModuleShopTrade::MarkSold(std::size_t index)
+{
+	if (index >= kSlotCount)
+	{
+		return;
+	}
+	slots_[index].sold = true;
+	slots_[index].locked = false;
+	slots_[index].node.reset();
+	RefreshSlotCards_();
+}
+
+void ModuleShopTrade::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	if (node == nullptr || index >= kSlotCount)
+	{
+		return;
+	}
+	node->EndLayoutGhost();
+	Slot& slot = slots_[index];
+	slot.node = std::move(node);
+	slot.sold = false;
+	slot.price = slot.node->GetBuyPrice();
+	RelayoutSlots_();
+}
+
+std::size_t ModuleShopTrade::FindSlotIndex(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return kSlotCount;
+	}
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		if (slots_[i].node.get() == node)
+		{
+			return i;
+		}
+	}
+	return kSlotCount;
+}
+
+// ---- 公开 · 独有 · 点击 ----
+
+bool ModuleShopTrade::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const DirectX::XMFLOAT2 center = RefreshButtonCenter_();
+	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
+	return PointInAabb_(center, DirectX::XMFLOAT2{ half, half }, worldPos);
+}
+
+bool ModuleShopTrade::HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return HitLockSlotIndex_(worldPos) < kSlotCount;
+}
+
+bool ModuleShopTrade::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
+{
+	const std::size_t index = HitLockSlotIndex_(worldPos);
+	if (index >= kSlotCount)
+	{
+		return false;
+	}
+
+	slots_[index].locked = !slots_[index].locked;
+	slotPanels_[index].Rebuild(slots_[index].node.get(), slots_[index].price, slots_[index].sold, slots_[index].locked);
+	PaintLockButton_(index);
+	return true;
+}
+
+// ---- 公开 · 独有 · 位置 ----
+
+DirectX::XMFLOAT2 ModuleShopTrade::SlotLocalPos(std::size_t index) const
+{
+	// 图标在货卡顶区水平居中，下面才是标题和种类。
+	const float radius = SlotCardIconRadius_();
+	const float cardTop = CardCenterLocalY_() - kCardHeight * 0.5f;
+	return DirectX::XMFLOAT2{
+		CardCenterLocalX_(index),
+		cardTop + ModuleShopPanel::kIconPad + radius
+	};
+}
+
+void ModuleShopTrade::Relayout()
+{
+	RelayoutSlots_();
+}
+
+void ModuleShopTrade::SyncHud()
+{
+	EnsureHudVisuals_();
+	PaintHudIcons_();
+	if (currencyText_ != nullptr)
+	{
+		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
+	}
+	if (refreshCostText_ != nullptr)
+	{
+		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
+	}
+	SyncHudTransforms_();
+}
+
+// ---- 私有 · 重载 ----
+
+void ModuleShopTrade::EnsureVisuals_()
+{
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return;
+	}
+	EnsureTradePanelVisual_(*gfx_, *rg_);
+	EnsureSlotCardVisuals_(*gfx_, *rg_);
+	EnsureLockButtonVisuals_(*gfx_, *rg_);
+}
+
+// ---- 私有 · 独有 · 布局 ----
+
+
+float ModuleShopTrade::SlotCardIconRadius_() const
+{
+	return ModuleShopPanel::IconWorldRadius();
+}
+
+float ModuleShopTrade::SlotPitchX_() const noexcept
+{
+	const float innerW = bounds_.half.x * 2.0f;
+	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
+}
+
+DirectX::XMFLOAT2 ModuleShopTrade::TradeCenterLocal_() const noexcept
+{
+	return DirectX::XMFLOAT2{
+		bounds_.center.x - hostOrigin_.x,
+		bounds_.center.y - hostOrigin_.y
+	};
+}
+
+float ModuleShopTrade::CardCenterLocalX_(std::size_t index) const noexcept
+{
+	const float pitch = SlotPitchX_();
+	const float fromCenter = (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
+	return TradeCenterLocal_().x + fromCenter;
+}
+
+float ModuleShopTrade::CardCenterLocalY_() const noexcept
+{
+	const DirectX::XMFLOAT2 center = TradeCenterLocal_();
+	return center.y - bounds_.half.y + kHudBarHeight + kSlotMargin + kCardHeight * 0.5f;
+}
+
+// ---- 私有 · 独有 · 货架 ----
+
+void ModuleShopTrade::RelayoutSlots_()
+{
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		IModuleNode* node = slots_[i].node.get();
+		if (node == nullptr)
+		{
+			continue;
+		}
+		node->SetLocalPos(SlotLocalPos(i));
+		node->SetZoneOrigin(hostOrigin_);
+		node->SetVisualRadiusOverride(SlotCardIconRadius_());
+		node->SyncVisual();
+	}
+	RefreshSlotCards_();
+}
+
+void ModuleShopTrade::RestockSlot_(std::size_t index, ModuleNodeLabel label)
+{
+	if (index >= kSlotCount)
+	{
+		return;
+	}
+
+	Slot& slot = slots_[index];
+	slot.node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos(index));
+	slot.sold = false;
+	slot.locked = false;
+	slot.price = (slot.node != nullptr)
+		? slot.node->GetBuyPrice()
+		: 0;
+
+	if (gfx_ != nullptr && rg_ != nullptr && slot.node != nullptr)
+	{
+		slot.node->InitVisual(*gfx_, *rg_, hostOrigin_);
+	}
+}
+
+bool ModuleShopTrade::HasRerollableSlot_() const noexcept
+{
+	for (const Slot& slot : slots_)
+	{
+		const bool keepLocked = slot.locked && !slot.sold && slot.node != nullptr;
+		if (!keepLocked)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ModuleShopTrade::DenyRefresh_()
+{
+	refreshDeniedSec_ = 0.35f;
+	PaintHudIcons_();
+}
+
+void ModuleShopTrade::RerollStock_()
+{
+	bool taken[ModuleNodeLabelCount()]{};
+	for (const Slot& slot : slots_)
+	{
+		if (slot.locked && !slot.sold && slot.node != nullptr)
+		{
+			taken[ToIndex(slot.node->GetModuleNodeLabel())] = true;
+		}
+	}
+
+	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
+	std::size_t poolN = 0;
+	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
+	{
+		const ModuleNodeLabel label = kShopOffered_.data[i];
+		if (!taken[ToIndex(label)])
+		{
+			pool[poolN++] = label;
+		}
+	}
+	ShuffleLabels_(pool, poolN);
+
+	std::size_t p = 0;
+	for (std::size_t i = 0; i < kSlotCount; ++i)
+	{
+		const Slot& slot = slots_[i];
+		if (slot.locked && !slot.sold && slot.node != nullptr)
+		{
+			continue;
+		}
+		if (p >= poolN)
+		{
+			break;
+		}
+		RestockSlot_(i, pool[p++]);
+	}
+	RelayoutSlots_();
+}
+
+// ---- 私有 · 独有 · 顶栏 ----
+
+DirectX::XMFLOAT2 ModuleShopTrade::CurrencyIconCenter_() const noexcept
+{
+	const float barY = bounds_.center.y - bounds_.half.y + kHudBarHeight * 0.5f;
+	return DirectX::XMFLOAT2{
+		bounds_.center.x - bounds_.half.x + kSlotMargin + kHudIconWorld_ * 0.5f,
+		barY
+	};
+}
+
+DirectX::XMFLOAT2 ModuleShopTrade::RefreshButtonCenter_() const noexcept
+{
+	const float barY = bounds_.center.y - bounds_.half.y + kHudBarHeight * 0.5f;
+	return DirectX::XMFLOAT2{
+		bounds_.center.x + bounds_.half.x - kSlotMargin - kHudIconWorld_ * 0.5f,
+		barY
+	};
+}
+
+Color ModuleShopTrade::RefreshIconTint_() const noexcept
+{
+	if (refreshDeniedSec_ > 0.0f)
+	{
+		return Color{ 230u, 80u, 80u, 255u };
+	}
+	if (GameStatsCodex::GetCurrency() < GetRefreshCost())
+	{
+		return Color{ 160u, 160u, 160u, 255u };
+	}
+	return Color{ 120u, 220u, 180u, 255u };
 }
 
 void ModuleShopTrade::EnsureHudVisuals_()
@@ -663,57 +748,34 @@ void ModuleShopTrade::SyncHudTransforms_() noexcept
 	}
 }
 
-void ModuleShopTrade::SyncHud()
+// ---- 私有 · 独有 · 货卡和锁 ----
+
+DirectX::XMFLOAT2 ModuleShopTrade::LockButtonCenter_(std::size_t index) const noexcept
 {
-	EnsureHudVisuals_();
-	PaintHudIcons_();
-	if (currencyText_ != nullptr)
-	{
-		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
-	}
-	SyncHudTransforms_();
+	const float cardBottom = hostOrigin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
+	return DirectX::XMFLOAT2{
+		std::round(hostOrigin_.x + CardCenterLocalX_(index)),
+		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
+	};
 }
 
-void ModuleShopTrade::SubmitOverlay() const
+std::size_t ModuleShopTrade::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->Submit(Chan::ui);
-	}
-	if (currencyText_ != nullptr)
-	{
-		currencyText_->Submit(Chan::ui);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		refreshCostText_->Submit(Chan::ui);
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->Submit(Chan::ui);
-	}
+	const float half = kLockButtonWorld_ * 0.5f + kHudHitPad_;
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
-		if (lockButtons_[i] == nullptr)
-		{
-			continue;
-		}
 		const Slot& slot = slots_[i];
 		if (slot.sold || slot.node == nullptr)
 		{
 			continue;
 		}
-		lockButtons_[i]->Submit(Chan::ui);
+		const DirectX::XMFLOAT2 center = LockButtonCenter_(i);
+		if (PointInAabb_(center, DirectX::XMFLOAT2{ half, half }, worldPos))
+		{
+			return i;
+		}
 	}
-}
-
-void ModuleShopTrade::RefreshCopy()
-{
-	RefreshSlotCards_();
+	return kSlotCount;
 }
 
 void ModuleShopTrade::RefreshSlotCards_()
@@ -753,15 +815,6 @@ void ModuleShopTrade::SyncSlotCardTransforms_() noexcept
 			0.0f
 		});
 	}
-}
-
-DirectX::XMFLOAT2 ModuleShopTrade::LockButtonCenter_(std::size_t index) const noexcept
-{
-	const float cardBottom = hostOrigin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		std::round(hostOrigin_.x + CardCenterLocalX_(index)),
-		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
-	};
 }
 
 void ModuleShopTrade::EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -831,16 +884,7 @@ void ModuleShopTrade::SyncLockButtonTransforms_() noexcept
 	}
 }
 
-void ModuleShopTrade::EnsureVisuals_()
-{
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return;
-	}
-	EnsureTradePanelVisual_(*gfx_, *rg_);
-	EnsureSlotCardVisuals_(*gfx_, *rg_);
-	EnsureLockButtonVisuals_(*gfx_, *rg_);
-}
+// ---- 私有 · 独有 · 底板 ----
 
 void ModuleShopTrade::EnsureTradePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
@@ -876,24 +920,4 @@ void ModuleShopTrade::PaintTradePanel_()
 void ModuleShopTrade::SyncTradePanelTransform_() noexcept
 {
 	SyncBandTransform_(tradePanel_.get(), bounds_);
-}
-
-void ModuleShopTrade::Sync()
-{
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncHud();
-}
-
-void ModuleShopTrade::Submit() const
-{
-	if (tradePanel_ != nullptr)
-	{
-		tradePanel_->Submit(Chan::ui);
-	}
-	for (const ModuleShopPanel& card : slotPanels_)
-	{
-		card.Submit();
-	}
 }

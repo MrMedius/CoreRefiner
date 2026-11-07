@@ -1,8 +1,8 @@
 #pragma once
-#include "Canvas2D.h"
 #include "IModuleNode.h"
 #include "IModuleZone.h"
 #include "ModuleShopBlock.h"
+#include "ModuleShopRefine.h"
 #include "ModuleShopTrade.h"
 #include "ModuleShopUltra.h"
 
@@ -21,7 +21,7 @@ namespace Rgph
 class ModuleShop : public IModuleZone
 {
 public:
-	ModuleShop() = default;
+	ModuleShop();
 	~ModuleShop() override = default;
 
 	ModuleShop(const ModuleShop&) = delete;
@@ -68,7 +68,7 @@ public:
 	static constexpr int kColumns = ModuleShopTrade::kColumns;
 	static constexpr std::size_t kSlotCount = ModuleShopTrade::kSlotCount;
 
-	// [0, kSlotCount) 货架，kSlotCount 是炼成结果，后面两格是店有炼成 Node。再往后由奥义区按自己的下标交出。
+	// [0, kSlotCount) 货架。接着炼成区交出结果和两颗店有 Node。再往后由奥义区按自己的下标交出。
 	[[nodiscard]] std::size_t GetNodeCount() const noexcept override;
 	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override;
 	[[nodiscard]] ModuleShopUltra& GetUltraArea() noexcept;
@@ -89,9 +89,9 @@ public:
 	[[nodiscard]] bool TryRefresh();
 	// 刷新次数和拒绝倒计时归零。
 	void ResetVisit();
-	// 换语言：买卖区重画货卡，商店重画炼成板。
+	// 换语言：买卖区重画货卡，炼成区重画底板。
 	void RefreshCopy();
-	// 炼成按钮亮灭仍在商店里算。刷新倒计时和顶栏交给买卖区。
+	// 每帧把矩形和原点写给各块，再让各块自己刷新。炼成按钮亮灭在炼成区里算。
 	void TickHud(float dt);
 	// 重画顶栏金额和刷新价格。
 	void SyncHud();
@@ -116,15 +116,19 @@ public:
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 	[[nodiscard]] DropResult EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept override;
 
-	// ---- 炼成区 ----
+	// ---- 炼成区。停放、按钮和店有 Node 在 refine_，这里只转发。货架拒绝留在商店。----
 public:
-	// 炼成停放：0=素材 1=主体 2=结果；未命中返回 3。场/仓不接管；店有 Node 由 unique_ptr 持有。
+	// 炼成停放：0 素材，1 主体，2 结果。没命中返回炼成区的停放格个数。
 	[[nodiscard]] std::size_t HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept;
+	// 第 slot 格中心的世界坐标。
 	[[nodiscard]] DirectX::XMFLOAT2 RefineSlotWorldCenter(std::size_t slot) const noexcept;
+	// 货架商品先拒绝，其余问炼成区能不能停。
 	[[nodiscard]] bool CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept;
-	// owner 用来把格子世界中心写成 localPos（场/仓/店）。
+	// 把 Node 停进这一格。owner 用来把世界中心写成 localPos。调用后重摆奥义区。
 	void ParkRefine(std::size_t slot, IModuleNode& node, IModuleZone* owner);
+	// 从停放格摘掉这颗 Node，并让炼成区重画。
 	void UnbindRefine(IModuleNode* node) noexcept;
+	// 素材和主体退回原处。调用后重摆奥义区。
 	void ClearRefineParks();
 	void ClearRefineResult();
 	void RestoreRefineResult(std::unique_ptr<IModuleNode> node);
@@ -166,7 +170,9 @@ public:
 	void ApplyRefineParkIcon(IModuleNode& node) noexcept;
 	// 店有炼成 Node：残影钉在结果格（格内尺寸），跟手图标另清 Icon 覆盖。
 	void PinShopRefineHomeGhost(IModuleNode& node) noexcept;
+	// 点是否落在炼成区右侧四个按钮之一上。
 	[[nodiscard]] bool HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept;
+	// 点到升级、合成、进化或退回就执行。调用后重摆奥义区。
 	bool TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse);
 	// 奥义区按钮。编辑器只问有没有点到，锻造、打孔和翻页由奥义区自己分。
 	[[nodiscard]] bool HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept;
@@ -179,85 +185,22 @@ public:
 	[[nodiscard]] const IModuleNode* PickUltraInfo(DirectX::XMFLOAT2 worldPos) const noexcept;
 
 private:
-	static constexpr std::size_t kRefineSlotCount_ = 3;
-	static constexpr std::size_t kRefineButtonCount_ = 4;
-	static constexpr float kRefineSlotLabelFont_ = 20.0f;
-
-	struct RefineLayout_
-	{
-		BoundsWorld bounds{};
-		int cw{ 1 };
-		int ch{ 1 };
-		int pad{ 0 };
-		int side{ 0 };
-		int slotTop{ 0 };
-		int slotXs[3]{};
-		int btnW{ 120 };
-		int btnH{ 14 };
-		int btnX{ 0 };
-		int btnTop{ 0 };
-		int btnGap{ 5 };
-	};
-	[[nodiscard]] BoundsWorld GetRefineBoundsWorld_() const noexcept;
-	[[nodiscard]] RefineLayout_ CurrentRefineLayout_() const noexcept;
-	static void FillRefineLayout_(RefineLayout_& layout) noexcept;
-	[[nodiscard]] DirectX::XMFLOAT2 RefineSlotWorldCenterFrom_(const RefineLayout_& layout, std::size_t slot) const noexcept;
-	[[nodiscard]] float RefineSlotIconRadiusFrom_(const RefineLayout_& layout) const noexcept;
-	[[nodiscard]] std::size_t HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
-	[[nodiscard]] std::size_t HitRefineButtonIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;
-	[[nodiscard]] bool RefineWorldToPixel_(DirectX::XMFLOAT2 world, const RefineLayout_& layout, float& px, float& py) const noexcept;
-	[[nodiscard]] float RefineSlotIconRadius_() const noexcept;
-	void PlaceRefinePark_(std::size_t slot, IModuleNode& node, IModuleZone* owner);
-	// 按来源离开素材/主体格：店有回结果栏；场/仓回残影。
-	void BounceRefinePark_(IModuleNode& node);
-	[[nodiscard]] bool HasRefinePairReady_() const noexcept;
-	[[nodiscard]] bool CanUpgradeRefine_() const noexcept;
-	[[nodiscard]] bool CanFuseRefine_() const noexcept;
-	[[nodiscard]] bool CanEvolveRefine_() const noexcept;
-	[[nodiscard]] bool CanReturnRefine_() const noexcept;
-	[[nodiscard]] IModuleZone* FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept;
-	struct RefineTakenPair_
-	{
-		std::unique_ptr<IModuleNode> material;
-		std::unique_ptr<IModuleNode> subject;
-		IModuleZone* materialOwner{ nullptr };
-		IModuleZone* subjectOwner{ nullptr };
-	};
-	bool TryTakeRefinePair_(IModuleZone* field, IModuleZone* warehouse, RefineTakenPair_& out);
-	bool TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse);
-	bool TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse);
-	bool TryEvolveRefine_(IModuleZone* field, IModuleZone* warehouse);
-	bool TryReturnRefine_();
-	void AdoptRefineResult_(std::unique_ptr<IModuleNode> node);
-	void PlaceRefineResultVisual_();
-	void RelocateShopOwnedToFeed_(std::size_t slot, IModuleNode& node);
-	bool ReturnShopOwnedToResult_(IModuleNode& node);
-
-	void EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void PaintRefinePanel_();
-	void SyncRefineTransform_() noexcept;
-
-	std::unique_ptr<Canvas2D> refinePanel_;
-	std::array<IModuleNode*, kRefineSlotCount_> refineParked_{};
-	std::unique_ptr<IModuleNode> refineResult_{};
-	// 停在素材/主体的店有 Node；与 refineResult_ 互斥，至多一颗。
-	std::array<std::unique_ptr<IModuleNode>, 2> refineFeedOwned_{};
-	bool paintedUpgradeLit_{ false };
-	bool paintedFuseLit_{ false };
-	bool paintedEvolveLit_{ false };
-	bool paintedReturnLit_{ false };
-	int paintedRefineCurrency_{ -1 };
-
-	// ---- 各块。顺序是买卖、炼成、奥义。炼成还没拆出来。----
+	// ---- 各块。顺序是买卖、炼成、奥义。----
 	// 按这个顺序交出各块，供布局、画面和每帧刷新共用。
-	[[nodiscard]] std::array<ModuleShopBlock*, 2> Blocks_() noexcept;
+	[[nodiscard]] std::array<ModuleShopBlock*, 3> Blocks_() noexcept;
 	// 按当前外壳把世界矩形和商店原点写给每一块。
 	void LayoutBlocks_() noexcept;
 	// 先布局，再让每一块重画并对齐。
 	void SyncBlocks_() noexcept;
+	// 炼成停放、点击或清空停放之后，把奥义内部 Node 摆回当前格子。
+	void SyncUltraAfterRefine_();
+	// 奥义即将被清掉时，摘掉炼成格里指向这些 Node 的停放。只清指针，不重画。
+	void ForgetUltraNodesInRefine_() noexcept;
 
 	// 买卖区。货架、货卡、锁、刷新和顶栏。
 	ModuleShopTrade trade_;
+	// 炼成区。三格停放、四个操作和底板。
+	ModuleShopRefine refine_;
 	// 奥义区。锻造、翻页和内部栏。
 	ModuleShopUltra ultra_;
 };

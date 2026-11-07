@@ -17,6 +17,8 @@
 
 namespace
 {
+	// ---- 布局 ----
+	// 右侧按钮个数。锻造单独画在左边，不占这三颗。
 	constexpr int kButtonCount_ = 3;
 	// 内部栏位边长 = 奥义栏位 * 3/4。顶边与奥义栏齐平，下面的空档画翻页条。
 	constexpr int kInnerNumer_ = 3;
@@ -25,6 +27,8 @@ namespace
 	constexpr int kPagerMinH_ = 16;
 	constexpr int kPagerTriMax_ = 16;
 
+	// ---- 本体 ----
+	// 把 Node 认成奥义。不是奥义时为空。
 	[[nodiscard]] const ModuleNode_Ultra* AsUltra_(const IModuleNode* node) noexcept
 	{
 		return dynamic_cast<const ModuleNode_Ultra*>(node);
@@ -35,16 +39,20 @@ namespace
 		return dynamic_cast<ModuleNode_Ultra*>(node);
 	}
 
+	// 内部栏边长。奥义栏边长乘 3/4，至少 1 像素。
 	[[nodiscard]] int InnerSideOf_(int ultraSide) noexcept
 	{
 		return (std::max)(1, ultraSide * kInnerNumer_ / kInnerDenom_);
 	}
 
+	// ---- 落点 ----
+	// 世界坐标换成相对商店原点的 localPos。
 	[[nodiscard]] DirectX::XMFLOAT2 ToLocal_(DirectX::XMFLOAT3 origin, DirectX::XMFLOAT2 world) noexcept
 	{
 		return DirectX::XMFLOAT2{ world.x - origin.x, world.y - origin.y };
 	}
 
+	// 两个 localPos 是否近到可以当成同一个落点。
 	[[nodiscard]] bool NearLocal_(DirectX::XMFLOAT2 a, DirectX::XMFLOAT2 b) noexcept
 	{
 		const float dx = a.x - b.x;
@@ -52,6 +60,7 @@ namespace
 		return dx * dx + dy * dy <= 16.0f;
 	}
 
+	// 把 Node 摆进栏位：位置、原点，以及栏位大小的图标。
 	void PlantInSlot_(IModuleNode& node, DirectX::XMFLOAT3 origin, DirectX::XMFLOAT2 local, float radius)
 	{
 		node.SetLocalPos(local);
@@ -62,12 +71,15 @@ namespace
 		node.SyncVisual();
 	}
 
+	// 离开栏位时清掉栏位强加的图标大小。
 	void ClearSlotVisual_(IModuleNode& node)
 	{
 		node.ClearIconRadiusOverride();
 		node.ClearVisualRadiusOverride();
 	}
 
+	// ---- 点击 ----
+	// 像素点是否落在这个矩形里。宽或高不大于 0 时不算。
 	[[nodiscard]] bool InRect_(float px, float py, int x, int y, int w, int h) noexcept
 	{
 		return w > 0 && h > 0
@@ -77,6 +89,8 @@ namespace
 			&& py < static_cast<float>(y + h);
 	}
 
+	// ---- 绘制 ----
+	// 画一个栏位方块：底色加边框。
 	void DrawSlot_(Canvas2D& canvas, int x, int y, int side)
 	{
 		if (side <= 1 || x < 0 || y < 0)
@@ -142,6 +156,7 @@ namespace
 		ModuleShopDraw::DrawShopLabelInBox_(canvas, label, font, x, y, w, h, text, spans);
 	}
 
+	// ---- 翻页条 ----
 	// 翻页条上一组三角和圆点的位置。打孔改变容量后整组重算。
 	struct PagerGlyphs_
 	{
@@ -298,214 +313,8 @@ namespace
 	}
 }
 
-	// 右侧按钮左边能放下几格，不按容量截断。多出来的格子靠滚动看。
-	int ModuleShopUltra::FitInnerSlots_(const Layout& layout) noexcept
-	{
-		if (layout.innerSide <= 0)
-		{
-			return 0;
-		}
-		const int limit = layout.btnX - layout.innerGap;
-		const int stride = layout.innerSide + layout.innerGap;
-		if (stride <= 0 || layout.innerX0 > limit)
-		{
-			return 0;
-		}
-		int count = 0;
-		int x = layout.innerX0;
-		while (x + layout.innerSide <= limit)
-		{
-			++count;
-			x += stride;
-		}
-		return count;
-	}
 
-void ModuleShopUltra::FillLayout_(Layout& layout) noexcept
-{
-	layout.pad = (std::max)(6, layout.ch / 16);
-	const int innerW = (std::max)(1, layout.cw - layout.pad * 2);
-	const int innerH = (std::max)(1, layout.ch - layout.pad * 2);
-
-	layout.btnGap = 4;
-	layout.btnW = (std::min)(120, (std::max)(72, innerW / 5));
-	layout.btnH = (std::max)(14, (innerH - layout.btnGap * (kButtonCount_ - 1)) / kButtonCount_);
-	layout.innerGap = (std::max)(4, layout.pad / 2);
-
-	int ultraSide = innerH;
-	int innerSide = InnerSideOf_(ultraSide);
-	// 顶对齐后，内部栏下面剩的高度就是翻页条。不够一条时，两栏一起缩小。
-	if (layout.capacity > 0 && innerH - innerSide < kPagerMinH_)
-	{
-		const int innerMax = (std::max)(1, innerH - kPagerMinH_);
-		ultraSide = innerMax * kInnerDenom_ / kInnerNumer_;
-		ultraSide = (std::min)((std::max)(8, ultraSide), innerH);
-		innerSide = InnerSideOf_(ultraSide);
-		while (ultraSide > 8 && innerH - innerSide < kPagerMinH_)
-		{
-			--ultraSide;
-			innerSide = InnerSideOf_(ultraSide);
-		}
-	}
-	// 窄到连一格都放不下时，奥义栏和内部栏按 4:3 一起缩小。
-	if (layout.capacity > 0)
-	{
-		const int room = innerW - layout.btnW - layout.innerGap * 2;
-		if (ultraSide + innerSide > room && room > 8)
-		{
-			const int fitted = (std::min)(
-				ultraSide,
-				(std::max)(24, room * kInnerDenom_ / (kInnerDenom_ + kInnerNumer_)));
-			ultraSide = (std::min)(fitted, innerH);
-			innerSide = InnerSideOf_(ultraSide);
-		}
-	}
-
-	layout.ultraSide = (std::max)(1, (std::min)(ultraSide, innerH));
-	layout.innerSide = InnerSideOf_(layout.ultraSide);
-	layout.ultraX = layout.pad;
-	layout.ultraY = layout.pad;
-	layout.btnX = layout.cw - layout.pad - layout.btnW;
-	const int maxUltra = layout.btnX - layout.innerGap - layout.ultraX;
-	if (maxUltra > 0 && layout.ultraSide > maxUltra)
-	{
-		layout.ultraSide = maxUltra;
-		layout.innerSide = InnerSideOf_(layout.ultraSide);
-	}
-	layout.innerX0 = layout.ultraX + layout.ultraSide + layout.innerGap;
-	layout.innerY = layout.ultraY;
-
-	const int colH = layout.btnH * kButtonCount_ + layout.btnGap * (kButtonCount_ - 1);
-	layout.btnY = layout.pad + (std::max)(0, innerH - colH) / 2;
-	layout.windowCount = FitInnerSlots_(layout);
-	layout.visibleBegin = 0;
-	layout.visibleCount = 0;
-
-	layout.forgeW = (std::min)(168, (std::max)(72, layout.cw / 4));
-	layout.forgeH = (std::min)(40, (std::max)(18, layout.ch / 3));
-	layout.forgeW = (std::min)(layout.forgeW, (std::max)(1, layout.cw - 8));
-	layout.forgeH = (std::min)(layout.forgeH, (std::max)(1, layout.ch - 8));
-	layout.forgeX = (std::max)(0, (layout.cw - layout.forgeW) / 2);
-	layout.forgeY = (std::max)(0, (layout.ch - layout.forgeH) / 2);
-
-	const int contentBottom = layout.pad + innerH;
-	layout.pagerX = layout.innerX0;
-	layout.pagerY = layout.innerY + layout.innerSide;
-	layout.pagerW = (std::max)(0, layout.btnX - layout.innerGap - layout.pagerX);
-	layout.pagerH = (std::max)(0, contentBottom - layout.pagerY);
-}
-
-DirectX::XMFLOAT2 ModuleShopUltra::PixelCenterToWorld_(const Layout& layout, float px, float py) noexcept
-{
-	const float worldW = layout.bounds.half.x * 2.0f;
-	const float worldH = layout.bounds.half.y * 2.0f;
-	if (layout.cw <= 0 || layout.ch <= 0 || worldW <= 1.0e-4f || worldH <= 1.0e-4f)
-	{
-		return layout.bounds.center;
-	}
-	return DirectX::XMFLOAT2{
-		layout.bounds.center.x - layout.bounds.half.x + px * (worldW / static_cast<float>(layout.cw)),
-		layout.bounds.center.y - layout.bounds.half.y + py * (worldH / static_cast<float>(layout.ch))
-	};
-}
-
-bool ModuleShopUltra::WorldToPixel_(const Layout& layout, DirectX::XMFLOAT2 world, float& px, float& py) noexcept
-{
-	const float worldW = layout.bounds.half.x * 2.0f;
-	const float worldH = layout.bounds.half.y * 2.0f;
-	if (worldW <= 1.0e-4f || worldH <= 1.0e-4f || layout.cw <= 0 || layout.ch <= 0)
-	{
-		return false;
-	}
-	px = (world.x - (layout.bounds.center.x - layout.bounds.half.x)) * (static_cast<float>(layout.cw) / worldW);
-	py = (world.y - (layout.bounds.center.y - layout.bounds.half.y)) * (static_cast<float>(layout.ch) / worldH);
-	return true;
-}
-
-// 与仓库格、炼成格相同：半径/格边 = 15/56。
-float ModuleShopUltra::SlotRadius_(const Layout& layout, int side) noexcept
-{
-	if (side <= 0 || layout.ch <= 0)
-	{
-		return 8.0f;
-	}
-	const float worldSide = static_cast<float>(side) * ((layout.bounds.half.y * 2.0f) / static_cast<float>(layout.ch));
-	constexpr float kIconToSlot = 15.0f / 56.0f;
-	return (std::max)(8.0f, worldSide * kIconToSlot);
-}
-
-ModuleShopUltra::Layout ModuleShopUltra::BuildLayout_() const noexcept
-{
-	Layout layout{};
-	layout.bounds = bounds_;
-	layout.cw = (std::max)(1, static_cast<int>(std::lround(bounds_.half.x * 2.0f)));
-	layout.ch = (std::max)(1, static_cast<int>(std::lround(bounds_.half.y * 2.0f)));
-	if (panel_ != nullptr)
-	{
-		const int pw = static_cast<int>(panel_->GetCanvasWidth());
-		const int ph = static_cast<int>(panel_->GetCanvasHeight());
-		if (pw > 0)
-		{
-			layout.cw = pw;
-		}
-		if (ph > 0)
-		{
-			layout.ch = ph;
-		}
-	}
-	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-	layout.capacity = (ultra != nullptr) ? ultra->GetCapacity() : 0;
-	FillLayout_(layout);
-	const int begin = ClampedScroll_(layout);
-	layout.visibleBegin = begin;
-	const int remain = layout.capacity - begin;
-	layout.visibleCount = (remain > 0) ? (std::min)(layout.windowCount, remain) : 0;
-	return layout;
-}
-
-int ModuleShopUltra::ClampedScroll_(const Layout& layout) const noexcept
-{
-	const int maxBegin = (std::max)(0, layout.capacity - layout.windowCount);
-	int begin = scroll_;
-	if (begin < 0)
-	{
-		begin = 0;
-	}
-	if (begin > maxBegin)
-	{
-		begin = maxBegin;
-	}
-	return begin;
-}
-
-bool ModuleShopUltra::NeedsPaint_() const noexcept
-{
-	if (panel_ == nullptr || !painted_)
-	{
-		return true;
-	}
-	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-	const bool has = ultra_ != nullptr;
-	const int capacity = (ultra != nullptr) ? ultra->GetCapacity() : 0;
-	const std::uint32_t revision = (ultra != nullptr) ? ultra->GetContentRevision() : 0u;
-	return has != paintedHas_
-		|| capacity != paintedCapacity_
-		|| revision != paintedRevision_
-		|| scroll_ != paintedScroll_
-		|| GameStatsCodex::GetCurrency() != paintedCurrency_;
-}
-
-void ModuleShopUltra::EnsureVisuals_()
-{
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, bounds_.half.x * 2.0f)));
-	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, bounds_.half.y * 2.0f)));
-	const bool resized = ModuleShopDraw::EnsureCanvasSize_(panel_, *gfx_, *rg_, w, h);
-	if (resized || NeedsPaint_())
-	{
-		Paint_();
-	}
-	Sync();
-}
+// ---- 公开 · 重载 ----
 
 void ModuleShopUltra::Sync()
 {
@@ -523,287 +332,6 @@ void ModuleShopUltra::Submit() const
 	{
 		panel_->Submit(Chan::ui);
 	}
-}
-
-void ModuleShopUltra::Adopt(std::unique_ptr<IModuleNode> node)
-{
-	ultra_ = std::move(node);
-	painted_ = false;
-	if (panel_ != nullptr)
-	{
-		Paint_();
-	}
-	RealignVisible_();
-}
-
-std::unique_ptr<IModuleNode> ModuleShopUltra::Release()
-{
-	painted_ = false;
-	std::unique_ptr<IModuleNode> out = std::move(ultra_);
-	if (panel_ != nullptr)
-	{
-		Paint_();
-	}
-	return out;
-}
-
-void ModuleShopUltra::ClearForRunEnd()
-{
-	scroll_ = 0;
-	std::unique_ptr<IModuleNode> dropped = Release();
-	dropped.reset();
-}
-
-IModuleNode* ModuleShopUltra::GetUltra() noexcept
-{
-	return ultra_.get();
-}
-
-const IModuleNode* ModuleShopUltra::GetUltra() const noexcept
-{
-	return ultra_.get();
-}
-
-bool ModuleShopUltra::HasUltra() const noexcept
-{
-	return ultra_ != nullptr;
-}
-
-ModuleShopUltra::Button ModuleShopUltra::HitButton(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const Layout layout = BuildLayout_();
-	float px = 0.0f;
-	float py = 0.0f;
-	if (!WorldToPixel_(layout, worldPos, px, py))
-	{
-		return Button::None;
-	}
-	if (ultra_ == nullptr)
-	{
-		return InRect_(px, py, layout.forgeX, layout.forgeY, layout.forgeW, layout.forgeH)
-			? Button::Forge
-			: Button::None;
-	}
-	const Button buttons[kButtonCount_] = { Button::Punch, Button::Rename, Button::Redraw };
-	for (int i = 0; i < kButtonCount_; ++i)
-	{
-		const int y = layout.btnY + i * (layout.btnH + layout.btnGap);
-		if (InRect_(px, py, layout.btnX, y, layout.btnW, layout.btnH))
-		{
-			return buttons[i];
-		}
-	}
-	const PagerGlyphs_ glyphs = BuildPagerGlyphs_(
-		layout.pagerX,
-		layout.pagerY,
-		layout.pagerW,
-		layout.pagerH,
-		layout.capacity);
-	if (!glyphs.valid)
-	{
-		return Button::None;
-	}
-	if (InRect_(px, py, glyphs.leftX, glyphs.triY, glyphs.triW, glyphs.triH))
-	{
-		return Button::PageLeft;
-	}
-	if (InRect_(px, py, glyphs.rightX, glyphs.triY, glyphs.triW, glyphs.triH))
-	{
-		return Button::PageRight;
-	}
-	return Button::None;
-}
-
-bool ModuleShopUltra::TryClick(DirectX::XMFLOAT2 worldPos)
-{
-	switch (HitButton(worldPos))
-	{
-	case Button::Forge:
-		return TryForge();
-	case Button::Punch:
-		return TryPunch();
-	case Button::Rename:
-		if (ultra_ == nullptr)
-		{
-			return false;
-		}
-		// 只记一笔。编辑器取走后再请工作台打开更名界面。
-		renameRequested_ = true;
-		return true;
-	case Button::Redraw:
-		if (ultra_ == nullptr)
-		{
-			return false;
-		}
-		// 只记一笔。编辑器取走后再请工作台打开重绘界面。
-		redrawRequested_ = true;
-		return true;
-	case Button::PageLeft:
-		return TryPage_(-1);
-	case Button::PageRight:
-		return TryPage_(1);
-	default:
-		return false;
-	}
-}
-
-bool ModuleShopUltra::TryPage_(int direction)
-{
-	if (direction == 0 || ultra_ == nullptr)
-	{
-		return false;
-	}
-	const Layout layout = BuildLayout_();
-	const int current = ClampedScroll_(layout);
-	const int maxBegin = (std::max)(0, layout.capacity - layout.windowCount);
-	int next = current + ((direction < 0) ? -1 : 1);
-	if (next < 0)
-	{
-		next = 0;
-	}
-	if (next > maxBegin)
-	{
-		next = maxBegin;
-	}
-	if (next == current)
-	{
-		return false;
-	}
-	scroll_ = next;
-	if (panel_ != nullptr)
-	{
-		Paint_();
-	}
-	RealignVisible_();
-	return true;
-}
-
-bool ModuleShopUltra::TryForge()
-{
-	if (ultra_ != nullptr || gfx_ == nullptr || rg_ == nullptr)
-	{
-		return false;
-	}
-	if (GameStatsCodex::GetCurrency() < GameRulesCodex::ForgeCost)
-	{
-		return false;
-	}
-
-	const DirectX::XMFLOAT2 center = GetUltraSlotCenter();
-	const float radius = GetUltraSlotRadius();
-	std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeUltra(DirectX::XMFLOAT2{
-		center.x - hostOrigin_.x,
-		center.y - hostOrigin_.y
-	});
-	if (node == nullptr)
-	{
-		return false;
-	}
-	node->InitVisual(*gfx_, *rg_, hostOrigin_);
-	node->SetZoneVisualScale(1.0f);
-	node->SetVisualRadiusOverride(radius);
-	node->SetIconRadiusOverride(radius);
-	node->SyncVisual();
-	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::ForgeCost))
-	{
-		return false;
-	}
-	Adopt(std::move(node));
-	return true;
-}
-
-bool ModuleShopUltra::TakeRenameRequest() noexcept
-{
-	const bool requested = renameRequested_;
-	renameRequested_ = false;
-	return requested;
-}
-
-bool ModuleShopUltra::TakeRedrawRequest() noexcept
-{
-	const bool requested = redrawRequested_;
-	redrawRequested_ = false;
-	return requested;
-}
-
-bool ModuleShopUltra::TryPunch()
-{
-	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-	if (ultra == nullptr || GameStatsCodex::GetCurrency() < GameRulesCodex::PunchCost)
-	{
-		return false;
-	}
-	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::PunchCost))
-	{
-		return false;
-	}
-	ultra->AddCapacity();
-	if (panel_ != nullptr)
-	{
-		Paint_();
-	}
-	RealignVisible_();
-	return true;
-}
-
-const IModuleNode* ModuleShopUltra::PickInfoNode(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const IModuleNode* ultra = GetUltra();
-	if (ultra == nullptr)
-	{
-		return nullptr;
-	}
-	const DirectX::XMFLOAT2 center = GetUltraSlotCenter();
-	const float radius = GetUltraSlotRadius();
-	const float dx = worldPos.x - center.x;
-	const float dy = worldPos.y - center.y;
-	if (dx * dx + dy * dy > radius * radius)
-	{
-		return nullptr;
-	}
-	return ultra;
-}
-
-bool ModuleShopUltra::InBand_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	return HitArea(worldPos);
-}
-
-bool ModuleShopUltra::HitUltraSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const Layout layout = BuildLayout_();
-	float px = 0.0f;
-	float py = 0.0f;
-	if (!WorldToPixel_(layout, worldPos, px, py))
-	{
-		return false;
-	}
-	return InRect_(px, py, layout.ultraX, layout.ultraY, layout.ultraSide, layout.ultraSide);
-}
-
-int ModuleShopUltra::HitVisibleInnerSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const Layout layout = BuildLayout_();
-	if (ultra_ == nullptr || layout.visibleCount <= 0)
-	{
-		return -1;
-	}
-	float px = 0.0f;
-	float py = 0.0f;
-	if (!WorldToPixel_(layout, worldPos, px, py))
-	{
-		return -1;
-	}
-	const int stride = layout.innerSide + layout.innerGap;
-	for (int i = 0; i < layout.visibleCount; ++i)
-	{
-		const int x = layout.innerX0 + i * stride;
-		if (InRect_(px, py, x, layout.innerY, layout.innerSide, layout.innerSide))
-		{
-			return layout.visibleBegin + i;
-		}
-	}
-	return -1;
 }
 
 bool ModuleShopUltra::Owns(const IModuleNode* node) const noexcept
@@ -825,101 +353,6 @@ bool ModuleShopUltra::Owns(const IModuleNode* node) const noexcept
 		}
 	}
 	return false;
-}
-
-DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	DropResult result{};
-	result.verdict = DropVerdict::Forbidden;
-	// 正在拖这颗奥义时，它还占着栏位，但整块奥义区仍应能把它放回去。
-	if (!HasUltra() || ultra_.get() == &node)
-	{
-		// 没奥义时整块奥义区都能接，松手后仍落在左侧栏位中心。
-		if (node.GetKind() == ModuleNodeKind::Ultra && InBand_(worldPos))
-		{
-			result.verdict = DropVerdict::Accept;
-			result.localPos = ToLocal_(hostOrigin_, GetUltraSlotCenter());
-			return result;
-		}
-		if (!HasUltra())
-		{
-			return result;
-		}
-	}
-	if (HitUltraSlot_(worldPos))
-	{
-		// 已有奥义时，只有画出来的奥义栏讨论另一颗奥义，并且拒绝。
-		return result;
-	}
-
-	const int inner = HitVisibleInnerSlot_(worldPos);
-	if (inner < 0)
-	{
-		return result;
-	}
-	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-	const IModuleNode* held = GetInnerSlot(static_cast<std::size_t>(inner));
-	// 正在从这一格拖走的 Node 不算占用，可以放回原格。
-	if (ultra == nullptr || !ultra->CanHold(node) || (held != nullptr && held != &node))
-	{
-		return result;
-	}
-	result.verdict = DropVerdict::Accept;
-	const DirectX::XMFLOAT2 center = GetInnerSlotCenter(static_cast<std::size_t>(inner));
-	result.localPos = ToLocal_(hostOrigin_, center);
-	return result;
-}
-
-ModuleShopUltra::DropClaim ModuleShopUltra::TryAcceptDrop(
-	std::unique_ptr<IModuleNode>& node,
-	DirectX::XMFLOAT2 localPos)
-{
-	if (node == nullptr)
-	{
-		return DropClaim::Ignore;
-	}
-
-	const DirectX::XMFLOAT2 ultraLocal = ToLocal_(hostOrigin_, GetUltraSlotCenter());
-	if (NearLocal_(localPos, ultraLocal))
-	{
-		if (HasUltra() || node->GetKind() != ModuleNodeKind::Ultra)
-		{
-			return DropClaim::Reject;
-		}
-		PlantInSlot_(*node, hostOrigin_, ultraLocal, GetUltraSlotRadius());
-		Adopt(std::move(node));
-		return DropClaim::Accept;
-	}
-
-	const int count = GetInnerSlotCount();
-	for (int i = 0; i < count; ++i)
-	{
-		const std::size_t index = static_cast<std::size_t>(i);
-		if (!IsInnerSlotVisible(index))
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 slotLocal = ToLocal_(hostOrigin_, GetInnerSlotCenter(index));
-		if (!NearLocal_(localPos, slotLocal))
-		{
-			continue;
-		}
-		ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-		if (ultra == nullptr || !ultra->TryPut(index, node))
-		{
-			return DropClaim::Reject;
-		}
-		if (IModuleNode* placed = GetInnerSlot(index))
-		{
-			PlantInSlot_(*placed, hostOrigin_, slotLocal, GetInnerSlotRadius());
-		}
-		if (panel_ != nullptr)
-		{
-			Paint_();
-		}
-		return DropClaim::Accept;
-	}
-	return DropClaim::Ignore;
 }
 
 std::unique_ptr<IModuleNode> ModuleShopUltra::TakeNode(IModuleNode* node)
@@ -953,102 +386,6 @@ std::unique_ptr<IModuleNode> ModuleShopUltra::TakeNode(IModuleNode* node)
 		Paint_();
 	}
 	return taken;
-}
-
-void ModuleShopUltra::PinHomeGhost(IModuleNode& node) noexcept
-{
-	DirectX::XMFLOAT2 center = GetUltraSlotCenter();
-	float radius = GetUltraSlotRadius();
-	if (ultra_.get() != &node)
-	{
-		const std::size_t index = FindInnerIndex(&node);
-		if (index == static_cast<std::size_t>(-1))
-		{
-			return;
-		}
-		center = GetInnerSlotCenter(index);
-		radius = GetInnerSlotRadius();
-	}
-	const DirectX::XMFLOAT2 local = ToLocal_(hostOrigin_, center);
-	node.SetZoneOrigin(hostOrigin_);
-	node.SetLocalPos(local);
-	node.BeginLayoutGhost(local);
-	node.SetVisualRadiusOverride(radius);
-	node.SyncVisual();
-}
-
-void ModuleShopUltra::Restore(std::unique_ptr<IModuleNode> node)
-{
-	if (node == nullptr || node->GetKind() != ModuleNodeKind::Ultra || HasUltra())
-	{
-		return;
-	}
-	node->EndLayoutGhost();
-	PlantInSlot_(*node, hostOrigin_, ToLocal_(hostOrigin_, GetUltraSlotCenter()), GetUltraSlotRadius());
-	Adopt(std::move(node));
-}
-
-std::size_t ModuleShopUltra::FindInnerIndex(const IModuleNode* node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return static_cast<std::size_t>(-1);
-	}
-	const int count = GetInnerSlotCount();
-	for (int i = 0; i < count; ++i)
-	{
-		if (GetInnerSlot(static_cast<std::size_t>(i)) == node)
-		{
-			return static_cast<std::size_t>(i);
-		}
-	}
-	return static_cast<std::size_t>(-1);
-}
-
-void ModuleShopUltra::RestoreInner(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	if (node == nullptr)
-	{
-		return;
-	}
-	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
-	node->EndLayoutGhost();
-	if (ultra == nullptr || !ultra->TryPut(index, node))
-	{
-		return;
-	}
-	if (IModuleNode* placed = GetInnerSlot(index))
-	{
-		PlantInSlot_(*placed, hostOrigin_, ToLocal_(hostOrigin_, GetInnerSlotCenter(index)), GetInnerSlotRadius());
-	}
-	if (panel_ != nullptr)
-	{
-		Paint_();
-	}
-}
-
-void ModuleShopUltra::RealignVisible_()
-{
-	const int count = GetInnerSlotCount();
-	if (count <= 0)
-	{
-		return;
-	}
-	const float radius = GetInnerSlotRadius();
-	for (int i = 0; i < count; ++i)
-	{
-		const std::size_t index = static_cast<std::size_t>(i);
-		IModuleNode* node = GetInnerSlot(index);
-		if (node == nullptr || node->IsLayoutGhostActive() || !IsInnerSlotVisible(index))
-		{
-			continue;
-		}
-		if (!node->IsVisualReady() && gfx_ != nullptr && rg_ != nullptr)
-		{
-			node->InitVisual(*gfx_, *rg_, hostOrigin_);
-		}
-		PlantInSlot_(*node, hostOrigin_, ToLocal_(hostOrigin_, GetInnerSlotCenter(index)), radius);
-	}
 }
 
 IModuleNode* ModuleShopUltra::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
@@ -1191,6 +528,54 @@ void ModuleShopUltra::SyncNodes()
 	}
 }
 
+// ---- 公开 · 独有 · 本体 ----
+
+void ModuleShopUltra::Adopt(std::unique_ptr<IModuleNode> node)
+{
+	ultra_ = std::move(node);
+	painted_ = false;
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+	RealignVisible_();
+}
+
+std::unique_ptr<IModuleNode> ModuleShopUltra::Release()
+{
+	painted_ = false;
+	std::unique_ptr<IModuleNode> out = std::move(ultra_);
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+	return out;
+}
+
+void ModuleShopUltra::ClearForRunEnd()
+{
+	scroll_ = 0;
+	std::unique_ptr<IModuleNode> dropped = Release();
+	dropped.reset();
+}
+
+IModuleNode* ModuleShopUltra::GetUltra() noexcept
+{
+	return ultra_.get();
+}
+
+const IModuleNode* ModuleShopUltra::GetUltra() const noexcept
+{
+	return ultra_.get();
+}
+
+bool ModuleShopUltra::HasUltra() const noexcept
+{
+	return ultra_ != nullptr;
+}
+
+// ---- 公开 · 独有 · 栏位 ----
+
 DirectX::XMFLOAT2 ModuleShopUltra::GetUltraSlotCenter() const noexcept
 {
 	const Layout layout = BuildLayout_();
@@ -1254,8 +639,32 @@ bool ModuleShopUltra::IsInnerSlotVisible(std::size_t index) const noexcept
 	return slot >= layout.visibleBegin && slot < layout.visibleBegin + layout.visibleCount;
 }
 
-void ModuleShopUltra::DrawPager_(Canvas2D& canvas, const Layout& layout) noexcept
+// ---- 公开 · 独有 · 按钮 ----
+
+ModuleShopUltra::Button ModuleShopUltra::HitButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
+	const Layout layout = BuildLayout_();
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!WorldToPixel_(layout, worldPos, px, py))
+	{
+		return Button::None;
+	}
+	if (ultra_ == nullptr)
+	{
+		return InRect_(px, py, layout.forgeX, layout.forgeY, layout.forgeW, layout.forgeH)
+			? Button::Forge
+			: Button::None;
+	}
+	const Button buttons[kButtonCount_] = { Button::Punch, Button::Rename, Button::Redraw };
+	for (int i = 0; i < kButtonCount_; ++i)
+	{
+		const int y = layout.btnY + i * (layout.btnH + layout.btnGap);
+		if (InRect_(px, py, layout.btnX, y, layout.btnW, layout.btnH))
+		{
+			return buttons[i];
+		}
+	}
 	const PagerGlyphs_ glyphs = BuildPagerGlyphs_(
 		layout.pagerX,
 		layout.pagerY,
@@ -1264,18 +673,521 @@ void ModuleShopUltra::DrawPager_(Canvas2D& canvas, const Layout& layout) noexcep
 		layout.capacity);
 	if (!glyphs.valid)
 	{
-		return;
+		return Button::None;
+	}
+	if (InRect_(px, py, glyphs.leftX, glyphs.triY, glyphs.triW, glyphs.triH))
+	{
+		return Button::PageLeft;
+	}
+	if (InRect_(px, py, glyphs.rightX, glyphs.triY, glyphs.triW, glyphs.triH))
+	{
+		return Button::PageRight;
+	}
+	return Button::None;
+}
+
+bool ModuleShopUltra::TryClick(DirectX::XMFLOAT2 worldPos)
+{
+	switch (HitButton(worldPos))
+	{
+	case Button::Forge:
+		return TryForge();
+	case Button::Punch:
+		return TryPunch();
+	case Button::Rename:
+		if (ultra_ == nullptr)
+		{
+			return false;
+		}
+		// 只记一笔。编辑器取走后再请工作台打开更名界面。
+		renameRequested_ = true;
+		return true;
+	case Button::Redraw:
+		if (ultra_ == nullptr)
+		{
+			return false;
+		}
+		// 只记一笔。编辑器取走后再请工作台打开重绘界面。
+		redrawRequested_ = true;
+		return true;
+	case Button::PageLeft:
+		return TryPage_(-1);
+	case Button::PageRight:
+		return TryPage_(1);
+	default:
+		return false;
+	}
+}
+
+bool ModuleShopUltra::TakeRenameRequest() noexcept
+{
+	const bool requested = renameRequested_;
+	renameRequested_ = false;
+	return requested;
+}
+
+bool ModuleShopUltra::TakeRedrawRequest() noexcept
+{
+	const bool requested = redrawRequested_;
+	redrawRequested_ = false;
+	return requested;
+}
+
+bool ModuleShopUltra::TryForge()
+{
+	if (ultra_ != nullptr || gfx_ == nullptr || rg_ == nullptr)
+	{
+		return false;
+	}
+	if (GameStatsCodex::GetCurrency() < GameRulesCodex::ForgeCost)
+	{
+		return false;
 	}
 
-	const bool canLeft = layout.visibleBegin > 0;
-	const bool canRight = layout.visibleBegin + layout.windowCount < layout.capacity;
-	DrawPagerArrow_(canvas, glyphs.leftX, glyphs.triY, glyphs.triW, glyphs.triH, false, canLeft);
-	DrawPagerArrow_(canvas, glyphs.rightX, glyphs.triY, glyphs.triW, glyphs.triH, true, canRight);
-	for (int i = 0; i < glyphs.count; ++i)
+	const DirectX::XMFLOAT2 center = GetUltraSlotCenter();
+	const float radius = GetUltraSlotRadius();
+	std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeUltra(DirectX::XMFLOAT2{
+		center.x - hostOrigin_.x,
+		center.y - hostOrigin_.y
+	});
+	if (node == nullptr)
 	{
-		const bool onScreen = i >= layout.visibleBegin && i < layout.visibleBegin + layout.visibleCount;
-		DrawPagerDot_(canvas, glyphs.firstCx + i * glyphs.stride, glyphs.cy, glyphs.radius, onScreen);
+		return false;
 	}
+	node->InitVisual(*gfx_, *rg_, hostOrigin_);
+	node->SetZoneVisualScale(1.0f);
+	node->SetVisualRadiusOverride(radius);
+	node->SetIconRadiusOverride(radius);
+	node->SyncVisual();
+	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::ForgeCost))
+	{
+		return false;
+	}
+	Adopt(std::move(node));
+	return true;
+}
+
+bool ModuleShopUltra::TryPunch()
+{
+	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	if (ultra == nullptr || GameStatsCodex::GetCurrency() < GameRulesCodex::PunchCost)
+	{
+		return false;
+	}
+	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::PunchCost))
+	{
+		return false;
+	}
+	ultra->AddCapacity();
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+	RealignVisible_();
+	return true;
+}
+
+const IModuleNode* ModuleShopUltra::PickInfoNode(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const IModuleNode* ultra = GetUltra();
+	if (ultra == nullptr)
+	{
+		return nullptr;
+	}
+	const DirectX::XMFLOAT2 center = GetUltraSlotCenter();
+	const float radius = GetUltraSlotRadius();
+	const float dx = worldPos.x - center.x;
+	const float dy = worldPos.y - center.y;
+	if (dx * dx + dy * dy > radius * radius)
+	{
+		return nullptr;
+	}
+	return ultra;
+}
+
+// ---- 公开 · 独有 · 拖放 ----
+
+void ModuleShopUltra::PinHomeGhost(IModuleNode& node) noexcept
+{
+	DirectX::XMFLOAT2 center = GetUltraSlotCenter();
+	float radius = GetUltraSlotRadius();
+	if (ultra_.get() != &node)
+	{
+		const std::size_t index = FindInnerIndex(&node);
+		if (index == static_cast<std::size_t>(-1))
+		{
+			return;
+		}
+		center = GetInnerSlotCenter(index);
+		radius = GetInnerSlotRadius();
+	}
+	const DirectX::XMFLOAT2 local = ToLocal_(hostOrigin_, center);
+	node.SetZoneOrigin(hostOrigin_);
+	node.SetLocalPos(local);
+	node.BeginLayoutGhost(local);
+	node.SetVisualRadiusOverride(radius);
+	node.SyncVisual();
+}
+
+void ModuleShopUltra::Restore(std::unique_ptr<IModuleNode> node)
+{
+	if (node == nullptr || node->GetKind() != ModuleNodeKind::Ultra || HasUltra())
+	{
+		return;
+	}
+	node->EndLayoutGhost();
+	PlantInSlot_(*node, hostOrigin_, ToLocal_(hostOrigin_, GetUltraSlotCenter()), GetUltraSlotRadius());
+	Adopt(std::move(node));
+}
+
+std::size_t ModuleShopUltra::FindInnerIndex(const IModuleNode* node) const noexcept
+{
+	if (node == nullptr)
+	{
+		return static_cast<std::size_t>(-1);
+	}
+	const int count = GetInnerSlotCount();
+	for (int i = 0; i < count; ++i)
+	{
+		if (GetInnerSlot(static_cast<std::size_t>(i)) == node)
+		{
+			return static_cast<std::size_t>(i);
+		}
+	}
+	return static_cast<std::size_t>(-1);
+}
+
+void ModuleShopUltra::RestoreInner(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+	ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	node->EndLayoutGhost();
+	if (ultra == nullptr || !ultra->TryPut(index, node))
+	{
+		return;
+	}
+	if (IModuleNode* placed = GetInnerSlot(index))
+	{
+		PlantInSlot_(*placed, hostOrigin_, ToLocal_(hostOrigin_, GetInnerSlotCenter(index)), GetInnerSlotRadius());
+	}
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+}
+
+DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	DropResult result{};
+	result.verdict = DropVerdict::Forbidden;
+	// 正在拖这颗奥义时，它还占着栏位，但整块奥义区仍应能把它放回去。
+	if (!HasUltra() || ultra_.get() == &node)
+	{
+		// 没奥义时整块奥义区都能接，松手后仍落在左侧栏位中心。
+		if (node.GetKind() == ModuleNodeKind::Ultra && InBand_(worldPos))
+		{
+			result.verdict = DropVerdict::Accept;
+			result.localPos = ToLocal_(hostOrigin_, GetUltraSlotCenter());
+			return result;
+		}
+		if (!HasUltra())
+		{
+			return result;
+		}
+	}
+	if (HitUltraSlot_(worldPos))
+	{
+		// 已有奥义时，只有画出来的奥义栏讨论另一颗奥义，并且拒绝。
+		return result;
+	}
+
+	const int inner = HitVisibleInnerSlot_(worldPos);
+	if (inner < 0)
+	{
+		return result;
+	}
+	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	const IModuleNode* held = GetInnerSlot(static_cast<std::size_t>(inner));
+	// 正在从这一格拖走的 Node 不算占用，可以放回原格。
+	if (ultra == nullptr || !ultra->CanHold(node) || (held != nullptr && held != &node))
+	{
+		return result;
+	}
+	result.verdict = DropVerdict::Accept;
+	const DirectX::XMFLOAT2 center = GetInnerSlotCenter(static_cast<std::size_t>(inner));
+	result.localPos = ToLocal_(hostOrigin_, center);
+	return result;
+}
+
+ModuleShopUltra::DropClaim ModuleShopUltra::TryAcceptDrop(
+	std::unique_ptr<IModuleNode>& node,
+	DirectX::XMFLOAT2 localPos)
+{
+	if (node == nullptr)
+	{
+		return DropClaim::Ignore;
+	}
+
+	const DirectX::XMFLOAT2 ultraLocal = ToLocal_(hostOrigin_, GetUltraSlotCenter());
+	if (NearLocal_(localPos, ultraLocal))
+	{
+		if (HasUltra() || node->GetKind() != ModuleNodeKind::Ultra)
+		{
+			return DropClaim::Reject;
+		}
+		PlantInSlot_(*node, hostOrigin_, ultraLocal, GetUltraSlotRadius());
+		Adopt(std::move(node));
+		return DropClaim::Accept;
+	}
+
+	const int count = GetInnerSlotCount();
+	for (int i = 0; i < count; ++i)
+	{
+		const std::size_t index = static_cast<std::size_t>(i);
+		if (!IsInnerSlotVisible(index))
+		{
+			continue;
+		}
+		const DirectX::XMFLOAT2 slotLocal = ToLocal_(hostOrigin_, GetInnerSlotCenter(index));
+		if (!NearLocal_(localPos, slotLocal))
+		{
+			continue;
+		}
+		ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+		if (ultra == nullptr || !ultra->TryPut(index, node))
+		{
+			return DropClaim::Reject;
+		}
+		if (IModuleNode* placed = GetInnerSlot(index))
+		{
+			PlantInSlot_(*placed, hostOrigin_, slotLocal, GetInnerSlotRadius());
+		}
+		if (panel_ != nullptr)
+		{
+			Paint_();
+		}
+		return DropClaim::Accept;
+	}
+	return DropClaim::Ignore;
+}
+
+// ---- 私有 · 重载 ----
+
+void ModuleShopUltra::EnsureVisuals_()
+{
+	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, bounds_.half.x * 2.0f)));
+	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, bounds_.half.y * 2.0f)));
+	const bool resized = ModuleShopDraw::EnsureCanvasSize_(panel_, *gfx_, *rg_, w, h);
+	if (resized || NeedsPaint_())
+	{
+		Paint_();
+	}
+	Sync();
+}
+
+// ---- 私有 · 独有 · 布局 ----
+
+ModuleShopUltra::Layout ModuleShopUltra::BuildLayout_() const noexcept
+{
+	Layout layout{};
+	layout.bounds = bounds_;
+	layout.cw = (std::max)(1, static_cast<int>(std::lround(bounds_.half.x * 2.0f)));
+	layout.ch = (std::max)(1, static_cast<int>(std::lround(bounds_.half.y * 2.0f)));
+	if (panel_ != nullptr)
+	{
+		const int pw = static_cast<int>(panel_->GetCanvasWidth());
+		const int ph = static_cast<int>(panel_->GetCanvasHeight());
+		if (pw > 0)
+		{
+			layout.cw = pw;
+		}
+		if (ph > 0)
+		{
+			layout.ch = ph;
+		}
+	}
+	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	layout.capacity = (ultra != nullptr) ? ultra->GetCapacity() : 0;
+	FillLayout_(layout);
+	const int begin = ClampedScroll_(layout);
+	layout.visibleBegin = begin;
+	const int remain = layout.capacity - begin;
+	layout.visibleCount = (remain > 0) ? (std::min)(layout.windowCount, remain) : 0;
+	return layout;
+}
+
+void ModuleShopUltra::FillLayout_(Layout& layout) noexcept
+{
+	layout.pad = (std::max)(6, layout.ch / 16);
+	const int innerW = (std::max)(1, layout.cw - layout.pad * 2);
+	const int innerH = (std::max)(1, layout.ch - layout.pad * 2);
+
+	layout.btnGap = 4;
+	layout.btnW = (std::min)(120, (std::max)(72, innerW / 5));
+	layout.btnH = (std::max)(14, (innerH - layout.btnGap * (kButtonCount_ - 1)) / kButtonCount_);
+	layout.innerGap = (std::max)(4, layout.pad / 2);
+
+	int ultraSide = innerH;
+	int innerSide = InnerSideOf_(ultraSide);
+	// 顶对齐后，内部栏下面剩的高度就是翻页条。不够一条时，两栏一起缩小。
+	if (layout.capacity > 0 && innerH - innerSide < kPagerMinH_)
+	{
+		const int innerMax = (std::max)(1, innerH - kPagerMinH_);
+		ultraSide = innerMax * kInnerDenom_ / kInnerNumer_;
+		ultraSide = (std::min)((std::max)(8, ultraSide), innerH);
+		innerSide = InnerSideOf_(ultraSide);
+		while (ultraSide > 8 && innerH - innerSide < kPagerMinH_)
+		{
+			--ultraSide;
+			innerSide = InnerSideOf_(ultraSide);
+		}
+	}
+	// 窄到连一格都放不下时，奥义栏和内部栏按 4:3 一起缩小。
+	if (layout.capacity > 0)
+	{
+		const int room = innerW - layout.btnW - layout.innerGap * 2;
+		if (ultraSide + innerSide > room && room > 8)
+		{
+			const int fitted = (std::min)(
+				ultraSide,
+				(std::max)(24, room * kInnerDenom_ / (kInnerDenom_ + kInnerNumer_)));
+			ultraSide = (std::min)(fitted, innerH);
+			innerSide = InnerSideOf_(ultraSide);
+		}
+	}
+
+	layout.ultraSide = (std::max)(1, (std::min)(ultraSide, innerH));
+	layout.innerSide = InnerSideOf_(layout.ultraSide);
+	layout.ultraX = layout.pad;
+	layout.ultraY = layout.pad;
+	layout.btnX = layout.cw - layout.pad - layout.btnW;
+	const int maxUltra = layout.btnX - layout.innerGap - layout.ultraX;
+	if (maxUltra > 0 && layout.ultraSide > maxUltra)
+	{
+		layout.ultraSide = maxUltra;
+		layout.innerSide = InnerSideOf_(layout.ultraSide);
+	}
+	layout.innerX0 = layout.ultraX + layout.ultraSide + layout.innerGap;
+	layout.innerY = layout.ultraY;
+
+	const int colH = layout.btnH * kButtonCount_ + layout.btnGap * (kButtonCount_ - 1);
+	layout.btnY = layout.pad + (std::max)(0, innerH - colH) / 2;
+	layout.windowCount = FitInnerSlots_(layout);
+	layout.visibleBegin = 0;
+	layout.visibleCount = 0;
+
+	layout.forgeW = (std::min)(168, (std::max)(72, layout.cw / 4));
+	layout.forgeH = (std::min)(40, (std::max)(18, layout.ch / 3));
+	layout.forgeW = (std::min)(layout.forgeW, (std::max)(1, layout.cw - 8));
+	layout.forgeH = (std::min)(layout.forgeH, (std::max)(1, layout.ch - 8));
+	layout.forgeX = (std::max)(0, (layout.cw - layout.forgeW) / 2);
+	layout.forgeY = (std::max)(0, (layout.ch - layout.forgeH) / 2);
+
+	const int contentBottom = layout.pad + innerH;
+	layout.pagerX = layout.innerX0;
+	layout.pagerY = layout.innerY + layout.innerSide;
+	layout.pagerW = (std::max)(0, layout.btnX - layout.innerGap - layout.pagerX);
+	layout.pagerH = (std::max)(0, contentBottom - layout.pagerY);
+}
+
+
+// 右侧按钮左边能放下几格，不按容量截断。多出来的格子靠滚动看。
+int ModuleShopUltra::FitInnerSlots_(const Layout& layout) noexcept
+{
+	if (layout.innerSide <= 0)
+	{
+		return 0;
+	}
+	const int limit = layout.btnX - layout.innerGap;
+	const int stride = layout.innerSide + layout.innerGap;
+	if (stride <= 0 || layout.innerX0 > limit)
+	{
+		return 0;
+	}
+	int count = 0;
+	int x = layout.innerX0;
+	while (x + layout.innerSide <= limit)
+	{
+		++count;
+		x += stride;
+	}
+	return count;
+}
+
+int ModuleShopUltra::ClampedScroll_(const Layout& layout) const noexcept
+{
+	const int maxBegin = (std::max)(0, layout.capacity - layout.windowCount);
+	int begin = scroll_;
+	if (begin < 0)
+	{
+		begin = 0;
+	}
+	if (begin > maxBegin)
+	{
+		begin = maxBegin;
+	}
+	return begin;
+}
+
+DirectX::XMFLOAT2 ModuleShopUltra::PixelCenterToWorld_(const Layout& layout, float px, float py) noexcept
+{
+	const float worldW = layout.bounds.half.x * 2.0f;
+	const float worldH = layout.bounds.half.y * 2.0f;
+	if (layout.cw <= 0 || layout.ch <= 0 || worldW <= 1.0e-4f || worldH <= 1.0e-4f)
+	{
+		return layout.bounds.center;
+	}
+	return DirectX::XMFLOAT2{
+		layout.bounds.center.x - layout.bounds.half.x + px * (worldW / static_cast<float>(layout.cw)),
+		layout.bounds.center.y - layout.bounds.half.y + py * (worldH / static_cast<float>(layout.ch))
+	};
+}
+
+bool ModuleShopUltra::WorldToPixel_(const Layout& layout, DirectX::XMFLOAT2 world, float& px, float& py) noexcept
+{
+	const float worldW = layout.bounds.half.x * 2.0f;
+	const float worldH = layout.bounds.half.y * 2.0f;
+	if (worldW <= 1.0e-4f || worldH <= 1.0e-4f || layout.cw <= 0 || layout.ch <= 0)
+	{
+		return false;
+	}
+	px = (world.x - (layout.bounds.center.x - layout.bounds.half.x)) * (static_cast<float>(layout.cw) / worldW);
+	py = (world.y - (layout.bounds.center.y - layout.bounds.half.y)) * (static_cast<float>(layout.ch) / worldH);
+	return true;
+}
+
+// 与仓库格、炼成格相同：半径/格边 = 15/56。
+float ModuleShopUltra::SlotRadius_(const Layout& layout, int side) noexcept
+{
+	if (side <= 0 || layout.ch <= 0)
+	{
+		return 8.0f;
+	}
+	const float worldSide = static_cast<float>(side) * ((layout.bounds.half.y * 2.0f) / static_cast<float>(layout.ch));
+	constexpr float kIconToSlot = 15.0f / 56.0f;
+	return (std::max)(8.0f, worldSide * kIconToSlot);
+}
+
+// ---- 私有 · 独有 · 绘制 ----
+
+bool ModuleShopUltra::NeedsPaint_() const noexcept
+{
+	if (panel_ == nullptr || !painted_)
+	{
+		return true;
+	}
+	const ModuleNode_Ultra* ultra = AsUltra_(ultra_.get());
+	const bool has = ultra_ != nullptr;
+	const int capacity = (ultra != nullptr) ? ultra->GetCapacity() : 0;
+	const std::uint32_t revision = (ultra != nullptr) ? ultra->GetContentRevision() : 0u;
+	return has != paintedHas_
+		|| capacity != paintedCapacity_
+		|| revision != paintedRevision_
+		|| scroll_ != paintedScroll_
+		|| GameStatsCodex::GetCurrency() != paintedCurrency_;
 }
 
 void ModuleShopUltra::Paint_()
@@ -1341,4 +1253,129 @@ void ModuleShopUltra::Paint_()
 	paintedCapacity_ = (ultra != nullptr) ? ultra->GetCapacity() : 0;
 	paintedRevision_ = (ultra != nullptr) ? ultra->GetContentRevision() : 0u;
 	canvas.NotifyPixelsChanged();
+}
+
+void ModuleShopUltra::DrawPager_(Canvas2D& canvas, const Layout& layout) noexcept
+{
+	const PagerGlyphs_ glyphs = BuildPagerGlyphs_(
+		layout.pagerX,
+		layout.pagerY,
+		layout.pagerW,
+		layout.pagerH,
+		layout.capacity);
+	if (!glyphs.valid)
+	{
+		return;
+	}
+
+	const bool canLeft = layout.visibleBegin > 0;
+	const bool canRight = layout.visibleBegin + layout.windowCount < layout.capacity;
+	DrawPagerArrow_(canvas, glyphs.leftX, glyphs.triY, glyphs.triW, glyphs.triH, false, canLeft);
+	DrawPagerArrow_(canvas, glyphs.rightX, glyphs.triY, glyphs.triW, glyphs.triH, true, canRight);
+	for (int i = 0; i < glyphs.count; ++i)
+	{
+		const bool onScreen = i >= layout.visibleBegin && i < layout.visibleBegin + layout.visibleCount;
+		DrawPagerDot_(canvas, glyphs.firstCx + i * glyphs.stride, glyphs.cy, glyphs.radius, onScreen);
+	}
+}
+
+// ---- 私有 · 独有 · 点击和翻页 ----
+
+bool ModuleShopUltra::InBand_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return HitArea(worldPos);
+}
+
+bool ModuleShopUltra::HitUltraSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const Layout layout = BuildLayout_();
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!WorldToPixel_(layout, worldPos, px, py))
+	{
+		return false;
+	}
+	return InRect_(px, py, layout.ultraX, layout.ultraY, layout.ultraSide, layout.ultraSide);
+}
+
+int ModuleShopUltra::HitVisibleInnerSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const Layout layout = BuildLayout_();
+	if (ultra_ == nullptr || layout.visibleCount <= 0)
+	{
+		return -1;
+	}
+	float px = 0.0f;
+	float py = 0.0f;
+	if (!WorldToPixel_(layout, worldPos, px, py))
+	{
+		return -1;
+	}
+	const int stride = layout.innerSide + layout.innerGap;
+	for (int i = 0; i < layout.visibleCount; ++i)
+	{
+		const int x = layout.innerX0 + i * stride;
+		if (InRect_(px, py, x, layout.innerY, layout.innerSide, layout.innerSide))
+		{
+			return layout.visibleBegin + i;
+		}
+	}
+	return -1;
+}
+
+bool ModuleShopUltra::TryPage_(int direction)
+{
+	if (direction == 0 || ultra_ == nullptr)
+	{
+		return false;
+	}
+	const Layout layout = BuildLayout_();
+	const int current = ClampedScroll_(layout);
+	const int maxBegin = (std::max)(0, layout.capacity - layout.windowCount);
+	int next = current + ((direction < 0) ? -1 : 1);
+	if (next < 0)
+	{
+		next = 0;
+	}
+	if (next > maxBegin)
+	{
+		next = maxBegin;
+	}
+	if (next == current)
+	{
+		return false;
+	}
+	scroll_ = next;
+	if (panel_ != nullptr)
+	{
+		Paint_();
+	}
+	RealignVisible_();
+	return true;
+}
+
+// ---- 私有 · 独有 · 对齐 ----
+
+void ModuleShopUltra::RealignVisible_()
+{
+	const int count = GetInnerSlotCount();
+	if (count <= 0)
+	{
+		return;
+	}
+	const float radius = GetInnerSlotRadius();
+	for (int i = 0; i < count; ++i)
+	{
+		const std::size_t index = static_cast<std::size_t>(i);
+		IModuleNode* node = GetInnerSlot(index);
+		if (node == nullptr || node->IsLayoutGhostActive() || !IsInnerSlotVisible(index))
+		{
+			continue;
+		}
+		if (!node->IsVisualReady() && gfx_ != nullptr && rg_ != nullptr)
+		{
+			node->InitVisual(*gfx_, *rg_, hostOrigin_);
+		}
+		PlantInSlot_(*node, hostOrigin_, ToLocal_(hostOrigin_, GetInnerSlotCenter(index)), radius);
+	}
 }
