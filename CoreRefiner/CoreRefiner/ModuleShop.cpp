@@ -1,120 +1,95 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
-#include "Channels.h"
 
-#include "GameRulesCodex.h"
 #include "GameStatsCodex.h"
-#include "TextCodex.h"
-
-#include "Collision2D.h"
-#include "Colors.h"
-#include "IconAtlas.h"
-
-#include "Canvas.h"
-#include "CanvasPixelDraw.h"
 
 #include "ModuleShop.h"
 #include "ModuleShopDraw.h"
-#include "ModuleNodeFactory.h"
-#include "NodeEvolveRecipes.h"
-#include "UiCopy.h"
-#include "Util.h"
 
 #include <algorithm>
-#include <cmath>
-#include <random>
-#include <string>
 #include <utility>
-#include <vector>
 
 using namespace ModuleShopDraw;
 
-namespace
-{
-	struct ShopOffered_
-	{
-		ModuleNodeLabel data[ModuleNodeLabelCount()]{};
-		std::size_t count{ 0 };
-	};
-
-	// 可刷表 = Label 全集 − 进化表 − Core 表 − Fusion 表。
-	[[nodiscard]] constexpr ShopOffered_ MakeShopOffered_() noexcept
-	{
-		ShopOffered_ out{};
-		for (std::size_t i = 0; i < ModuleNodeLabelCount(); ++i)
-		{
-			const auto label = static_cast<ModuleNodeLabel>(i);
-			// 进化、核心、融合、奥义都不进货。奥义从 Label 造出来是空货槽。
-			if (LabelTableContains(kEvolveLabels, label)
-				|| LabelTableContains(kCoreLabels, label)
-				|| LabelTableContains(kFusionLabels, label)
-				|| LabelTableContains(kUltraLabels, label))
-			{
-				continue;
-			}
-			out.data[out.count++] = label;
-		}
-		return out;
-	}
-	constexpr ShopOffered_ kShopOffered_ = MakeShopOffered_();
-	static_assert(kShopOffered_.count >= ModuleShop::kSlotCount);
-
-	void ShuffleLabels_(ModuleNodeLabel* labels, std::size_t count)
-	{
-		if (count < 2u)
-		{
-			return;
-		}
-		static std::mt19937 rng{ std::random_device{}() };
-		for (std::size_t i = count; i > 1u; --i)
-		{
-			std::uniform_int_distribution<std::size_t> dist(0u, i - 1u);
-			const std::size_t j = dist(rng);
-			const ModuleNodeLabel tmp = labels[i - 1u];
-			labels[i - 1u] = labels[j];
-			labels[j] = tmp;
-		}
-	}
-}
-
-namespace
-{
-	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
-	{
-		if (scale == 0u)
-		{
-			return;
-		}
-
-		const int glyph = static_cast<int>(16u * scale);
-		const int ox = (static_cast<int>(canvas.GetCanvasWidth()) - glyph) / 2;
-		const int oy = (static_cast<int>(canvas.GetCanvasHeight()) - glyph) / 2;
-		for (unsigned y = 0u; y < 16u; ++y)
-		{
-			const std::uint16_t row = bits[y];
-			for (unsigned x = 0u; x < 16u; ++x)
-			{
-				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
-				{
-					continue;
-				}
-				for (unsigned sy = 0u; sy < scale; ++sy)
-				{
-					for (unsigned sx = 0u; sx < scale; ++sx)
-					{
-						CanvasPixelDraw::PutPixelClamped(
-							canvas,
-							ox + static_cast<int>(x * scale + sx),
-							oy + static_cast<int>(y * scale + sy),
-							color);
-					}
-				}
-			}
-		}
-	}
-}
-
 // ---- 外壳 ----
+
+ModuleShop::ModuleShop()
+{
+	// 找主人、取出 Node、结果格归属都问商店自己。
+	refine_.SetHostZone(this);
+}
+
+ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
+{
+	BoundsWorld b{};
+	b.half = shellHalf_;
+	b.center = DirectX::XMFLOAT2{
+		origin_.x,
+		origin_.y
+	};
+	return b;
+}
+
+void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
+{
+	origin_ = origin;
+	// 先把新原点写给三块，再把结果格和货架 Node 按新原点摆正。
+	SyncBlocks_();
+	refine_.RealignResult();
+	trade_.SyncNodes();
+}
+
+void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
+{
+	shellHalf_.x = (std::max)(1.0f, halfX);
+	shellHalf_.y = (std::max)(1.0f, halfY);
+	LayoutBlocks_();
+	if (gfx_ != nullptr && rg_ != nullptr)
+	{
+		for (ModuleShopBlock* block : Blocks_())
+		{
+			block->Ensure(*gfx_, *rg_);
+		}
+	}
+	// 框变宽后货卡间距变了，商品要按新格子重摆。结果格按新栏位重摆。
+	trade_.Relayout();
+	refine_.RealignResult();
+	SyncBlocks_();
+}
+
+ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
+{
+	const BoundsWorld inner = ShellInnerRect_();
+	const float tradeH = SplitUnitHeight_() * static_cast<float>(kTradeRatio);
+	BoundsWorld b{};
+	b.half = DirectX::XMFLOAT2{
+		ContentHalfX_(),
+		tradeH * 0.5f
+	};
+	const float innerTop = inner.center.y - inner.half.y;
+	b.center = DirectX::XMFLOAT2{
+		inner.center.x,
+		innerTop + b.half.y
+	};
+	return b;
+}
+
+ModuleShop::BoundsWorld ModuleShop::GetBoundsWorld() const noexcept
+{
+	return GetTradeBoundsWorld();
+}
+
+bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept
+{
+	(void)radius;
+	const BoundsWorld trade = GetTradeBoundsWorld();
+	const BoundsWorld refine = FunctionBandBounds_(0);
+	const BoundsWorld ultra = FunctionBandBounds_(1);
+	return PointInAabb_(trade.center, trade.half, worldCenter)
+		|| PointInAabb_(refine.center, refine.half, worldCenter)
+		|| PointInAabb_(ultra.center, ultra.half, worldCenter);
+}
+
 ModuleShop::BoundsWorld ModuleShop::ShellInnerRect_() const noexcept
 {
 	const BoundsWorld shell = GetShellBoundsWorld();
@@ -155,515 +130,106 @@ ModuleShop::BoundsWorld ModuleShop::FunctionBandBounds_(std::size_t band) const 
 	return b;
 }
 
-ModuleShop::BoundsWorld ModuleShop::GetShellBoundsWorld() const noexcept
+// ---- 统一驱动 ----
+
+void ModuleShop::RefreshCopy()
 {
-	BoundsWorld b{};
-	b.half = shellHalf_;
-	b.center = DirectX::XMFLOAT2{
-		origin_.x,
-		origin_.y
-	};
-	return b;
+	trade_.RefreshCopy();
+	refine_.RefreshCopy();
 }
 
-void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
+void ModuleShop::TickHud(float dt)
 {
-	origin_ = origin;
-	RelayoutSlots_();
-	PlaceRefineResultVisual_();
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncRefineTransform_();
-	SyncUltraArea_();
-}
-
-void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
-{
-	shellHalf_.x = (std::max)(1.0f, halfX);
-	shellHalf_.y = (std::max)(1.0f, halfY);
-	if (gfx_ != nullptr && rg_ != nullptr)
+	// 先写入矩形和原点，再让各块走自己的每帧刷新。买卖区走倒计时和顶栏，炼成区在按钮或金额变化时重画，奥义区重画跟着钱变化的按钮和数字。
+	LayoutBlocks_();
+	for (ModuleShopBlock* block : Blocks_())
 	{
-		EnsureTradePanelVisual_(*gfx_, *rg_);
-		EnsureRefineVisuals_(*gfx_, *rg_);
-		EnsureUltraArea_(*gfx_, *rg_);
+		block->Tick(dt);
 	}
-	RelayoutSlots_();
-	PlaceRefineResultVisual_();
-	SyncTradePanelTransform_();
-	SyncRefineTransform_();
-	SyncUltraArea_();
 }
 
 void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	gfx_ = &gfx;
 	rg_ = &rg;
-	EnsureTradePanelVisual_(gfx, rg);
-	EnsureSlotCardVisuals_(gfx, rg);
-	EnsureLockButtonVisuals_(gfx, rg);
-	EnsureRefineVisuals_(gfx, rg);
-	EnsureUltraArea_(gfx, rg);
-	FillStock();
-	for (Slot& slot : slots_)
+	LayoutBlocks_();
+	for (ModuleShopBlock* block : Blocks_())
 	{
-		if (slot.node != nullptr)
-		{
-			slot.node->InitVisual(gfx, rg, origin_);
-		}
+		block->Ensure(gfx, rg);
 	}
-	RelayoutSlots_();
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncRefineTransform_();
-	SyncUltraArea_();
+	// 买卖区这时已经记下画面设备，补货时自己给商品建图。
+	FillStock();
+	SyncBlocks_();
 }
 
 void ModuleShop::SyncZoneTransforms_()
 {
-	SyncTradePanelTransform_();
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncRefineTransform_();
-	SyncUltraArea_();
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->SyncVisual();
-		}
-	}
-	auto syncOwned = [this](IModuleNode* node)
-	{
-		if (node == nullptr)
-		{
-			return;
-		}
-		node->SetZoneOrigin(origin_);
-		node->SyncVisual();
-	};
-	syncOwned(refineResult_.get());
-	syncOwned(refineFeedOwned_[0].get());
-	syncOwned(refineFeedOwned_[1].get());
-	syncOwned(ultra_.GetUltra());
-	const int innerCount = ultra_.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		// 滚出视野的仍由奥义持有，这里不跟着同步。
-		if (!ultra_.IsInnerSlotVisible(slot))
-		{
-			continue;
-		}
-		syncOwned(ultra_.GetInnerSlot(slot));
-	}
+	SyncBlocks_();
+	trade_.SyncNodes();
+	// 炼成结果和店有的素材、主体按 hostOrigin_ 对齐。
+	refine_.SyncNodes();
+	// 奥义本体和看得见的内部 Node 由奥义区按 hostOrigin_ 对齐。
+	ultra_.SyncNodes();
 	SyncHud();
 }
 
 void ModuleShop::SubmitZoneBackground_()
 {
-	if (tradePanel_ != nullptr)
+	// 底板顺序是买卖、炼成、奥义。
+	for (ModuleShopBlock* block : Blocks_())
 	{
-		tradePanel_->Submit(Chan::ui);
-	}
-	for (ModuleShopPanel& card : slotPanels_)
-	{
-		card.Submit();
-	}
-	if (refinePanel_ != nullptr)
-	{
-		refinePanel_->Submit(Chan::ui);
-	}
-	ultra_.Submit();
-}
-
-// ---- 买卖区 · 逻辑 ----
-float ModuleShop::TradeHalfY_() const noexcept
-{
-	return SplitUnitHeight_() * static_cast<float>(kTradeRatio) * 0.5f;
-}
-
-float ModuleShop::TradeCenterLocalY_() const noexcept
-{
-	return -(shellHalf_.y - kShellInnerPad) + TradeHalfY_();
-}
-
-float ModuleShop::CardCenterLocalY_() const noexcept
-{
-	return TradeCenterLocalY_() - TradeHalfY_() + kHudBarHeight + kSlotMargin + kCardHeight * 0.5f;
-}
-
-float ModuleShop::SlotPitchX_() const noexcept
-{
-	const float innerW = ContentHalfX_() * 2.0f;
-	return (innerW - 2.0f * kSlotMargin) / static_cast<float>(kSlotCount);
-}
-
-float ModuleShop::CardCenterLocalX_(std::size_t index) const noexcept
-{
-	const float pitch = SlotPitchX_();
-	return (static_cast<float>(index) - (static_cast<float>(kSlotCount) - 1.0f) * 0.5f) * pitch;
-}
-
-float ModuleShop::SlotCardIconRadius_() const
-{
-	return ModuleShopPanel::IconWorldRadius();
-}
-
-DirectX::XMFLOAT2 ModuleShop::SlotLocalPos_(std::size_t index) const
-{
-	// Icon 在货卡顶区水平居中，其下才是标题/Kind。
-	const float r = SlotCardIconRadius_();
-	const float cardTop = CardCenterLocalY_() - kCardHeight * 0.5f;
-	const float x = CardCenterLocalX_(index);
-	const float y = cardTop + ModuleShopPanel::kIconPad + r;
-	return DirectX::XMFLOAT2{ x, y };
-}
-
-std::size_t ModuleShop::FindSlotIndex_(const IModuleNode* node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return kSlotCount;
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		if (slots_[i].node.get() == node)
-		{
-			return i;
-		}
-	}
-	return kSlotCount;
-}
-
-ModuleShop::BoundsWorld ModuleShop::GetTradeBoundsWorld() const noexcept
-{
-	const BoundsWorld inner = ShellInnerRect_();
-	const float tradeH = SplitUnitHeight_() * static_cast<float>(kTradeRatio);
-	BoundsWorld b{};
-	b.half = DirectX::XMFLOAT2{
-		ContentHalfX_(),
-		tradeH * 0.5f
-	};
-	const float innerTop = inner.center.y - inner.half.y;
-	b.center = DirectX::XMFLOAT2{
-		inner.center.x,
-		innerTop + b.half.y
-	};
-	return b;
-}
-
-ModuleShop::BoundsWorld ModuleShop::GetBoundsWorld() const noexcept
-{
-	return GetTradeBoundsWorld();
-}
-
-bool ModuleShop::ContainsCircle(DirectX::XMFLOAT2 worldCenter, float radius) const noexcept
-{
-	(void)radius;
-	const BoundsWorld trade = GetTradeBoundsWorld();
-	const BoundsWorld refine = GetRefineBoundsWorld_();
-	const BoundsWorld ultra = FunctionBandBounds_(1);
-	return PointInAabb_(trade.center, trade.half, worldCenter)
-		|| PointInAabb_(refine.center, refine.half, worldCenter)
-		|| PointInAabb_(ultra.center, ultra.half, worldCenter);
-}
-
-void ModuleShop::FillStock()
-{
-	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
-	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
-	{
-		pool[i] = kShopOffered_.data[i];
-	}
-	ShuffleLabels_(pool, kShopOffered_.count);
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		RestockSlot_(i, pool[i]);
-	}
-	RelayoutSlots_();
-}
-
-void ModuleShop::BeginVisit()
-{
-	// 同一局再次打开商店只刷新货架，奥义区保留。
-	ResetVisit();
-	RerollStock_();
-}
-
-void ModuleShop::ClearUltra()
-{
-	for (IModuleNode*& parked : refineParked_)
-	{
-		if (parked != nullptr && ultra_.Owns(parked))
-		{
-			parked = nullptr;
-		}
-	}
-	ultra_.ClearForRunEnd();
-}
-
-void ModuleShop::RestockSlot_(std::size_t index, ModuleNodeLabel label)
-{
-	if (index >= kSlotCount)
-	{
-		return;
-	}
-
-	Slot& slot = slots_[index];
-	slot.node = ModuleNodeFactory::MakeModuleNode(label, SlotLocalPos_(index));
-	slot.sold = false;
-	slot.locked = false;
-	slot.price = (slot.node != nullptr)
-		? slot.node->GetBuyPrice()
-		: 0;
-
-	if (gfx_ != nullptr && rg_ != nullptr && slot.node != nullptr)
-	{
-		slot.node->InitVisual(*gfx_, *rg_, origin_);
+		block->Submit();
 	}
 }
 
-bool ModuleShop::HasRerollableSlot_() const noexcept
+std::array<ModuleShopBlock*, 3> ModuleShop::Blocks_() noexcept
 {
-	for (const Slot& slot : slots_)
+	// 顺序是买卖、炼成、奥义。
+	return { &trade_, &refine_, &ultra_ };
+}
+
+void ModuleShop::LayoutBlocks_() noexcept
+{
+	// 买卖区用外壳切出的买卖框。炼成区用上面那条功能带，奥义区用下面那条。
+	trade_.SetBounds(GetTradeBoundsWorld());
+	trade_.SetHostOrigin(origin_);
+	refine_.SetBounds(FunctionBandBounds_(0));
+	refine_.SetHostOrigin(origin_);
+	ultra_.SetBounds(FunctionBandBounds_(1));
+	ultra_.SetHostOrigin(origin_);
+}
+
+void ModuleShop::SyncBlocks_() noexcept
+{
+	LayoutBlocks_();
+	for (ModuleShopBlock* block : Blocks_())
 	{
-		const bool keepLocked = slot.locked && !slot.sold && slot.node != nullptr;
-		if (!keepLocked)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-void ModuleShop::DenyRefresh_()
-{
-	refreshDeniedSec_ = 0.35f;
-	PaintHudIcons_();
-}
-
-int ModuleShop::GetRefreshCost() const noexcept
-{
-	return kRefreshBaseCost_ + refreshCount_ * kRefreshCostStep_;
-}
-
-void ModuleShop::ResetVisit()
-{
-	refreshCount_ = 0;
-	refreshDeniedSec_ = 0.0f;
-	paintedRefreshCost_ = -1;
-	if (gfx_ != nullptr)
-	{
-		SyncHud();
+		block->Sync();
 	}
 }
 
-void ModuleShop::TickHud(float dt)
+// ---- 跨块规则 ----
+
+std::size_t ModuleShop::GetNodeCount() const noexcept
 {
-	if (refreshDeniedSec_ > 0.0f)
-	{
-		refreshDeniedSec_ -= dt;
-		if (refreshDeniedSec_ < 0.0f)
-		{
-			refreshDeniedSec_ = 0.0f;
-		}
-	}
-	SyncHud();
-	const bool up = CanUpgradeRefine_();
-	const bool fuse = CanFuseRefine_();
-	const bool evo = CanEvolveRefine_();
-	const bool back = CanReturnRefine_();
-	const int cur = GameStatsCodex::GetCurrency();
-	if (up != paintedUpgradeLit_ || fuse != paintedFuseLit_ || evo != paintedEvolveLit_ || back != paintedReturnLit_ || cur != paintedRefineCurrency_)
-	{
-		PaintRefinePanel_();
-	}
-	// 锻造/打孔的亮灭和黄色数字跟着当前的钱走。
-	SyncUltraArea_();
+	// 货架长度跟 kSlotCount 走。炼成交出自己的固定段。奥义有几颗由奥义区自己算。
+	return kSlotCount + refine_.GetZoneNodeCount() + ultra_.GetZoneNodeCount();
 }
 
-bool ModuleShop::TryRefresh()
+IModuleNode* ModuleShop::GetNode(std::size_t index) const noexcept
 {
-	if (!HasRerollableSlot_())
+	if (index < kSlotCount)
 	{
-		DenyRefresh_();
-		return false;
+		return trade_.GetZoneNode(index);
 	}
-
-	const int cost = GetRefreshCost();
-	if (!GameStatsCodex::TrySpendCurrency(cost))
+	const std::size_t refineIndex = index - kSlotCount;
+	if (refineIndex < refine_.GetZoneNodeCount())
 	{
-		DenyRefresh_();
-		return false;
+		// 炼成区下标从 0 另计：0 是结果，1 和 2 是店有的素材、主体。
+		return refine_.GetZoneNode(refineIndex);
 	}
-	++refreshCount_;
-	RerollStock_();
-	paintedRefreshCost_ = -1;
-	SyncHud();
-	return true;
-}
-
-void ModuleShop::RerollStock_()
-{
-	bool taken[ModuleNodeLabelCount()]{};
-	for (const Slot& slot : slots_)
-	{
-		if (slot.locked && !slot.sold && slot.node != nullptr)
-		{
-			taken[ToIndex(slot.node->GetModuleNodeLabel())] = true;
-		}
-	}
-
-	ModuleNodeLabel pool[ModuleNodeLabelCount()]{};
-	std::size_t poolN = 0;
-	for (std::size_t i = 0; i < kShopOffered_.count; ++i)
-	{
-		const ModuleNodeLabel label = kShopOffered_.data[i];
-		if (!taken[ToIndex(label)])
-		{
-			pool[poolN++] = label;
-		}
-	}
-	ShuffleLabels_(pool, poolN);
-
-	std::size_t p = 0;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		if (slot.locked && !slot.sold && slot.node != nullptr)
-		{
-			continue;
-		}
-		if (p >= poolN)
-		{
-			break;
-		}
-		RestockSlot_(i, pool[p++]);
-	}
-	RelayoutSlots_();
-}
-
-Color ModuleShop::RefreshIconTint_() const noexcept
-{
-	if (refreshDeniedSec_ > 0.0f)
-	{
-		return Color{ 230u, 80u, 80u, 255u };
-	}
-	if (GameStatsCodex::GetCurrency() < GetRefreshCost())
-	{
-		return Color{ 160u, 160u, 160u, 255u };
-	}
-	return Color{ 120u, 220u, 180u, 255u };
-}
-
-DirectX::XMFLOAT2 ModuleShop::CurrencyIconCenter_() const noexcept
-{
-	const BoundsWorld b = GetTradeBoundsWorld();
-	const float barY = b.center.y - b.half.y + kHudBarHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		b.center.x - b.half.x + kSlotMargin + kHudIconWorld_ * 0.5f,
-		barY
-	};
-}
-
-DirectX::XMFLOAT2 ModuleShop::RefreshButtonCenter_() const noexcept
-{
-	const BoundsWorld b = GetTradeBoundsWorld();
-	const float barY = b.center.y - b.half.y + kHudBarHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		b.center.x + b.half.x - kSlotMargin - kHudIconWorld_ * 0.5f,
-		barY
-	};
-}
-
-bool ModuleShop::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const DirectX::XMFLOAT2 c = RefreshButtonCenter_();
-	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
-	return PointInAabb_(c, DirectX::XMFLOAT2{ half, half }, worldPos);
-}
-
-std::size_t ModuleShop::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const float half = kLockButtonWorld_ * 0.5f + kHudHitPad_;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
-		if (PointInAabb_(c, DirectX::XMFLOAT2{ half, half }, worldPos))
-		{
-			return i;
-		}
-	}
-	return kSlotCount;
-}
-
-bool ModuleShop::HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	return HitLockSlotIndex_(worldPos) < kSlotCount;
-}
-
-bool ModuleShop::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
-{
-	const std::size_t i = HitLockSlotIndex_(worldPos);
-	if (i >= kSlotCount)
-	{
-		return false;
-	}
-
-	slots_[i].locked = !slots_[i].locked;
-	slotPanels_[i].Rebuild(slots_[i].node.get(), slots_[i].price, slots_[i].sold, slots_[i].locked);
-	PaintLockButton_(i);
-	return true;
-}
-
-void ModuleShop::MarkSold(std::size_t index)
-{
-	if (index >= kSlotCount)
-	{
-		return;
-	}
-	slots_[index].sold = true;
-	slots_[index].locked = false;
-	slots_[index].node.reset();
-	RefreshSlotCards_();
-}
-
-void ModuleShop::RelayoutSlots_()
-{
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		IModuleNode* node = slots_[i].node.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		node->SetLocalPos(SlotLocalPos_(i));
-		node->SetZoneOrigin(origin_);
-		node->SetVisualRadiusOverride(SlotCardIconRadius_());
-		node->SyncVisual();
-	}
-	RefreshSlotCards_();
-}
-
-void ModuleShop::RestoreShelfNode_(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	if (node == nullptr || index >= kSlotCount)
-	{
-		return;
-	}
-	node->EndLayoutGhost();
-	Slot& slot = slots_[index];
-	slot.node = std::move(node);
-	slot.sold = false;
-	slot.price = slot.node->GetBuyPrice();
-	RelayoutSlots_();
+	// 奥义区下标从 0 另计：0 是本体，后面是看得见且不为空的内部 Node。
+	return ultra_.GetZoneNode(index - (kSlotCount + refine_.GetZoneNodeCount()));
 }
 
 bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
@@ -672,7 +238,7 @@ bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFL
 	{
 		return false;
 	}
-	const ModuleShopUltra::DropClaim claim = ultra_.TryAcceptDrop(node, localPos, origin_);
+	const ModuleShopUltra::DropClaim claim = ultra_.TryAcceptDrop(node, localPos);
 	if (claim != ModuleShopUltra::DropClaim::Ignore)
 	{
 		return claim == ModuleShopUltra::DropClaim::Accept;
@@ -688,6 +254,70 @@ bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFL
 	return true;
 }
 
+std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
+{
+	if (node == nullptr)
+	{
+		return nullptr;
+	}
+	if (std::unique_ptr<IModuleNode> taken = ultra_.TakeNode(node))
+	{
+		return taken;
+	}
+	if (std::unique_ptr<IModuleNode> taken = refine_.TakeNode(node))
+	{
+		return taken;
+	}
+	return trade_.TakeNode(node);
+}
+
+void ModuleShop::SubmitNodes()
+{
+	trade_.SubmitNodes();
+	refine_.SubmitNodes();
+	// 奥义本体和看得见的内部 Node 由奥义区提交。
+	ultra_.SubmitNodes();
+}
+
+IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
+{
+	IModuleNode* best = nullptr;
+	float bestDistSq = 1.0e9f;
+
+	float refineDistSq = 1.0e9f;
+	if (IModuleNode* refineNode = refine_.PickAt(worldPos, refineDistSq))
+	{
+		bestDistSq = refineDistSq;
+		best = refineNode;
+	}
+
+	float shelfDistSq = 1.0e9f;
+	if (IModuleNode* shelfNode = trade_.PickAt(worldPos, shelfDistSq))
+	{
+		if (shelfDistSq < bestDistSq)
+		{
+			bestDistSq = shelfDistSq;
+			best = shelfNode;
+		}
+	}
+
+	float ultraDistSq = 1.0e9f;
+	if (IModuleNode* ultraNode = ultra_.PickAt(worldPos, ultraDistSq))
+	{
+		if (ultraDistSq < bestDistSq)
+		{
+			bestDistSq = ultraDistSq;
+			best = ultraNode;
+		}
+	}
+
+	if (best != nullptr)
+	{
+		outDistSq = bestDistSq;
+	}
+	return best;
+}
+
 DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, ZoneId from) const noexcept
 {
 	DropResult result{};
@@ -698,8 +328,8 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	}
 
 	const bool shopOwned = IsShopRefineOwned(&node);
-	const std::size_t refineHit = HitRefineSlotIndex_(worldPos);
-	if (refineHit < kRefineSlotCount_)
+	const std::size_t refineHit = refine_.HitParkSlot(worldPos);
+	if (refineHit < ModuleShopRefine::kParkCount)
 	{
 		if (!CanParkRefine(node, refineHit))
 		{
@@ -707,12 +337,12 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 			return result;
 		}
 		result.verdict = DropVerdict::Accept;
-		const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(refineHit);
+		const DirectX::XMFLOAT2 wc = refine_.SlotWorldCenter(refineHit);
 		result.localPos = DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y };
 		return result;
 	}
 
-	const BoundsWorld refine = GetRefineBoundsWorld_();
+	const BoundsWorld refine = FunctionBandBounds_(0);
 	if (PointInAabb_(refine.center, refine.half, worldPos))
 	{
 		result.verdict = DropVerdict::Forbidden;
@@ -723,8 +353,8 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	if (PointInAabb_(ultra.center, ultra.half, worldPos))
 	{
 		// 奥义区的落点由奥义区自己定。这里拦住，避免掉进货架或卖掉。
-		DropResult ultraDrop = ultra_.EvalDrop(node, worldPos, origin_);
-		if (FindSlotIndex_(&node) < kSlotCount)
+		DropResult ultraDrop = ultra_.EvalDrop(node, worldPos);
+		if (trade_.FindSlotIndex(&node) < kSlotCount)
 		{
 			// 货架只买进已有奥义的空内部栏。钱不够用红圈。
 			const bool canBuy = IsDropAccepted(ultraDrop.verdict)
@@ -774,10 +404,10 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	if (from == ZoneId::Shop)
 	{
 		result.verdict = DropVerdict::Accept;
-		const std::size_t i = FindSlotIndex_(&node);
+		const std::size_t i = trade_.FindSlotIndex(&node);
 		if (i < kSlotCount)
 		{
-			result.localPos = SlotLocalPos_(i);
+			result.localPos = trade_.SlotLocalPos(i);
 		}
 		return result;
 	}
@@ -798,853 +428,47 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	return result;
 }
 
-std::unique_ptr<IModuleNode> ModuleShop::TakeNode(IModuleNode* node)
-{
-	if (node == nullptr)
-	{
-		return nullptr;
-	}
-	if (std::unique_ptr<IModuleNode> taken = ultra_.TakeNode(node))
-	{
-		return taken;
-	}
-
-	auto takeOwned = [this](std::unique_ptr<IModuleNode>& held) -> std::unique_ptr<IModuleNode>
-	{
-		UnbindRefine(held.get());
-		std::unique_ptr<IModuleNode> taken = std::move(held);
-		if (taken != nullptr)
-		{
-			taken->ClearIconRadiusOverride();
-			taken->ClearVisualRadiusOverride();
-		}
-		PaintRefinePanel_();
-		return taken;
-	};
-	if (refineResult_.get() == node)
-	{
-		return takeOwned(refineResult_);
-	}
-	if (refineFeedOwned_[0].get() == node)
-	{
-		return takeOwned(refineFeedOwned_[0]);
-	}
-	if (refineFeedOwned_[1].get() == node)
-	{
-		return takeOwned(refineFeedOwned_[1]);
-	}
-
-	const std::size_t i = FindSlotIndex_(node);
-	if (i >= kSlotCount)
-	{
-		return nullptr;
-	}
-	std::unique_ptr<IModuleNode> taken = std::move(slots_[i].node);
-	if (taken != nullptr)
-	{
-		taken->ClearVisualRadiusOverride();
-	}
-	RefreshSlotCards_();
-	return taken;
-}
-
-void ModuleShop::RefreshCopy()
-{
-	RefreshSlotCards_();
-	PaintRefinePanel_();
-}
-
-void ModuleShop::SubmitNodes()
-{
-	for (Slot& slot : slots_)
-	{
-		if (slot.node != nullptr)
-		{
-			slot.node->SubmitVisual();
-		}
-	}
-	if (refineResult_ != nullptr)
-	{
-		refineResult_->SubmitVisual();
-	}
-	for (std::unique_ptr<IModuleNode>& held : refineFeedOwned_)
-	{
-		if (held != nullptr)
-		{
-			held->SubmitVisual();
-		}
-	}
-	if (IModuleNode* ultra = ultra_.GetUltra())
-	{
-		ultra->SubmitVisual();
-	}
-	const int innerCount = ultra_.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		if (!ultra_.IsInnerSlotVisible(slot))
-		{
-			continue;
-		}
-		if (IModuleNode* node = ultra_.GetInnerSlot(slot))
-		{
-			node->SubmitVisual();
-		}
-	}
-}
-
-IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
-{
-	IModuleNode* best = nullptr;
-	float bestDistSq = 1.0e9f;
-
-	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
-	{
-		IModuleNode* node = refineParked_[i];
-		if (node == nullptr || HitRefineSlotIndex_(worldPos) != i)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(i);
-		const float dx = worldPos.x - wc.x;
-		const float dy = worldPos.y - wc.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq < bestDistSq)
-		{
-			bestDistSq = distSq;
-			best = node;
-		}
-	}
-
-	for (Slot& slot : slots_)
-	{
-		IModuleNode* node = slot.node.get();
-		if (node == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 local = node->GetLocalPos();
-		const DirectX::XMFLOAT2 world{
-			origin_.x + local.x,
-			origin_.y + local.y
-		};
-		const Collider2D::CircleCollider hit{ world, node->GetVisualRadius() };
-		const Collider2D::PointCollider pt{ worldPos };
-		if (!Collider2D::CollisionSystem::IsOverlap(hit, pt))
-		{
-			continue;
-		}
-		const float dx = worldPos.x - world.x;
-		const float dy = worldPos.y - world.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq < bestDistSq)
-		{
-			bestDistSq = distSq;
-			best = node;
-		}
-	}
-
-	float ultraDistSq = 1.0e9f;
-	if (IModuleNode* ultraNode = ultra_.PickAt(worldPos, ultraDistSq))
-	{
-		if (ultraDistSq < bestDistSq)
-		{
-			bestDistSq = ultraDistSq;
-			best = ultraNode;
-		}
-	}
-
-	if (best != nullptr)
-	{
-		outDistSq = bestDistSq;
-	}
-	return best;
-}
-
-// ---- 买卖区 · 绘制 ----
-void ModuleShop::EnsureHudVisuals_()
-{
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return;
-	}
-
-	auto makeIcon = [&](std::unique_ptr<Canvas2D>& canvas)
-	{
-		if (canvas != nullptr)
-		{
-			return;
-		}
-		canvas = std::make_unique<Canvas2D>(*gfx_, IModuleNode::kVisualSize, IModuleNode::kVisualSize);
-		canvas->Clear(Colors::None);
-		canvas->LinkTechniques(*rg_);
-		canvas->SetScale(DirectX::XMFLOAT3{ kHudIconWorld_, kHudIconWorld_, 1.0f });
-	};
-	auto makeText = [&](std::unique_ptr<Canvas2D>& canvas)
-	{
-		if (canvas != nullptr)
-		{
-			return;
-		}
-		canvas = std::make_unique<Canvas2D>(*gfx_, 32u, 16u);
-		canvas->Clear(Colors::None);
-		canvas->LinkTechniques(*rg_);
-	};
-
-	makeIcon(currencyIcon_);
-	makeIcon(refreshIcon_);
-	makeText(currencyText_);
-	makeText(refreshCostText_);
-}
-
-void ModuleShop::PaintHudIcons_()
-{
-	EnsureHudVisuals_();
-	if (currencyIcon_ == nullptr || refreshIcon_ == nullptr)
-	{
-		return;
-	}
-
-	auto blit = [](Canvas2D& canvas, const IconAtlas::IconBits& bits, Color color)
-	{
-		canvas.Clear(Colors::None);
-		IconAtlas::BlitIcon(canvas, bits, color);
-		canvas.NotifyPixelsChanged();
-	};
-
-	if (!currencyIconReady_)
-	{
-		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), Color{ 255u, 210u, 80u, 255u });
-		currencyIconReady_ = true;
-	}
-
-	const Color tint = RefreshIconTint_();
-	if (paintedRefreshTint_ != tint)
-	{
-		blit(*refreshIcon_, UiIconAtlas::Get(UiIconId::Refresh), tint);
-		paintedRefreshTint_ = tint;
-	}
-}
-
-void ModuleShop::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
-{
-	if (painted == value)
-	{
-		return;
-	}
-
-	auto ctx = TextCodex::Get().BeginDraw();
-	Text::RenderRequest& rq = ctx.Request();
-	FillUiLabelRequest_(rq, std::to_string(value), kPriceFontSize, kMoneyYellow);
-	rq.canvasMode = Text::CanvasMode::Auto;
-	rq.clearMode = Text::ClearMode::Clear;
-	rq.style.wordWrapEnabled = false;
-	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-	rq.maxWidthPx = 80.0f;
-	rq.paddingPx = 2;
-	rq.backgroundColor = Colors::None;
-	ctx.Render(canvas);
-
-	const unsigned w = (std::max)(1u, canvas.GetCanvasWidth());
-	const unsigned h = (std::max)(1u, canvas.GetCanvasHeight());
-	canvas.SetScale(DirectX::XMFLOAT3{
-		static_cast<float>(w),
-		static_cast<float>(h),
-		1.0f
-	});
-	painted = value;
-}
-
-void ModuleShop::SyncHudTransforms_() noexcept
-{
-	const DirectX::XMFLOAT2 coin = CurrencyIconCenter_();
-	const DirectX::XMFLOAT2 refresh = RefreshButtonCenter_();
-
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->SetPosition(DirectX::XMFLOAT3{ coin.x, coin.y, 0.0f });
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->SetPosition(DirectX::XMFLOAT3{ refresh.x, refresh.y, 0.0f });
-	}
-	if (currencyText_ != nullptr)
-	{
-		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
-		currencyText_->SetPosition(DirectX::XMFLOAT3{
-			coin.x + kHudIconWorld_ * 0.5f + 4.0f + halfW,
-			coin.y,
-			0.0f
-		});
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		const float halfW = static_cast<float>(refreshCostText_->GetCanvasWidth()) * 0.5f;
-		refreshCostText_->SetPosition(DirectX::XMFLOAT3{
-			refresh.x - kHudIconWorld_ * 0.5f - 4.0f - halfW,
-			refresh.y,
-			0.0f
-		});
-	}
-}
-
-void ModuleShop::SyncHud()
-{
-	EnsureHudVisuals_();
-	PaintHudIcons_();
-	if (currencyText_ != nullptr)
-	{
-		PaintHudNumber_(*currencyText_, GameStatsCodex::GetCurrency(), paintedCurrency_);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		PaintHudNumber_(*refreshCostText_, GetRefreshCost(), paintedRefreshCost_);
-	}
-	SyncHudTransforms_();
-}
-
-void ModuleShop::SubmitHud()
-{
-	if (currencyIcon_ != nullptr)
-	{
-		currencyIcon_->Submit(Chan::ui);
-	}
-	if (currencyText_ != nullptr)
-	{
-		currencyText_->Submit(Chan::ui);
-	}
-	if (refreshCostText_ != nullptr)
-	{
-		refreshCostText_->Submit(Chan::ui);
-	}
-	if (refreshIcon_ != nullptr)
-	{
-		refreshIcon_->Submit(Chan::ui);
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		if (lockButtons_[i] == nullptr)
-		{
-			continue;
-		}
-		const Slot& slot = slots_[i];
-		if (slot.sold || slot.node == nullptr)
-		{
-			continue;
-		}
-		lockButtons_[i]->Submit(Chan::ui);
-	}
-}
-
-void ModuleShop::RefreshSlotCards_()
-{
-	if (gfx_ != nullptr && rg_ != nullptr)
-	{
-		EnsureSlotCardVisuals_(*gfx_, *rg_);
-		EnsureLockButtonVisuals_(*gfx_, *rg_);
-	}
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		const Slot& slot = slots_[i];
-		slotPanels_[i].Rebuild(slot.node.get(), slot.price, slot.sold, slot.locked);
-		PaintLockButton_(i);
-	}
-	SyncSlotCardTransforms_();
-	SyncLockButtonTransforms_();
-	SyncHud();
-}
-
-void ModuleShop::EnsureSlotCardVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	for (ModuleShopPanel& panel : slotPanels_)
-	{
-		panel.Ensure(gfx, rg);
-	}
-}
-
-void ModuleShop::SyncSlotCardTransforms_() noexcept
-{
-	const float cardCenterLocalY = CardCenterLocalY_();
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		slotPanels_[i].SetWorldCenter(DirectX::XMFLOAT3{
-			origin_.x + CardCenterLocalX_(i),
-			origin_.y + cardCenterLocalY,
-			0.0f
-		});
-	}
-}
-
-DirectX::XMFLOAT2 ModuleShop::LockButtonCenter_(std::size_t index) const noexcept
-{
-	const float cardBottom = origin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
-	return DirectX::XMFLOAT2{
-		std::round(origin_.x + CardCenterLocalX_(index)),
-		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
-	};
-}
-
-void ModuleShop::EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const unsigned size = kLockButtonPixels_;
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		EnsureCanvasSize_(lockButtons_[i], gfx, rg, size, size);
-		if (lockButtons_[i] != nullptr)
-		{
-			lockButtons_[i]->SetScale(DirectX::XMFLOAT3{
-				kLockButtonWorld_,
-				kLockButtonWorld_,
-				1.0f
-			});
-		}
-	}
-}
-
-void ModuleShop::PaintLockButton_(std::size_t index)
-{
-	if (index >= kSlotCount || lockButtons_[index] == nullptr)
-	{
-		return;
-	}
-
-	Canvas2D& canvas = *lockButtons_[index];
-	const Slot& slot = slots_[index];
-	if (slot.sold || slot.node == nullptr)
-	{
-		canvas.Clear(Colors::None);
-		canvas.NotifyPixelsChanged();
-		return;
-	}
-
-	constexpr Color kBtnBg{ 42u, 56u, 78u, 255u };
-	constexpr Color kBtnBgLocked{ 22u, 30u, 42u, 255u };
-	constexpr Color kBtnFrame{ 170u, 190u, 210u, 255u };
-	constexpr Color kBtnFrameLocked{ 88u, 104u, 124u, 255u };
-	constexpr Color kIcon{ 200u, 214u, 230u, 255u };
-
-	canvas.Clear(slot.locked ? kBtnBgLocked : kBtnBg);
-	const int cw = static_cast<int>(canvas.GetCanvasWidth());
-	const int ch = static_cast<int>(canvas.GetCanvasHeight());
-	BlitLockIconCentered_(
-		canvas,
-		UiIconAtlas::Get(slot.locked ? UiIconId::LockClosed : UiIconId::LockOpen),
-		kIcon,
-		kLockIconScale_);
-	const Color frame = slot.locked ? kBtnFrameLocked : kBtnFrame;
-	CanvasPixelDraw::DrawRectBorder(canvas, 0u, 0u, static_cast<unsigned>(cw) - 1u, static_cast<unsigned>(ch) - 1u, kLockBorderTexels_, frame);
-	canvas.NotifyPixelsChanged();
-}
-
-void ModuleShop::SyncLockButtonTransforms_() noexcept
-{
-	for (std::size_t i = 0; i < kSlotCount; ++i)
-	{
-		Canvas2D* canvas = lockButtons_[i].get();
-		if (canvas == nullptr)
-		{
-			continue;
-		}
-		const DirectX::XMFLOAT2 c = LockButtonCenter_(i);
-		canvas->SetPosition(DirectX::XMFLOAT3{ c.x, c.y, 0.0f });
-		canvas->SetScale(DirectX::XMFLOAT3{ kLockButtonWorld_, kLockButtonWorld_, 1.0f });
-	}
-}
-
-void ModuleShop::EnsureTradePanelVisual_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, ContentHalfX_() * 2.0f)));
-	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, TradeHalfY_() * 2.0f)));
-	if (EnsureCanvasSize_(tradePanel_, gfx, rg, w, h))
-	{
-		PaintTradePanel_();
-	}
-	SyncTradePanelTransform_();
-}
-
-void ModuleShop::PaintTradePanel_()
-{
-	if (tradePanel_ == nullptr)
-	{
-		return;
-	}
-
-	PaintBandChrome_(*tradePanel_);
-	const int w = static_cast<int>(tradePanel_->GetCanvasWidth());
-	constexpr Color kHudBar{ 28u, 38u, 56u, 200u };
-	constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-	const int barBottom = static_cast<int>(std::lround(kHudBarHeight)) - 1;
-	for (int y = 1; y < barBottom; ++y)
-	{
-		CanvasPixelDraw::DrawHLine(*tradePanel_, 1, w - 2, y, kHudBar);
-	}
-	CanvasPixelDraw::DrawHLine(*tradePanel_, 1, w - 2, barBottom, kFrame);
-	tradePanel_->NotifyPixelsChanged();
-}
-
-void ModuleShop::SyncTradePanelTransform_() noexcept
-{
-	SyncBandTransform_(tradePanel_.get(), GetTradeBoundsWorld());
-}
-
-// ---- 炼成区 · 逻辑 ----
-ModuleShop::BoundsWorld ModuleShop::GetRefineBoundsWorld_() const noexcept
-{
-	return FunctionBandBounds_(0);
-}
-
-void ModuleShop::FillRefineLayout_(RefineLayout_& layout) noexcept
-{
-	layout.pad = (std::max)(8, layout.ch / 14);
-	const int innerW = (std::max)(1, layout.cw - layout.pad * 2);
-	const int innerH = (std::max)(1, layout.ch - layout.pad * 2);
-	const int regionGapWanted = 64;
-	const int regionGapMin = 32;
-	layout.btnGap = 5;
-	constexpr int slotN = 3;
-	constexpr int buttonN = 4;
-	layout.btnW = 120;
-	layout.btnH = (std::max)(14, (innerH - layout.btnGap * (buttonN - 1)) / buttonN);
-	int side = innerH;
-	int regionGap = regionGapWanted;
-	const int gapN = slotN;
-	auto clusterW = [&]() noexcept
-	{
-		return side * slotN + regionGap * gapN + layout.btnW;
-	};
-	if (clusterW() > innerW)
-	{
-		regionGap = (std::max)(regionGapMin, (innerW - side * slotN - layout.btnW) / gapN);
-	}
-	if (clusterW() > innerW)
-	{
-		side = (std::max)(24, (innerW - regionGap * gapN - layout.btnW) / slotN);
-	}
-	if (clusterW() > innerW)
-	{
-		layout.btnW = (std::max)(72, innerW - side * slotN - regionGap * gapN);
-	}
-	layout.side = side;
-	layout.slotTop = layout.pad + (std::max)(0, innerH - side) / 2;
-	const int groupX = layout.pad + (std::max)(0, innerW - clusterW()) / 2;
-	layout.slotXs[0] = groupX;
-	layout.slotXs[1] = groupX + side + regionGap;
-	layout.slotXs[2] = groupX + (side + regionGap) * 2;
-	layout.btnX = groupX + (side + regionGap) * slotN;
-	const int btnColH = layout.btnH * buttonN + layout.btnGap * (buttonN - 1);
-	layout.btnTop = layout.pad + (std::max)(0, innerH - btnColH) / 2;
-}
-
-ModuleShop::RefineLayout_ ModuleShop::CurrentRefineLayout_() const noexcept
-{
-	RefineLayout_ layout{};
-	layout.bounds = GetRefineBoundsWorld_();
-	layout.cw = (std::max)(1, static_cast<int>(std::lround(layout.bounds.half.x * 2.0f)));
-	layout.ch = (std::max)(1, static_cast<int>(std::lround(layout.bounds.half.y * 2.0f)));
-	if (refinePanel_ != nullptr)
-	{
-		const int pw = static_cast<int>(refinePanel_->GetCanvasWidth());
-		const int ph = static_cast<int>(refinePanel_->GetCanvasHeight());
-		if (pw > 0)
-		{
-			layout.cw = pw;
-		}
-		if (ph > 0)
-		{
-			layout.ch = ph;
-		}
-	}
-	FillRefineLayout_(layout);
-	return layout;
-}
-
-bool ModuleShop::RefineWorldToPixel_(DirectX::XMFLOAT2 world, const RefineLayout_& layout, float& px, float& py) const noexcept
-{
-	const float worldW = layout.bounds.half.x * 2.0f;
-	const float worldH = layout.bounds.half.y * 2.0f;
-	if (worldW <= 1.0e-4f || worldH <= 1.0e-4f || layout.cw <= 0 || layout.ch <= 0)
-	{
-		return false;
-	}
-	px = (world.x - (layout.bounds.center.x - layout.bounds.half.x)) * (static_cast<float>(layout.cw) / worldW);
-	py = (world.y - (layout.bounds.center.y - layout.bounds.half.y)) * (static_cast<float>(layout.ch) / worldH);
-	return true;
-}
-
-DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenterFrom_(const RefineLayout_& layout, std::size_t slot) const noexcept
-{
-	if (slot >= kRefineSlotCount_ || layout.cw <= 0 || layout.ch <= 0)
-	{
-		return layout.bounds.center;
-	}
-	const float worldW = layout.bounds.half.x * 2.0f;
-	const float worldH = layout.bounds.half.y * 2.0f;
-	const float px = static_cast<float>(layout.slotXs[slot]) + static_cast<float>(layout.side) * 0.5f;
-	const float py = static_cast<float>(layout.slotTop) + static_cast<float>(layout.side) * 0.5f;
-	return DirectX::XMFLOAT2{
-		layout.bounds.center.x - layout.bounds.half.x + px * (worldW / static_cast<float>(layout.cw)),
-		layout.bounds.center.y - layout.bounds.half.y + py * (worldH / static_cast<float>(layout.ch))
-	};
-}
-
-float ModuleShop::RefineSlotIconRadiusFrom_(const RefineLayout_& layout) const noexcept
-{
-	if (layout.side <= 0 || layout.ch <= 0)
-	{
-		return 8.0f;
-	}
-	const float worldSide = static_cast<float>(layout.side) * ((layout.bounds.half.y * 2.0f) / static_cast<float>(layout.ch));
-	// 与仓库格相同：半径/格边 = 15/56（kStoredVisualRadius / kSlotPitch）。
-	constexpr float kIconToSlot = 15.0f / 56.0f;
-	return (std::max)(8.0f, worldSide * kIconToSlot);
-}
-
-std::size_t ModuleShop::HitRefineSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const RefineLayout_ layout = CurrentRefineLayout_();
-	float px = 0.0f;
-	float py = 0.0f;
-	if (!RefineWorldToPixel_(worldPos, layout, px, py) || layout.side <= 0)
-	{
-		return kRefineSlotCount_;
-	}
-	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
-	{
-		const float x0 = static_cast<float>(layout.slotXs[i]);
-		const float y0 = static_cast<float>(layout.slotTop);
-		const float x1 = x0 + static_cast<float>(layout.side);
-		const float y1 = y0 + static_cast<float>(layout.side);
-		if (px >= x0 && px < x1 && py >= y0 && py < y1)
-		{
-			return i;
-		}
-	}
-	return kRefineSlotCount_;
-}
-
-std::size_t ModuleShop::HitRefineButtonIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const RefineLayout_ layout = CurrentRefineLayout_();
-	float px = 0.0f;
-	float py = 0.0f;
-	if (!RefineWorldToPixel_(worldPos, layout, px, py) || layout.btnW <= 0 || layout.btnH <= 0)
-	{
-		return kRefineButtonCount_;
-	}
-	for (std::size_t i = 0; i < kRefineButtonCount_; ++i)
-	{
-		const float x0 = static_cast<float>(layout.btnX);
-		const float y0 = static_cast<float>(layout.btnTop + static_cast<int>(i) * (layout.btnH + layout.btnGap));
-		const float x1 = x0 + static_cast<float>(layout.btnW);
-		const float y1 = y0 + static_cast<float>(layout.btnH);
-		if (px >= x0 && px < x1 && py >= y0 && py < y1)
-		{
-			return i;
-		}
-	}
-	return kRefineButtonCount_;
-}
-
-bool ModuleShop::HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	return HitRefineButtonIndex_(worldPos) < kRefineButtonCount_;
-}
-
-std::size_t ModuleShop::HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	return HitRefineSlotIndex_(worldPos);
-}
-
-DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenter(std::size_t slot) const noexcept
-{
-	const RefineLayout_ layout = CurrentRefineLayout_();
-	return RefineSlotWorldCenterFrom_(layout, slot);
-}
-
-float ModuleShop::RefineSlotIconRadius_() const noexcept
-{
-	return RefineSlotIconRadiusFrom_(CurrentRefineLayout_());
-}
-
-void ModuleShop::ApplyRefineParkIcon(IModuleNode& node) noexcept
-{
-	node.SetIconRadiusOverride(RefineSlotIconRadius_());
-}
-
-void ModuleShop::PlaceRefinePark_(std::size_t slot, IModuleNode& node, IModuleZone* owner)
-{
-	if (slot >= kRefineSlotCount_)
-	{
-		return;
-	}
-	const RefineLayout_ layout = CurrentRefineLayout_();
-	const DirectX::XMFLOAT3 origin = (owner != nullptr) ? owner->GetOrigin() : origin_;
-	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenterFrom_(layout, slot);
-	const float r = RefineSlotIconRadiusFrom_(layout);
-	node.SetLocalPos(DirectX::XMFLOAT2{ wc.x - origin.x, wc.y - origin.y });
-	node.SetZoneOrigin(origin);
-	node.SetIconRadiusOverride(r);
-	if (slot == 2u)
-	{
-		node.EndLayoutGhost();
-		node.SetVisualRadiusOverride(r);
-	}
-	node.SyncVisual();
-}
-
-void ModuleShop::PinShopRefineHomeGhost(IModuleNode& node) noexcept
-{
-	node.SetZoneOrigin(origin_);
-	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
-	node.BeginLayoutGhost(DirectX::XMFLOAT2{ wc.x - origin_.x, wc.y - origin_.y });
-	node.SetVisualRadiusOverride(RefineSlotIconRadius_());
-}
-
 bool ModuleShop::CanParkRefine(const IModuleNode& node, std::size_t slot) const noexcept
 {
-	if (slot >= kRefineSlotCount_)
+	// 货架上的商品不能停进炼成。其余交给炼成区。
+	if (trade_.Owns(&node))
 	{
 		return false;
 	}
-	// 买卖框里的商品不能停进炼成。
-	if (FindSlotIndex_(&node) < kSlotCount)
-	{
-		return false;
-	}
-	// 奥义本体不能当素材或主体。内部栏的 Node 可以停进来，实体仍留在奥义栏。
-	if (node.GetKind() == ModuleNodeKind::Ultra)
-	{
-		return false;
-	}
-	// 满级核心类 Node 不能进炼成。
-	if (node.IsCore() && node.GetLevel() >= ModuleNodeLevel::kMax)
-	{
-		return false;
-	}
-	if (slot == 2u)
-	{
-		// 只有店持有的炼成 Node 能回结果格；场/仓不能进。
-		return IsShopRefineOwned(&node);
-	}
-	if (slot == 0u && node.IsCore())
-	{
-		return false;
-	}
-	if (slot == 1u && node.GetKind() == ModuleNodeKind::Fusion)
-	{
-		return false;
-	}
-	return true;
+	return refine_.CanPark(node, slot);
 }
 
-void ModuleShop::UnbindRefine(IModuleNode* node) noexcept
+void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node, IModuleZone* owner)
 {
-	if (node == nullptr)
-	{
-		return;
-	}
-	bool changed = false;
-	for (IModuleNode*& slot : refineParked_)
-	{
-		if (slot == node)
-		{
-			slot = nullptr;
-			changed = true;
-		}
-	}
-	if (changed)
-	{
-		node->ClearIconRadiusOverride();
-		PaintRefinePanel_();
-	}
+	refine_.Park(slot, node, owner);
+	// 被挤走的奥义内部 Node 要回到自己的格子。
+	SyncUltraAfterRefine_();
 }
 
-bool ModuleShop::IsRefineParked(const IModuleNode* node) const noexcept
+void ModuleShop::ClearRefineParks()
 {
-	if (node == nullptr)
-	{
-		return false;
-	}
-	for (const IModuleNode* slot : refineParked_)
-	{
-		if (slot == node)
-		{
-			return true;
-		}
-	}
-	return false;
+	refine_.ClearParks();
+	// 退回的奥义内部 Node 要回到自己的格子。
+	SyncUltraAfterRefine_();
 }
 
-bool ModuleShop::IsRefineResultParked(const IModuleNode* node) const noexcept
+bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse)
 {
-	return node != nullptr && node == refineResult_.get();
+	const bool clicked = refine_.TryClick(worldPos, field, warehouse);
+	// 升级、合成、进化或退回可能取走奥义内部 Node。
+	SyncUltraAfterRefine_();
+	return clicked;
 }
 
-bool ModuleShop::IsShopRefineOwned(const IModuleNode* node) const noexcept
+void ModuleShop::ClearUltra()
 {
-	if (node == nullptr)
-	{
-		return false;
-	}
-	return node == refineResult_.get()
-		|| node == refineFeedOwned_[0].get()
-		|| node == refineFeedOwned_[1].get();
-}
-
-bool ModuleShop::IsShopUltraOwned(const IModuleNode* node) const noexcept
-{
-	return ultra_.Owns(node);
-}
-
-bool ModuleShop::IsUltraBody(const IModuleNode* node) const noexcept
-{
-	return node != nullptr && ultra_.GetUltra() == node;
-}
-
-void ModuleShop::PinUltraHomeGhost(IModuleNode& node) noexcept
-{
-	ultra_.PinHomeGhost(node, origin_);
-}
-
-void ModuleShop::RestoreUltra(std::unique_ptr<IModuleNode> node)
-{
-	ultra_.Restore(std::move(node), origin_);
-}
-
-std::size_t ModuleShop::FindUltraInnerIndex(const IModuleNode* node) const noexcept
-{
-	return ultra_.FindInnerIndex(node);
-}
-
-void ModuleShop::RestoreUltraInner(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	ultra_.RestoreInner(std::move(node), index, origin_);
-}
-
-bool ModuleShop::TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
-{
-	if (node == nullptr)
-	{
-		return false;
-	}
-	return ultra_.TryAcceptDrop(node, localPos, origin_) == ModuleShopUltra::DropClaim::Accept;
-}
-
-bool ModuleShop::IsShelfStock(const IModuleNode* node) const noexcept
-{
-	return FindSlotIndex_(node) < kSlotCount;
-}
-
-bool ModuleShop::HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept
-{
-	const BoundsWorld ultra = FunctionBandBounds_(1);
-	return PointInAabb_(ultra.center, ultra.half, worldPos);
+	ForgetUltraNodesInRefine_();
+	ultra_.ClearForRunEnd();
 }
 
 bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 localPos)
 {
-	const std::size_t index = FindSlotIndex_(node);
+	const std::size_t index = trade_.FindSlotIndex(node);
 	if (node == nullptr || index >= kSlotCount)
 	{
 		return false;
@@ -1657,7 +481,7 @@ bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 
 	}
 	if (!TryAcceptUltraDrop(taken, localPos))
 	{
-		RestoreShelfNode_(std::move(taken), index);
+		RestoreShelfNode(std::move(taken), index);
 		return false;
 	}
 	if (!GameStatsCodex::TrySpendCurrency(price))
@@ -1665,7 +489,7 @@ bool ModuleShop::TryPurchaseShelfIntoUltra(IModuleNode* node, DirectX::XMFLOAT2 
 		std::unique_ptr<IModuleNode> back = TakeNode(node);
 		if (back != nullptr)
 		{
-			RestoreShelfNode_(std::move(back), index);
+			RestoreShelfNode(std::move(back), index);
 		}
 		return false;
 	}
@@ -1682,13 +506,7 @@ void ModuleShop::SellFromUltra(IModuleNode* node)
 	const int price = node->GetSellPrice();
 	if (IsUltraBody(node))
 	{
-		for (IModuleNode*& parked : refineParked_)
-		{
-			if (parked != nullptr && ultra_.Owns(parked))
-			{
-				parked = nullptr;
-			}
-		}
+		ForgetUltraNodesInRefine_();
 		ultra_.ClearForRunEnd();
 	}
 	else
@@ -1704,11 +522,6 @@ void ModuleShop::SellFromUltra(IModuleNode* node)
 	GameStatsCodex::AddCurrency(price);
 }
 
-void ModuleShop::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
-{
-	RestoreShelfNode_(std::move(node), index);
-}
-
 bool ModuleShop::SellsOnTradeDrop(const IModuleNode& node) const noexcept
 {
 	if (node.IsCore() || IsShelfStock(&node))
@@ -1718,734 +531,159 @@ bool ModuleShop::SellsOnTradeDrop(const IModuleNode& node) const noexcept
 	return true;
 }
 
-std::size_t ModuleShop::FindRefineParkIndex(const IModuleNode* node) const noexcept
+void ModuleShop::SyncUltraAfterRefine_()
 {
-	if (node == nullptr)
+	ultra_.Sync();
+}
+
+void ModuleShop::ForgetUltraNodesInRefine_() noexcept
+{
+	for (std::size_t i = 0; i < ModuleShopRefine::kParkCount; ++i)
 	{
-		return kRefineSlotCount_;
-	}
-	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
-	{
-		if (refineParked_[i] == node)
+		IModuleNode* parked = refine_.GetParked(i);
+		if (parked != nullptr && ultra_.Owns(parked))
 		{
-			return i;
+			refine_.ForgetParked(parked);
 		}
 	}
-	if (node == refineResult_.get())
-	{
-		return 2u;
-	}
-	if (node == refineFeedOwned_[0].get())
-	{
-		return 0u;
-	}
-	if (node == refineFeedOwned_[1].get())
-	{
-		return 1u;
-	}
-	return kRefineSlotCount_;
 }
 
-void ModuleShop::PlaceRefineResultVisual_()
+// ---- 转发 · 买卖 ----
+
+void ModuleShop::FillStock()
 {
-	IModuleNode* node = refineResult_.get();
-	if (node == nullptr)
-	{
-		return;
-	}
-	PlaceRefinePark_(2u, *node, this);
+	trade_.FillStock();
 }
 
-void ModuleShop::AdoptRefineResult_(std::unique_ptr<IModuleNode> node)
+void ModuleShop::BeginVisit()
 {
-	if (node == nullptr)
-	{
-		return;
-	}
-	node->EndLayoutGhost();
-	node->SetZoneVisualScale(1.0f);
-	refineResult_ = std::move(node);
-	refineParked_[2] = refineResult_.get();
-	PlaceRefineResultVisual_();
-	PaintRefinePanel_();
+	// 同一局再次打开商店只刷新货架，奥义区保留。
+	trade_.BeginVisit();
 }
 
-void ModuleShop::RestoreRefineResult(std::unique_ptr<IModuleNode> node)
+bool ModuleShop::TryRefresh()
 {
-	RestoreRefineHeld(std::move(node), 2u);
+	return trade_.TryRefresh();
 }
 
-void ModuleShop::RestoreRefineHeld(std::unique_ptr<IModuleNode> node, std::size_t slot)
+void ModuleShop::ResetVisit()
 {
-	if (node == nullptr)
-	{
-		return;
-	}
-	if (slot <= 1u)
-	{
-		node->SetZoneVisualScale(1.0f);
-		refineFeedOwned_[slot] = std::move(node);
-		IModuleNode* parked = refineFeedOwned_[slot].get();
-		refineParked_[slot] = parked;
-		PlaceRefinePark_(slot, *parked, this);
-		PinShopRefineHomeGhost(*parked);
-		parked->SyncVisual();
-		PaintRefinePanel_();
-		return;
-	}
-	AdoptRefineResult_(std::move(node));
+	trade_.ResetVisit();
+}
+
+void ModuleShop::SyncHud()
+{
+	trade_.SyncHud();
+}
+
+void ModuleShop::SubmitHud()
+{
+	trade_.SubmitOverlay();
+}
+
+bool ModuleShop::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return trade_.HitRefreshButton(worldPos);
+}
+
+bool ModuleShop::HitLockButton(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return trade_.HitLockButton(worldPos);
+}
+
+bool ModuleShop::ToggleLockAt(DirectX::XMFLOAT2 worldPos)
+{
+	return trade_.ToggleLockAt(worldPos);
+}
+
+int ModuleShop::GetRefreshCost() const noexcept
+{
+	return trade_.GetRefreshCost();
+}
+
+void ModuleShop::MarkSold(std::size_t index)
+{
+	trade_.MarkSold(index);
+}
+
+void ModuleShop::RestoreShelfNode(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	trade_.RestoreShelfNode(std::move(node), index);
+}
+
+bool ModuleShop::IsShelfStock(const IModuleNode* node) const noexcept
+{
+	return trade_.Owns(node);
+}
+
+// ---- 转发 · 炼成 ----
+
+std::size_t ModuleShop::HitRefineParkSlot(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	return refine_.HitParkSlot(worldPos);
+}
+
+DirectX::XMFLOAT2 ModuleShop::RefineSlotWorldCenter(std::size_t slot) const noexcept
+{
+	return refine_.SlotWorldCenter(slot);
+}
+
+void ModuleShop::UnbindRefine(IModuleNode* node) noexcept
+{
+	refine_.Unbind(node);
 }
 
 void ModuleShop::ClearRefineResult()
 {
-	for (std::size_t i = 0; i < 2u; ++i)
-	{
-		if (refineParked_[i] != nullptr && IsShopRefineOwned(refineParked_[i]))
-		{
-			refineParked_[i] = nullptr;
-		}
-		refineFeedOwned_[i].reset();
-	}
-	refineParked_[2] = nullptr;
-	refineResult_.reset();
-	PaintRefinePanel_();
+	refine_.ClearResult();
 }
 
-void ModuleShop::RelocateShopOwnedToFeed_(std::size_t slot, IModuleNode& node)
+void ModuleShop::RestoreRefineResult(std::unique_ptr<IModuleNode> node)
 {
-	if (slot > 1u)
-	{
-		return;
-	}
-
-	std::unique_ptr<IModuleNode> held;
-	if (refineResult_.get() == &node)
-	{
-		refineParked_[2] = nullptr;
-		held = std::move(refineResult_);
-	}
-	else if (refineFeedOwned_[0].get() == &node && slot != 0u)
-	{
-		held = std::move(refineFeedOwned_[0]);
-	}
-	else if (refineFeedOwned_[1].get() == &node && slot != 1u)
-	{
-		held = std::move(refineFeedOwned_[1]);
-	}
-	if (held != nullptr)
-	{
-		refineFeedOwned_[slot] = std::move(held);
-	}
-
-	IModuleNode* parked = refineFeedOwned_[slot].get();
-	if (parked != &node)
-	{
-		return;
-	}
-	PinShopRefineHomeGhost(*parked);
+	refine_.RestoreResult(std::move(node));
 }
 
-bool ModuleShop::ReturnShopOwnedToResult_(IModuleNode& node)
+void ModuleShop::RestoreRefineHeld(std::unique_ptr<IModuleNode> node, std::size_t slot)
 {
-	std::unique_ptr<IModuleNode> held;
-	if (refineFeedOwned_[0].get() == &node)
-	{
-		held = std::move(refineFeedOwned_[0]);
-	}
-	else if (refineFeedOwned_[1].get() == &node)
-	{
-		held = std::move(refineFeedOwned_[1]);
-	}
-	else if (refineResult_.get() == &node)
-	{
-		PlaceRefineResultVisual_();
-		PaintRefinePanel_();
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-
-	UnbindRefine(&node);
-	AdoptRefineResult_(std::move(held));
-	return true;
+	refine_.RestoreHeld(std::move(node), slot);
 }
 
-void ModuleShop::BounceRefinePark_(IModuleNode& node)
+std::size_t ModuleShop::FindRefineParkIndex(const IModuleNode* node) const noexcept
 {
-	if (ReturnShopOwnedToResult_(node))
-	{
-		return;
-	}
-	UnbindRefine(&node);
-	if (node.IsLayoutGhostActive())
-	{
-		node.SetLocalPos(node.GetCollisionLocalPos());
-	}
-	node.EndLayoutGhost();
-	node.SyncVisual();
-	// 从奥义栏借出去的 Node：回退时按当前格子重新摆好。
-	if (IsShopUltraOwned(&node))
-	{
-		SyncUltraArea_();
-	}
+	return refine_.FindParkIndex(node);
 }
 
-void ModuleShop::ParkRefine(std::size_t slot, IModuleNode& node, IModuleZone* owner)
+bool ModuleShop::IsRefineParked(const IModuleNode* node) const noexcept
 {
-	if (slot >= kRefineSlotCount_)
-	{
-		return;
-	}
-	if (slot == 2u)
-	{
-		(void)ReturnShopOwnedToResult_(node);
-		return;
-	}
-	UnbindRefine(&node);
-	if (IModuleNode* occ = refineParked_[slot])
-	{
-		if (occ != &node)
-		{
-			BounceRefinePark_(*occ);
-		}
-	}
-	RelocateShopOwnedToFeed_(slot, node);
-	refineParked_[slot] = &node;
-	PlaceRefinePark_(slot, node, owner);
-	PaintRefinePanel_();
+	return refine_.IsParked(node);
 }
 
-bool ModuleShop::HasRefinePairReady_() const noexcept
+bool ModuleShop::IsRefineResultParked(const IModuleNode* node) const noexcept
 {
-	if (refineParked_[0] == nullptr || refineParked_[1] == nullptr)
-	{
-		return false;
-	}
-	if (refineParked_[2] != nullptr || refineResult_ != nullptr)
-	{
-		return false;
-	}
-	return GameStatsCodex::GetCurrency() >= GameRulesCodex::RefineOpCost;
+	return refine_.IsResultParked(node);
 }
 
-bool ModuleShop::CanUpgradeRefine_() const noexcept
+bool ModuleShop::IsShopRefineOwned(const IModuleNode* node) const noexcept
 {
-	// 素材等级>=主体、主体<3。不看 Label。
-	if (!HasRefinePairReady_())
-	{
-		return false;
-	}
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	if (subject->GetLevel() >= ModuleNodeLevel::kMax)
-	{
-		return false;
-	}
-	return material->GetLevel() >= subject->GetLevel();
+	return refine_.Owns(node);
 }
 
-bool ModuleShop::CanFuseRefine_() const noexcept
+void ModuleShop::ApplyRefineParkIcon(IModuleNode& node) noexcept
 {
-	// 两边都是 3 级、Label 不同、都不是 Fusion。Core 不能合成。
-	if (!HasRefinePairReady_())
-	{
-		return false;
-	}
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	if (material->IsCore() || subject->IsCore())
-	{
-		return false;
-	}
-	if (material->GetKind() == ModuleNodeKind::Fusion || subject->GetKind() == ModuleNodeKind::Fusion)
-	{
-		return false;
-	}
-	if (material->GetLevel() < ModuleNodeLevel::kMax || subject->GetLevel() < ModuleNodeLevel::kMax)
-	{
-		return false;
-	}
-	return material->GetModuleNodeLabel() != subject->GetModuleNodeLabel();
+	refine_.ApplyParkIcon(node);
 }
 
-bool ModuleShop::CanEvolveRefine_() const noexcept
+void ModuleShop::PinShopRefineHomeGhost(IModuleNode& node) noexcept
 {
-	// 两边都是 3 级、对上进化表。与合成分开判断。
-	if (!HasRefinePairReady_())
-	{
-		return false;
-	}
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	if (material->GetLevel() < ModuleNodeLevel::kMax || subject->GetLevel() < ModuleNodeLevel::kMax)
-	{
-		return false;
-	}
-	ModuleNodeLabel product = ModuleNodeLabel::Count;
-	return NodeEvolveRecipes::TryFind(
-		material->GetModuleNodeLabel(),
-		subject->GetModuleNodeLabel(),
-		product);
+	refine_.PinHomeGhost(node);
 }
 
-bool ModuleShop::CanReturnRefine_() const noexcept
+bool ModuleShop::HitRefineButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	return refineParked_[0] != nullptr || refineParked_[1] != nullptr;
+	return refine_.HitButton(worldPos);
 }
 
-IModuleZone* ModuleShop::FindRefineOwner_(IModuleNode* node, IModuleZone* field, IModuleZone* warehouse) const noexcept
-{
-	IModuleZone* zones[3]{
-		const_cast<ModuleShop*>(this),
-		field,
-		warehouse
-	};
-	return FindNodeOwnerZone(node, zones, 3);
-}
-
-bool ModuleShop::TryTakeRefinePair_(IModuleZone* field, IModuleZone* warehouse, RefineTakenPair_& out)
-{
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	if (material == nullptr || subject == nullptr)
-	{
-		return false;
-	}
-
-	out.materialOwner = FindRefineOwner_(material, field, warehouse);
-	out.subjectOwner = FindRefineOwner_(subject, field, warehouse);
-	if (out.materialOwner == nullptr || out.subjectOwner == nullptr)
-	{
-		return false;
-	}
-	if (!GameStatsCodex::TrySpendCurrency(GameRulesCodex::RefineOpCost))
-	{
-		return false;
-	}
-
-	UnbindRefine(material);
-	UnbindRefine(subject);
-	out.material = out.materialOwner->TakeNode(material);
-	out.subject = out.subjectOwner->TakeNode(subject);
-	if (out.material == nullptr || out.subject == nullptr)
-	{
-		PaintRefinePanel_();
-		return false;
-	}
-
-	out.material->EndLayoutGhost();
-	out.subject->EndLayoutGhost();
-	out.material->ClearIconRadiusOverride();
-	out.subject->ClearIconRadiusOverride();
-	out.material->ClearVisualRadiusOverride();
-	out.subject->ClearVisualRadiusOverride();
-	return true;
-}
-
-bool ModuleShop::TryUpgradeRefine_(IModuleZone* field, IModuleZone* warehouse)
-{
-	if (!CanUpgradeRefine_())
-	{
-		return false;
-	}
-
-	RefineTakenPair_ taken;
-	if (!TryTakeRefinePair_(field, warehouse, taken))
-	{
-		return false;
-	}
-
-	const int newLevel = (std::max)(taken.subject->GetLevel() + 1, taken.material->GetLevel());
-	const int newPrice = taken.subject->GetBuyPrice() + taken.material->GetBuyPrice();
-	taken.material.reset();
-	taken.subject->SetLevel(newLevel);
-	taken.subject->SetBuyPrice(newPrice);
-	AdoptRefineResult_(std::move(taken.subject));
-	taken.materialOwner->SyncAllVisuals();
-	if (taken.subjectOwner != taken.materialOwner)
-	{
-		taken.subjectOwner->SyncAllVisuals();
-	}
-	return true;
-}
-
-bool ModuleShop::TryFuseRefine_(IModuleZone* field, IModuleZone* warehouse)
-{
-	if (!CanFuseRefine_())
-	{
-		return false;
-	}
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return false;
-	}
-
-	RefineTakenPair_ taken;
-	if (!TryTakeRefinePair_(field, warehouse, taken))
-	{
-		return false;
-	}
-
-	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
-	const DirectX::XMFLOAT2 local{ wc.x - origin_.x, wc.y - origin_.y };
-	std::unique_ptr<IModuleNode> fusion = ModuleNodeFactory::MakeFusion(
-		std::move(taken.subject),
-		std::move(taken.material),
-		local);
-	if (fusion == nullptr)
-	{
-		PaintRefinePanel_();
-		return false;
-	}
-
-	fusion->InitVisual(*gfx_, *rg_, origin_);
-	AdoptRefineResult_(std::move(fusion));
-	taken.materialOwner->SyncAllVisuals();
-	if (taken.subjectOwner != taken.materialOwner)
-	{
-		taken.subjectOwner->SyncAllVisuals();
-	}
-	return true;
-}
-
-bool ModuleShop::TryEvolveRefine_(IModuleZone* field, IModuleZone* warehouse)
-{
-	if (!CanEvolveRefine_())
-	{
-		return false;
-	}
-	if (gfx_ == nullptr || rg_ == nullptr)
-	{
-		return false;
-	}
-
-	IModuleNode* material = refineParked_[0];
-	IModuleNode* subject = refineParked_[1];
-	ModuleNodeLabel productLabel = ModuleNodeLabel::Count;
-	if (!NodeEvolveRecipes::TryFind(
-		material->GetModuleNodeLabel(),
-		subject->GetModuleNodeLabel(),
-		productLabel))
-	{
-		return false;
-	}
-
-	RefineTakenPair_ taken;
-	if (!TryTakeRefinePair_(field, warehouse, taken))
-	{
-		return false;
-	}
-
-	const DirectX::XMFLOAT2 wc = RefineSlotWorldCenter(2);
-	const DirectX::XMFLOAT2 local{ wc.x - origin_.x, wc.y - origin_.y };
-	std::unique_ptr<IModuleNode> product = ModuleNodeFactory::MakeModuleNode(productLabel, local);
-	if (product == nullptr)
-	{
-		PaintRefinePanel_();
-		return false;
-	}
-
-	// 1 级新实例；造价与升级/合成相同，为两颗买入价之和。
-	product->SetBuyPrice(taken.material->GetBuyPrice() + taken.subject->GetBuyPrice());
-	product->InitVisual(*gfx_, *rg_, origin_);
-	AdoptRefineResult_(std::move(product));
-	taken.materialOwner->SyncAllVisuals();
-	if (taken.subjectOwner != taken.materialOwner)
-	{
-		taken.subjectOwner->SyncAllVisuals();
-	}
-	return true;
-}
-
-bool ModuleShop::TryReturnRefine_()
-{
-	if (!CanReturnRefine_())
-	{
-		return false;
-	}
-	ClearRefineParks();
-	return true;
-}
-
-bool ModuleShop::TryClickRefine(DirectX::XMFLOAT2 worldPos, IModuleZone* field, IModuleZone* warehouse)
-{
-	const std::size_t i = HitRefineButtonIndex_(worldPos);
-	if (i == 0u)
-	{
-		return TryUpgradeRefine_(field, warehouse);
-	}
-	if (i == 1u)
-	{
-		return TryFuseRefine_(field, warehouse);
-	}
-	if (i == 2u)
-	{
-		return TryEvolveRefine_(field, warehouse);
-	}
-	if (i == 3u)
-	{
-		return TryReturnRefine_();
-	}
-	return false;
-}
-
-void ModuleShop::ClearRefineParks()
-{
-	// 素材/主体：场/仓回残影，奥义内部栏回原格，店有 Node 回结果栏。结果格留下直到 Reset 或拖出。
-	for (std::size_t i = 0; i < 2u; ++i)
-	{
-		IModuleNode* node = refineParked_[i];
-		if (node == nullptr)
-		{
-			continue;
-		}
-		BounceRefinePark_(*node);
-	}
-	PaintRefinePanel_();
-}
-
-// ---- 炼成区 · 绘制 ----
-void ModuleShop::EnsureRefineVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	const BoundsWorld b = GetRefineBoundsWorld_();
-	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.x * 2.0f)));
-	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, b.half.y * 2.0f)));
-	EnsureCanvasSize_(refinePanel_, gfx, rg, w, h);
-	PaintRefinePanel_();
-	SyncRefineTransform_();
-}
-
-void ModuleShop::PaintRefinePanel_()
-{
-	if (refinePanel_ == nullptr)
-	{
-		return;
-	}
-
-	Canvas2D& canvas = *refinePanel_;
-	PaintBandChrome_(canvas);
-
-	for (IModuleNode* node : refineParked_)
-	{
-		if (node == nullptr)
-		{
-			continue;
-		}
-		ApplyRefineParkIcon(*node);
-		if (node == refineResult_.get())
-		{
-			node->SetVisualRadiusOverride(RefineSlotIconRadius_());
-		}
-	}
-
-	const RefineLayout_ layout = CurrentRefineLayout_();
-	const int side = layout.side;
-	const int slotTop = layout.slotTop;
-	const int* slotXs = layout.slotXs;
-	const int regionGap = (side > 0) ? (slotXs[1] - slotXs[0] - side) : 64;
-	const int btnW = layout.btnW;
-	const int btnH = layout.btnH;
-	const int btnX = layout.btnX;
-	const int btnTop = layout.btnTop;
-	const int btnGap = layout.btnGap;
-
-	constexpr Color kSlotBg{ 42u, 56u, 78u, 190u };
-	constexpr Color kSlotFrame{ 170u, 190u, 210u, 150u };
-	constexpr Color kSlotText{ 220u, 228u, 236u, 255u };
-	constexpr Color kArrow{ 180u, 195u, 215u, 220u };
-	const std::string slotLabels[kRefineSlotCount_] = {
-		GetUiCopy("shop.refine.material"),
-		GetUiCopy("shop.refine.subject"),
-		GetUiCopy("shop.refine.result")
-	};
-	const UiIconId arrowIds[2] = { UiIconId::RefineFeed, UiIconId::RefineYield };
-	const float btnFont = (btnH < 22) ? 11.0f : 13.0f;
-	const int btnCorner = (std::max)(4, (std::min)(8, btnH / 2));
-	// 素材/主体/结果：直角正方形。右侧四键才圆角。
-	for (std::size_t i = 0; i < kRefineSlotCount_; ++i)
-	{
-		const int x0 = slotXs[i];
-		const int y0 = slotTop;
-		const int x1 = x0 + side - 1;
-		const int y1 = y0 + side - 1;
-		CanvasPixelDraw::FillRect(
-			canvas,
-			static_cast<unsigned>(x0),
-			static_cast<unsigned>(y0),
-			static_cast<unsigned>(x1),
-			static_cast<unsigned>(y1),
-			kSlotBg);
-		CanvasPixelDraw::DrawRectOutline(canvas, x0, y0, x1, y1, kSlotFrame);
-		if (refineParked_[i] != nullptr)
-		{
-			// 格内有 Node 时不画素材/主体/结果标题，避免压在 Icon 上。
-			continue;
-		}
-		DrawShopLabelInBox_(
-			canvas,
-			slotLabels[i],
-			kRefineSlotLabelFont_,
-			x0,
-			y0,
-			side,
-			side,
-			kSlotText);
-	}
-
-	for (int a = 0; a < 2; ++a)
-	{
-		const int gx = slotXs[a] + side;
-		BlitIconInBox_(
-			canvas,
-			UiIconAtlas::Get(arrowIds[a]),
-			kArrow,
-			gx,
-			slotTop,
-			regionGap,
-			side);
-	}
-
-	const std::string btnLabels[kRefineButtonCount_] = {
-		GetUiCopy("shop.refine.upgrade"),
-		GetUiCopy("shop.refine.fuse"),
-		GetUiCopy("shop.refine.evolve"),
-		GetUiCopy("shop.refine.return")
-	};
-	const bool btnLit[kRefineButtonCount_] = {
-		CanUpgradeRefine_(),
-		CanFuseRefine_(),
-		CanEvolveRefine_(),
-		CanReturnRefine_()
-	};
-	for (std::size_t i = 0; i < kRefineButtonCount_; ++i)
-	{
-		const int x0 = btnX;
-		const int y0 = btnTop + static_cast<int>(i) * (btnH + btnGap);
-		const int x1 = x0 + btnW - 1;
-		const int y1 = y0 + btnH - 1;
-		const Color bg = btnLit[i] ? kBtnBgLit : kBtnBg;
-		const Color frame = btnLit[i] ? kBtnFrameLit : kBtnFrame;
-		const Color text = btnLit[i] ? kBtnTextLit : kBtnText;
-		CanvasPixelDraw::FillRoundedRect(canvas, x0, y0, x1, y1, btnCorner, bg);
-		CanvasPixelDraw::DrawRoundedRectOutline(canvas, x0, y0, x1, y1, btnCorner, frame);
-		std::string label = btnLabels[i];
-		std::vector<Text::Span> spans;
-		if (i < 3u)
-		{
-			// 升级/合成/进化常驻费用；亮起时只有数字变黄。
-			const std::string cost = std::to_string(GameRulesCodex::RefineOpCost);
-			const UINT32 digitAt = static_cast<UINT32>(
-				Utf16CodeUnitCount(label) + Utf16CodeUnitCount(" "));
-			label += " " + cost;
-			if (btnLit[i])
-			{
-				Text::Span money{};
-				money.start = digitAt;
-				money.length = static_cast<UINT32>(Utf16CodeUnitCount(cost));
-				money.color = kMoneyYellow;
-				spans.push_back(money);
-			}
-		}
-		DrawShopLabelInBox_(
-			canvas,
-			label,
-			btnFont,
-			x0,
-			y0,
-			btnW,
-			btnH,
-			text,
-			spans);
-	}
-
-	paintedUpgradeLit_ = btnLit[0];
-	paintedFuseLit_ = btnLit[1];
-	paintedEvolveLit_ = btnLit[2];
-	paintedReturnLit_ = btnLit[3];
-	paintedRefineCurrency_ = GameStatsCodex::GetCurrency();
-	canvas.NotifyPixelsChanged();
-}
-
-void ModuleShop::SyncRefineTransform_() noexcept
-{
-	SyncBandTransform_(refinePanel_.get(), GetRefineBoundsWorld_());
-}
-
-// ---- 奥义区 ----
-std::size_t ModuleShop::GetNodeCount() const noexcept
-{
-	std::size_t count = kSlotCount + 3;
-	if (!ultra_.HasUltra())
-	{
-		return count;
-	}
-	++count;
-	const int innerCount = ultra_.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		if (ultra_.IsInnerSlotVisible(slot) && ultra_.GetInnerSlot(slot) != nullptr)
-		{
-			++count;
-		}
-	}
-	return count;
-}
-
-IModuleNode* ModuleShop::GetNode(std::size_t index) const noexcept
-{
-	if (index < kSlotCount)
-	{
-		return slots_[index].node.get();
-	}
-	if (index == kSlotCount)
-	{
-		return refineResult_.get();
-	}
-	if (index == kSlotCount + 1)
-	{
-		return refineFeedOwned_[0].get();
-	}
-	if (index == kSlotCount + 2)
-	{
-		return refineFeedOwned_[1].get();
-	}
-	if (!ultra_.HasUltra())
-	{
-		return nullptr;
-	}
-
-	// 区接口要求 const 方法交出可改的 Node。
-	ModuleShopUltra& area = const_cast<ModuleShopUltra&>(ultra_);
-	std::size_t cursor = kSlotCount + 3;
-	if (index == cursor)
-	{
-		return area.GetUltra();
-	}
-	++cursor;
-	const int innerCount = area.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		if (!area.IsInnerSlotVisible(slot))
-		{
-			continue;
-		}
-		IModuleNode* node = area.GetInnerSlot(slot);
-		if (node == nullptr)
-		{
-			continue;
-		}
-		if (index == cursor)
-		{
-			return node;
-		}
-		++cursor;
-	}
-	return nullptr;
-}
+// ---- 转发 · 奥义 ----
 
 ModuleShopUltra& ModuleShop::GetUltraArea() noexcept
 {
@@ -2457,6 +695,51 @@ const ModuleShopUltra& ModuleShop::GetUltraArea() const noexcept
 	return ultra_;
 }
 
+bool ModuleShop::IsShopUltraOwned(const IModuleNode* node) const noexcept
+{
+	return ultra_.Owns(node);
+}
+
+bool ModuleShop::IsUltraBody(const IModuleNode* node) const noexcept
+{
+	return node != nullptr && ultra_.GetUltra() == node;
+}
+
+void ModuleShop::PinUltraHomeGhost(IModuleNode& node) noexcept
+{
+	ultra_.PinHomeGhost(node);
+}
+
+void ModuleShop::RestoreUltra(std::unique_ptr<IModuleNode> node)
+{
+	ultra_.Restore(std::move(node));
+}
+
+std::size_t ModuleShop::FindUltraInnerIndex(const IModuleNode* node) const noexcept
+{
+	return ultra_.FindInnerIndex(node);
+}
+
+void ModuleShop::RestoreUltraInner(std::unique_ptr<IModuleNode> node, std::size_t index)
+{
+	ultra_.RestoreInner(std::move(node), index);
+}
+
+bool ModuleShop::TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
+{
+	if (node == nullptr)
+	{
+		return false;
+	}
+	return ultra_.TryAcceptDrop(node, localPos) == ModuleShopUltra::DropClaim::Accept;
+}
+
+bool ModuleShop::HitUltraArea(DirectX::XMFLOAT2 worldPos) const noexcept
+{
+	const BoundsWorld ultra = FunctionBandBounds_(1);
+	return PointInAabb_(ultra.center, ultra.half, worldPos);
+}
+
 bool ModuleShop::HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	return ultra_.HitButton(worldPos) != ModuleShopUltra::Button::None;
@@ -2464,7 +747,7 @@ bool ModuleShop::HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept
 
 bool ModuleShop::TryClickUltra(DirectX::XMFLOAT2 worldPos)
 {
-	return ultra_.TryClick(worldPos, origin_);
+	return ultra_.TryClick(worldPos);
 }
 
 bool ModuleShop::TakeUltraRenameRequest() noexcept
@@ -2482,15 +765,3 @@ const IModuleNode* ModuleShop::PickUltraInfo(DirectX::XMFLOAT2 worldPos) const n
 	return ultra_.PickInfoNode(worldPos);
 }
 
-void ModuleShop::EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg)
-{
-	ultra_.SetBounds(FunctionBandBounds_(1));
-	ultra_.Ensure(gfx, rg);
-}
-
-void ModuleShop::SyncUltraArea_()
-{
-	ultra_.SetBounds(FunctionBandBounds_(1));
-	ultra_.SetHostOrigin(origin_);
-	ultra_.Sync();
-}

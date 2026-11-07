@@ -545,7 +545,7 @@ bool ZoneLayoutEditor::RequestSellConfirm_(IModuleNode& node)
 {
 	const int price = node.GetSellPrice();
 	// 卖价不超过确认线就直接卖。
-	if (price <= GameRulesCodex::SellConfirmPrice)
+	if (price < GameRulesCodex::SellConfirmPrice)
 	{
 		return false;
 	}
