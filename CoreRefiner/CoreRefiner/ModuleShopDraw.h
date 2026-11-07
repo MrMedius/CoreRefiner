@@ -13,7 +13,9 @@
 #include <string>
 #include <vector>
 
-// 商店各块共用的颜色、笔触和排版。各块仍决定画不画、亮不亮，并读取自己的 bounds_。
+class IModuleNode;
+
+// 商店各块共用的颜色、笔触和排版。段落顺序是通用、背景、买卖、炼成、奥义。各块仍决定画不画、亮不亮，并读取自己的 bounds_。
 namespace ModuleShopDraw
 {
 	// ---- 通用：钱色、按钮色、栏位方块、圆角按钮、画布、字体、贴图、矩形判断 ----
@@ -276,16 +278,102 @@ namespace ModuleShopDraw
 
 	// ---- 背景：三块底板共用的底色和边框 ----
 
+	// 底板底色。三块共用。
+	inline constexpr Color kBandBg{ 36u, 48u, 68u, 150u };
+	// 底板细边。买卖顶栏的分隔线也用这个颜色。
+	inline constexpr Color kBandFrame{ 170u, 190u, 210u, 90u };
+
 	// 清空成商店底板色，再画一圈细边。
 	inline void PaintBandChrome_(Canvas2D& canvas)
 	{
-		constexpr Color kBg{ 36u, 48u, 68u, 150u };
-		constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-		canvas.Clear(kBg);
+		canvas.Clear(kBandBg);
 		const int w = static_cast<int>(canvas.GetCanvasWidth());
 		const int h = static_cast<int>(canvas.GetCanvasHeight());
-		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
+		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kBandFrame);
 	}
+
+	// ---- 买卖：顶栏、锁和货卡 ----
+
+	// 顶栏高度。钱图标、刷新按钮和货卡的纵向位置都用它。
+	inline constexpr float kTradeHudBarHeight = 32.0f;
+	// 顶栏图标的世界边长。点击范围按它的一半再加 kTradeHudHitPad。
+	inline constexpr float kTradeHudIconWorld = 24.0f;
+	// 刷新图标和锁按钮的点击范围，在图形外再放宽这么多。
+	inline constexpr float kTradeHudHitPad = 4.0f;
+	// 金额、刷新价格离开图标的空隙。
+	inline constexpr float kTradeHudTextGap = 4.0f;
+	// 顶栏数字的字号。
+	inline constexpr float kTradeHudFontSize = 14.0f;
+	// 顶栏横条的填充色。底边用 kBandFrame。
+	inline constexpr Color kTradeHudBar{ 28u, 38u, 56u, 200u };
+	// 钱图标的颜色。和金额数字的 kMoneyYellow 不是同一个黄。
+	inline constexpr Color kTradeCoin{ 255u, 210u, 80u, 255u };
+	// 刷新图标：刚被拒绝、钱不够、可以刷新。
+	inline constexpr Color kTradeRefreshDenied{ 230u, 80u, 80u, 255u };
+	inline constexpr Color kTradeRefreshPoor{ 160u, 160u, 160u, 255u };
+	inline constexpr Color kTradeRefreshOk{ 120u, 220u, 180u, 255u };
+
+	// 锁按钮顶边离货卡底边的空隙。
+	inline constexpr float kTradeLockGap = 4.0f;
+	// 锁按钮画布的像素边长，以及放到世界上的边长。
+	inline constexpr unsigned kTradeLockPixels = 48u;
+	inline constexpr float kTradeLockWorld = 30.0f;
+	// 锁图标按 16×16 放大的整数倍率。边框厚度，单位是像素。
+	inline constexpr unsigned kTradeLockIconScale = 2u;
+	inline constexpr unsigned kTradeLockBorder = 4u;
+	// 未锁和已锁的底色、边框。图标颜色两种状态共用。
+	inline constexpr Color kTradeLockBg{ 42u, 56u, 78u, 255u };
+	inline constexpr Color kTradeLockBgLocked{ 22u, 30u, 42u, 255u };
+	inline constexpr Color kTradeLockFrame{ 170u, 190u, 210u, 255u };
+	inline constexpr Color kTradeLockFrameLocked{ 88u, 104u, 124u, 255u };
+	inline constexpr Color kTradeLockIcon{ 200u, 214u, 230u, 255u };
+
+	// 在已经铺好的底板顶上画顶栏横条。高度用 kTradeHudBarHeight。
+	void PaintTradeHudBar(Canvas2D& canvas) noexcept;
+
+	// 画一把锁。icon 是 16×16 的开锁或关锁图。locked 为真时用已锁的底色和边框。
+	void PaintTradeLockButton(Canvas2D& canvas, const IconAtlas::IconBits& icon, bool locked) noexcept;
+
+	// 把金额或刷新价格画成顶栏数字。value 是要显示的数。字号用 kTradeHudFontSize，颜色用 kMoneyYellow。
+	void PaintTradeHudNumber(Canvas2D& canvas, int value) noexcept;
+
+	// 货卡的世界宽高。纹理边长等于它们乘 kTradeCardTexelScale。摆到世界上用这两个数。
+	inline constexpr float kTradeCardWidth = 160.0f;
+	inline constexpr float kTradeCardHeight = 240.0f;
+	// 纹理相对世界尺寸的整数倍。
+	inline constexpr int kTradeCardTexelScale = 2;
+	// 图标、标题和正文离开卡边的空隙。单位是世界像素，画到纹理上再乘倍数。
+	inline constexpr float kTradeCardIconPad = 8.0f;
+	// 货卡图标的世界半径。
+	inline constexpr float kTradeCardIconRadius = 18.0f;
+	// 标题和种类的字号，正文的字号，底栏价格的字号。都是世界字号，画到纹理上再乘倍数。
+	inline constexpr float kTradeCardHeaderFont = 14.0f;
+	inline constexpr float kTradeCardBodyFont = 13.0f;
+	inline constexpr float kTradeCardPriceFont = 14.0f;
+	// 标题和种类之间的行距。单位是世界像素。
+	inline constexpr int kTradeCardHeaderGap = 4;
+	// 已售文字的世界字号，以及它离开卡边的空隙。空隙画到纹理上再乘倍数。
+	inline constexpr float kTradeCardSoldFont = 16.0f;
+	inline constexpr int kTradeCardSoldPad = 6;
+
+	// 在售底色、锁定底色、空卡底色。
+	inline constexpr Color kTradeCardBg{ 42u, 56u, 78u, 190u };
+	inline constexpr Color kTradeCardBgLocked{ 22u, 30u, 42u, 230u };
+	inline constexpr Color kTradeCardEmptyBg{ 28u, 36u, 52u, 150u };
+	// 在售边框、锁定边框。正文和价格的分隔线跟当前边框同色。
+	inline constexpr Color kTradeCardFrame{ 170u, 190u, 210u, 150u };
+	inline constexpr Color kTradeCardFrameLocked{ 88u, 104u, 124u, 210u };
+	// 已售文字的颜色。
+	inline constexpr Color kTradeCardSold{ 160u, 160u, 160u, 220u };
+
+	// 铺货卡底色并画一圈边。empty 为真时用空卡底色。locked 为真且不是空卡时用锁定底色和锁定边。
+	void PaintTradeCardChrome(Canvas2D& canvas, bool empty, bool locked) noexcept;
+
+	// 画已售卡。先铺空卡底，再把 SOLD OUT 放在正中。
+	void PaintTradeCardSold(Canvas2D& canvas);
+
+	// 画在售货卡。node 提供标题、种类和正文。price 是底栏金额，用 kMoneyYellow。locked 为真时用锁定底色和边。
+	void PaintTradeCardStock(Canvas2D& canvas, const IModuleNode& node, int price, bool locked);
 
 	// ---- 炼成：三格和右侧四键的像素排版 ----
 

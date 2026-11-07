@@ -4,6 +4,7 @@
 #include "Colors.h"
 #include "ModuleNodeLabel.h"
 #include "ModuleShopBlock.h"
+#include "ModuleShopDraw.h"
 #include "ModuleShopPanel.h"
 
 #include <array>
@@ -23,9 +24,10 @@ public:
 	static constexpr float kSlotMargin = 5.0f;
 	static constexpr float kCardWidth = ModuleShopPanel::kWidth;
 	static constexpr float kCardHeight = ModuleShopPanel::kHeight;
-	// 顶栏高度。钱图标和刷新按钮排在这一条里。
-	static constexpr float kHudBarHeight = 32.0f;
-	static constexpr float kPriceFontSize = 14.0f;
+	// 顶栏高度。数值在 ModuleShopDraw::kTradeHudBarHeight。钱图标、刷新按钮和货卡纵向位置都用它。
+	static constexpr float kHudBarHeight = ModuleShopDraw::kTradeHudBarHeight;
+	// 顶栏数字的字号。数值在 ModuleShopDraw::kTradeHudFontSize。
+	static constexpr float kPriceFontSize = ModuleShopDraw::kTradeHudFontSize;
 	// 和仓库格相同的图标半径约定。货卡实际半径用 ModuleShopPanel::IconWorldRadius。
 	static constexpr float kStoredVisualRadius = 15.0f;
 
@@ -138,11 +140,7 @@ private:
 	void RerollStock_();
 
 	// ---- 独有 · 顶栏 ----
-	// 顶栏图标的世界边长。
-	static constexpr float kHudIconWorld_{ 24.0f };
-	// 刷新图标和锁按钮的点击范围，在图形外再放宽这么多。
-	static constexpr float kHudHitPad_{ 4.0f };
-	// 钱图标的世界中心。在顶栏左端。
+	// 钱图标的世界中心。在顶栏左端。图标边长和点击放宽见 ModuleShopDraw 的买卖段。
 	[[nodiscard]] DirectX::XMFLOAT2 CurrencyIconCenter_() const noexcept;
 	// 刷新按钮的世界中心。在顶栏右端。
 	[[nodiscard]] DirectX::XMFLOAT2 RefreshButtonCenter_() const noexcept;
@@ -158,13 +156,7 @@ private:
 	void SyncHudTransforms_() noexcept;
 
 	// ---- 独有 · 货卡和锁 ----
-	// 锁按钮顶边离货卡底边的空隙。
-	static constexpr float kLockButtonGap_{ 4.0f };
-	static constexpr unsigned kLockButtonPixels_{ 48u };
-	static constexpr float kLockButtonWorld_{ 30.0f };
-	static constexpr unsigned kLockBorderTexels_{ 4u };
-	static constexpr unsigned kLockIconScale_{ 2u };
-	// 第 index 格锁按钮的世界中心。在货卡下边。
+	// 第 index 格锁按钮的世界中心。在货卡下边。空隙和边长见 ModuleShopDraw 的买卖段。
 	[[nodiscard]] DirectX::XMFLOAT2 LockButtonCenter_(std::size_t index) const noexcept;
 	// 点中的锁属于第几格。没点中返回 kSlotCount。
 	[[nodiscard]] std::size_t HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept;

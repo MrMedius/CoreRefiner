@@ -1,7 +1,386 @@
 #include "ModuleShopDraw.h"
 
+#include "CanvasTextDraw.h"
+#include "IModuleNode.h"
+#include "ModuleNodeInfoCopy.h"
+#include "ModuleNodes.h"
+
+#include <string_view>
+
 namespace ModuleShopDraw
 {
+	// 段落顺序与头文件相同：买卖、炼成、奥义。通用和背景写在头文件里。
+
+	// ---- 买卖：顶栏和锁 ----
+
+	// 把 16×16 图标按给定倍率画在画布正中。scale 是整数倍率。
+	void BlitIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
+	{
+		if (scale == 0u)
+		{
+			return;
+		}
+
+		// glyph 是放大后的边长。ox、oy 是把它放进画布正中的左上角。
+		const int glyph = static_cast<int>(16u * scale);
+		const int ox = (static_cast<int>(canvas.GetCanvasWidth()) - glyph) / 2;
+		const int oy = (static_cast<int>(canvas.GetCanvasHeight()) - glyph) / 2;
+		for (unsigned y = 0u; y < 16u; ++y)
+		{
+			const std::uint16_t row = bits[y];
+			for (unsigned x = 0u; x < 16u; ++x)
+			{
+				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
+				{
+					continue;
+				}
+				for (unsigned sy = 0u; sy < scale; ++sy)
+				{
+					for (unsigned sx = 0u; sx < scale; ++sx)
+					{
+						CanvasPixelDraw::PutPixelClamped(
+							canvas,
+							ox + static_cast<int>(x * scale + sx),
+							oy + static_cast<int>(y * scale + sy),
+							color);
+					}
+				}
+			}
+		}
+	}
+
+	void PaintTradeHudBar(Canvas2D& canvas) noexcept
+	{
+		// width 是画布宽。barBottom 是横条的底边，含在分隔线里。
+		const int width = static_cast<int>(canvas.GetCanvasWidth());
+		const int barBottom = static_cast<int>(std::lround(kTradeHudBarHeight)) - 1;
+		for (int y = 1; y < barBottom; ++y)
+		{
+			CanvasPixelDraw::DrawHLine(canvas, 1, width - 2, y, kTradeHudBar);
+		}
+		CanvasPixelDraw::DrawHLine(canvas, 1, width - 2, barBottom, kBandFrame);
+	}
+
+	void PaintTradeLockButton(Canvas2D& canvas, const IconAtlas::IconBits& icon, bool locked) noexcept
+	{
+		canvas.Clear(locked ? kTradeLockBgLocked : kTradeLockBg);
+		BlitIconCentered_(canvas, icon, kTradeLockIcon, kTradeLockIconScale);
+		// frame 按是否锁上取边框色。canvasW、canvasH 是画布右下角。
+		const Color frame = locked ? kTradeLockFrameLocked : kTradeLockFrame;
+		const int canvasW = static_cast<int>(canvas.GetCanvasWidth());
+		const int canvasH = static_cast<int>(canvas.GetCanvasHeight());
+		CanvasPixelDraw::DrawRectBorder(
+			canvas,
+			0u,
+			0u,
+			static_cast<unsigned>(canvasW) - 1u,
+			static_cast<unsigned>(canvasH) - 1u,
+			kTradeLockBorder,
+			frame);
+		canvas.NotifyPixelsChanged();
+	}
+
+	void PaintTradeHudNumber(Canvas2D& canvas, int value) noexcept
+	{
+		auto ctx = TextCodex::Get().BeginDraw();
+		Text::RenderRequest& rq = ctx.Request();
+		FillUiLabelRequest_(rq, std::to_string(value), kTradeHudFontSize, kMoneyYellow);
+		rq.canvasMode = Text::CanvasMode::Auto;
+		rq.clearMode = Text::ClearMode::Clear;
+		rq.style.wordWrapEnabled = false;
+		rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
+		rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+		rq.maxWidthPx = 80.0f;
+		rq.paddingPx = 2;
+		rq.backgroundColor = Colors::None;
+		ctx.Render(canvas);
+
+		// 数字画布按像素尺寸缩放到世界，避免字被拉变形。
+		const unsigned width = (std::max)(1u, canvas.GetCanvasWidth());
+		const unsigned height = (std::max)(1u, canvas.GetCanvasHeight());
+		canvas.SetScale(DirectX::XMFLOAT3{
+			static_cast<float>(width),
+			static_cast<float>(height),
+			1.0f
+		});
+	}
+
+	// ---- 买卖：货卡 ----
+
+	// 种类名之间的分隔。
+	constexpr std::string_view kTradeCardKindSep{ " / " };
+
+	// 纹理倍数，至少为 1。
+	[[nodiscard]] int TradeCardTexelScale_() noexcept
+	{
+		return (std::max)(1, kTradeCardTexelScale);
+	}
+
+	// 把世界字号换成纹理上的字号。logical 是世界字号。
+	[[nodiscard]] float TradeCardFontSize_(float logical) noexcept
+	{
+		return logical * static_cast<float>(TradeCardTexelScale_());
+	}
+
+	// 用标题字号量一行的纹理高度。标题、种类和正文的行高都用它。
+	[[nodiscard]] int TradeCardLineH_()
+	{
+		const unsigned h = CanvasTextDraw::Measure(
+			"Lv.Max",
+			TradeCardFontSize_(kTradeCardHeaderFont),
+			false,
+			4096.0f).heightPx;
+		return static_cast<int>((std::max)(1u, h));
+	}
+
+	// 图标在纹理上的边长。直径是世界半径乘纹理倍数。
+	[[nodiscard]] int TradeCardIconSidePx_() noexcept
+	{
+		const float n = static_cast<float>(TradeCardTexelScale_());
+		return (std::max)(1, static_cast<int>(std::lround(2.0f * kTradeCardIconRadius * n)));
+	}
+
+	// 种类名字的颜色。融合本身用白。其余用种类填充色，没有颜色时用白。
+	[[nodiscard]] Color TradeCardKindColor_(ModuleNodeKind kind) noexcept
+	{
+		if (kind == ModuleNodeKind::Fusion)
+		{
+			return Colors::White;
+		}
+		const std::size_t i = ToIndex(kind);
+		if (i >= ModuleNodeKindCount())
+		{
+			return Colors::White;
+		}
+		const Color c = ModuleNodeKindFill::kFill[i];
+		if (c.GetA() == 0u)
+		{
+			return Colors::White;
+		}
+		return c;
+	}
+
+	// 收集标题下要列出的种类。out 先被清空。融合再带上主体和素材的种类。
+	void CollectTradeCardKinds_(const IModuleNode& node, std::vector<ModuleNodeKind>& out)
+	{
+		out.clear();
+		out.push_back(node.GetKind());
+		if (node.GetKind() != ModuleNodeKind::Fusion)
+		{
+			return;
+		}
+
+		const auto& fusion = static_cast<const ModuleNode_Fusion&>(node);
+		if (const IModuleNode* primary = fusion.GetPrimary())
+		{
+			out.push_back(primary->GetKind());
+		}
+		if (const IModuleNode* material = fusion.GetMaterial())
+		{
+			out.push_back(material->GetKind());
+		}
+	}
+
+	// 把种类名拼成一行。text 是整行文字，spans 给每一段名字上色。
+	void BuildTradeCardKindLine_(
+		const std::vector<ModuleNodeKind>& kinds,
+		std::string& text,
+		std::vector<Text::Span>& spans)
+	{
+		text.clear();
+		spans.clear();
+		for (std::size_t i = 0; i < kinds.size(); ++i)
+		{
+			if (i > 0)
+			{
+				text += kTradeCardKindSep;
+			}
+			const std::string name = GetKindCopy(kinds[i]);
+			Text::Span span{};
+			span.start = static_cast<UINT32>(Utf16CodeUnitCount(text));
+			span.length = static_cast<UINT32>(Utf16CodeUnitCount(name));
+			span.color = TradeCardKindColor_(kinds[i]);
+			spans.push_back(span);
+			text += name;
+		}
+	}
+
+	void PaintTradeCardChrome(Canvas2D& canvas, bool empty, bool locked) noexcept
+	{
+		// bg 在空卡、锁定、在售里取底色。frame 锁定时换暗边。
+		const Color bg = empty ? kTradeCardEmptyBg : (locked ? kTradeCardBgLocked : kTradeCardBg);
+		const Color frame = locked ? kTradeCardFrameLocked : kTradeCardFrame;
+		canvas.Clear(bg);
+		const int cw = static_cast<int>(canvas.GetCanvasWidth());
+		const int ch = static_cast<int>(canvas.GetCanvasHeight());
+		// texel 是边框厚度，和纹理倍数相同。
+		const int texel = TradeCardTexelScale_();
+		CanvasPixelDraw::DrawRectOutlineThick(canvas, texel, texel, cw - 1 - texel, ch - 1 - texel, texel, frame);
+	}
+
+	void PaintTradeCardSold(Canvas2D& canvas)
+	{
+		PaintTradeCardChrome(canvas, true, false);
+		// texel 把已售文字的边距放大到纹理上。
+		const int texel = TradeCardTexelScale_();
+		CanvasTextDraw::Draw(
+			canvas,
+			"SOLD OUT",
+			TradeCardFontSize_(kTradeCardSoldFont),
+			0,
+			0,
+			static_cast<int>(canvas.GetCanvasWidth()),
+			static_cast<int>(canvas.GetCanvasHeight()),
+			kTradeCardSold,
+			true,
+			{},
+			kTradeCardSoldPad * texel,
+			DWRITE_TEXT_ALIGNMENT_CENTER,
+			DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+		canvas.NotifyPixelsChanged();
+	}
+
+	void PaintTradeCardStock(Canvas2D& canvas, const IModuleNode& node, int price, bool locked)
+	{
+		PaintTradeCardChrome(canvas, false, locked);
+		// frame 是分隔线的颜色，锁定时跟暗边一致。
+		const Color frame = locked ? kTradeCardFrameLocked : kTradeCardFrame;
+		const int cw = static_cast<int>(canvas.GetCanvasWidth());
+		const int ch = static_cast<int>(canvas.GetCanvasHeight());
+		// texel 把世界边距和行距放大到纹理上。
+		const int texel = TradeCardTexelScale_();
+		const int pad = static_cast<int>(kTradeCardIconPad) * texel;
+		const int lineH = TradeCardLineH_();
+		const int iconSide = TradeCardIconSidePx_();
+		const int headerGap = kTradeCardHeaderGap * texel;
+		const float headerFont = TradeCardFontSize_(kTradeCardHeaderFont);
+		const float bodyFont = TradeCardFontSize_(kTradeCardBodyFont);
+		const float priceFont = TradeCardFontSize_(kTradeCardPriceFont);
+		// innerW 是扣掉左右边距后的文字宽度。
+		const int innerW = (std::max)(1, cw - pad * 2);
+
+		// titleY 在图标下面。标题最多两行。
+		const int titleY = pad + iconSide + pad;
+		const ModuleNodeInfoEntry entry = ComposeModuleNodeInfoCopy(node);
+		const int titleNatural = static_cast<int>(CanvasTextDraw::Measure(
+			entry.title,
+			headerFont,
+			true,
+			static_cast<float>(innerW)).heightPx);
+		const int titleMaxH = 2 * lineH + headerGap;
+		const int titleH = (std::max)(1, (std::min)(titleMaxH, (std::max)(lineH, titleNatural)));
+
+		CanvasTextDraw::Draw(
+			canvas,
+			entry.title,
+			headerFont,
+			pad,
+			titleY,
+			innerW,
+			titleH,
+			Colors::White,
+			true,
+			entry.spans,
+			0,
+			DWRITE_TEXT_ALIGNMENT_CENTER);
+
+		std::vector<ModuleNodeKind> kinds;
+		CollectTradeCardKinds_(node, kinds);
+		std::string kindLine;
+		std::vector<Text::Span> kindSpans;
+		BuildTradeCardKindLine_(kinds, kindLine, kindSpans);
+		const int kindY = titleY + titleH + headerGap;
+		CanvasTextDraw::Draw(
+			canvas,
+			kindLine,
+			headerFont,
+			pad,
+			kindY,
+			innerW,
+			lineH,
+			Colors::White,
+			false,
+			kindSpans,
+			0,
+			DWRITE_TEXT_ALIGNMENT_CENTER);
+
+		// headerBottom 是种类行下面的分隔线。
+		const int headerBottom = kindY + lineH + pad;
+		CanvasTextDraw::DrawHRule(canvas, pad, cw - pad - 1, headerBottom, frame, texel);
+
+		// priceY 是底栏价格的顶边。priceRuleY 是价格上面的分隔线。
+		const int priceH = static_cast<int>(kTradeCardPriceFont) * texel + pad;
+		const int priceY = ch - pad - priceH;
+		const int priceRuleY = priceY - pad;
+		if (priceRuleY > headerBottom)
+		{
+			CanvasTextDraw::DrawHRule(canvas, pad, cw - pad - 1, priceRuleY, frame, texel);
+		}
+
+		const std::vector<std::string> bodyBlocks = entry.BodyBlocks();
+		int cursorY = headerBottom + pad;
+		// bodyLimitY 是正文能写到的底边，再往下留给价格。
+		const int bodyLimitY = (std::max)(cursorY, priceRuleY);
+		bool drewBody = false;
+		for (std::size_t i = 0; i < bodyBlocks.size(); ++i)
+		{
+			const std::string& block = bodyBlocks[i];
+			if (block.empty() || cursorY >= bodyLimitY)
+			{
+				continue;
+			}
+			if (drewBody)
+			{
+				const int splitY = cursorY;
+				if (splitY < bodyLimitY)
+				{
+					CanvasTextDraw::DrawHRule(canvas, pad, cw - pad - 1, splitY, frame, texel);
+				}
+				cursorY = splitY + texel + pad;
+			}
+			const int remain = bodyLimitY - cursorY;
+			if (remain <= 0)
+			{
+				break;
+			}
+			const int naturalH = static_cast<int>(CanvasTextDraw::Measure(
+				block,
+				bodyFont,
+				true,
+				static_cast<float>(innerW)).heightPx);
+			const int h = (std::max)(1, (std::min)(remain, (std::max)(1, naturalH)));
+			CanvasTextDraw::Draw(
+				canvas,
+				block,
+				bodyFont,
+				pad,
+				cursorY,
+				innerW,
+				h,
+				Colors::White,
+				true);
+			cursorY += h;
+			drewBody = true;
+		}
+
+		CanvasTextDraw::Draw(
+			canvas,
+			std::to_string(price),
+			priceFont,
+			pad,
+			priceY,
+			innerW,
+			priceH,
+			kMoneyYellow,
+			true,
+			{},
+			0,
+			DWRITE_TEXT_ALIGNMENT_CENTER,
+			DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+		canvas.NotifyPixelsChanged();
+	}
+
 	// ---- 炼成：三格和右侧四键 ----
 
 	void FillRefineLayout(int cw, int ch, RefineLayout& layout) noexcept

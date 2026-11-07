@@ -68,42 +68,6 @@ namespace
 			labels[j] = tmp;
 		}
 	}
-
-	// ---- 锁图标 ----
-	// 把锁图标按整数倍率画在画布正中。
-	void BlitLockIconCentered_(Canvas& canvas, const IconAtlas::IconBits& bits, Color color, unsigned scale)
-	{
-		if (scale == 0u)
-		{
-			return;
-		}
-
-		const int glyph = static_cast<int>(16u * scale);
-		const int ox = (static_cast<int>(canvas.GetCanvasWidth()) - glyph) / 2;
-		const int oy = (static_cast<int>(canvas.GetCanvasHeight()) - glyph) / 2;
-		for (unsigned y = 0u; y < 16u; ++y)
-		{
-			const std::uint16_t row = bits[y];
-			for (unsigned x = 0u; x < 16u; ++x)
-			{
-				if ((row & static_cast<std::uint16_t>(1u << (15u - x))) == 0)
-				{
-					continue;
-				}
-				for (unsigned sy = 0u; sy < scale; ++sy)
-				{
-					for (unsigned sx = 0u; sx < scale; ++sx)
-					{
-						CanvasPixelDraw::PutPixelClamped(
-							canvas,
-							ox + static_cast<int>(x * scale + sx),
-							oy + static_cast<int>(y * scale + sy),
-							color);
-					}
-				}
-			}
-		}
-	}
 }
 
 
@@ -385,7 +349,7 @@ std::size_t ModuleShopTrade::FindSlotIndex(const IModuleNode* node) const noexce
 bool ModuleShopTrade::HitRefreshButton(DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	const DirectX::XMFLOAT2 center = RefreshButtonCenter_();
-	const float half = kHudIconWorld_ * 0.5f + kHudHitPad_;
+	const float half = kTradeHudIconWorld * 0.5f + kTradeHudHitPad;
 	return PointInAabb_(center, DirectX::XMFLOAT2{ half, half }, worldPos);
 }
 
@@ -594,7 +558,7 @@ DirectX::XMFLOAT2 ModuleShopTrade::CurrencyIconCenter_() const noexcept
 {
 	const float barY = bounds_.center.y - bounds_.half.y + kHudBarHeight * 0.5f;
 	return DirectX::XMFLOAT2{
-		bounds_.center.x - bounds_.half.x + kSlotMargin + kHudIconWorld_ * 0.5f,
+		bounds_.center.x - bounds_.half.x + kSlotMargin + kTradeHudIconWorld * 0.5f,
 		barY
 	};
 }
@@ -603,7 +567,7 @@ DirectX::XMFLOAT2 ModuleShopTrade::RefreshButtonCenter_() const noexcept
 {
 	const float barY = bounds_.center.y - bounds_.half.y + kHudBarHeight * 0.5f;
 	return DirectX::XMFLOAT2{
-		bounds_.center.x + bounds_.half.x - kSlotMargin - kHudIconWorld_ * 0.5f,
+		bounds_.center.x + bounds_.half.x - kSlotMargin - kTradeHudIconWorld * 0.5f,
 		barY
 	};
 }
@@ -612,13 +576,13 @@ Color ModuleShopTrade::RefreshIconTint_() const noexcept
 {
 	if (refreshDeniedSec_ > 0.0f)
 	{
-		return Color{ 230u, 80u, 80u, 255u };
+		return kTradeRefreshDenied;
 	}
 	if (GameStatsCodex::GetCurrency() < GetRefreshCost())
 	{
-		return Color{ 160u, 160u, 160u, 255u };
+		return kTradeRefreshPoor;
 	}
-	return Color{ 120u, 220u, 180u, 255u };
+	return kTradeRefreshOk;
 }
 
 void ModuleShopTrade::EnsureHudVisuals_()
@@ -637,7 +601,7 @@ void ModuleShopTrade::EnsureHudVisuals_()
 		canvas = std::make_unique<Canvas2D>(*gfx_, IModuleNode::kVisualSize, IModuleNode::kVisualSize);
 		canvas->Clear(Colors::None);
 		canvas->LinkTechniques(*rg_);
-		canvas->SetScale(DirectX::XMFLOAT3{ kHudIconWorld_, kHudIconWorld_, 1.0f });
+		canvas->SetScale(DirectX::XMFLOAT3{ kTradeHudIconWorld, kTradeHudIconWorld, 1.0f });
 	};
 	auto makeText = [this](std::unique_ptr<Canvas2D>& canvas)
 	{
@@ -673,7 +637,7 @@ void ModuleShopTrade::PaintHudIcons_()
 
 	if (!currencyIconReady_)
 	{
-		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), Color{ 255u, 210u, 80u, 255u });
+		blit(*currencyIcon_, UiIconAtlas::Get(UiIconId::Currency), kTradeCoin);
 		currencyIconReady_ = true;
 	}
 
@@ -692,26 +656,7 @@ void ModuleShopTrade::PaintHudNumber_(Canvas2D& canvas, int value, int& painted)
 		return;
 	}
 
-	auto ctx = TextCodex::Get().BeginDraw();
-	Text::RenderRequest& rq = ctx.Request();
-	FillUiLabelRequest_(rq, std::to_string(value), kPriceFontSize, kMoneyYellow);
-	rq.canvasMode = Text::CanvasMode::Auto;
-	rq.clearMode = Text::ClearMode::Clear;
-	rq.style.wordWrapEnabled = false;
-	rq.style.textAlign = DWRITE_TEXT_ALIGNMENT_LEADING;
-	rq.style.paragraphAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-	rq.maxWidthPx = 80.0f;
-	rq.paddingPx = 2;
-	rq.backgroundColor = Colors::None;
-	ctx.Render(canvas);
-
-	const unsigned width = (std::max)(1u, canvas.GetCanvasWidth());
-	const unsigned height = (std::max)(1u, canvas.GetCanvasHeight());
-	canvas.SetScale(DirectX::XMFLOAT3{
-		static_cast<float>(width),
-		static_cast<float>(height),
-		1.0f
-	});
+	PaintTradeHudNumber(canvas, value);
 	painted = value;
 }
 
@@ -732,7 +677,7 @@ void ModuleShopTrade::SyncHudTransforms_() noexcept
 	{
 		const float halfW = static_cast<float>(currencyText_->GetCanvasWidth()) * 0.5f;
 		currencyText_->SetPosition(DirectX::XMFLOAT3{
-			coin.x + kHudIconWorld_ * 0.5f + 4.0f + halfW,
+			coin.x + kTradeHudIconWorld * 0.5f + kTradeHudTextGap + halfW,
 			coin.y,
 			0.0f
 		});
@@ -741,7 +686,7 @@ void ModuleShopTrade::SyncHudTransforms_() noexcept
 	{
 		const float halfW = static_cast<float>(refreshCostText_->GetCanvasWidth()) * 0.5f;
 		refreshCostText_->SetPosition(DirectX::XMFLOAT3{
-			refresh.x - kHudIconWorld_ * 0.5f - 4.0f - halfW,
+			refresh.x - kTradeHudIconWorld * 0.5f - kTradeHudTextGap - halfW,
 			refresh.y,
 			0.0f
 		});
@@ -755,13 +700,13 @@ DirectX::XMFLOAT2 ModuleShopTrade::LockButtonCenter_(std::size_t index) const no
 	const float cardBottom = hostOrigin_.y + CardCenterLocalY_() + kCardHeight * 0.5f;
 	return DirectX::XMFLOAT2{
 		std::round(hostOrigin_.x + CardCenterLocalX_(index)),
-		std::round(cardBottom + kLockButtonGap_ + kLockButtonWorld_ * 0.5f)
+		std::round(cardBottom + kTradeLockGap + kTradeLockWorld * 0.5f)
 	};
 }
 
 std::size_t ModuleShopTrade::HitLockSlotIndex_(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	const float half = kLockButtonWorld_ * 0.5f + kHudHitPad_;
+	const float half = kTradeLockWorld * 0.5f + kTradeHudHitPad;
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
 		const Slot& slot = slots_[i];
@@ -819,15 +764,15 @@ void ModuleShopTrade::SyncSlotCardTransforms_() noexcept
 
 void ModuleShopTrade::EnsureLockButtonVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
-	const unsigned size = kLockButtonPixels_;
+	const unsigned size = kTradeLockPixels;
 	for (std::size_t i = 0; i < kSlotCount; ++i)
 	{
 		EnsureCanvasSize_(lockButtons_[i], gfx, rg, size, size);
 		if (lockButtons_[i] != nullptr)
 		{
 			lockButtons_[i]->SetScale(DirectX::XMFLOAT3{
-				kLockButtonWorld_,
-				kLockButtonWorld_,
+				kTradeLockWorld,
+				kTradeLockWorld,
 				1.0f
 			});
 		}
@@ -850,23 +795,10 @@ void ModuleShopTrade::PaintLockButton_(std::size_t index)
 		return;
 	}
 
-	constexpr Color kBtnBg{ 42u, 56u, 78u, 255u };
-	constexpr Color kBtnBgLocked{ 22u, 30u, 42u, 255u };
-	constexpr Color kBtnFrame{ 170u, 190u, 210u, 255u };
-	constexpr Color kBtnFrameLocked{ 88u, 104u, 124u, 255u };
-	constexpr Color kIcon{ 200u, 214u, 230u, 255u };
-
-	canvas.Clear(slot.locked ? kBtnBgLocked : kBtnBg);
-	const int canvasW = static_cast<int>(canvas.GetCanvasWidth());
-	const int canvasH = static_cast<int>(canvas.GetCanvasHeight());
-	BlitLockIconCentered_(
+	PaintTradeLockButton(
 		canvas,
 		UiIconAtlas::Get(slot.locked ? UiIconId::LockClosed : UiIconId::LockOpen),
-		kIcon,
-		kLockIconScale_);
-	const Color frame = slot.locked ? kBtnFrameLocked : kBtnFrame;
-	CanvasPixelDraw::DrawRectBorder(canvas, 0u, 0u, static_cast<unsigned>(canvasW) - 1u, static_cast<unsigned>(canvasH) - 1u, kLockBorderTexels_, frame);
-	canvas.NotifyPixelsChanged();
+		slot.locked);
 }
 
 void ModuleShopTrade::SyncLockButtonTransforms_() noexcept
@@ -880,7 +812,7 @@ void ModuleShopTrade::SyncLockButtonTransforms_() noexcept
 		}
 		const DirectX::XMFLOAT2 center = LockButtonCenter_(i);
 		canvas->SetPosition(DirectX::XMFLOAT3{ center.x, center.y, 0.0f });
-		canvas->SetScale(DirectX::XMFLOAT3{ kLockButtonWorld_, kLockButtonWorld_, 1.0f });
+		canvas->SetScale(DirectX::XMFLOAT3{ kTradeLockWorld, kTradeLockWorld, 1.0f });
 	}
 }
 
@@ -905,15 +837,7 @@ void ModuleShopTrade::PaintTradePanel_()
 	}
 
 	PaintBandChrome_(*tradePanel_);
-	const int width = static_cast<int>(tradePanel_->GetCanvasWidth());
-	constexpr Color kHudBar{ 28u, 38u, 56u, 200u };
-	constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-	const int barBottom = static_cast<int>(std::lround(kHudBarHeight)) - 1;
-	for (int y = 1; y < barBottom; ++y)
-	{
-		CanvasPixelDraw::DrawHLine(*tradePanel_, 1, width - 2, y, kHudBar);
-	}
-	CanvasPixelDraw::DrawHLine(*tradePanel_, 1, width - 2, barBottom, kFrame);
+	PaintTradeHudBar(*tradePanel_);
 	tradePanel_->NotifyPixelsChanged();
 }
 
