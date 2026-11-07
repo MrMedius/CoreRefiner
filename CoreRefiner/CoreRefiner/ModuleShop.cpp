@@ -175,35 +175,43 @@ void ModuleShop::SetOrigin(DirectX::XMFLOAT3 origin) noexcept
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
-	SyncUltraArea_();
+	SyncBlocks_();
 }
 
 void ModuleShop::SetShellExtent(float halfX, float halfY) noexcept
 {
 	shellHalf_.x = (std::max)(1.0f, halfX);
 	shellHalf_.y = (std::max)(1.0f, halfY);
+	LayoutBlocks_();
 	if (gfx_ != nullptr && rg_ != nullptr)
 	{
 		EnsureTradePanelVisual_(*gfx_, *rg_);
 		EnsureRefineVisuals_(*gfx_, *rg_);
-		EnsureUltraArea_(*gfx_, *rg_);
+		for (ModuleShopBlock* block : Blocks_())
+		{
+			block->Ensure(*gfx_, *rg_);
+		}
 	}
 	RelayoutSlots_();
 	PlaceRefineResultVisual_();
 	SyncTradePanelTransform_();
 	SyncRefineTransform_();
-	SyncUltraArea_();
+	SyncBlocks_();
 }
 
 void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 {
 	gfx_ = &gfx;
 	rg_ = &rg;
+	LayoutBlocks_();
 	EnsureTradePanelVisual_(gfx, rg);
 	EnsureSlotCardVisuals_(gfx, rg);
 	EnsureLockButtonVisuals_(gfx, rg);
 	EnsureRefineVisuals_(gfx, rg);
-	EnsureUltraArea_(gfx, rg);
+	for (ModuleShopBlock* block : Blocks_())
+	{
+		block->Ensure(gfx, rg);
+	}
 	FillStock();
 	for (Slot& slot : slots_)
 	{
@@ -217,7 +225,7 @@ void ModuleShop::InitZoneVisuals_(Graphics& gfx, Rgph::RenderGraph& rg)
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
-	SyncUltraArea_();
+	SyncBlocks_();
 }
 
 void ModuleShop::SyncZoneTransforms_()
@@ -226,7 +234,7 @@ void ModuleShop::SyncZoneTransforms_()
 	SyncSlotCardTransforms_();
 	SyncLockButtonTransforms_();
 	SyncRefineTransform_();
-	SyncUltraArea_();
+	SyncBlocks_();
 	for (Slot& slot : slots_)
 	{
 		if (slot.node != nullptr)
@@ -246,18 +254,8 @@ void ModuleShop::SyncZoneTransforms_()
 	syncOwned(refineResult_.get());
 	syncOwned(refineFeedOwned_[0].get());
 	syncOwned(refineFeedOwned_[1].get());
-	syncOwned(ultra_.GetUltra());
-	const int innerCount = ultra_.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		// 滚出视野的仍由奥义持有，这里不跟着同步。
-		if (!ultra_.IsInnerSlotVisible(slot))
-		{
-			continue;
-		}
-		syncOwned(ultra_.GetInnerSlot(slot));
-	}
+	// 奥义本体和看得见的内部 Node 由奥义区按 hostOrigin_ 对齐。
+	ultra_.SyncNodes();
 	SyncHud();
 }
 
@@ -275,7 +273,10 @@ void ModuleShop::SubmitZoneBackground_()
 	{
 		refinePanel_->Submit(Chan::ui);
 	}
-	ultra_.Submit();
+	for (ModuleShopBlock* block : Blocks_())
+	{
+		block->Submit();
+	}
 }
 
 // ---- 买卖区 · 逻辑 ----
@@ -480,8 +481,12 @@ void ModuleShop::TickHud(float dt)
 	{
 		PaintRefinePanel_();
 	}
-	// 锻造/打孔的亮灭和黄色数字跟着当前的钱走。
-	SyncUltraArea_();
+	// 先写入矩形和原点，再让各块走自己的每帧刷新。奥义区会重画跟着钱变化的按钮和数字。
+	LayoutBlocks_();
+	for (ModuleShopBlock* block : Blocks_())
+	{
+		block->Tick(dt);
+	}
 }
 
 bool ModuleShop::TryRefresh()
@@ -672,7 +677,7 @@ bool ModuleShop::TryAcceptDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFL
 	{
 		return false;
 	}
-	const ModuleShopUltra::DropClaim claim = ultra_.TryAcceptDrop(node, localPos, origin_);
+	const ModuleShopUltra::DropClaim claim = ultra_.TryAcceptDrop(node, localPos);
 	if (claim != ModuleShopUltra::DropClaim::Ignore)
 	{
 		return claim == ModuleShopUltra::DropClaim::Accept;
@@ -723,7 +728,7 @@ DropResult ModuleShop::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 world
 	if (PointInAabb_(ultra.center, ultra.half, worldPos))
 	{
 		// 奥义区的落点由奥义区自己定。这里拦住，避免掉进货架或卖掉。
-		DropResult ultraDrop = ultra_.EvalDrop(node, worldPos, origin_);
+		DropResult ultraDrop = ultra_.EvalDrop(node, worldPos);
 		if (FindSlotIndex_(&node) < kSlotCount)
 		{
 			// 货架只买进已有奥义的空内部栏。钱不够用红圈。
@@ -874,23 +879,8 @@ void ModuleShop::SubmitNodes()
 			held->SubmitVisual();
 		}
 	}
-	if (IModuleNode* ultra = ultra_.GetUltra())
-	{
-		ultra->SubmitVisual();
-	}
-	const int innerCount = ultra_.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		if (!ultra_.IsInnerSlotVisible(slot))
-		{
-			continue;
-		}
-		if (IModuleNode* node = ultra_.GetInnerSlot(slot))
-		{
-			node->SubmitVisual();
-		}
-	}
+	// 奥义本体和看得见的内部 Node 由奥义区提交。
+	ultra_.SubmitNodes();
 }
 
 IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept
@@ -1604,12 +1594,12 @@ bool ModuleShop::IsUltraBody(const IModuleNode* node) const noexcept
 
 void ModuleShop::PinUltraHomeGhost(IModuleNode& node) noexcept
 {
-	ultra_.PinHomeGhost(node, origin_);
+	ultra_.PinHomeGhost(node);
 }
 
 void ModuleShop::RestoreUltra(std::unique_ptr<IModuleNode> node)
 {
-	ultra_.Restore(std::move(node), origin_);
+	ultra_.Restore(std::move(node));
 }
 
 std::size_t ModuleShop::FindUltraInnerIndex(const IModuleNode* node) const noexcept
@@ -1619,7 +1609,7 @@ std::size_t ModuleShop::FindUltraInnerIndex(const IModuleNode* node) const noexc
 
 void ModuleShop::RestoreUltraInner(std::unique_ptr<IModuleNode> node, std::size_t index)
 {
-	ultra_.RestoreInner(std::move(node), index, origin_);
+	ultra_.RestoreInner(std::move(node), index);
 }
 
 bool ModuleShop::TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX::XMFLOAT2 localPos)
@@ -1628,7 +1618,7 @@ bool ModuleShop::TryAcceptUltraDrop(std::unique_ptr<IModuleNode>& node, DirectX:
 	{
 		return false;
 	}
-	return ultra_.TryAcceptDrop(node, localPos, origin_) == ModuleShopUltra::DropClaim::Accept;
+	return ultra_.TryAcceptDrop(node, localPos) == ModuleShopUltra::DropClaim::Accept;
 }
 
 bool ModuleShop::IsShelfStock(const IModuleNode* node) const noexcept
@@ -1888,7 +1878,7 @@ void ModuleShop::BounceRefinePark_(IModuleNode& node)
 	// 从奥义栏借出去的 Node：回退时按当前格子重新摆好。
 	if (IsShopUltraOwned(&node))
 	{
-		SyncUltraArea_();
+		SyncBlocks_();
 	}
 }
 
@@ -2376,22 +2366,8 @@ void ModuleShop::SyncRefineTransform_() noexcept
 // ---- 奥义区 ----
 std::size_t ModuleShop::GetNodeCount() const noexcept
 {
-	std::size_t count = kSlotCount + 3;
-	if (!ultra_.HasUltra())
-	{
-		return count;
-	}
-	++count;
-	const int innerCount = ultra_.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		if (ultra_.IsInnerSlotVisible(slot) && ultra_.GetInnerSlot(slot) != nullptr)
-		{
-			++count;
-		}
-	}
-	return count;
+	// 货架 5 个，炼成固定再交 3 个。奥义有几颗由奥义区自己算。
+	return kSlotCount + 3 + ultra_.GetZoneNodeCount();
 }
 
 IModuleNode* ModuleShop::GetNode(std::size_t index) const noexcept
@@ -2412,39 +2388,8 @@ IModuleNode* ModuleShop::GetNode(std::size_t index) const noexcept
 	{
 		return refineFeedOwned_[1].get();
 	}
-	if (!ultra_.HasUltra())
-	{
-		return nullptr;
-	}
-
-	// 区接口要求 const 方法交出可改的 Node。
-	ModuleShopUltra& area = const_cast<ModuleShopUltra&>(ultra_);
-	std::size_t cursor = kSlotCount + 3;
-	if (index == cursor)
-	{
-		return area.GetUltra();
-	}
-	++cursor;
-	const int innerCount = area.GetInnerSlotCount();
-	for (int i = 0; i < innerCount; ++i)
-	{
-		const std::size_t slot = static_cast<std::size_t>(i);
-		if (!area.IsInnerSlotVisible(slot))
-		{
-			continue;
-		}
-		IModuleNode* node = area.GetInnerSlot(slot);
-		if (node == nullptr)
-		{
-			continue;
-		}
-		if (index == cursor)
-		{
-			return node;
-		}
-		++cursor;
-	}
-	return nullptr;
+	// 奥义区下标从 0 另计：0 是本体，后面是看得见且不为空的内部 Node。
+	return ultra_.GetZoneNode(index - (kSlotCount + 3));
 }
 
 ModuleShopUltra& ModuleShop::GetUltraArea() noexcept
@@ -2464,7 +2409,7 @@ bool ModuleShop::HitUltraButton(DirectX::XMFLOAT2 worldPos) const noexcept
 
 bool ModuleShop::TryClickUltra(DirectX::XMFLOAT2 worldPos)
 {
-	return ultra_.TryClick(worldPos, origin_);
+	return ultra_.TryClick(worldPos);
 }
 
 bool ModuleShop::TakeUltraRenameRequest() noexcept
@@ -2482,15 +2427,24 @@ const IModuleNode* ModuleShop::PickUltraInfo(DirectX::XMFLOAT2 worldPos) const n
 	return ultra_.PickInfoNode(worldPos);
 }
 
-void ModuleShop::EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg)
+std::array<ModuleShopBlock*, 1> ModuleShop::Blocks_() noexcept
 {
-	ultra_.SetBounds(FunctionBandBounds_(1));
-	ultra_.Ensure(gfx, rg);
+	// 买卖、炼成还留在商店里，所以这份列表现在只有奥义区。
+	return { &ultra_ };
 }
 
-void ModuleShop::SyncUltraArea_()
+void ModuleShop::LayoutBlocks_() noexcept
 {
+	// 奥义区用下面那条功能带。各块的矩形不一样，所以在这里逐块写入。
 	ultra_.SetBounds(FunctionBandBounds_(1));
 	ultra_.SetHostOrigin(origin_);
-	ultra_.Sync();
+}
+
+void ModuleShop::SyncBlocks_() noexcept
+{
+	LayoutBlocks_();
+	for (ModuleShopBlock* block : Blocks_())
+	{
+		block->Sync();
+	}
 }

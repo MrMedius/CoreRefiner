@@ -298,11 +298,6 @@ namespace
 	}
 }
 
-void ModuleShopUltra::SetBounds(IModuleZone::BoundsWorld bounds) noexcept
-{
-	bounds_ = bounds;
-}
-
 	// 右侧按钮左边能放下几格，不按容量截断。多出来的格子靠滚动看。
 	int ModuleShopUltra::FitInnerSlots_(const Layout& layout) noexcept
 	{
@@ -500,13 +495,11 @@ bool ModuleShopUltra::NeedsPaint_() const noexcept
 		|| GameStatsCodex::GetCurrency() != paintedCurrency_;
 }
 
-void ModuleShopUltra::Ensure(Graphics& gfx, Rgph::RenderGraph& rg)
+void ModuleShopUltra::EnsureVisuals_()
 {
-	gfx_ = &gfx;
-	rg_ = &rg;
 	const unsigned w = static_cast<unsigned>(std::lround((std::max)(1.0f, bounds_.half.x * 2.0f)));
 	const unsigned h = static_cast<unsigned>(std::lround((std::max)(1.0f, bounds_.half.y * 2.0f)));
-	const bool resized = ModuleShopDraw::EnsureCanvasSize_(panel_, gfx, rg, w, h);
+	const bool resized = ModuleShopDraw::EnsureCanvasSize_(panel_, *gfx_, *rg_, w, h);
 	if (resized || NeedsPaint_())
 	{
 		Paint_();
@@ -621,12 +614,12 @@ ModuleShopUltra::Button ModuleShopUltra::HitButton(DirectX::XMFLOAT2 worldPos) c
 	return Button::None;
 }
 
-bool ModuleShopUltra::TryClick(DirectX::XMFLOAT2 worldPos, DirectX::XMFLOAT3 zoneOrigin)
+bool ModuleShopUltra::TryClick(DirectX::XMFLOAT2 worldPos)
 {
 	switch (HitButton(worldPos))
 	{
 	case Button::Forge:
-		return TryForge(zoneOrigin);
+		return TryForge();
 	case Button::Punch:
 		return TryPunch();
 	case Button::Rename:
@@ -685,7 +678,7 @@ bool ModuleShopUltra::TryPage_(int direction)
 	return true;
 }
 
-bool ModuleShopUltra::TryForge(DirectX::XMFLOAT3 zoneOrigin)
+bool ModuleShopUltra::TryForge()
 {
 	if (ultra_ != nullptr || gfx_ == nullptr || rg_ == nullptr)
 	{
@@ -699,14 +692,14 @@ bool ModuleShopUltra::TryForge(DirectX::XMFLOAT3 zoneOrigin)
 	const DirectX::XMFLOAT2 center = GetUltraSlotCenter();
 	const float radius = GetUltraSlotRadius();
 	std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeUltra(DirectX::XMFLOAT2{
-		center.x - zoneOrigin.x,
-		center.y - zoneOrigin.y
+		center.x - hostOrigin_.x,
+		center.y - hostOrigin_.y
 	});
 	if (node == nullptr)
 	{
 		return false;
 	}
-	node->InitVisual(*gfx_, *rg_, zoneOrigin);
+	node->InitVisual(*gfx_, *rg_, hostOrigin_);
 	node->SetZoneVisualScale(1.0f);
 	node->SetVisualRadiusOverride(radius);
 	node->SetIconRadiusOverride(radius);
@@ -773,7 +766,7 @@ const IModuleNode* ModuleShopUltra::PickInfoNode(DirectX::XMFLOAT2 worldPos) con
 
 bool ModuleShopUltra::InBand_(DirectX::XMFLOAT2 worldPos) const noexcept
 {
-	return ModuleShopDraw::PointInAabb_(bounds_.center, bounds_.half, worldPos);
+	return HitArea(worldPos);
 }
 
 bool ModuleShopUltra::HitUltraSlot_(DirectX::XMFLOAT2 worldPos) const noexcept
@@ -834,7 +827,7 @@ bool ModuleShopUltra::Owns(const IModuleNode* node) const noexcept
 	return false;
 }
 
-DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos, DirectX::XMFLOAT3 zoneOrigin) const noexcept
+DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 worldPos) const noexcept
 {
 	DropResult result{};
 	result.verdict = DropVerdict::Forbidden;
@@ -845,7 +838,7 @@ DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 
 		if (node.GetKind() == ModuleNodeKind::Ultra && InBand_(worldPos))
 		{
 			result.verdict = DropVerdict::Accept;
-			result.localPos = ToLocal_(zoneOrigin, GetUltraSlotCenter());
+			result.localPos = ToLocal_(hostOrigin_, GetUltraSlotCenter());
 			return result;
 		}
 		if (!HasUltra())
@@ -873,28 +866,27 @@ DropResult ModuleShopUltra::EvalDrop(const IModuleNode& node, DirectX::XMFLOAT2 
 	}
 	result.verdict = DropVerdict::Accept;
 	const DirectX::XMFLOAT2 center = GetInnerSlotCenter(static_cast<std::size_t>(inner));
-	result.localPos = ToLocal_(zoneOrigin, center);
+	result.localPos = ToLocal_(hostOrigin_, center);
 	return result;
 }
 
 ModuleShopUltra::DropClaim ModuleShopUltra::TryAcceptDrop(
 	std::unique_ptr<IModuleNode>& node,
-	DirectX::XMFLOAT2 localPos,
-	DirectX::XMFLOAT3 zoneOrigin)
+	DirectX::XMFLOAT2 localPos)
 {
 	if (node == nullptr)
 	{
 		return DropClaim::Ignore;
 	}
 
-	const DirectX::XMFLOAT2 ultraLocal = ToLocal_(zoneOrigin, GetUltraSlotCenter());
+	const DirectX::XMFLOAT2 ultraLocal = ToLocal_(hostOrigin_, GetUltraSlotCenter());
 	if (NearLocal_(localPos, ultraLocal))
 	{
 		if (HasUltra() || node->GetKind() != ModuleNodeKind::Ultra)
 		{
 			return DropClaim::Reject;
 		}
-		PlantInSlot_(*node, zoneOrigin, ultraLocal, GetUltraSlotRadius());
+		PlantInSlot_(*node, hostOrigin_, ultraLocal, GetUltraSlotRadius());
 		Adopt(std::move(node));
 		return DropClaim::Accept;
 	}
@@ -907,7 +899,7 @@ ModuleShopUltra::DropClaim ModuleShopUltra::TryAcceptDrop(
 		{
 			continue;
 		}
-		const DirectX::XMFLOAT2 slotLocal = ToLocal_(zoneOrigin, GetInnerSlotCenter(index));
+		const DirectX::XMFLOAT2 slotLocal = ToLocal_(hostOrigin_, GetInnerSlotCenter(index));
 		if (!NearLocal_(localPos, slotLocal))
 		{
 			continue;
@@ -919,7 +911,7 @@ ModuleShopUltra::DropClaim ModuleShopUltra::TryAcceptDrop(
 		}
 		if (IModuleNode* placed = GetInnerSlot(index))
 		{
-			PlantInSlot_(*placed, zoneOrigin, slotLocal, GetInnerSlotRadius());
+			PlantInSlot_(*placed, hostOrigin_, slotLocal, GetInnerSlotRadius());
 		}
 		if (panel_ != nullptr)
 		{
@@ -963,7 +955,7 @@ std::unique_ptr<IModuleNode> ModuleShopUltra::TakeNode(IModuleNode* node)
 	return taken;
 }
 
-void ModuleShopUltra::PinHomeGhost(IModuleNode& node, DirectX::XMFLOAT3 zoneOrigin) noexcept
+void ModuleShopUltra::PinHomeGhost(IModuleNode& node) noexcept
 {
 	DirectX::XMFLOAT2 center = GetUltraSlotCenter();
 	float radius = GetUltraSlotRadius();
@@ -977,28 +969,23 @@ void ModuleShopUltra::PinHomeGhost(IModuleNode& node, DirectX::XMFLOAT3 zoneOrig
 		center = GetInnerSlotCenter(index);
 		radius = GetInnerSlotRadius();
 	}
-	const DirectX::XMFLOAT2 local = ToLocal_(zoneOrigin, center);
-	node.SetZoneOrigin(zoneOrigin);
+	const DirectX::XMFLOAT2 local = ToLocal_(hostOrigin_, center);
+	node.SetZoneOrigin(hostOrigin_);
 	node.SetLocalPos(local);
 	node.BeginLayoutGhost(local);
 	node.SetVisualRadiusOverride(radius);
 	node.SyncVisual();
 }
 
-void ModuleShopUltra::Restore(std::unique_ptr<IModuleNode> node, DirectX::XMFLOAT3 zoneOrigin)
+void ModuleShopUltra::Restore(std::unique_ptr<IModuleNode> node)
 {
 	if (node == nullptr || node->GetKind() != ModuleNodeKind::Ultra || HasUltra())
 	{
 		return;
 	}
 	node->EndLayoutGhost();
-	PlantInSlot_(*node, zoneOrigin, ToLocal_(zoneOrigin, GetUltraSlotCenter()), GetUltraSlotRadius());
+	PlantInSlot_(*node, hostOrigin_, ToLocal_(hostOrigin_, GetUltraSlotCenter()), GetUltraSlotRadius());
 	Adopt(std::move(node));
-}
-
-void ModuleShopUltra::SetHostOrigin(DirectX::XMFLOAT3 origin) noexcept
-{
-	hostOrigin_ = origin;
 }
 
 std::size_t ModuleShopUltra::FindInnerIndex(const IModuleNode* node) const noexcept
@@ -1018,7 +1005,7 @@ std::size_t ModuleShopUltra::FindInnerIndex(const IModuleNode* node) const noexc
 	return static_cast<std::size_t>(-1);
 }
 
-void ModuleShopUltra::RestoreInner(std::unique_ptr<IModuleNode> node, std::size_t index, DirectX::XMFLOAT3 zoneOrigin)
+void ModuleShopUltra::RestoreInner(std::unique_ptr<IModuleNode> node, std::size_t index)
 {
 	if (node == nullptr)
 	{
@@ -1032,7 +1019,7 @@ void ModuleShopUltra::RestoreInner(std::unique_ptr<IModuleNode> node, std::size_
 	}
 	if (IModuleNode* placed = GetInnerSlot(index))
 	{
-		PlantInSlot_(*placed, zoneOrigin, ToLocal_(zoneOrigin, GetInnerSlotCenter(index)), GetInnerSlotRadius());
+		PlantInSlot_(*placed, hostOrigin_, ToLocal_(hostOrigin_, GetInnerSlotCenter(index)), GetInnerSlotRadius());
 	}
 	if (panel_ != nullptr)
 	{
@@ -1104,6 +1091,104 @@ IModuleNode* ModuleShopUltra::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistS
 		outDistSq = bestDistSq;
 	}
 	return best;
+}
+
+std::size_t ModuleShopUltra::GetZoneNodeCount() const noexcept
+{
+	if (!HasUltra())
+	{
+		return 0;
+	}
+	std::size_t count = 1;
+	const int innerCount = GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (IsInnerSlotVisible(slot) && GetInnerSlot(slot) != nullptr)
+		{
+			++count;
+		}
+	}
+	return count;
+}
+
+IModuleNode* ModuleShopUltra::GetZoneNode(std::size_t index) const noexcept
+{
+	if (!HasUltra())
+	{
+		return nullptr;
+	}
+	// const 方法要交出可改的 Node，和商店的 GetNode 一样。
+	if (index == 0)
+	{
+		return const_cast<IModuleNode*>(GetUltra());
+	}
+	std::size_t cursor = 1;
+	const int innerCount = GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (!IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		IModuleNode* node = const_cast<IModuleNode*>(GetInnerSlot(slot));
+		if (node == nullptr)
+		{
+			continue;
+		}
+		if (index == cursor)
+		{
+			return node;
+		}
+		++cursor;
+	}
+	return nullptr;
+}
+
+void ModuleShopUltra::SubmitNodes()
+{
+	if (IModuleNode* body = GetUltra())
+	{
+		body->SubmitVisual();
+	}
+	const int innerCount = GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (!IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		if (IModuleNode* node = GetInnerSlot(slot))
+		{
+			node->SubmitVisual();
+		}
+	}
+}
+
+void ModuleShopUltra::SyncNodes()
+{
+	auto syncOwned = [this](IModuleNode* node)
+	{
+		if (node == nullptr)
+		{
+			return;
+		}
+		node->SetZoneOrigin(hostOrigin_);
+		node->SyncVisual();
+	};
+	syncOwned(GetUltra());
+	const int innerCount = GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (!IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		syncOwned(GetInnerSlot(slot));
+	}
 }
 
 DirectX::XMFLOAT2 ModuleShopUltra::GetUltraSlotCenter() const noexcept

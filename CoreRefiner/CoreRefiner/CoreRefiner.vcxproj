@@ -383,6 +383,7 @@
     <ClInclude Include="GameRulesCodex.h" />
     <ClInclude Include="IAttackNodeStep.h" />
     <ClInclude Include="IModule.h" />
+    <ClInclude Include="ModuleShopBlock.h" />
     <ClInclude Include="ModuleShopDraw.h" />
     <ClInclude Include="ModuleShopPanel.h" />
     <ClInclude Include="ModuleShopUltra.h" />

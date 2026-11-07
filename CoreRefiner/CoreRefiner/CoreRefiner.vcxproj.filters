@@ -1590,6 +1590,9 @@
     <ClInclude Include="UI_UltraRedraw.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="ModuleShopBlock.h">
+      <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

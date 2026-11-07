@@ -3,6 +3,7 @@
 #include "Colors.h"
 #include "IModuleNode.h"
 #include "IModuleZone.h"
+#include "ModuleShopBlock.h"
 #include "ModuleShopPanel.h"
 #include "ModuleShopUltra.h"
 
@@ -81,7 +82,7 @@ public:
 		int price{ 0 };
 	};
 
-	// 货槽 + 炼成结果 + 两颗店有炼成 Node，再加奥义本体和可见内部 Node。买卖勿把 GetNodeCount 当货槽数。
+	// 0..4 货架，5 炼成结果，6 和 7 是两颗店有炼成 Node。再往后由奥义区按自己的下标交出。买卖勿把 GetNodeCount 当货槽数。
 	[[nodiscard]] std::size_t GetNodeCount() const noexcept override;
 	[[nodiscard]] IModuleNode* GetNode(std::size_t index) const noexcept override;
 	[[nodiscard]] ModuleShopUltra& GetUltraArea() noexcept;
@@ -310,9 +311,13 @@ private:
 	bool paintedReturnLit_{ false };
 	int paintedRefineCurrency_{ -1 };
 
-	// ---- 奥义区：第三块，宽度与买卖框对齐 ----
-	void EnsureUltraArea_(Graphics& gfx, Rgph::RenderGraph& rg);
-	void SyncUltraArea_();
+	// ---- 各块。顺序是买卖、炼成、奥义；前两块还没拆出来，现在只有奥义区。----
+	// 按这个顺序交出各块，供布局、画面和每帧刷新共用。
+	[[nodiscard]] std::array<ModuleShopBlock*, 1> Blocks_() noexcept;
+	// 按当前外壳把世界矩形和商店原点写给每一块。
+	void LayoutBlocks_() noexcept;
+	// 先布局，再让每一块重画并对齐。
+	void SyncBlocks_() noexcept;
 
 	ModuleShopUltra ultra_;
 };

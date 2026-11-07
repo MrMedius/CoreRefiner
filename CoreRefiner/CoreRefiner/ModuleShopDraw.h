@@ -12,13 +12,15 @@
 #include <string>
 #include <vector>
 
-// 商店各区块共用的绘制。炼成按钮的亮灭色也放在这里，奥义区按钮沿用同一套。
+// 商店各块共用的纯绘制。买卖、炼成、奥义自己的排版和重画仍留在各自的块里。
 namespace ModuleShopDraw
 {
+	// ---- 通用：钱色、按钮色、画布、字体、贴图、矩形判断 ----
+
 	// 货卡造价、顶栏金额、亮起的费用数字共用。
 	inline constexpr Color kMoneyYellow{ 255u, 220u, 90u, 255u };
 
-	// 炼成右侧四键。灭和亮成对。
+	// 炼成右侧四键和奥义区按钮共用。灭和亮成对。
 	inline constexpr Color kBtnBg{ 48u, 52u, 60u, 220u };
 	inline constexpr Color kBtnFrame{ 96u, 100u, 108u, 200u };
 	inline constexpr Color kBtnText{ 210u, 214u, 220u, 255u };
@@ -26,6 +28,7 @@ namespace ModuleShopDraw
 	inline constexpr Color kBtnFrameLit{ 140u, 210u, 170u, 220u };
 	inline constexpr Color kBtnTextLit{ 236u, 244u, 238u, 255u };
 
+	// 按像素尺寸建立或撑大画布，并挂上渲染图。尺寸变了返回 true，调用方据此重画。
 	inline bool EnsureCanvasSize_(std::unique_ptr<Canvas2D>& canvas, Graphics& gfx, Rgph::RenderGraph& rg, unsigned w, unsigned h)
 	{
 		if (canvas == nullptr)
@@ -42,16 +45,6 @@ namespace ModuleShopDraw
 		return false;
 	}
 
-	inline void PaintBandChrome_(Canvas2D& canvas)
-	{
-		constexpr Color kBg{ 36u, 48u, 68u, 150u };
-		constexpr Color kFrame{ 170u, 190u, 210u, 90u };
-		canvas.Clear(kBg);
-		const int w = static_cast<int>(canvas.GetCanvasWidth());
-		const int h = static_cast<int>(canvas.GetCanvasHeight());
-		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
-	}
-
 	// 商店 UI 共用字体栈：YaHei，回退 Yu Gothic / Segoe。
 	inline void FillUiLabelRequest_(Text::RenderRequest& rq, const std::string& text, float fontSize, Color color)
 	{
@@ -64,13 +57,14 @@ namespace ModuleShopDraw
 		rq.defaultColor = color;
 	}
 
+	// 点是否落在以 center 为中心、half 为半宽半高的矩形里。
 	[[nodiscard]] inline bool PointInAabb_(DirectX::XMFLOAT2 center, DirectX::XMFLOAT2 half, DirectX::XMFLOAT2 pos) noexcept
 	{
 		return std::fabs(pos.x - center.x) <= half.x
 			&& std::fabs(pos.y - center.y) <= half.y;
 	}
 
-	// Fixed 用 dest 做排版盒（不再认 maxWidthPx）。价格/描述各自收成一条带。
+	// 在矩形里画文字。Fixed 用 dest 做排版盒。价格和描述各自收成一条带。
 	inline void DrawShopText_(
 		Canvas2D& canvas,
 		const std::string& text,
@@ -110,6 +104,7 @@ namespace ModuleShopDraw
 		ctx.Render(canvas);
 	}
 
+	// 在矩形正中画一行不换行的字。
 	inline void DrawShopLabelInBox_(
 		Canvas2D& canvas,
 		const std::string& text,
@@ -145,7 +140,7 @@ namespace ModuleShopDraw
 		ctx.Render(canvas);
 	}
 
-	// 整数倍率贴进矩形中心，不拉长变形。
+	// 把 16x16 图标按整数倍率贴进矩形中心，不拉长变形。
 	inline void BlitIconInBox_(
 		Canvas& dest,
 		const IconAtlas::IconBits& bits,
@@ -188,6 +183,7 @@ namespace ModuleShopDraw
 		}
 	}
 
+	// 把画布的位置和缩放对齐到这一块的世界矩形。
 	inline void SyncBandTransform_(Canvas2D* canvas, const IModuleZone::BoundsWorld& b)
 	{
 		if (canvas == nullptr)
@@ -200,5 +196,18 @@ namespace ModuleShopDraw
 			b.half.y * 2.0f,
 			1.0f
 		});
+	}
+
+	// ---- 背景：三块底板共用的底色和边框 ----
+
+	// 清空成商店底板色，再画一圈细边。
+	inline void PaintBandChrome_(Canvas2D& canvas)
+	{
+		constexpr Color kBg{ 36u, 48u, 68u, 150u };
+		constexpr Color kFrame{ 170u, 190u, 210u, 90u };
+		canvas.Clear(kBg);
+		const int w = static_cast<int>(canvas.GetCanvasWidth());
+		const int h = static_cast<int>(canvas.GetCanvasHeight());
+		CanvasPixelDraw::DrawRectOutline(canvas, 0, 0, w - 1, h - 1, kFrame);
 	}
 }
