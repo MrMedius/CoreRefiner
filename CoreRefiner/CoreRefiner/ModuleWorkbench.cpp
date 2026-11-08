@@ -600,24 +600,42 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	{
 		if (attackManager != nullptr && player != nullptr)
 		{
-			std::vector<Attack*> bonusAtks;
+			// 公转弹在 SpawnAt 里会卸下父子。每棵树在放出前拍平，卸下之后就走不到了。
+			// firedRoots 与 trees 下标对齐。回调按刚放出的根弹找到自己那一棵。
+			std::vector<Attack*> firedRoots;
+			std::vector<std::vector<Attack*>> trees;
+			firedRoots.reserve(batch.roots.size());
+			trees.reserve(batch.roots.size());
 			for (Attack* root : batch.roots)
 			{
-				CollectAttackTree(root, bonusAtks);
+				std::vector<Attack*> tree;
+				CollectAttackTree(root, tree);
+				firedRoots.push_back(root);
+				trees.push_back(std::move(tree));
 			}
 
 			const DirectX::XMFLOAT3 pos = player->GetPosition();
 			DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
 			attackManager->TryGetAimVelocity(pos, vel);
-			attackManager->FireRoots(batch.roots, pos, vel);
-
-			for (Attack* atk : bonusAtks)
+			// 回调要留到真正出生之后。firedRoots、trees 按值拷进回调，不能抓本帧的局部变量。
+			attackManager->FireRoots(batch.roots, pos, vel, [this, firedRoots, trees](Attack* fired)
 			{
-				if (atk != nullptr && atk->IsActive())
+				// 出生已经清过数值修正。只给这一颗根弹的树补仓库加成。
+				for (std::size_t i = 0; i < firedRoots.size(); ++i)
 				{
-					ApplyWarehouseBonuses(warehouse_, *atk);
+					if (firedRoots[i] != fired)
+					{
+						continue;
+					}
+					for (Attack* atk : trees[i])
+					{
+						if (atk != nullptr && atk->IsActive())
+						{
+							ApplyWarehouseBonuses(warehouse_, *atk);
+						}
+					}
 				}
-			}
+			});
 		}
 		else
 		{

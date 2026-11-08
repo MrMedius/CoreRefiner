@@ -1,6 +1,7 @@
 #include "AttackManager.h"
 #include "ObjectCodex.h"
 #include "HierarchySpawn.h"
+#include "ColliderComponentBase.h"
 
 #include "InputCodex.h"
 #include "XMath.h"
@@ -107,17 +108,30 @@ void AttackManager::AdoptLive(Attack* attack)
 void AttackManager::FireRoots(
 	const std::vector<Attack*>& roots,
 	XMFLOAT3 pos,
-	XMFLOAT3 vel)
+	XMFLOAT3 vel,
+	const std::function<void(Attack*)>& onFired)
 {
+	// 放出时改读当下的位置和准星，这里的出生点不再使用。
+	(void)pos;
+	(void)vel;
+
+	// wasEmpty 为真且离上一颗已经够久时，这一批的第一颗当帧就放。
+	const bool wasEmpty = pendingShots_.empty();
 	for (Attack* root : roots)
 	{
 		if (root == nullptr)
 		{
 			continue;
 		}
-		AdoptLive(root);
-		root->SpawnAt(pos, vel);
-		playerRemote++;
+		PendingShot shot{};
+		shot.root = root;
+		shot.onFired = onFired;
+		MuteColliders_(root, shot.colliderRestore);
+		pendingShots_.push_back(std::move(shot));
+	}
+	if (wasEmpty && sinceLastFire_ >= GameRulesCodex::FireInterval)
+	{
+		ReleaseNextShot_();
 	}
 }
 
@@ -134,6 +148,83 @@ void AttackManager::Update(float dt)
 		}
 	}
 	AdoptUnparentedAttacks_();
+
+	// 先更新已经在飞的弹，再放下一颗，避免新弹在出生的同一帧再走一步。
+	sinceLastFire_ += dt;
+	if (sinceLastFire_ >= GameRulesCodex::FireInterval)
+	{
+		ReleaseNextShot_();
+	}
+}
+
+void AttackManager::ReleaseNextShot_()
+{
+	if (pendingShots_.empty())
+	{
+		return;
+	}
+
+	PendingShot shot = std::move(pendingShots_.front());
+	pendingShots_.pop_front();
+	sinceLastFire_ = 0.0f;
+
+	Attack* root = shot.root;
+	if (root == nullptr || !root->IsActive())
+	{
+		return;
+	}
+
+	// player 是这一刻还在场上的玩家。没有就回收，不出生。
+	Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
+	if (player == nullptr)
+	{
+		root->Deactivate();
+		return;
+	}
+
+	const DirectX::XMFLOAT3 pos = player->GetPosition();
+	DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
+	TryGetAimVelocity(pos, vel);
+	AdoptLive(root);
+	root->SpawnAt(pos, vel);
+	// 排队时关过的碰撞重新打开。出生流程会按关掉的状态再写一次，所以放在 SpawnAt 之后。
+	for (Attack* atk : shot.colliderRestore)
+	{
+		if (atk == nullptr || !atk->IsActive())
+		{
+			continue;
+		}
+		if (ColliderComponentBase* col = atk->GetComponent<ColliderComponentBase>())
+		{
+			col->SetEnabled(true);
+			col->SyncFromOwner();
+		}
+	}
+	if (shot.onFired)
+	{
+		shot.onFired(root);
+	}
+	playerRemote++;
+}
+
+void AttackManager::MuteColliders_(Attack* attack, std::vector<Attack*>& restore)
+{
+	if (attack == nullptr)
+	{
+		return;
+	}
+	if (ColliderComponentBase* col = attack->GetComponent<ColliderComponentBase>())
+	{
+		if (col->IsEnabled())
+		{
+			col->SetEnabled(false);
+			restore.push_back(attack);
+		}
+	}
+	for (std::size_t i = 0; i < attack->GetChildCount(); ++i)
+	{
+		MuteColliders_(dynamic_cast<Attack*>(attack->GetChild(i)), restore);
+	}
 }
 
 void AttackManager::AdoptUnparentedAttacks_()
@@ -159,6 +250,17 @@ void AttackManager::Submit(void)
 
 void AttackManager::Reset(void)
 {
+	// 还没放出的根弹回收掉，避免波次结束或回备战后继续射。
+	for (PendingShot& shot : pendingShots_)
+	{
+		if (shot.root != nullptr && shot.root->IsActive())
+		{
+			shot.root->Deactivate();
+		}
+	}
+	pendingShots_.clear();
+	sinceLastFire_ = GameRulesCodex::FireInterval;
+
 	for (int i = 0; i < attacks.size(); i++)
 		if (attacks[i]->IsActive())
 			attacks[i]->Deactivate();

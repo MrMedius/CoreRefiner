@@ -25,6 +25,8 @@ public:
 
 	// 扫描。
 	static constexpr std::size_t MaxAppliedTokens = 10; // 配方上限。一次扫描最多套用的条数
+	// 连发。同一批根弹按入队顺序，每隔这么多秒放一颗。
+	static constexpr float FireInterval = 0.08f;
 
 	// 测试。正式以后把初始金钱改回 0。
 	static constexpr int TestStartCurrency = 10000; // 测试初始金钱
