@@ -184,6 +184,18 @@ public:
 		return true;
 	}
 
+	// 撤销栈里是否还有旧图。空栈时界面不应改画布。
+	[[nodiscard]] bool CanUndo() const noexcept
+	{
+		return !undo_.empty();
+	}
+
+	// 重做栈里是否还有可回到的图。空栈时界面不应改画布。
+	[[nodiscard]] bool CanRedo() const noexcept
+	{
+		return !redo_.empty();
+	}
+
 	// 核对初始尺寸、位、扩展、16:9 和撤销。失败返回 false。
 	[[nodiscard]] static bool SelfCheck()
 	{
