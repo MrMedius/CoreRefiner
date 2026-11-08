@@ -8,7 +8,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // 状态
-// 窗口尺寸、当前图、当前工具、命令和这一笔的进度都放在这里。
+// 窗口尺寸、当前图、当前工具、命令、顶栏数字框和这一笔的进度都放在这里。
 ////////////////////////////////////////////////////////////////////////////////
 
 // 窗口类名。注册和创建窗口时用同一个名字。
@@ -52,6 +52,8 @@ enum class Command
 constexpr const wchar_t* kToolLabels[] = { L"画笔", L"橡皮", L"开关" };
 // 三个命令按钮上的字。顺序与 Command 相同。
 constexpr const wchar_t* kCommandLabels[] = { L"撤销", L"重做", L"清空" };
+// 顶栏四个方向的字。顺序是左、右、上、下。
+constexpr const wchar_t* kExpandLabels[] = { L"左", L"右", L"上", L"下" };
 
 // 左栏按钮位置。tools 在上，commands 在下。
 struct ToolBar
@@ -62,12 +64,31 @@ struct ToolBar
 	RECT commands[3]{};
 };
 
-// 当前图和视图。zoom 是一格的像素边长。originX、originY 是格子 (0,0) 在棋盘区域里的位置。
+// 顶栏扩像素的位置。labels 是方向文字，edits 是数字框，apply 是应用按钮。
+struct ExpandBar
+{
+	RECT labels[4]{};
+	RECT edits[4]{};
+	RECT apply{};
+};
+
+// 顶栏右侧的放大控件。out 是缩小，percent 是百分数，in 是放大。
+struct ZoomBar
+{
+	RECT out{};
+	RECT percent{};
+	RECT in{};
+};
+
+// 当前图和视图。zoom 是一格的像素边长。
+// originX、originY 是缓冲区第一格在棋盘里的位置。原点 (0,0) 在它右方 left 格、下方 up 格。
 struct App
 {
 	IconSheet sheet{};
 	int zoom{ 16 };
+	// 缓冲区第一格的横坐标。往左加格时它会左移，好让原点停住。
 	int originX{ 0 };
+	// 缓冲区第一格的纵坐标。往上加格时它会上移，好让原点停住。
 	int originY{ 0 };
 	// 已经按棋盘大小摆过一次。之后缩放和拖动不再被窗口尺寸改掉。
 	bool placed{ false };
@@ -89,6 +110,14 @@ struct App
 	int strokeX{ 0 };
 	// 上一格的纵坐标。
 	int strokeY{ 0 };
+	// 顶栏四个数字框。顺序是左、右、上、下，里面是从原点往该方向的格数。
+	HWND expandEdits[4]{};
+	// 数字框原来的消息函数。四个框共用。
+	WNDPROC expandEditProc{};
+	// 数字框和方向文字的字体。窗口销毁时删掉。
+	HFONT fieldFont{};
+	// 数字框的底色。窗口销毁时删掉。
+	HBRUSH editBrush{};
 };
 
 // 整个程序只有这一份图和视图。
@@ -176,7 +205,7 @@ void DrawButton(HDC dc, const RECT& rect, const wchar_t* label, bool selected, b
 
 ////////////////////////////////////////////////////////////////////////////////
 // 布局
-// 按客户区算出四块区域，再在左栏里排出工具和命令。
+// 按客户区算出四块区域，再在左栏和顶栏里排按钮、数字框和放大控件。
 ////////////////////////////////////////////////////////////////////////////////
 
 // 按客户区算出四块。窗口太窄时工具栏和文本栏一起让出位置，棋盘至少留一块。
@@ -255,6 +284,76 @@ ToolBar MakeToolBar(const RECT& tool)
 	return bar;
 }
 
+// 在顶栏左侧排四个数字框和应用按钮。top 是顶栏。顺序是左、右、上、下。
+ExpandBar MakeExpandBar(const RECT& top)
+{
+	const int margin = 16;
+	const int labelW = 24;
+	const int gap = 10;
+	const int applyW = 72;
+	const int topH = top.bottom - top.top;
+	int rowH = 26;
+	if (rowH > topH)
+	{
+		rowH = topH;
+	}
+	if (rowH < 1)
+	{
+		rowH = 1;
+	}
+	const int y = top.top + (topH - rowH) / 2;
+	int inner = (top.right - top.left) - margin * 2 - labelW * 4 - gap * 4 - applyW;
+	int editW = 56;
+	if (inner < editW * 4)
+	{
+		editW = inner / 4;
+		if (editW < 24)
+		{
+			editW = 24;
+		}
+	}
+
+	int x = top.left + margin;
+	ExpandBar bar{};
+	for (int i = 0; i < 4; ++i)
+	{
+		bar.labels[i] = RECT{ x, y, x + labelW, y + rowH };
+		x += labelW;
+		bar.edits[i] = RECT{ x, y, x + editW, y + rowH };
+		x += editW + gap;
+	}
+	bar.apply = RECT{ x, y, x + applyW, y + rowH };
+	return bar;
+}
+
+// 在顶栏右侧排缩小、百分数和放大。top 是顶栏。
+ZoomBar MakeZoomBar(const RECT& top)
+{
+	const int margin = 16;
+	const int gap = 8;
+	const int buttonW = 28;
+	const int percentW = 84;
+	const int topH = top.bottom - top.top;
+	int rowH = 26;
+	if (rowH > topH)
+	{
+		rowH = topH;
+	}
+	if (rowH < 1)
+	{
+		rowH = 1;
+	}
+	const int y = top.top + (topH - rowH) / 2;
+	int x = top.right - margin - buttonW - gap - percentW - gap - buttonW;
+	ZoomBar bar{};
+	bar.out = RECT{ x, y, x + buttonW, y + rowH };
+	x += buttonW + gap;
+	bar.percent = RECT{ x, y, x + percentW, y + rowH };
+	x += percentW + gap;
+	bar.in = RECT{ x, y, x + buttonW, y + rowH };
+	return bar;
+}
+
 // 读出当前客户区的四块。client 写出客户区矩形。
 Layout CurrentLayout(HWND hwnd, RECT& client)
 {
@@ -264,7 +363,7 @@ Layout CurrentLayout(HWND hwnd, RECT& client)
 
 ////////////////////////////////////////////////////////////////////////////////
 // 视图
-// 只管缩放和拖动，不改格子里的 0 和 1。
+// 只管缩放、拖动，以及让原点停在屏幕原处。不改格子里的 0 和 1。
 ////////////////////////////////////////////////////////////////////////////////
 
 // 第一次有足够大的棋盘时，把整张图放进中央。
@@ -329,6 +428,33 @@ void ZoomAt(POINT cursor, const RECT& board, int notches)
 	gApp.zoom = zoom;
 	gApp.originX = static_cast<int>(std::lround(static_cast<double>(localX) - cellX * zoom));
 	gApp.originY = static_cast<int>(std::lround(static_cast<double>(localY) - cellY * zoom));
+}
+
+// 以棋盘中心为基准改一档缩放。notches 为正是放大，和滚轮一格相同。
+void ZoomStep(HWND hwnd, int notches)
+{
+	RECT client{};
+	const Layout layout = CurrentLayout(hwnd, client);
+	const POINT center{
+		(layout.board.left + layout.board.right) / 2,
+		(layout.board.top + layout.board.bottom) / 2
+	};
+	ZoomAt(center, layout.board, notches);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 当前放大百分比。一格一个屏幕像素是 100%。
+int ZoomPercent()
+{
+	return gApp.zoom * 100;
+}
+
+// 左或上的格数变了之后，把视图反着挪，让原点 (0,0) 仍画在原来的屏幕位置。
+// beforeLeft、beforeUp 是改图前往左、往上的格数。
+void HoldOrigin(int beforeLeft, int beforeUp)
+{
+	gApp.originX += (beforeLeft - gApp.sheet.Left()) * gApp.zoom;
+	gApp.originY += (beforeUp - gApp.sheet.Up()) * gApp.zoom;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -516,23 +642,42 @@ bool ViewBusy()
 	return gApp.painting || gApp.dragging;
 }
 
-// 撤销一步。栈空或视图正忙时画布不动。
+// 把当前四个方向的格数写回顶栏。定义在扩像素一节。撤销改了格数之后要刷新。
+void SyncExpandFields();
+
+// 撤销一步。栈空或视图正忙时画布不动。成功后四个数字框写回这一步各方向的格数。
 void DoUndo(HWND hwnd)
 {
-	if (ViewBusy() || !gApp.sheet.Undo())
+	if (ViewBusy())
 	{
 		return;
 	}
+	const int beforeLeft = gApp.sheet.Left();
+	const int beforeUp = gApp.sheet.Up();
+	if (!gApp.sheet.Undo())
+	{
+		return;
+	}
+	HoldOrigin(beforeLeft, beforeUp);
+	SyncExpandFields();
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-// 重做一步。栈空或视图正忙时画布不动。
+// 重做一步。栈空或视图正忙时画布不动。成功后四个数字框写回这一步各方向的格数。
 void DoRedo(HWND hwnd)
 {
-	if (ViewBusy() || !gApp.sheet.Redo())
+	if (ViewBusy())
 	{
 		return;
 	}
+	const int beforeLeft = gApp.sheet.Left();
+	const int beforeUp = gApp.sheet.Up();
+	if (!gApp.sheet.Redo())
+	{
+		return;
+	}
+	HoldOrigin(beforeLeft, beforeUp);
+	SyncExpandFields();
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
@@ -566,8 +711,220 @@ void RunCommand(HWND hwnd, Command command)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// 四向扩像素
+// 原点固定在 (0,0)。顶栏四个数是从原点往左、右、上、下各有多少格。
+// 左、上是负方向，右、下是正方向。宽是左加右，高是上加下。
+// 数变大就在那一侧加空格，变小就裁掉那一侧。最小是 0。和现在一样，或宽高超过 1024，则不动。
+////////////////////////////////////////////////////////////////////////////////
+
+// 读一个数字框。edit 是框。value 写出非负整数。空着或不是整数则返回 false。
+bool ReadSide(HWND edit, int& value)
+{
+	if (edit == nullptr)
+	{
+		return false;
+	}
+	wchar_t text[16]{};
+	GetWindowTextW(edit, text, 16);
+	if (text[0] == 0)
+	{
+		return false;
+	}
+	long long number = 0;
+	for (const wchar_t* p = text; *p != 0; ++p)
+	{
+		if (*p < L'0' || *p > L'9')
+		{
+			return false;
+		}
+		number = number * 10 + (*p - L'0');
+		if (number > 1000000)
+		{
+			return false;
+		}
+	}
+	value = static_cast<int>(number);
+	return true;
+}
+
+// 读出左、右、上、下。有一框读失败则整次作废。
+bool ReadExpandSides(int& left, int& right, int& up, int& down)
+{
+	return ReadSide(gApp.expandEdits[0], left)
+		&& ReadSide(gApp.expandEdits[1], right)
+		&& ReadSide(gApp.expandEdits[2], up)
+		&& ReadSide(gApp.expandEdits[3], down);
+}
+
+// 应用按钮现在点下去会不会改画布。
+bool ExpandEnabled()
+{
+	if (ViewBusy())
+	{
+		return false;
+	}
+	int left = 0;
+	int right = 0;
+	int up = 0;
+	int down = 0;
+	if (!ReadExpandSides(left, right, up, down))
+	{
+		return false;
+	}
+	return gApp.sheet.CanSetSides(left, right, up, down);
+}
+
+// 把当前四个方向的格数写进数字框。内容和现在一样的框不动，免得光标乱跳。
+void SyncExpandFields()
+{
+	const int sides[4] = {
+		gApp.sheet.Left(),
+		gApp.sheet.Right(),
+		gApp.sheet.Up(),
+		gApp.sheet.Down()
+	};
+	for (int i = 0; i < 4; ++i)
+	{
+		if (gApp.expandEdits[i] == nullptr)
+		{
+			continue;
+		}
+		wchar_t next[16]{};
+		wsprintfW(next, L"%d", sides[i]);
+		wchar_t current[16]{};
+		GetWindowTextW(gApp.expandEdits[i], current, 16);
+		if (lstrcmpW(current, next) != 0)
+		{
+			SetWindowTextW(gApp.expandEdits[i], next);
+		}
+	}
+}
+
+// 按四个方向的格数重排。成功占一步撤销，原点停在原来的屏幕位置。写回框里，去掉多余的前导零。
+void DoExpand(HWND hwnd)
+{
+	if (ViewBusy())
+	{
+		return;
+	}
+	int left = 0;
+	int right = 0;
+	int up = 0;
+	int down = 0;
+	if (!ReadExpandSides(left, right, up, down) || !gApp.sheet.CanSetSides(left, right, up, down))
+	{
+		return;
+	}
+	const int beforeLeft = gApp.sheet.Left();
+	const int beforeUp = gApp.sheet.Up();
+	gApp.sheet.PushUndo();
+	if (!gApp.sheet.SetSides(left, right, up, down))
+	{
+		return;
+	}
+	HoldOrigin(beforeLeft, beforeUp);
+	SyncExpandFields();
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 数字框的消息。回车执行应用。Ctrl+Z、Ctrl+Y 仍交给主窗口撤销和重做。
+LRESULT CALLBACK ExpandEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (msg == WM_KEYDOWN)
+	{
+		const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+		if (wParam == VK_RETURN)
+		{
+			DoExpand(GetParent(hwnd));
+			return 0;
+		}
+		if (ctrl && (wParam == 'Z' || wParam == 'Y'))
+		{
+			SendMessageW(GetParent(hwnd), WM_KEYDOWN, wParam, lParam);
+			return 0;
+		}
+	}
+	return CallWindowProcW(gApp.expandEditProc, hwnd, msg, wParam, lParam);
+}
+
+// 把四个数字框挪到顶栏当前的位置。
+void PlaceExpandEdits(HWND hwnd)
+{
+	RECT client{};
+	const Layout layout = CurrentLayout(hwnd, client);
+	const ExpandBar bar = MakeExpandBar(layout.top);
+	for (int i = 0; i < 4; ++i)
+	{
+		if (gApp.expandEdits[i] == nullptr)
+		{
+			continue;
+		}
+		const RECT& rect = bar.edits[i];
+		MoveWindow(gApp.expandEdits[i], rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+	}
+}
+
+// 创建四个数字框。instance 用来挂到主窗口上。
+void CreateExpandEdits(HWND hwnd, HINSTANCE instance)
+{
+	gApp.fieldFont = CreateFontW(
+		-16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+		DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei");
+	gApp.editBrush = CreateSolidBrush(RGB(32, 32, 36));
+	for (int i = 0; i < 4; ++i)
+	{
+		gApp.expandEdits[i] = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_CENTER | WS_BORDER,
+			0,
+			0,
+			0,
+			0,
+			hwnd,
+			nullptr,
+			instance,
+			nullptr);
+		if (gApp.expandEdits[i] == nullptr)
+		{
+			continue;
+		}
+		SendMessageW(gApp.expandEdits[i], EM_LIMITTEXT, 8, 0);
+		if (gApp.fieldFont != nullptr)
+		{
+			SendMessageW(gApp.expandEdits[i], WM_SETFONT, reinterpret_cast<WPARAM>(gApp.fieldFont), FALSE);
+		}
+		const auto previous = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(
+			gApp.expandEdits[i], GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(ExpandEditProc)));
+		if (gApp.expandEditProc == nullptr)
+		{
+			gApp.expandEditProc = previous;
+		}
+	}
+	PlaceExpandEdits(hwnd);
+	SyncExpandFields();
+}
+
+// 关掉窗口时释放顶栏数字框用过的字体和底色。
+void ReleaseExpandUi()
+{
+	if (gApp.fieldFont != nullptr)
+	{
+		DeleteObject(gApp.fieldFont);
+		gApp.fieldFont = nullptr;
+	}
+	if (gApp.editBrush != nullptr)
+	{
+		DeleteObject(gApp.editBrush);
+		gApp.editBrush = nullptr;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // 画面
-// 把四块区域、棋盘和左栏按钮画出来。
+// 把四块区域、棋盘、左栏按钮、顶栏扩像素和放大百分比画出来。
 ////////////////////////////////////////////////////////////////////////////////
 
 // 画中央棋盘。board 是棋盘在客户区里的矩形。
@@ -650,6 +1007,58 @@ void PaintToolBar(HDC dc, const RECT& tool)
 	RestoreDC(dc, clip);
 }
 
+// 画顶栏的方向文字和应用按钮。数字框是子窗口，自己画字。top 是顶栏矩形。
+void PaintExpandBar(HDC dc, const RECT& top)
+{
+	const ExpandBar bar = MakeExpandBar(top);
+	const int clip = SaveDC(dc);
+	IntersectClipRect(dc, top.left, top.top, top.right, top.bottom);
+	SetBkMode(dc, TRANSPARENT);
+	SetTextColor(dc, RGB(230, 230, 230));
+	HGDIOBJ old = nullptr;
+	if (gApp.fieldFont != nullptr)
+	{
+		old = SelectObject(dc, gApp.fieldFont);
+	}
+	for (int i = 0; i < 4; ++i)
+	{
+		RECT text = bar.labels[i];
+		DrawTextW(dc, kExpandLabels[i], -1, &text, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+	}
+	if (gApp.fieldFont != nullptr)
+	{
+		SelectObject(dc, old);
+	}
+	DrawButton(dc, bar.apply, L"应用", false, ExpandEnabled());
+	RestoreDC(dc, clip);
+}
+
+// 画顶栏右侧的缩小、百分数和放大。top 是顶栏矩形。
+void PaintZoomBar(HDC dc, const RECT& top)
+{
+	const ZoomBar bar = MakeZoomBar(top);
+	const int clip = SaveDC(dc);
+	IntersectClipRect(dc, top.left, top.top, top.right, top.bottom);
+	DrawButton(dc, bar.out, L"-", false, gApp.zoom > kZoomMin);
+	DrawButton(dc, bar.in, L"+", false, gApp.zoom < kZoomMax);
+	SetBkMode(dc, TRANSPARENT);
+	SetTextColor(dc, RGB(230, 230, 230));
+	HGDIOBJ old = nullptr;
+	if (gApp.fieldFont != nullptr)
+	{
+		old = SelectObject(dc, gApp.fieldFont);
+	}
+	wchar_t text[16]{};
+	wsprintfW(text, L"%d%%", ZoomPercent());
+	RECT percent = bar.percent;
+	DrawTextW(dc, text, -1, &percent, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+	if (gApp.fieldFont != nullptr)
+	{
+		SelectObject(dc, old);
+	}
+	RestoreDC(dc, clip);
+}
+
 // 给四块区域画边。
 void PaintFrames(HDC dc, const Layout& layout)
 {
@@ -672,6 +1081,8 @@ void Paint(HDC dc, const RECT& client)
 	Fill(dc, layout.side, RGB(42, 42, 46));
 	PaintBoard(dc, layout.board);
 	PaintToolBar(dc, layout.tool);
+	PaintExpandBar(dc, layout.top);
+	PaintZoomBar(dc, layout.top);
 	PaintFrames(dc, layout);
 }
 
@@ -698,7 +1109,7 @@ void PaintWindow(HWND hwnd)
 
 ////////////////////////////////////////////////////////////////////////////////
 // 窗口消息
-// 把输入分给视图、落笔和命令。这里不直接改格子。
+// 把输入分给视图、落笔、命令和扩像素。这里不直接改格子。
 ////////////////////////////////////////////////////////////////////////////////
 
 // 滚轮缩放。光标要在棋盘上。
@@ -714,12 +1125,36 @@ bool OnMouseWheel(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	return true;
 }
 
-// 左键按下。点到命令或工具就执行；点到棋盘就开始一笔。
+// 客户区尺寸变了，数字框跟着顶栏挪。
+void OnSize(HWND hwnd)
+{
+	PlaceExpandEdits(hwnd);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 左键按下。点到放大、缩小、应用、命令或工具就执行；点到棋盘就开始一笔。
 bool OnLeftDown(HWND hwnd, LPARAM lParam)
 {
 	const POINT cursor{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 	RECT client{};
 	const Layout layout = CurrentLayout(hwnd, client);
+	const ZoomBar zoom = MakeZoomBar(layout.top);
+	if (Contains(zoom.out, cursor))
+	{
+		ZoomStep(hwnd, -1);
+		return true;
+	}
+	if (Contains(zoom.in, cursor))
+	{
+		ZoomStep(hwnd, 1);
+		return true;
+	}
+	const ExpandBar expand = MakeExpandBar(layout.top);
+	if (Contains(expand.apply, cursor))
+	{
+		DoExpand(hwnd);
+		return true;
+	}
 	const ToolBar bar = MakeToolBar(layout.tool);
 	for (int i = 0; i < 3; ++i)
 	{
@@ -870,8 +1305,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		PaintWindow(hwnd);
 		return 0;
 	case WM_SIZE:
-		InvalidateRect(hwnd, nullptr, FALSE);
+		OnSize(hwnd);
 		return 0;
+	case WM_COMMAND:
+		if (HIWORD(wParam) == EN_CHANGE)
+		{
+			InvalidateRect(hwnd, nullptr, FALSE);
+			return 0;
+		}
+		break;
+	case WM_CTLCOLOREDIT:
+	{
+		if (gApp.editBrush == nullptr)
+		{
+			break;
+		}
+		const HDC editDc = reinterpret_cast<HDC>(wParam);
+		SetTextColor(editDc, RGB(230, 230, 230));
+		SetBkColor(editDc, RGB(32, 32, 36));
+		return reinterpret_cast<LRESULT>(gApp.editBrush);
+	}
+	case WM_NCDESTROY:
+		ReleaseExpandUi();
+		break;
 	case WM_MOUSEWHEEL:
 		if (OnMouseWheel(hwnd, wParam, lParam))
 		{
@@ -961,7 +1417,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show)
 		0,
 		kWindowClass,
 		L"IconDrawer",
-		WS_OVERLAPPEDWINDOW,
+		WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		960,
@@ -975,6 +1431,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show)
 		return -1;
 	}
 
+	CreateExpandEdits(hwnd, instance);
 	ShowWindow(hwnd, show);
 	UpdateWindow(hwnd);
 
