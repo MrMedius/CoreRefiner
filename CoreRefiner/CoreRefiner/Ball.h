@@ -33,19 +33,17 @@ class Ball : public Attack
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 	}
 
-	// Sync host scale and sphere radius (pool-safe; unit scale ⇒ radius 1).
-	// scale Local visual scale (uniform intended; radius = max component).
-	// enableCollider Whether the sphere collider is active after apply.
+	// 记下缩放，以及组装想要的碰撞开关。
+	// scale 视觉缩放（半径取三分量最大者）。
+	// enableCollider 记到 colliderWanted_。未出生时碰撞仍保持关闭。
 	void ApplyPresentation(XMFLOAT3 scale, bool enableCollider = true)
 	{
 		SetSize(scale);
+		colliderWanted_ = enableCollider;
 		if (pCollider_ != nullptr)
 		{
-			const float radius = (scale.x > scale.y)
-				? ((scale.x > scale.z) ? scale.x : scale.z)
-				: ((scale.y > scale.z) ? scale.y : scale.z);
-			pCollider_->SetRadius(radius);
-			pCollider_->SetEnabled(enableCollider);
+			pCollider_->SetRadius(MaxScaleComponent(scale));
+			pCollider_->SetEnabled(colliderWanted_ && IsLaunched());
 			pCollider_->SyncFromOwner();
 		}
 	}
@@ -69,10 +67,9 @@ class Ball : public Attack
 		ResetMoveVelocity();
 		lastTime = 0.0f;
 
-		if (pCollider_ != nullptr)
-		{
-			pCollider_->SyncFromOwner();
-		}
+		// 先记为已出生，再按组装时想要的开关写入碰撞。之后 ArmModules 里的公转可以再关掉。
+		MarkLaunched();
+		OpenColliderForLaunch_();
 
 		const float assembled = MaxScaleComponent(GetSize());
 		Stats().size.base = (assembled > 0.0f) ? assembled : 1.0f;
@@ -83,8 +80,8 @@ class Ball : public Attack
 
 		SetMoveAccel((V(GetMoveAccel()) * Stats().speed.Final()).ToFloat3());
 		const float sz = Stats().size.Final();
-		const bool colOn = (pCollider_ != nullptr) ? pCollider_->IsEnabled() : true;
-		ApplyPresentation({ sz, sz, sz }, colOn);
+		// 只刷新缩放和半径。碰撞开关已经由出生和模块决定。
+		ApplyScaleKeepCollider_({ sz, sz, sz });
 
 		std::vector<Attack*> kids;
 		kids.reserve(GetChildCount());
@@ -100,10 +97,13 @@ class Ball : public Attack
 		{
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;
+			// 子弹同样先出生，再按想要的开关写入碰撞，然后才 ArmModules。
+			childAtk->MarkLaunched();
 			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
 			{
 				const float childAssembled = MaxScaleComponent(childBall->GetSize());
 				childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
+				childBall->OpenColliderForLaunch_();
 			}
 			childAtk->ArmModules();
 			childAtk->SetLifeTime(childAtk->Stats().lifetime.Final());
@@ -125,10 +125,7 @@ class Ball : public Attack
 					childBall->SetMoveAccel({ 0.0f, 0.0f, 0.0f });
 				}
 				const float childSz = childBall->Stats().size.Final();
-				const bool childColOn = (childBall->pCollider_ != nullptr)
-					? childBall->pCollider_->IsEnabled()
-					: true;
-				childBall->ApplyPresentation({ childSz, childSz, childSz }, childColOn);
+				childBall->ApplyScaleKeepCollider_({ childSz, childSz, childSz });
 			}
 		}
 	}
@@ -181,5 +178,30 @@ class Ball : public Attack
 		}
 	}
 private:
+	// 按 colliderWanted_ 写入碰撞开关。须在 MarkLaunched 之后、ArmModules 之前调用。
+	void OpenColliderForLaunch_()
+	{
+		if (pCollider_ == nullptr)
+		{
+			return;
+		}
+		pCollider_->SetEnabled(colliderWanted_ && IsLaunched());
+		pCollider_->SyncFromOwner();
+	}
+
+	// 只改缩放和碰撞半径，不动碰撞开关。出生后模块可能已经改过开关。
+	void ApplyScaleKeepCollider_(XMFLOAT3 scale)
+	{
+		SetSize(scale);
+		if (pCollider_ == nullptr)
+		{
+			return;
+		}
+		pCollider_->SetRadius(MaxScaleComponent(scale));
+		pCollider_->SyncFromOwner();
+	}
+
 	SphereColliderComponent* pCollider_{ nullptr };
+	// 组装和出生流程想要的碰撞开关。真正开启还要等已出生。
+	bool colliderWanted_{ true };
 };

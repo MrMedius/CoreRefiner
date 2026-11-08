@@ -21,21 +21,18 @@ struct ScanSession
 	IModuleNode* lastSource{ nullptr };
 	std::vector<Attack*> committedShots;
 	std::size_t appliedTokenCount{ 0 };
-	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
-	DirectX::XMFLOAT3 aimVel{ 0.0f, 0.0f, 0.0f };
 };
 
-// One FireRoots submission produced by a finished scan session.
+// 一次扫描结束交出的一批根弹。工作台取走后交给 QueueRoots。
 struct FireBatch
 {
+	// 这一批还没出生的根弹。
 	std::vector<Attack*> roots;
-	DirectX::XMFLOAT3 pos{ 0.0f, 0.0f, 0.0f };
-	DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.0f };
 };
 
-// Parallel scan sessions driving independent DeployContexts.
-// FireRoots ownership remains with ModuleWorkbench via TakeAllPendingFires().
-// Session mutation during Update uses indices so Detach push_back cannot dangle refs.
+// 多条扫描各自带一份 DeployContext。
+// 根弹的所有权在工作台：TakeAllPendingFires 取出后交给 QueueRoots。
+// Update 里用下标改会话，避免 Detach 时 push_back 让引用失效。
 class ScanAssembler
 {
 public:
@@ -76,12 +73,12 @@ public:
 		return core != nullptr && core->IsReady();
 	}
 
+	// 开一次扫描。spawnPos 是组装时子弹的停放位置。player 交给复活等模块。
 	void Begin(
 		ModuleField& field,
 		Graphics& gfx,
 		Rgph::RenderGraph& rg,
 		DirectX::XMFLOAT3 spawnPos,
-		DirectX::XMFLOAT3 aimVel,
 		Player* player)
 	{
 		if (!CanStart(field))
@@ -102,8 +99,6 @@ public:
 		session.ctx.standby.rg = &rg;
 		session.ctx.standby.spawnPos = spawnPos;
 		session.ctx.standby.player = player;
-		session.spawnPos = spawnPos;
-		session.aimVel = aimVel;
 		session.pendingFire = false;
 		session.committedShots.clear();
 		session.appliedTokenCount = 0;
@@ -179,9 +174,9 @@ public:
 		}
 	}
 
-	// Abort all active scans: commit assembled shots for fire, cool down Ready nodes.
-	// Does not discard Attack*; caller should TakeAllPendingFires → FireRoots.
-	// Ready nodes enter cooldown so a Flush chain cannot resume the same frame.
+	// 中止所有正在进行的扫描：把已组装的弹交出去，并让 Ready 节点进冷却。
+	// 不回收 Attack*。调用方应 TakeAllPendingFires，再交给 QueueRoots。
+	// Ready 节点进入冷却，避免同一帧又接上这次扫描。
 	void ForceFinish(ModuleField& field)
 	{
 		ForceCommit();
@@ -207,8 +202,6 @@ public:
 			if (session.pendingFire)
 			{
 				FireBatch batch{};
-				batch.pos = session.spawnPos;
-				batch.vel = session.aimVel;
 				batch.roots.reserve(session.committedShots.size());
 				for (Attack* root : session.committedShots)
 				{
@@ -420,8 +413,6 @@ private:
 
 		ScanSession& session = sessions_[sessionIndex];
 		ScanSession fireOnly{};
-		fireOnly.spawnPos = session.spawnPos;
-		fireOnly.aimVel = session.aimVel;
 		fireOnly.active = false;
 		fireOnly.committedShots.clear();
 		for (Attack* root : session.ctx.shots)

@@ -21,33 +21,6 @@
 
 #include <array>
 #include <string>
-#include <vector>
-
-namespace
-{
-	// 仓内占用节点对 atk 调用 ApplyWarehouseBonus。
-	void ApplyWarehouseBonuses(ModuleWarehouse& warehouse, Attack& atk)
-	{
-		warehouse.ForEach([&](IModuleNode& node)
-		{
-			node.ApplyWarehouseBonus(atk);
-		});
-	}
-
-	// 开火前拍平主体与子弹（公转弹随后会卸父子，仍要吃到仓被动）。
-	void CollectAttackTree(Attack* atk, std::vector<Attack*>& out)
-	{
-		if (atk == nullptr)
-		{
-			return;
-		}
-		out.push_back(atk);
-		for (std::size_t i = 0; i < atk->GetChildCount(); ++i)
-		{
-			CollectAttackTree(dynamic_cast<Attack*>(atk->GetChild(i)), out);
-		}
-	}
-}
 
 ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
@@ -569,6 +542,14 @@ void ModuleWorkbench::SubmitPrep()
 
 // 战斗。冷却、扫描、开火，以及把扫描波交给场。
 
+void ModuleWorkbench::ApplyWarehouseBonuses(Attack& atk)
+{
+	warehouse_.ForEach([&](IModuleNode& node)
+	{
+		node.ApplyWarehouseBonus(atk);
+	});
+}
+
 void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 {
 	field_.TickAllCooldowns(dt);
@@ -577,7 +558,7 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
 	auto& input = InputCodex::Get();
 
-	// RMB: force-finish scans and arm all pending shots (same-frame Take fires them).
+	// 右键强制结束扫描。交出后入队连发。
 	if (input.MouseRightTriggered())
 	{
 		assembler_.ForceFinish(field_);
@@ -585,12 +566,7 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	else if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
 	{
 		const DirectX::XMFLOAT3 spawnPos = player->GetPosition();
-		DirectX::XMFLOAT3 aimVel{ 0.0f, 0.0f, 0.05f };
-		if (attackManager != nullptr)
-		{
-			attackManager->TryGetAimVelocity(spawnPos, aimVel);
-		}
-		assembler_.Begin(field_, gfx_, rg_, spawnPos, aimVel, player);
+		assembler_.Begin(field_, gfx_, rg_, spawnPos, player);
 	}
 
 	assembler_.Update(dt, field_);
@@ -598,44 +574,10 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 	// Only TakeAllPendingFires erases sessions; keep Update → Take → draw order.
 	for (FireBatch& batch : assembler_.TakeAllPendingFires())
 	{
-		if (attackManager != nullptr && player != nullptr)
+		// 交给连发队列。位置和准星在放出时再取。没有管理器就回收。
+		if (attackManager != nullptr)
 		{
-			// 公转弹在 SpawnAt 里会卸下父子。每棵树在放出前拍平，卸下之后就走不到了。
-			// firedRoots 与 trees 下标对齐。回调按刚放出的根弹找到自己那一棵。
-			std::vector<Attack*> firedRoots;
-			std::vector<std::vector<Attack*>> trees;
-			firedRoots.reserve(batch.roots.size());
-			trees.reserve(batch.roots.size());
-			for (Attack* root : batch.roots)
-			{
-				std::vector<Attack*> tree;
-				CollectAttackTree(root, tree);
-				firedRoots.push_back(root);
-				trees.push_back(std::move(tree));
-			}
-
-			const DirectX::XMFLOAT3 pos = player->GetPosition();
-			DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
-			attackManager->TryGetAimVelocity(pos, vel);
-			// 回调要留到真正出生之后。firedRoots、trees 按值拷进回调，不能抓本帧的局部变量。
-			attackManager->FireRoots(batch.roots, pos, vel, [this, firedRoots, trees](Attack* fired)
-			{
-				// 出生已经清过数值修正。只给这一颗根弹的树补仓库加成。
-				for (std::size_t i = 0; i < firedRoots.size(); ++i)
-				{
-					if (firedRoots[i] != fired)
-					{
-						continue;
-					}
-					for (Attack* atk : trees[i])
-					{
-						if (atk != nullptr && atk->IsActive())
-						{
-							ApplyWarehouseBonuses(warehouse_, *atk);
-						}
-					}
-				}
-			});
+			attackManager->QueueRoots(batch.roots);
 		}
 		else
 		{

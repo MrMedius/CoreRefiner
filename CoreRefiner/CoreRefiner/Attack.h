@@ -58,6 +58,8 @@ public:
 		stats_.ResetMods();
 		awaitingManagerAdopt_ = false;
 		launchPosLocked_ = false;
+		// 回到未出生。下次组装时碰撞保持关闭，直到 SpawnAt。
+		launched_ = false;
 		assembledRecipe_.clear();
 		adoptLive_ = {};
 	}
@@ -76,11 +78,16 @@ public:
 	[[nodiscard]] AttackStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const AttackStats& Stats() const noexcept { return stats_; }
 
-	// 锁发射点；Return 等后续 Node 读，Revive 放弹时置位。本步 FireRoots 仍 SpawnAt。
+	// 锁发射点；Return 等后续 Node 读，Revive 放弹时置位。放出时仍 SpawnAt。
 	void SetLaunchPosLocked(bool locked) noexcept { launchPosLocked_ = locked; }
 	[[nodiscard]] bool IsLaunchPosLocked() const noexcept { return launchPosLocked_; }
 
-	// 登记「把停放弹纳入活体列表」的回调（FireRoots / AttackManager::AdoptLive 挂上）。
+	// 标记这颗弹已经出生。SpawnAt 在打开碰撞和 ArmModules 之前调用。
+	void MarkLaunched() noexcept { launched_ = true; }
+	// 是否已经出生。未出生时碰撞保持关闭。
+	[[nodiscard]] bool IsLaunched() const noexcept { return launched_; }
+
+	// 登记「把停放弹纳入活体列表」的回调（AttackManager::AdoptLive 挂上，QueueRoots 放出时会走到）。
 	void SetAdoptLive(std::function<void(Attack*)> fn)
 	{
 		adoptLive_ = std::move(fn);
@@ -251,6 +258,8 @@ private:
 	AttackStats stats_{};
 	bool awaitingManagerAdopt_{ false };
 	bool launchPosLocked_{ false };
+	// 是否已经 SpawnAt。池化 ClearModules 会清回未出生。
+	bool launched_{ false };
 	std::vector<AttackStepRecord> assembledRecipe_{};
 	std::function<void(Attack*)> adoptLive_{};
 

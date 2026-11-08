@@ -44,6 +44,14 @@ GameScene::GameScene(Window& wnd, SceneDirector& director, Rgph::GameRenderGraph
 	pEnemyManager_ = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG_);
 
 	moduleWorkbench_ = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG_);
+	// 每颗弹出生后补仓库加成。SpawnAt 会先清掉数值修正。
+	pAttackManager_->SetOnLaunched([this](Attack& atk)
+	{
+		if (moduleWorkbench_ != nullptr)
+		{
+			moduleWorkbench_->ApplyWarehouseBonuses(atk);
+		}
+	});
 	uiPrep_ = std::make_unique<UI_Prep>(*moduleWorkbench_);
 	uiPrep_->SetOnFight([this] {
 		// 拦截须在 EndLayoutEdit / RequestStartWave 之前，整理态才能把 Core 拖回场上

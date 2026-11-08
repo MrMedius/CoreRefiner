@@ -1,7 +1,6 @@
 #include "AttackManager.h"
 #include "ObjectCodex.h"
 #include "HierarchySpawn.h"
-#include "ColliderComponentBase.h"
 
 #include "InputCodex.h"
 #include "XMath.h"
@@ -21,6 +20,7 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx(gfx),
 	rg(rg)
 {
+	// 先记下玩家。放出时若空或已失效，再查一次。
 	pPlayer = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
 
 	HierarchySpawn::WarmupPool<Ball>(
@@ -105,16 +105,8 @@ void AttackManager::AdoptLive(Attack* attack)
 	attack->SetAdoptLive([this](Attack* live) { AdoptLive(live); });
 }
 
-void AttackManager::FireRoots(
-	const std::vector<Attack*>& roots,
-	XMFLOAT3 pos,
-	XMFLOAT3 vel,
-	const std::function<void(Attack*)>& onFired)
+void AttackManager::QueueRoots(const std::vector<Attack*>& roots)
 {
-	// 放出时改读当下的位置和准星，这里的出生点不再使用。
-	(void)pos;
-	(void)vel;
-
 	// wasEmpty 为真且离上一颗已经够久时，这一批的第一颗当帧就放。
 	const bool wasEmpty = pendingShots_.empty();
 	for (Attack* root : roots)
@@ -125,8 +117,7 @@ void AttackManager::FireRoots(
 		}
 		PendingShot shot{};
 		shot.root = root;
-		shot.onFired = onFired;
-		MuteColliders_(root, shot.colliderRestore);
+		CollectAttackTree(root, shot.tree);
 		pendingShots_.push_back(std::move(shot));
 	}
 	if (wasEmpty && sinceLastFire_ >= GameRulesCodex::FireInterval)
@@ -151,7 +142,15 @@ void AttackManager::Update(float dt)
 
 	// 先更新已经在飞的弹，再放下一颗，避免新弹在出生的同一帧再走一步。
 	sinceLastFire_ += dt;
-	if (sinceLastFire_ >= GameRulesCodex::FireInterval)
+	if (pendingShots_.empty())
+	{
+		// 空队列封顶在一个间隔，下一颗入队可以当帧放出。
+		if (sinceLastFire_ > GameRulesCodex::FireInterval)
+		{
+			sinceLastFire_ = GameRulesCodex::FireInterval;
+		}
+	}
+	else if (sinceLastFire_ >= GameRulesCodex::FireInterval)
 	{
 		ReleaseNextShot_();
 	}
@@ -166,7 +165,12 @@ void AttackManager::ReleaseNextShot_()
 
 	PendingShot shot = std::move(pendingShots_.front());
 	pendingShots_.pop_front();
-	sinceLastFire_ = 0.0f;
+	// 扣掉一个间隔。多出来的时间留给下一颗，平均间隔不再被帧长拉长。
+	sinceLastFire_ -= GameRulesCodex::FireInterval;
+	if (sinceLastFire_ < 0.0f)
+	{
+		sinceLastFire_ = 0.0f;
+	}
 
 	Attack* root = shot.root;
 	if (root == nullptr || !root->IsActive())
@@ -174,56 +178,44 @@ void AttackManager::ReleaseNextShot_()
 		return;
 	}
 
-	// player 是这一刻还在场上的玩家。没有就回收，不出生。
-	Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
-	if (player == nullptr)
+	// 缓存失效时再找。找不到就回收这一颗，不出生。
+	if (pPlayer == nullptr || !pPlayer->IsActive())
+	{
+		pPlayer = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
+	}
+	if (pPlayer == nullptr)
 	{
 		root->Deactivate();
 		return;
 	}
 
-	const DirectX::XMFLOAT3 pos = player->GetPosition();
+	const DirectX::XMFLOAT3 pos = pPlayer->GetPosition();
 	DirectX::XMFLOAT3 vel{ 0.0f, 0.0f, 0.05f };
 	TryGetAimVelocity(pos, vel);
 	AdoptLive(root);
 	root->SpawnAt(pos, vel);
-	// 排队时关过的碰撞重新打开。出生流程会按关掉的状态再写一次，所以放在 SpawnAt 之后。
-	for (Attack* atk : shot.colliderRestore)
+	if (onLaunched_)
 	{
-		if (atk == nullptr || !atk->IsActive())
+		for (Attack* atk : shot.tree)
 		{
-			continue;
-		}
-		if (ColliderComponentBase* col = atk->GetComponent<ColliderComponentBase>())
-		{
-			col->SetEnabled(true);
-			col->SyncFromOwner();
+			if (atk != nullptr && atk->IsActive())
+			{
+				onLaunched_(*atk);
+			}
 		}
 	}
-	if (shot.onFired)
-	{
-		shot.onFired(root);
-	}
-	playerRemote++;
 }
 
-void AttackManager::MuteColliders_(Attack* attack, std::vector<Attack*>& restore)
+void AttackManager::CollectAttackTree(Attack* atk, std::vector<Attack*>& out)
 {
-	if (attack == nullptr)
+	if (atk == nullptr)
 	{
 		return;
 	}
-	if (ColliderComponentBase* col = attack->GetComponent<ColliderComponentBase>())
+	out.push_back(atk);
+	for (std::size_t i = 0; i < atk->GetChildCount(); ++i)
 	{
-		if (col->IsEnabled())
-		{
-			col->SetEnabled(false);
-			restore.push_back(attack);
-		}
-	}
-	for (std::size_t i = 0; i < attack->GetChildCount(); ++i)
-	{
-		MuteColliders_(dynamic_cast<Attack*>(attack->GetChild(i)), restore);
+		CollectAttackTree(dynamic_cast<Attack*>(atk->GetChild(i)), out);
 	}
 }
 
@@ -274,5 +266,4 @@ void AttackManager::Reset(void)
 	}
 
 	attacks.clear();
-	playerRemote = 0;
 }
