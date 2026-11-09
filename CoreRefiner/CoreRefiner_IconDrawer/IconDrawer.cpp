@@ -86,6 +86,10 @@ struct App
 {
 	IconSheet sheet{};
 	int zoom{ 16 };
+	// 100% 时一格占多少屏幕像素。显示百分数 = 格子像素 * 100 / zoomBase。
+	int zoomBase{ 32 };
+	// 顶栏上显示的百分数。加减按它取整十，不从格子像素反推。
+	int shownPercent{ 100 };
 	// 缓冲区第一格的横坐标。往左加格时它会左移，好让原点停住。
 	int originX{ 0 };
 	// 缓冲区第一格的纵坐标。往上加格时它会上移，好让原点停住。
@@ -394,21 +398,20 @@ void PlaceView(const RECT& board)
 		zoom = 32;
 	}
 	gApp.zoom = zoom;
+	gApp.shownPercent = gApp.zoomBase > 0 ? zoom * 100 / gApp.zoomBase : 100;
 	gApp.originX = (boardW - gApp.sheet.Width() * zoom) / 2;
 	gApp.originY = (boardH - gApp.sheet.Height() * zoom) / 2;
 	gApp.placed = true;
 }
 
-// 以光标所在的位置为中心改缩放。notches 为正是放大。
-void ZoomAt(POINT cursor, const RECT& board, int notches)
+// 把缩放改到 zoom，并让光标下的格子留在原地。zoom 是一格的像素边长。
+void SetZoomAt(POINT cursor, const RECT& board, int zoom)
 {
-	if (notches == 0 || !Contains(board, cursor))
+	if (!Contains(board, cursor))
 	{
 		return;
 	}
 	PlaceView(board);
-	const int oldZoom = gApp.zoom;
-	int zoom = oldZoom + notches;
 	if (zoom < kZoomMin)
 	{
 		zoom = kZoomMin;
@@ -417,7 +420,8 @@ void ZoomAt(POINT cursor, const RECT& board, int notches)
 	{
 		zoom = kZoomMax;
 	}
-	if (zoom == oldZoom)
+	const int oldZoom = gApp.zoom;
+	if (zoom == oldZoom || oldZoom <= 0)
 	{
 		return;
 	}
@@ -430,23 +434,112 @@ void ZoomAt(POINT cursor, const RECT& board, int notches)
 	gApp.originY = static_cast<int>(std::lround(static_cast<double>(localY) - cellY * zoom));
 }
 
-// 以棋盘中心为基准改一档缩放。notches 为正是放大，和滚轮一格相同。
-void ZoomStep(HWND hwnd, int notches)
+// 以光标所在的位置为中心改缩放。notches 为正是放大，一格像素一档。改完把百分数按像素算回显示。
+void ZoomAt(POINT cursor, const RECT& board, int notches)
 {
+	if (notches == 0 || !Contains(board, cursor))
+	{
+		return;
+	}
+	PlaceView(board);
+	int zoom = gApp.zoom + notches;
+	if (zoom < kZoomMin)
+	{
+		zoom = kZoomMin;
+	}
+	if (zoom > kZoomMax)
+	{
+		zoom = kZoomMax;
+	}
+	if (zoom == gApp.zoom)
+	{
+		return;
+	}
+	SetZoomAt(cursor, board, zoom);
+	if (gApp.zoomBase > 0)
+	{
+		gApp.shownPercent = gApp.zoom * 100 / gApp.zoomBase;
+	}
+}
+
+// 把百分数收到整十。dir 为 1 是放大，为 -1 是缩小。已经是整十就再走 10。
+int SnapTen(int percent, int dir)
+{
+	if (percent % 10 == 0)
+	{
+		return percent + dir * 10;
+	}
+	if (dir > 0)
+	{
+		return (percent / 10 + 1) * 10;
+	}
+	return (percent / 10) * 10;
+}
+
+// 百分数换成格子像素，四舍五入，并限制在 1 到 64。
+int ZoomFromPercent(int percent)
+{
+	if (gApp.zoomBase <= 0)
+	{
+		return gApp.zoom;
+	}
+	int zoom = (percent * gApp.zoomBase + 50) / 100;
+	if (zoom < kZoomMin)
+	{
+		zoom = kZoomMin;
+	}
+	if (zoom > kZoomMax)
+	{
+		zoom = kZoomMax;
+	}
+	return zoom;
+}
+
+// 这一档整十还能不能再走。dir 为 1 是放大，为 -1 是缩小。
+bool CanZoomStep(int dir)
+{
+	const int sign = dir > 0 ? 1 : -1;
+	const int next = SnapTen(gApp.shownPercent, sign);
+	if (next <= 0)
+	{
+		return false;
+	}
+	const int zoom = ZoomFromPercent(next);
+	if (sign > 0 && gApp.zoom >= kZoomMax && zoom >= kZoomMax)
+	{
+		return false;
+	}
+	if (sign < 0 && gApp.zoom <= kZoomMin && zoom <= kZoomMin)
+	{
+		return false;
+	}
+	return true;
+}
+
+// 以棋盘中心为基准，把显示百分数收到下一档整十。dir 为 1 是放大，为 -1 是缩小。
+void ZoomStep(HWND hwnd, int dir)
+{
+	if (!CanZoomStep(dir))
+	{
+		return;
+	}
+	const int sign = dir > 0 ? 1 : -1;
+	const int next = SnapTen(gApp.shownPercent, sign);
 	RECT client{};
 	const Layout layout = CurrentLayout(hwnd, client);
 	const POINT center{
 		(layout.board.left + layout.board.right) / 2,
 		(layout.board.top + layout.board.bottom) / 2
 	};
-	ZoomAt(center, layout.board, notches);
+	SetZoomAt(center, layout.board, ZoomFromPercent(next));
+	gApp.shownPercent = next;
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-// 当前放大百分比。一格一个屏幕像素是 100%。
+// 顶栏要画的百分数。这是显示值，不是从格子像素反推的值。
 int ZoomPercent()
 {
-	return gApp.zoom * 100;
+	return gApp.shownPercent;
 }
 
 // 左或上的格数变了之后，把视图反着挪，让原点 (0,0) 仍画在原来的屏幕位置。
@@ -1039,8 +1132,8 @@ void PaintZoomBar(HDC dc, const RECT& top)
 	const ZoomBar bar = MakeZoomBar(top);
 	const int clip = SaveDC(dc);
 	IntersectClipRect(dc, top.left, top.top, top.right, top.bottom);
-	DrawButton(dc, bar.out, L"-", false, gApp.zoom > kZoomMin);
-	DrawButton(dc, bar.in, L"+", false, gApp.zoom < kZoomMax);
+	DrawButton(dc, bar.out, L"-", false, CanZoomStep(-1));
+	DrawButton(dc, bar.in, L"+", false, CanZoomStep(1));
 	SetBkMode(dc, TRANSPARENT);
 	SetTextColor(dc, RGB(230, 230, 230));
 	HGDIOBJ old = nullptr;
