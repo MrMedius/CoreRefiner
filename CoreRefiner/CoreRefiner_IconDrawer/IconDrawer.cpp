@@ -173,6 +173,18 @@ struct App
 	wchar_t textPath[MAX_PATH]{};
 	// 上次保存的黑白 BMP 完整路径。下一次文件框从这里接着选。
 	wchar_t bmpPath[MAX_PATH]{};
+	// 右侧 01 有没有一块选区。点中一格也算有，这一格是粘贴起点。
+	bool textSelect{ false };
+	// 正在按住拖选区。松开后按起止格子定下来。
+	bool textSelecting{ false };
+	// 选区按下那一头的缓冲区列号。拖动时这头不动。
+	int selectX0{ 0 };
+	// 选区按下那一头的缓冲区行号。
+	int selectY0{ 0 };
+	// 选区另一头的缓冲区列号。拖动时跟着鼠标。
+	int selectX1{ 0 };
+	// 选区另一头的缓冲区行号。
+	int selectY1{ 0 };
 };
 
 // 整个程序只有这一份图和视图。
@@ -1228,14 +1240,17 @@ bool CommandEnabled(Command command)
 	return false;
 }
 
-// 正在落笔或拖动时，不插入另一次改图。
+// 正在落笔、拖动或拖选区时，不插入另一次改图。
 bool ViewBusy()
 {
-	return gApp.painting || gApp.dragging;
+	return gApp.painting || gApp.dragging || gApp.textSelecting;
 }
 
 // 把当前四个方向的格数写回顶栏。定义在扩像素一节。撤销改了格数之后要刷新。
 void SyncExpandFields();
+
+// 取消右侧 01 的选区。定义在选区一节。打开、扩展、撤销之后旧格子对不上。
+void ClearTextSelect();
 
 // 撤销一步。栈空或视图正忙时画布不动。成功后四个数字框写回这一步各方向的格数。
 void DoUndo(HWND hwnd)
@@ -1251,6 +1266,7 @@ void DoUndo(HWND hwnd)
 		return;
 	}
 	HoldOrigin(beforeLeft, beforeUp);
+	ClearTextSelect();
 	SyncExpandFields();
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
@@ -1269,6 +1285,7 @@ void DoRedo(HWND hwnd)
 		return;
 	}
 	HoldOrigin(beforeLeft, beforeUp);
+	ClearTextSelect();
 	SyncExpandFields();
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
@@ -1415,12 +1432,14 @@ void DoExpand(HWND hwnd)
 		return;
 	}
 	HoldOrigin(beforeLeft, beforeUp);
+	ClearTextSelect();
 	SyncExpandFields();
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
 // 数字框的消息。回车执行应用。Ctrl+Z、Ctrl+Y 仍交给主窗口撤销和恢复。
-// Ctrl+Tab 交给主窗口开关标尺。1、2、3、-、+、= 留在框里填格数，不切工具，也不缩放。
+// Ctrl+Tab 交给主窗口开关标尺。Ctrl+C、Ctrl+V 留在框里复制和粘贴数字。
+// 1、2、3、-、+、= 留在框里填格数，不切工具，也不缩放。
 LRESULT CALLBACK ExpandEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (msg == WM_KEYDOWN)
@@ -1799,6 +1818,7 @@ void OpenText(HWND hwnd)
 	}
 	lstrcpynW(gApp.textPath, path, MAX_PATH);
 	HoldOrigin(beforeLeft, beforeUp);
+	ClearTextSelect();
 	SyncExpandFields();
 	PlaceSideScroll(hwnd);
 	InvalidateRect(hwnd, nullptr, FALSE);
@@ -1924,6 +1944,277 @@ void SaveBmp(HWND hwnd)
 		return;
 	}
 	lstrcpynW(gApp.bmpPath, path, MAX_PATH);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 选区、复制和粘贴
+// 在右侧 01 上拖一块矩形。点中一格也留下，当作粘贴起点。
+// Ctrl+C 把选区写成和保存一样的文本。没有选区时复制整张图。
+// Ctrl+V 从选区左上角写入。右边或下边不够，就只往那一侧加长。
+////////////////////////////////////////////////////////////////////////////////
+
+// 取消右侧 01 的选区。拖到一半也停下。
+void ClearTextSelect()
+{
+	gApp.textSelect = false;
+	gApp.textSelecting = false;
+}
+
+// 在右侧 01 上开始拖选区。x、y 是按下的缓冲区格子。
+void BeginTextSelect(int x, int y)
+{
+	gApp.textSelecting = true;
+	gApp.textSelect = true;
+	gApp.selectX0 = x;
+	gApp.selectY0 = y;
+	gApp.selectX1 = x;
+	gApp.selectY1 = y;
+}
+
+// 拖动时改选区的另一头。x、y 是当前格子。
+void DragTextSelect(int x, int y)
+{
+	if (!gApp.textSelecting)
+	{
+		return;
+	}
+	gApp.selectX1 = x;
+	gApp.selectY1 = y;
+}
+
+// 松开后留下矩形。只点中一格也留下，这一格就是以后粘贴的起点。
+void FinishTextSelect()
+{
+	gApp.textSelecting = false;
+}
+
+// 取出选区的外接矩形。x0、y0 是左上，x1、y1 是右下，四边都包含。没有选区则返回 false。
+bool TextSelection(int& x0, int& y0, int& x1, int& y1)
+{
+	if (!gApp.textSelect)
+	{
+		return false;
+	}
+	x0 = gApp.selectX0 < gApp.selectX1 ? gApp.selectX0 : gApp.selectX1;
+	x1 = gApp.selectX0 > gApp.selectX1 ? gApp.selectX0 : gApp.selectX1;
+	y0 = gApp.selectY0 < gApp.selectY1 ? gApp.selectY0 : gApp.selectY1;
+	y1 = gApp.selectY0 > gApp.selectY1 ? gApp.selectY0 : gApp.selectY1;
+	if (x0 < 0)
+	{
+		x0 = 0;
+	}
+	if (y0 < 0)
+	{
+		y0 = 0;
+	}
+	if (x1 >= gApp.sheet.Width())
+	{
+		x1 = gApp.sheet.Width() - 1;
+	}
+	if (y1 >= gApp.sheet.Height())
+	{
+		y1 = gApp.sheet.Height() - 1;
+	}
+	return x0 <= x1 && y0 <= y1;
+}
+
+// 把一块格子收成 01 文本。x0、y0、x1、y1 是包含在内的缓冲区范围。一行一排，行末是回车换行。
+std::wstring Build01Range(const IconSheet& sheet, int x0, int y0, int x1, int y1)
+{
+	const int width = x1 - x0 + 1;
+	const int height = y1 - y0 + 1;
+	// text 是要放进剪贴板的字符。每个格子一个 0 或 1。
+	std::wstring text;
+	text.reserve(static_cast<std::size_t>(height) * static_cast<std::size_t>(width + 2));
+	for (int y = y0; y <= y1; ++y)
+	{
+		for (int x = x0; x <= x1; ++x)
+		{
+			text.push_back(sheet.Get(x, y) ? L'1' : L'0');
+		}
+		text.push_back(L'\r');
+		text.push_back(L'\n');
+	}
+	return text;
+}
+
+// 把一段宽字符放进剪贴板。text 是要复制的内容。失败时剪贴板保持原样。
+bool CopyWideText(HWND hwnd, const std::wstring& text)
+{
+	if (text.empty() || !OpenClipboard(hwnd))
+	{
+		return false;
+	}
+	EmptyClipboard();
+	const SIZE_T bytes = (text.size() + 1) * sizeof(wchar_t);
+	// memory 交给系统保存。SetClipboardData 成功之后不再释放。
+	HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, bytes);
+	if (memory == nullptr)
+	{
+		CloseClipboard();
+		return false;
+	}
+	void* locked = GlobalLock(memory);
+	if (locked == nullptr)
+	{
+		GlobalFree(memory);
+		CloseClipboard();
+		return false;
+	}
+	std::memcpy(locked, text.c_str(), bytes);
+	GlobalUnlock(memory);
+	if (SetClipboardData(CF_UNICODETEXT, memory) == nullptr)
+	{
+		GlobalFree(memory);
+		CloseClipboard();
+		return false;
+	}
+	CloseClipboard();
+	return true;
+}
+
+// 复制 01。有选区就复制那一块，没有就复制整张图。不改格子。
+void Copy01(HWND hwnd)
+{
+	int x0 = 0;
+	int y0 = 0;
+	int x1 = gApp.sheet.Width() - 1;
+	int y1 = gApp.sheet.Height() - 1;
+	if (gApp.textSelect && !TextSelection(x0, y0, x1, y1))
+	{
+		return;
+	}
+	if (!CopyWideText(hwnd, Build01Range(gApp.sheet, x0, y0, x1, y1)))
+	{
+		MessageBoxW(hwnd, L"这片 01 复制不出去。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+	}
+}
+
+// 读出剪贴板里的宽字符。text 写出内容。没有文字或打不开则返回 false。
+bool ReadClipboardText(HWND hwnd, std::wstring& text)
+{
+	text.clear();
+	if (!OpenClipboard(hwnd))
+	{
+		return false;
+	}
+	// data 是系统保存的文字。用完解锁，不释放。
+	const HANDLE data = GetClipboardData(CF_UNICODETEXT);
+	if (data == nullptr)
+	{
+		CloseClipboard();
+		return false;
+	}
+	const wchar_t* locked = static_cast<const wchar_t*>(GlobalLock(data));
+	if (locked == nullptr)
+	{
+		CloseClipboard();
+		return false;
+	}
+	text = locked;
+	GlobalUnlock(data);
+	CloseClipboard();
+	return true;
+}
+
+// 剪贴板文字收成 01 网格。wide 是剪贴板里的整段。不合规则时返回 false，图不动。
+bool ParseClipboard01(const std::wstring& wide, TextGrid& grid)
+{
+	const std::size_t limit = static_cast<std::size_t>(IconSheet::kMaxSide) * (IconSheet::kMaxSide + 2);
+	if (wide.empty() || wide.size() > limit)
+	{
+		return false;
+	}
+	// bytes 是交给行规检查的字节。只接受 0、1、回车和换行。
+	std::vector<std::uint8_t> bytes;
+	bytes.reserve(wide.size());
+	for (const wchar_t ch : wide)
+	{
+		if (ch != L'0' && ch != L'1' && ch != L'\r' && ch != L'\n')
+		{
+			return false;
+		}
+		bytes.push_back(static_cast<std::uint8_t>(ch));
+	}
+	return Parse01Text(bytes, grid);
+}
+
+// 从起点写入网格。x0、y0 是选区左上角的缓冲区格子。
+// 右边或下边不够时往那一侧加空格，再写入。左、上不动，原点停在原地。加长和写入合占一步撤销。
+void PasteAt(HWND hwnd, const TextGrid& grid, int x0, int y0)
+{
+	const int needW = x0 + grid.width;
+	const int needH = y0 + grid.height;
+	if (needW > IconSheet::kMaxSide || needH > IconSheet::kMaxSide)
+	{
+		MessageBoxW(hwnd, L"贴下去会超过 1024，图没有改。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	const int addRight = needW > gApp.sheet.Width() ? needW - gApp.sheet.Width() : 0;
+	const int addDown = needH > gApp.sheet.Height() ? needH - gApp.sheet.Height() : 0;
+	const int beforeLeft = gApp.sheet.Left();
+	const int beforeUp = gApp.sheet.Up();
+	gApp.sheet.PushUndo();
+	if ((addRight > 0 || addDown > 0) && !gApp.sheet.Expand(0, addRight, 0, addDown))
+	{
+		if (gApp.sheet.Undo())
+		{
+			MessageBoxW(hwnd, L"贴下去会超过 1024，图没有改。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		}
+		return;
+	}
+	for (int y = 0; y < grid.height; ++y)
+	{
+		for (int x = 0; x < grid.width; ++x)
+		{
+			const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(grid.width) + static_cast<std::size_t>(x);
+			gApp.sheet.Set(x0 + x, y0 + y, grid.cells[index] != 0);
+		}
+	}
+	gApp.textSelect = true;
+	gApp.selectX0 = x0;
+	gApp.selectY0 = y0;
+	gApp.selectX1 = x0 + grid.width - 1;
+	gApp.selectY1 = y0 + grid.height - 1;
+	HoldOrigin(beforeLeft, beforeUp);
+	SyncExpandFields();
+	PlaceSideScroll(hwnd);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 把剪贴板里的 01 从选区左上角贴进图。没有选区时不贴。不合规则或超过 1024 时图不动。
+void Paste01(HWND hwnd)
+{
+	if (ViewBusy())
+	{
+		return;
+	}
+	if (!gApp.textSelect)
+	{
+		MessageBoxW(hwnd, L"先在 01 上选一格，再粘贴。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	int x0 = 0;
+	int y0 = 0;
+	int x1 = 0;
+	int y1 = 0;
+	if (!TextSelection(x0, y0, x1, y1))
+	{
+		MessageBoxW(hwnd, L"这块选区对不上当前图，图没有改。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	std::wstring wide;
+	TextGrid grid;
+	if (!ReadClipboardText(hwnd, wide) || !ParseClipboard01(wide, grid))
+	{
+		MessageBoxW(
+			hwnd,
+			L"剪贴板里不是 01 文本。每一行要一样长，只能有 0 和 1，宽和高要在 1 到 1024。",
+			L"IconDrawer",
+			MB_OK | MB_ICONWARNING);
+		return;
+	}
+	PasteAt(hwnd, grid, x0, y0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2195,6 +2486,26 @@ void PaintSide(HDC dc, const RECT& side)
 		}
 		const int pixelX = view.text.left + x0 * gApp.monoW - gApp.sideX;
 		const int pixelY = view.text.top + y * gApp.monoH - gApp.sideY;
+		int selX0 = 0;
+		int selY0 = 0;
+		int selX1 = 0;
+		int selY1 = 0;
+		if (TextSelection(selX0, selY0, selX1, selY1) && y >= selY0 && y <= selY1)
+		{
+			const int from = x0 > selX0 ? x0 : selX0;
+			const int to = (x1 - 1) < selX1 ? (x1 - 1) : selX1;
+			if (from <= to)
+			{
+				// band 是这一行里被选中的字。铺一层底色，字仍画在上面。
+				RECT band{
+					view.text.left + from * gApp.monoW - gApp.sideX,
+					pixelY,
+					view.text.left + (to + 1) * gApp.monoW - gApp.sideX,
+					pixelY + gApp.monoH
+				};
+				Fill(dc, band, RGB(46, 72, 120));
+			}
+		}
 		SetTextColor(dc, RGB(210, 210, 210));
 		ExtTextOutW(dc, pixelX, pixelY, ETO_CLIPPED, &view.text, line.data(), count, nullptr);
 		if (gApp.hover && y == gApp.hoverY && gApp.hoverX >= x0 && gApp.hoverX < x1)
@@ -2593,6 +2904,15 @@ bool OnLeftDown(HWND hwnd, LPARAM lParam)
 		SelectTool(hwnd, static_cast<Tool>(i));
 		return true;
 	}
+	int pickX = 0;
+	int pickY = 0;
+	if (SideCellAt(cursor, layout.side, pickX, pickY))
+	{
+		BeginTextSelect(pickX, pickY);
+		SetCapture(hwnd);
+		InvalidateRect(hwnd, nullptr, FALSE);
+		return true;
+	}
 	const RECT cells = CellArea(layout.board);
 	if (gApp.dragging || !Contains(cells, cursor))
 	{
@@ -2611,9 +2931,18 @@ bool OnLeftDown(HWND hwnd, LPARAM lParam)
 	return true;
 }
 
-// 左键松开，结束这一笔。
+// 左键松开，结束这一笔或这一块选区。
 bool OnLeftUp(HWND hwnd)
 {
+	if (gApp.textSelecting)
+	{
+		FinishTextSelect();
+		if (GetCapture() == hwnd)
+		{
+			ReleaseCapture();
+		}
+		InvalidateRect(hwnd, nullptr, FALSE);
+	}
 	if (gApp.painting)
 	{
 		EndStroke();
@@ -2699,6 +3028,18 @@ bool OnMouseMove(HWND hwnd, LPARAM lParam)
 		}
 		InvalidateRect(hwnd, nullptr, FALSE);
 	}
+	if (gApp.textSelecting)
+	{
+		RECT client{};
+		const Layout layout = CurrentLayout(hwnd, client);
+		int x = 0;
+		int y = 0;
+		if (SideCellAt(cursor, layout.side, x, y))
+		{
+			DragTextSelect(x, y);
+			InvalidateRect(hwnd, nullptr, FALSE);
+		}
+	}
 	UpdateHover(hwnd, cursor);
 	return true;
 }
@@ -2719,6 +3060,10 @@ bool OnCaptureChanged()
 {
 	gApp.dragging = false;
 	EndStroke();
+	if (gApp.textSelecting)
+	{
+		FinishTextSelect();
+	}
 	return true;
 }
 
@@ -2741,6 +3086,7 @@ wchar_t PrintedKey(WPARAM key)
 }
 
 // 快捷键。Ctrl+Z 撤销，Ctrl+Y 恢复，Ctrl+Delete 清空，Ctrl+0 归位，Ctrl+Tab 开关标尺。
+// Ctrl+C 复制右侧选区；没有选区就复制整张 01。Ctrl+V 从选区左上角写入，不够就往右、往下加长。
 // 1、2、3 换工具。- 缩小。+ 和 = 放大。都按整十，以棋盘中心为基准。
 bool OnKeyDown(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
@@ -2773,6 +3119,21 @@ bool OnKeyDown(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		if (!repeated)
 		{
 			ToggleRulers(hwnd);
+		}
+		return true;
+	}
+	if (ctrl && wParam == 'C')
+	{
+		Copy01(hwnd);
+		return true;
+	}
+	if (ctrl && wParam == 'V')
+	{
+		// 按住不放时系统会连发。只贴一次，避免同一块连着压进撤销栈。
+		const bool repeated = (static_cast<ULONG>(lParam) & (1u << 30)) != 0;
+		if (!repeated)
+		{
+			Paste01(hwnd);
 		}
 		return true;
 	}
