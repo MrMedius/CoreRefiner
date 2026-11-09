@@ -13,15 +13,27 @@
 
 // 窗口类名。注册和创建窗口时用同一个名字。
 constexpr const wchar_t* kWindowClass = L"CoreRefinerIconDrawer";
-// 左工具栏宽度。
-constexpr int kToolWidth = 200;
+// 左工具栏宽度。只放两个字的按钮，快捷键不写在按钮上。
+constexpr int kToolWidth = 100;
 // 顶栏高度。
 constexpr int kTopHeight = 50;
-// 右文本栏宽度。
-constexpr int kSideWidth = 200;
+// 右文本栏宽度。留给 01 和行号，16 列能一次看完。
+constexpr int kSideWidth = 280;
 // 一格最少和最多占多少像素。
 constexpr int kZoomMin = 1;
 constexpr int kZoomMax = 64;
+// 打开时那张图的边长。归位始终按这张 16×16 摆，不跟着后来的宽高改。
+constexpr int kHomeSide = 16;
+// 棋盘左边行号的宽度。只放下四个数字，例如 1024。
+constexpr int kRowRuler = 28;
+// 棋盘上边列号的高度。
+constexpr int kColRuler = 20;
+// 右侧文字离边的空隙。
+constexpr int kSidePad = 4;
+// 右侧行号的宽度。和棋盘左边同一套宽窄。
+constexpr int kSideRowRuler = 28;
+// 右侧列号的高度。
+constexpr int kSideColRuler = 18;
 
 // 客户区四块的位置。坐标是窗口客户区像素。
 struct Layout
@@ -40,7 +52,7 @@ enum class Tool
 	Toggle
 };
 
-// 左栏下半的命令。撤销回到旧图，重做走回去，清空把格子全部写成灭。
+// 左栏下半的命令。撤销回到旧图，恢复走回去，清空把格子全部写成灭。
 enum class Command
 {
 	Undo,
@@ -48,20 +60,24 @@ enum class Command
 	Clear
 };
 
-// 三个工具按钮上的字。顺序与 Tool 相同。
+// 三个工具按钮上的字。顺序与 Tool 相同。快捷键不写在按钮上。
 constexpr const wchar_t* kToolLabels[] = { L"画笔", L"橡皮", L"开关" };
-// 三个命令按钮上的字。顺序与 Command 相同。
-constexpr const wchar_t* kCommandLabels[] = { L"撤销", L"重做", L"清空" };
+// 三个命令按钮上的字。顺序与 Command 相同。快捷键不写在按钮上。
+constexpr const wchar_t* kCommandLabels[] = { L"撤销", L"恢复", L"清空" };
 // 顶栏四个方向的字。顺序是左、右、上、下。
 constexpr const wchar_t* kExpandLabels[] = { L"左", L"右", L"上", L"下" };
 
-// 左栏按钮位置。tools 在上，commands 在下。
+// 左栏按钮位置。tools 在上，commands 在中，views 在下。组与组之间空得比按钮间距大。
 struct ToolBar
 {
 	// 画笔、橡皮、开关。
 	RECT tools[3]{};
-	// 撤销、重做、清空。
+	// 撤销、恢复、清空。
 	RECT commands[3]{};
+	// 标尺开关。打开时按钮亮着。
+	RECT ruler{};
+	// 归位。百分数回到 100%，原点按 16×16 回到中间。
+	RECT home{};
 };
 
 // 顶栏扩像素的位置。labels 是方向文字，edits 是数字框，apply 是应用按钮。
@@ -81,7 +97,8 @@ struct ZoomBar
 };
 
 // 当前图和视图。zoom 是一格的像素边长。
-// originX、originY 是缓冲区第一格在棋盘里的位置。原点 (0,0) 在它右方 left 格、下方 up 格。
+// originX、originY 是缓冲区第一格在格子区域里的位置。格子区域不含标尺。
+// 原点 (0,0) 在它右方 left 格、下方 up 格。
 struct App
 {
 	IconSheet sheet{};
@@ -90,6 +107,8 @@ struct App
 	int zoomBase{ 32 };
 	// 顶栏上显示的百分数。加减按它取整十，不从格子像素反推。
 	int shownPercent{ 100 };
+	// 这一下按键已经按整十缩放过。紧跟着的字符不要再缩一次。
+	bool zoomKeyUsed{ false };
 	// 缓冲区第一格的横坐标。往左加格时它会左移，好让原点停住。
 	int originX{ 0 };
 	// 缓冲区第一格的纵坐标。往上加格时它会上移，好让原点停住。
@@ -122,6 +141,28 @@ struct App
 	HFONT fieldFont{};
 	// 数字框的底色。窗口销毁时删掉。
 	HBRUSH editBrush{};
+	// 右侧 01 和标尺用的等宽字体。窗口销毁时删掉。
+	HFONT monoFont{};
+	// 等宽字体里一个数字的宽度。用来排 01 和滚动。
+	int monoW{ 8 };
+	// 等宽字体里一行的高度。
+	int monoH{ 16 };
+	// 右侧文字已经向右滚过的像素。
+	int sideX{ 0 };
+	// 右侧文字已经向下滚过的像素。
+	int sideY{ 0 };
+	// 鼠标下有没有一格。没有时标尺不额外标出那一格。
+	bool hover{ false };
+	// 鼠标下那一格的缓冲区列号。
+	int hoverX{ 0 };
+	// 鼠标下那一格的缓冲区行号。
+	int hoverY{ 0 };
+	// 棋盘和右侧的标尺是否打开。一开始关掉，避免挡住格子。
+	bool rulers{ false };
+	// 右侧文字的横滑条。文字比窗口窄时藏起来。
+	HWND sideHScroll{};
+	// 右侧文字的竖滑条。文字比窗口矮时藏起来。
+	HWND sideVScroll{};
 };
 
 // 整个程序只有这一份图和视图。
@@ -247,18 +288,285 @@ Layout MakeLayout(const RECT& client)
 	return layout;
 }
 
-// 在左栏里排两排按钮。tool 是左栏。上面三个是工具，隔开一段后是撤销、重做、清空。
+// 标尺打开时，格子区域往右让出的像素。关掉时是 0，图按整块中间区域排。
+int RulerShiftX()
+{
+	return gApp.rulers ? kRowRuler : 0;
+}
+
+// 标尺打开时，格子区域往下让出的像素。关掉时是 0。
+int RulerShiftY()
+{
+	return gApp.rulers ? kColRuler : 0;
+}
+
+// 棋盘里真正画格子的区域。标尺打开时，左边和上边留给行号、列号。
+RECT CellArea(const RECT& board)
+{
+	RECT cells{
+		board.left + RulerShiftX(),
+		board.top + RulerShiftY(),
+		board.right,
+		board.bottom
+	};
+	if (cells.right < cells.left)
+	{
+		cells.right = cells.left;
+	}
+	if (cells.bottom < cells.top)
+	{
+		cells.bottom = cells.top;
+	}
+	return cells;
+}
+
+// 右侧文字的分区。colRuler、rowRuler 是列号和行号。
+// text 是 01。hScroll、vScroll 是滑条。showH、showV 表示这两条现在要不要露出来。
+struct SideView
+{
+	RECT colRuler{};
+	RECT rowRuler{};
+	RECT text{};
+	RECT hScroll{};
+	RECT vScroll{};
+	bool showH{ false };
+	bool showV{ false };
+};
+
+// 滑条的厚度。系统给不出时用 16。
+int ScrollBarThickness()
+{
+	const int thickness = GetSystemMetrics(SM_CXVSCROLL);
+	return thickness > 0 ? thickness : 16;
+}
+
+// 在右栏里排行号、列号、01 和滑条。side 是右栏。
+// 文字放得下时不留滑条。行号在文字左边，不跟着左右滚动。
+SideView MakeSideView(const RECT& side)
+{
+	const int left = side.left + kSidePad;
+	const int top = side.top + kSidePad;
+	int right = side.right - kSidePad;
+	int bottom = side.bottom - kSidePad;
+	if (right < left)
+	{
+		right = left;
+	}
+	if (bottom < top)
+	{
+		bottom = top;
+	}
+
+	SideView view{};
+	const int contentLeft = left;
+	const int contentTop = top;
+	const int contentRight = right;
+	const int contentBottom = bottom;
+	const int rowW = gApp.rulers ? kSideRowRuler : 0;
+	const int colH = gApp.rulers ? kSideColRuler : 0;
+	const int bar = ScrollBarThickness();
+	const int contentW = gApp.sheet.Width() * gApp.monoW;
+	const int contentH = gApp.sheet.Height() * gApp.monoH;
+
+	// 先按没有滑条的窗口算。装不下再把对应的边让给滑条，两条会互相挤窄。
+	int textW = contentRight - (contentLeft + rowW);
+	int textH = contentBottom - (contentTop + colH);
+	if (textW < 0)
+	{
+		textW = 0;
+	}
+	if (textH < 0)
+	{
+		textH = 0;
+	}
+	if (contentW > textW)
+	{
+		view.showH = true;
+		textH = contentBottom - bar - (contentTop + colH);
+		if (textH < 0)
+		{
+			textH = 0;
+		}
+	}
+	if (contentH > textH)
+	{
+		view.showV = true;
+		textW = contentRight - bar - (contentLeft + rowW);
+		if (textW < 0)
+		{
+			textW = 0;
+		}
+	}
+	if (!view.showH && contentW > textW)
+	{
+		view.showH = true;
+	}
+
+	const int textLeft = contentLeft + rowW;
+	const int textTop = contentTop + colH;
+	int textRight = contentRight - (view.showV ? bar : 0);
+	int textBottom = contentBottom - (view.showH ? bar : 0);
+	if (textRight < textLeft)
+	{
+		textRight = textLeft;
+	}
+	if (textBottom < textTop)
+	{
+		textBottom = textTop;
+	}
+	view.text = RECT{ textLeft, textTop, textRight, textBottom };
+	if (gApp.rulers)
+	{
+		view.colRuler = RECT{ textLeft, contentTop, textRight, textTop };
+		view.rowRuler = RECT{ contentLeft, textTop, textLeft, textBottom };
+	}
+	if (view.showH)
+	{
+		view.hScroll = RECT{ contentLeft, textBottom, textRight, contentBottom > textBottom ? contentBottom : textBottom };
+	}
+	if (view.showV)
+	{
+		view.vScroll = RECT{ textRight, contentTop, contentRight > textRight ? contentRight : textRight, textBottom };
+	}
+	return view;
+}
+
+// 把右侧滚动收进文字范围。side 是右栏。文字比窗口小的时候停在开头。
+void ClampSideScroll(const RECT& side)
+{
+	const SideView view = MakeSideView(side);
+	const int viewW = view.text.right - view.text.left;
+	const int viewH = view.text.bottom - view.text.top;
+	const int contentW = gApp.sheet.Width() * gApp.monoW;
+	const int contentH = gApp.sheet.Height() * gApp.monoH;
+	int maxX = contentW - viewW;
+	int maxY = contentH - viewH;
+	if (maxX < 0)
+	{
+		maxX = 0;
+	}
+	if (maxY < 0)
+	{
+		maxY = 0;
+	}
+	if (gApp.sideX < 0)
+	{
+		gApp.sideX = 0;
+	}
+	if (gApp.sideY < 0)
+	{
+		gApp.sideY = 0;
+	}
+	if (gApp.sideX > maxX)
+	{
+		gApp.sideX = maxX;
+	}
+	if (gApp.sideY > maxY)
+	{
+		gApp.sideY = maxY;
+	}
+}
+
+// 把一条滑条挪到 rect。show 为假时藏起来。位置没变就不动，避免反复重画。
+void PlaceScrollBar(HWND bar, const RECT& rect, bool show)
+{
+	if (bar == nullptr)
+	{
+		return;
+	}
+	if (!show || rect.right <= rect.left || rect.bottom <= rect.top)
+	{
+		if (IsWindowVisible(bar))
+		{
+			ShowWindow(bar, SW_HIDE);
+		}
+		return;
+	}
+	RECT now{};
+	GetWindowRect(bar, &now);
+	MapWindowPoints(HWND_DESKTOP, GetParent(bar), reinterpret_cast<POINT*>(&now), 2);
+	const int width = rect.right - rect.left;
+	const int height = rect.bottom - rect.top;
+	const bool same = now.left == rect.left && now.top == rect.top
+		&& now.right - now.left == width && now.bottom - now.top == height;
+	if (!same)
+	{
+		MoveWindow(bar, rect.left, rect.top, width, height, TRUE);
+	}
+	if (!IsWindowVisible(bar))
+	{
+		ShowWindow(bar, SW_SHOW);
+	}
+}
+
+// 把滑条的范围和滑块对准当前滚过的像素。bar 是滑条。pos 是已滚像素。
+// content 是文字总像素。page 是窗口里看得到的像素。
+void SyncScrollBar(HWND bar, int pos, int content, int page)
+{
+	if (bar == nullptr || !IsWindowVisible(bar))
+	{
+		return;
+	}
+	if (page < 1)
+	{
+		page = 1;
+	}
+	if (content < page)
+	{
+		content = page;
+	}
+	if (pos < 0)
+	{
+		pos = 0;
+	}
+	const int maxPos = content - page;
+	if (pos > maxPos)
+	{
+		pos = maxPos;
+	}
+	SCROLLINFO info{};
+	info.cbSize = sizeof(info);
+	info.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+	info.nMin = 0;
+	info.nMax = content - 1;
+	info.nPage = static_cast<UINT>(page);
+	info.nPos = pos;
+	SetScrollInfo(bar, SB_CTL, &info, TRUE);
+}
+
+// 读出当前客户区的四块。定义在后面。client 写出客户区矩形。
+Layout CurrentLayout(HWND hwnd, RECT& client);
+
+// 按当前右栏摆好两条滑条，并让滑块对准已滚过的位置。
+void PlaceSideScroll(HWND hwnd)
+{
+	RECT client{};
+	const Layout layout = CurrentLayout(hwnd, client);
+	ClampSideScroll(layout.side);
+	const SideView view = MakeSideView(layout.side);
+	PlaceScrollBar(gApp.sideHScroll, view.hScroll, view.showH);
+	PlaceScrollBar(gApp.sideVScroll, view.vScroll, view.showV);
+	const int pageW = view.text.right - view.text.left;
+	const int pageH = view.text.bottom - view.text.top;
+	SyncScrollBar(gApp.sideHScroll, gApp.sideX, gApp.sheet.Width() * gApp.monoW, pageW);
+	SyncScrollBar(gApp.sideVScroll, gApp.sideY, gApp.sheet.Height() * gApp.monoH, pageH);
+}
+
+// 在左栏里排三组按钮。tool 是左栏。上面是工具，中间是撤销、恢复、清空，下面是标尺和归位。
 ToolBar MakeToolBar(const RECT& tool)
 {
-	const int margin = 16;
+	// 左栏只剩约 100 像素，四周少留一点，两个字才放得下。
+	const int margin = 8;
 	const int gap = 10;
+	// 组和组之间的空隙。和按钮之间的 10 像素不是同一个数。
 	const int groupGap = 24;
-	const int chrome = margin * 2 + gap * 4 + groupGap;
+	const int buttonCount = 8;
+	const int chrome = margin * 2 + gap * 5 + groupGap * 2;
 	int room = (tool.bottom - tool.top) - chrome;
 	int buttonH = 40;
-	if (room < buttonH * 6)
+	if (room < buttonH * buttonCount)
 	{
-		buttonH = room / 6;
+		buttonH = room / buttonCount;
 		if (buttonH < 1)
 		{
 			buttonH = 1;
@@ -285,6 +593,10 @@ ToolBar MakeToolBar(const RECT& tool)
 		bar.commands[i] = RECT{ left, y, right, y + buttonH };
 		y += buttonH + gap;
 	}
+	y += groupGap - gap;
+	bar.ruler = RECT{ left, y, right, y + buttonH };
+	y += buttonH + gap;
+	bar.home = RECT{ left, y, right, y + buttonH };
 	return bar;
 }
 
@@ -367,10 +679,44 @@ Layout CurrentLayout(HWND hwnd, RECT& client)
 
 ////////////////////////////////////////////////////////////////////////////////
 // 视图
-// 只管缩放、拖动，以及让原点停在屏幕原处。不改格子里的 0 和 1。
+// 只管缩放、拖动、归位，以及让原点停在屏幕原处。不改格子里的 0 和 1。
 ////////////////////////////////////////////////////////////////////////////////
 
-// 第一次有足够大的棋盘时，把整张图放进中央。
+// 格子区域还原成含标尺的整块中间区域。cells 是 CellArea 算出来的矩形。
+// 标尺关掉时，格子区域就是整块中间区域。
+RECT BoardOfCells(const RECT& cells)
+{
+	RECT board = cells;
+	board.left -= RulerShiftX();
+	board.top -= RulerShiftY();
+	return board;
+}
+
+// 把整张图摆进整块中间区域的正中。board 含标尺。zoom 保持调用前的值。
+// origin 从格子区域的左上角量起，所以要减掉标尺占掉的宽高。
+void CenterSheet(const RECT& board)
+{
+	const int boardW = board.right - board.left;
+	const int boardH = board.bottom - board.top;
+	const int shiftX = RulerShiftX();
+	const int shiftY = RulerShiftY();
+	gApp.originX = (boardW - gApp.sheet.Width() * gApp.zoom) / 2 - shiftX;
+	gApp.originY = (boardH - gApp.sheet.Height() * gApp.zoom) / 2 - shiftY;
+}
+
+// 按打开时的 16×16 把原点摆回整块中间区域的正中。board 含标尺。zoom 保持调用前的值。
+// 后来加宽加高的格子挂在这张 16×16 外面，不把整张新图重新居中。
+void PlaceHome(const RECT& board)
+{
+	const int boardW = board.right - board.left;
+	const int boardH = board.bottom - board.top;
+	const int homeX = (boardW - kHomeSide * gApp.zoom) / 2 - RulerShiftX();
+	const int homeY = (boardH - kHomeSide * gApp.zoom) / 2 - RulerShiftY();
+	gApp.originX = homeX - gApp.sheet.Left() * gApp.zoom;
+	gApp.originY = homeY - gApp.sheet.Up() * gApp.zoom;
+}
+
+// 第一次有足够大的棋盘时，把整张图放进整块中间区域的正中。board 含标尺。
 void PlaceView(const RECT& board)
 {
 	if (gApp.placed)
@@ -399,8 +745,7 @@ void PlaceView(const RECT& board)
 	}
 	gApp.zoom = zoom;
 	gApp.shownPercent = gApp.zoomBase > 0 ? zoom * 100 / gApp.zoomBase : 100;
-	gApp.originX = (boardW - gApp.sheet.Width() * zoom) / 2;
-	gApp.originY = (boardH - gApp.sheet.Height() * zoom) / 2;
+	CenterSheet(board);
 	gApp.placed = true;
 }
 
@@ -411,7 +756,7 @@ void SetZoomAt(POINT cursor, const RECT& board, int zoom)
 	{
 		return;
 	}
-	PlaceView(board);
+	PlaceView(BoardOfCells(board));
 	if (zoom < kZoomMin)
 	{
 		zoom = kZoomMin;
@@ -441,7 +786,7 @@ void ZoomAt(POINT cursor, const RECT& board, int notches)
 	{
 		return;
 	}
-	PlaceView(board);
+	PlaceView(BoardOfCells(board));
 	int zoom = gApp.zoom + notches;
 	if (zoom < kZoomMin)
 	{
@@ -527,11 +872,28 @@ void ZoomStep(HWND hwnd, int dir)
 	const int next = SnapTen(gApp.shownPercent, sign);
 	RECT client{};
 	const Layout layout = CurrentLayout(hwnd, client);
-	const POINT center{
+	const RECT cells = CellArea(layout.board);
+	POINT center{
 		(layout.board.left + layout.board.right) / 2,
 		(layout.board.top + layout.board.bottom) / 2
 	};
-	SetZoomAt(center, layout.board, ZoomFromPercent(next));
+	if (center.x < cells.left)
+	{
+		center.x = cells.left;
+	}
+	if (center.y < cells.top)
+	{
+		center.y = cells.top;
+	}
+	if (center.x >= cells.right && cells.right > cells.left)
+	{
+		center.x = cells.right - 1;
+	}
+	if (center.y >= cells.bottom && cells.bottom > cells.top)
+	{
+		center.y = cells.bottom - 1;
+	}
+	SetZoomAt(center, cells, ZoomFromPercent(next));
 	gApp.shownPercent = next;
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
@@ -540,6 +902,49 @@ void ZoomStep(HWND hwnd, int dir)
 int ZoomPercent()
 {
 	return gApp.shownPercent;
+}
+
+// 打开或关掉棋盘和右侧的标尺。画面上的格子留在原来的屏幕位置。
+void ToggleRulers(HWND hwnd)
+{
+	gApp.rulers = !gApp.rulers;
+	if (gApp.rulers)
+	{
+		gApp.originX -= kRowRuler;
+		gApp.originY -= kColRuler;
+	}
+	else
+	{
+		gApp.originX += kRowRuler;
+		gApp.originY += kColRuler;
+	}
+	PlaceSideScroll(hwnd);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 正在落笔或拖动。定义在撤销一节。归位时用来避开半笔。
+bool ViewBusy();
+
+// 归位。百分数回到 100%，原点按打开时的 16×16 回到棋盘正中。正在落笔或拖动时不动。
+void ResetView(HWND hwnd)
+{
+	if (ViewBusy())
+	{
+		return;
+	}
+	RECT client{};
+	const Layout layout = CurrentLayout(hwnd, client);
+	const int boardW = layout.board.right - layout.board.left;
+	const int boardH = layout.board.bottom - layout.board.top;
+	if (boardW < 16 || boardH < 16)
+	{
+		return;
+	}
+	gApp.zoom = ZoomFromPercent(100);
+	gApp.shownPercent = 100;
+	gApp.placed = true;
+	PlaceHome(layout.board);
+	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
 // 左或上的格数变了之后，把视图反着挪，让原点 (0,0) 仍画在原来的屏幕位置。
@@ -567,18 +972,66 @@ int FloorDiv(int n, int d)
 	return q;
 }
 
-// 客户区坐标换成格子。点不在棋盘里，或格子不在图内，则返回 false。
-// cursor 是客户区坐标。board 是棋盘矩形。x、y 写出格子坐标。
-bool CellAt(POINT cursor, const RECT& board, int& x, int& y)
+// 客户区坐标换成格子。点不在格子区域里，或格子不在图内，则返回 false。
+// cursor 是客户区坐标。cells 是格子区域，不含标尺。x、y 写出缓冲区下标。
+bool CellAt(POINT cursor, const RECT& cells, int& x, int& y)
 {
-	if (gApp.zoom <= 0 || !Contains(board, cursor))
+	if (gApp.zoom <= 0 || !Contains(cells, cursor))
 	{
 		return false;
 	}
-	const int localX = cursor.x - board.left - gApp.originX;
-	const int localY = cursor.y - board.top - gApp.originY;
+	const int localX = cursor.x - cells.left - gApp.originX;
+	const int localY = cursor.y - cells.top - gApp.originY;
 	const int cellX = FloorDiv(localX, gApp.zoom);
 	const int cellY = FloorDiv(localY, gApp.zoom);
+	if (cellX < 0 || cellY < 0 || cellX >= gApp.sheet.Width() || cellY >= gApp.sheet.Height())
+	{
+		return false;
+	}
+	x = cellX;
+	y = cellY;
+	return true;
+}
+
+// 缓冲区列号换成原点坐标。bufferX 从画面左上角数起，0 是最左边那一列。原点那列是 0。
+int ColOf(int bufferX)
+{
+	return bufferX - gApp.sheet.Left();
+}
+
+// 缓冲区行号换成原点坐标。bufferY 从画面左上角数起，0 是最上边那一行。原点那行是 0。
+int RowOf(int bufferY)
+{
+	return bufferY - gApp.sheet.Up();
+}
+
+// 标尺上要写的列号。原点那一列显示 1。格子数据仍从 0 数。
+int MarkCol(int bufferX)
+{
+	return ColOf(bufferX) + 1;
+}
+
+// 标尺上要写的行号。原点那一行显示 1。格子数据仍从 0 数。
+int MarkRow(int bufferY)
+{
+	return RowOf(bufferY) + 1;
+}
+
+// 右侧 01 上的点换成格子。点不在文字里，或格子不在图内，则返回 false。
+// cursor 是客户区坐标。side 是右栏。x、y 写出缓冲区下标。
+bool SideCellAt(POINT cursor, const RECT& side, int& x, int& y)
+{
+	if (gApp.monoW <= 0 || gApp.monoH <= 0)
+	{
+		return false;
+	}
+	const SideView view = MakeSideView(side);
+	if (!Contains(view.text, cursor))
+	{
+		return false;
+	}
+	const int cellX = (cursor.x - view.text.left + gApp.sideX) / gApp.monoW;
+	const int cellY = (cursor.y - view.text.top + gApp.sideY) / gApp.monoH;
 	if (cellX < 0 || cellY < 0 || cellX >= gApp.sheet.Width() || cellY >= gApp.sheet.Height())
 	{
 		return false;
@@ -694,8 +1147,8 @@ void StrokeTo(int x, int y)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// 撤销、重做、清空
-// 改图前压一份旧图。撤销和重做在两座栈之间移动。栈空，或图已经全灭，都不改画布。
+// 撤销、恢复、清空
+// 改图前压一份旧图。撤销和恢复在两座栈之间移动。栈空，或图已经全灭，都不改画布。
 ////////////////////////////////////////////////////////////////////////////////
 
 // 图上是否还有亮着的格子。
@@ -714,7 +1167,7 @@ bool AnyOn()
 	return false;
 }
 
-// 这颗命令现在点下去会不会改画布。command 是撤销、重做或清空。
+// 这颗命令现在点下去会不会改画布。command 是撤销、恢复或清空。
 bool CommandEnabled(Command command)
 {
 	switch (command)
@@ -756,7 +1209,7 @@ void DoUndo(HWND hwnd)
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-// 重做一步。栈空或视图正忙时画布不动。成功后四个数字框写回这一步各方向的格数。
+// 恢复一步。栈空或视图正忙时画布不动。成功后四个数字框写回这一步各方向的格数。
 void DoRedo(HWND hwnd)
 {
 	if (ViewBusy())
@@ -920,7 +1373,8 @@ void DoExpand(HWND hwnd)
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-// 数字框的消息。回车执行应用。Ctrl+Z、Ctrl+Y 仍交给主窗口撤销和重做。
+// 数字框的消息。回车执行应用。Ctrl+Z、Ctrl+Y 仍交给主窗口撤销和恢复。
+// Ctrl+Tab 交给主窗口开关标尺。1、2、3、-、+、= 留在框里填格数，不切工具，也不缩放。
 LRESULT CALLBACK ExpandEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (msg == WM_KEYDOWN)
@@ -931,7 +1385,7 @@ LRESULT CALLBACK ExpandEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			DoExpand(GetParent(hwnd));
 			return 0;
 		}
-		if (ctrl && (wParam == 'Z' || wParam == 'Y'))
+		if (ctrl && (wParam == 'Z' || wParam == 'Y' || wParam == VK_TAB))
 		{
 			SendMessageW(GetParent(hwnd), WM_KEYDOWN, wParam, lParam);
 			return 0;
@@ -965,6 +1419,27 @@ void CreateExpandEdits(HWND hwnd, HINSTANCE instance)
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
 		DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei");
 	gApp.editBrush = CreateSolidBrush(RGB(32, 32, 36));
+	gApp.monoFont = CreateFontW(
+		-14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+		FIXED_PITCH | FF_MODERN, L"Consolas");
+	if (gApp.monoFont != nullptr)
+	{
+		const HDC dc = GetDC(hwnd);
+		const HGDIOBJ old = SelectObject(dc, gApp.monoFont);
+		SIZE size{};
+		GetTextExtentPoint32W(dc, L"0", 1, &size);
+		SelectObject(dc, old);
+		ReleaseDC(hwnd, dc);
+		if (size.cx > 0)
+		{
+			gApp.monoW = size.cx;
+		}
+		if (size.cy > 0)
+		{
+			gApp.monoH = size.cy;
+		}
+	}
 	for (int i = 0; i < 4; ++i)
 	{
 		gApp.expandEdits[i] = CreateWindowExW(
@@ -997,6 +1472,13 @@ void CreateExpandEdits(HWND hwnd, HINSTANCE instance)
 		}
 	}
 	PlaceExpandEdits(hwnd);
+	gApp.sideHScroll = CreateWindowExW(
+		0, L"SCROLLBAR", L"", WS_CHILD | SBS_HORZ,
+		0, 0, 0, 0, hwnd, nullptr, instance, nullptr);
+	gApp.sideVScroll = CreateWindowExW(
+		0, L"SCROLLBAR", L"", WS_CHILD | SBS_VERT,
+		0, 0, 0, 0, hwnd, nullptr, instance, nullptr);
+	PlaceSideScroll(hwnd);
 	SyncExpandFields();
 }
 
@@ -1013,24 +1495,178 @@ void ReleaseExpandUi()
 		DeleteObject(gApp.editBrush);
 		gApp.editBrush = nullptr;
 	}
+	if (gApp.monoFont != nullptr)
+	{
+		DeleteObject(gApp.monoFont);
+		gApp.monoFont = nullptr;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // 画面
-// 把四块区域、棋盘、左栏按钮、顶栏扩像素和放大百分比画出来。
+// 把四块区域、棋盘、标尺、右侧 01、左栏按钮、顶栏扩像素和放大百分比画出来。
 ////////////////////////////////////////////////////////////////////////////////
 
-// 画中央棋盘。board 是棋盘在客户区里的矩形。
+// 这一格的标尺数字要不要写出来。shown 是给人看的数字，原点那格是 1。
+// stride 是隔几格标一次。4 的倍数会标成 4、8、12、16。原点那格和鼠标下那一格总是标。
+bool WantRulerLabel(int shown, int stride, bool hover)
+{
+	if (hover || stride <= 1 || shown == 1)
+	{
+		return true;
+	}
+	return shown % stride == 0;
+}
+
+// 隔多少格标一次，才不会叠在一起。cellPx 是一格占的像素。
+int RulerStride(int cellPx)
+{
+	int stride = 1;
+	while (stride < 1024 && stride * cellPx < 26)
+	{
+		stride *= 2;
+	}
+	return stride;
+}
+
+// 标尺上一个数的颜色。shown 是给人看的数字。原点那格是 1，用浅黄。hover 为真时用最亮的字。
+COLORREF RulerColor(int shown, bool hover)
+{
+	if (hover)
+	{
+		return RGB(255, 255, 255);
+	}
+	if (shown == 1)
+	{
+		return RGB(230, 200, 110);
+	}
+	return RGB(150, 150, 150);
+}
+
+// 画棋盘左边和上边的标尺。board 是整块棋盘，含标尺。cells 是格子区域。
+void PaintBoardRuler(HDC dc, const RECT& board, const RECT& cells)
+{
+	const RECT colRuler{ cells.left, board.top, board.right, cells.top };
+	const RECT rowRuler{ board.left, cells.top, cells.left, board.bottom };
+	Fill(dc, colRuler, RGB(32, 32, 36));
+	Fill(dc, rowRuler, RGB(32, 32, 36));
+	Fill(dc, RECT{ board.left, board.top, cells.left, cells.top }, RGB(32, 32, 36));
+	if (gApp.zoom <= 0 || gApp.monoFont == nullptr)
+	{
+		return;
+	}
+
+	const int stride = RulerStride(gApp.zoom);
+	const HGDIOBJ old = SelectObject(dc, gApp.monoFont);
+	SetBkMode(dc, TRANSPARENT);
+	const int boardW = cells.right - cells.left;
+	const int boardH = cells.bottom - cells.top;
+	int x0 = (-gApp.originX) / gApp.zoom;
+	int y0 = (-gApp.originY) / gApp.zoom;
+	int x1 = (boardW - gApp.originX + gApp.zoom - 1) / gApp.zoom;
+	int y1 = (boardH - gApp.originY + gApp.zoom - 1) / gApp.zoom;
+	if (x0 < 0) { x0 = 0; }
+	if (y0 < 0) { y0 = 0; }
+	if (x1 > gApp.sheet.Width()) { x1 = gApp.sheet.Width(); }
+	if (y1 > gApp.sheet.Height()) { y1 = gApp.sheet.Height(); }
+
+	const int colClip = SaveDC(dc);
+	IntersectClipRect(dc, colRuler.left, colRuler.top, colRuler.right, colRuler.bottom);
+	int lastRight = -100000;
+	for (int pass = 0; pass < 2; ++pass)
+	{
+		for (int x = x0; x < x1; ++x)
+		{
+			const int coord = MarkCol(x);
+			const bool hot = gApp.hover && x == gApp.hoverX;
+			if (pass == 0 && hot)
+			{
+				continue;
+			}
+			if (pass == 1 && !hot)
+			{
+				continue;
+			}
+			if (!WantRulerLabel(coord, stride, hot))
+			{
+				continue;
+			}
+			wchar_t text[16]{};
+			wsprintfW(text, L"%d", coord);
+			const int half = lstrlenW(text) * ((gApp.monoW + 1) / 2);
+			const int center = cells.left + gApp.originX + x * gApp.zoom + gApp.zoom / 2;
+			RECT box{ center - half, colRuler.top, center + half, colRuler.bottom };
+			if (pass == 0 && coord != 1 && box.left < lastRight)
+			{
+				continue;
+			}
+			SetTextColor(dc, RulerColor(coord, hot));
+			DrawTextW(dc, text, -1, &box, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+			if (pass == 0 && box.right > lastRight)
+			{
+				lastRight = box.right;
+			}
+		}
+	}
+	RestoreDC(dc, colClip);
+
+	const int rowClip = SaveDC(dc);
+	IntersectClipRect(dc, rowRuler.left, rowRuler.top, rowRuler.right, rowRuler.bottom);
+	int lastBottom = -100000;
+	for (int pass = 0; pass < 2; ++pass)
+	{
+		for (int y = y0; y < y1; ++y)
+		{
+			const int coord = MarkRow(y);
+			const bool hot = gApp.hover && y == gApp.hoverY;
+			if (pass == 0 && hot)
+			{
+				continue;
+			}
+			if (pass == 1 && !hot)
+			{
+				continue;
+			}
+			if (!WantRulerLabel(coord, stride, hot))
+			{
+				continue;
+			}
+			wchar_t text[16]{};
+			wsprintfW(text, L"%d", coord);
+			const int center = cells.top + gApp.originY + y * gApp.zoom + gApp.zoom / 2;
+			RECT box{ rowRuler.left, center - 10, rowRuler.right - 2, center + 10 };
+			if (pass == 0 && coord != 1 && box.top < lastBottom)
+			{
+				continue;
+			}
+			SetTextColor(dc, RulerColor(coord, hot));
+			DrawTextW(dc, text, -1, &box, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+			if (pass == 0 && box.bottom > lastBottom)
+			{
+				lastBottom = box.bottom;
+			}
+		}
+	}
+	RestoreDC(dc, rowClip);
+	SelectObject(dc, old);
+}
+
+// 画中央棋盘和它的标尺。board 是棋盘在客户区里的矩形，含标尺。
 void PaintBoard(HDC dc, const RECT& board)
 {
-	const int boardW = board.right - board.left;
-	const int boardH = board.bottom - board.top;
+	const RECT cells = CellArea(board);
+	const int boardW = cells.right - cells.left;
+	const int boardH = cells.bottom - cells.top;
+	if (gApp.rulers)
+	{
+		PaintBoardRuler(dc, board, cells);
+	}
 	if (boardW <= 0 || boardH <= 0 || gApp.zoom <= 0)
 	{
 		return;
 	}
 	const int saved = SaveDC(dc);
-	IntersectClipRect(dc, board.left, board.top, board.right, board.bottom);
+	IntersectClipRect(dc, cells.left, cells.top, cells.right, cells.bottom);
 
 	int x0 = (-gApp.originX) / gApp.zoom;
 	int y0 = (-gApp.originY) / gApp.zoom;
@@ -1046,10 +1682,10 @@ void PaintBoard(HDC dc, const RECT& board)
 		for (int x = x0; x < x1; ++x)
 		{
 			RECT cell{
-				board.left + gApp.originX + x * gApp.zoom,
-				board.top + gApp.originY + y * gApp.zoom,
-				board.left + gApp.originX + (x + 1) * gApp.zoom,
-				board.top + gApp.originY + (y + 1) * gApp.zoom
+				cells.left + gApp.originX + x * gApp.zoom,
+				cells.top + gApp.originY + y * gApp.zoom,
+				cells.left + gApp.originX + (x + 1) * gApp.zoom,
+				cells.top + gApp.originY + (y + 1) * gApp.zoom
 			};
 			const COLORREF color = gApp.sheet.Get(x, y) ? RGB(230, 230, 230) : RGB(46, 46, 46);
 			Fill(dc, cell, color);
@@ -1060,8 +1696,8 @@ void PaintBoard(HDC dc, const RECT& board)
 	{
 		HPEN pen = CreatePen(PS_SOLID, 1, RGB(96, 96, 96));
 		HGDIOBJ old = SelectObject(dc, pen);
-		const int left = board.left + gApp.originX;
-		const int top = board.top + gApp.originY;
+		const int left = cells.left + gApp.originX;
+		const int top = cells.top + gApp.originY;
 		const int right = left + gApp.sheet.Width() * gApp.zoom;
 		const int bottom = top + gApp.sheet.Height() * gApp.zoom;
 		for (int x = 0; x <= gApp.sheet.Width(); ++x)
@@ -1079,7 +1715,140 @@ void PaintBoard(HDC dc, const RECT& board)
 		SelectObject(dc, old);
 		DeleteObject(pen);
 	}
+	if (gApp.hover)
+	{
+		RECT cell{
+			cells.left + gApp.originX + gApp.hoverX * gApp.zoom,
+			cells.top + gApp.originY + gApp.hoverY * gApp.zoom,
+			cells.left + gApp.originX + (gApp.hoverX + 1) * gApp.zoom,
+			cells.top + gApp.originY + (gApp.hoverY + 1) * gApp.zoom
+		};
+		Frame(dc, cell, RGB(230, 200, 110));
+	}
 	RestoreDC(dc, saved);
+}
+
+// 画右侧的 01 和同一套原点标尺。side 是右栏。只显示，不在这里改字。
+void PaintSide(HDC dc, const RECT& side)
+{
+	ClampSideScroll(side);
+	const SideView view = MakeSideView(side);
+	if (gApp.monoFont == nullptr || gApp.monoW <= 0 || gApp.monoH <= 0)
+	{
+		return;
+	}
+	if (gApp.rulers)
+	{
+		Fill(dc, view.colRuler, RGB(32, 32, 36));
+		Fill(dc, view.rowRuler, RGB(32, 32, 36));
+	}
+	const HGDIOBJ old = SelectObject(dc, gApp.monoFont);
+	SetBkMode(dc, TRANSPARENT);
+	const int stride = RulerStride(gApp.monoW);
+	const int viewW = view.text.right - view.text.left;
+	const int viewH = view.text.bottom - view.text.top;
+	int x0 = gApp.sideX / gApp.monoW;
+	int y0 = gApp.sideY / gApp.monoH;
+	int x1 = (gApp.sideX + viewW + gApp.monoW - 1) / gApp.monoW;
+	int y1 = (gApp.sideY + viewH + gApp.monoH - 1) / gApp.monoH;
+	if (x0 < 0) { x0 = 0; }
+	if (y0 < 0) { y0 = 0; }
+	if (x1 > gApp.sheet.Width()) { x1 = gApp.sheet.Width(); }
+	if (y1 > gApp.sheet.Height()) { y1 = gApp.sheet.Height(); }
+
+	const int textClip = SaveDC(dc);
+	IntersectClipRect(dc, view.text.left, view.text.top, view.text.right, view.text.bottom);
+	std::vector<wchar_t> line(static_cast<std::size_t>(x1 - x0) + 1, 0);
+	for (int y = y0; y < y1; ++y)
+	{
+		const int count = x1 - x0;
+		for (int i = 0; i < count; ++i)
+		{
+			line[static_cast<std::size_t>(i)] = gApp.sheet.Get(x0 + i, y) ? L'1' : L'0';
+		}
+		const int pixelX = view.text.left + x0 * gApp.monoW - gApp.sideX;
+		const int pixelY = view.text.top + y * gApp.monoH - gApp.sideY;
+		SetTextColor(dc, RGB(210, 210, 210));
+		ExtTextOutW(dc, pixelX, pixelY, ETO_CLIPPED, &view.text, line.data(), count, nullptr);
+		if (gApp.hover && y == gApp.hoverY && gApp.hoverX >= x0 && gApp.hoverX < x1)
+		{
+			RECT mark{
+				view.text.left + gApp.hoverX * gApp.monoW - gApp.sideX,
+				pixelY,
+				view.text.left + (gApp.hoverX + 1) * gApp.monoW - gApp.sideX,
+				pixelY + gApp.monoH
+			};
+			Frame(dc, mark, RGB(230, 200, 110));
+		}
+	}
+	RestoreDC(dc, textClip);
+
+	if (gApp.rulers)
+	{
+	const int colClip = SaveDC(dc);
+	IntersectClipRect(dc, view.colRuler.left, view.colRuler.top, view.colRuler.right, view.colRuler.bottom);
+	int lastRight = -100000;
+	for (int pass = 0; pass < 2; ++pass)
+	{
+		for (int x = x0; x < x1; ++x)
+		{
+			const int coord = MarkCol(x);
+			const bool hot = gApp.hover && x == gApp.hoverX;
+			if ((pass == 0 && hot) || (pass == 1 && !hot) || !WantRulerLabel(coord, stride, hot))
+			{
+				continue;
+			}
+			wchar_t text[16]{};
+			wsprintfW(text, L"%d", coord);
+			const int half = lstrlenW(text) * ((gApp.monoW + 1) / 2);
+			const int center = view.text.left + x * gApp.monoW - gApp.sideX + gApp.monoW / 2;
+			RECT box{ center - half, view.colRuler.top, center + half, view.colRuler.bottom };
+			if (pass == 0 && coord != 1 && box.left < lastRight)
+			{
+				continue;
+			}
+			SetTextColor(dc, RulerColor(coord, hot));
+			DrawTextW(dc, text, -1, &box, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+			if (pass == 0 && box.right > lastRight)
+			{
+				lastRight = box.right;
+			}
+		}
+	}
+	RestoreDC(dc, colClip);
+
+	const int rowClip = SaveDC(dc);
+	IntersectClipRect(dc, view.rowRuler.left, view.rowRuler.top, view.rowRuler.right, view.rowRuler.bottom);
+	int lastBottom = -100000;
+	for (int pass = 0; pass < 2; ++pass)
+	{
+		for (int y = y0; y < y1; ++y)
+		{
+			const int coord = MarkRow(y);
+			const bool hot = gApp.hover && y == gApp.hoverY;
+			if ((pass == 0 && hot) || (pass == 1 && !hot) || !WantRulerLabel(coord, stride, hot))
+			{
+				continue;
+			}
+			wchar_t text[16]{};
+			wsprintfW(text, L"%d", coord);
+			const int center = view.text.top + y * gApp.monoH - gApp.sideY + gApp.monoH / 2;
+			RECT box{ view.rowRuler.left, center - gApp.monoH / 2, view.rowRuler.right - 2, center + gApp.monoH / 2 };
+			if (pass == 0 && coord != 1 && box.top < lastBottom)
+			{
+				continue;
+			}
+			SetTextColor(dc, RulerColor(coord, hot));
+			DrawTextW(dc, text, -1, &box, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+			if (pass == 0 && box.bottom > lastBottom)
+			{
+				lastBottom = box.bottom;
+			}
+		}
+	}
+	RestoreDC(dc, rowClip);
+	}
+	SelectObject(dc, old);
 }
 
 // 画左栏两排按钮。tool 是左栏矩形。
@@ -1097,6 +1866,8 @@ void PaintToolBar(HDC dc, const RECT& tool)
 		const Command command = static_cast<Command>(i);
 		DrawButton(dc, bar.commands[i], kCommandLabels[i], false, CommandEnabled(command));
 	}
+	DrawButton(dc, bar.ruler, L"标尺", gApp.rulers, true);
+	DrawButton(dc, bar.home, L"归位", false, true);
 	RestoreDC(dc, clip);
 }
 
@@ -1173,6 +1944,7 @@ void Paint(HDC dc, const RECT& client)
 	Fill(dc, layout.top, RGB(48, 48, 52));
 	Fill(dc, layout.side, RGB(42, 42, 46));
 	PaintBoard(dc, layout.board);
+	PaintSide(dc, layout.side);
 	PaintToolBar(dc, layout.tool);
 	PaintExpandBar(dc, layout.top);
 	PaintZoomBar(dc, layout.top);
@@ -1182,6 +1954,7 @@ void Paint(HDC dc, const RECT& client)
 // 画到一张内存位图上再贴到窗口，避免闪烁。
 void PaintWindow(HWND hwnd)
 {
+	PlaceSideScroll(hwnd);
 	PAINTSTRUCT paint{};
 	HDC windowDc = BeginPaint(hwnd, &paint);
 	RECT client{};
@@ -1205,7 +1978,59 @@ void PaintWindow(HWND hwnd)
 // 把输入分给视图、落笔、命令和扩像素。这里不直接改格子。
 ////////////////////////////////////////////////////////////////////////////////
 
-// 滚轮缩放。光标要在棋盘上。
+// 滑条被拖动或点了箭头。horizontal 为真时改左右滚动，否则改上下滚动。
+void OnSideBar(HWND hwnd, HWND bar, bool horizontal, WPARAM wParam)
+{
+	if (bar == nullptr)
+	{
+		return;
+	}
+	RECT client{};
+	const Layout layout = CurrentLayout(hwnd, client);
+	const SideView view = MakeSideView(layout.side);
+	const int page = horizontal ? view.text.right - view.text.left : view.text.bottom - view.text.top;
+	const int line = horizontal ? gApp.monoW : gApp.monoH;
+	int pos = horizontal ? gApp.sideX : gApp.sideY;
+	switch (LOWORD(wParam))
+	{
+	case SB_LINELEFT:
+		pos -= line;
+		break;
+	case SB_LINERIGHT:
+		pos += line;
+		break;
+	case SB_PAGELEFT:
+		pos -= page;
+		break;
+	case SB_PAGERIGHT:
+		pos += page;
+		break;
+	case SB_THUMBTRACK:
+	case SB_THUMBPOSITION:
+	{
+		SCROLLINFO info{};
+		info.cbSize = sizeof(info);
+		info.fMask = SIF_TRACKPOS;
+		GetScrollInfo(bar, SB_CTL, &info);
+		pos = info.nTrackPos;
+		break;
+	}
+	default:
+		return;
+	}
+	if (horizontal)
+	{
+		gApp.sideX = pos;
+	}
+	else
+	{
+		gApp.sideY = pos;
+	}
+	PlaceSideScroll(hwnd);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 滚轮。光标在右侧文字上就滚动文字；在棋盘上就缩放。
 bool OnMouseWheel(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
 	POINT cursor{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
@@ -1213,8 +2038,46 @@ bool OnMouseWheel(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	RECT client{};
 	const Layout layout = CurrentLayout(hwnd, client);
 	const int notches = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
-	ZoomAt(cursor, layout.board, notches);
-	InvalidateRect(hwnd, nullptr, FALSE);
+	if (Contains(layout.side, cursor))
+	{
+		const bool horizontal = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+		const int step = horizontal ? gApp.monoW * 4 : gApp.monoH * 3;
+		if (horizontal)
+		{
+			gApp.sideX -= notches * step;
+		}
+		else
+		{
+			gApp.sideY -= notches * step;
+		}
+		ClampSideScroll(layout.side);
+		PlaceSideScroll(hwnd);
+		InvalidateRect(hwnd, nullptr, FALSE);
+		return true;
+	}
+	const RECT cells = CellArea(layout.board);
+	POINT anchor = cursor;
+	if (anchor.x < cells.left)
+	{
+		anchor.x = cells.left;
+	}
+	if (anchor.y < cells.top)
+	{
+		anchor.y = cells.top;
+	}
+	if (anchor.x >= cells.right)
+	{
+		anchor.x = cells.right > cells.left ? cells.right - 1 : cells.left;
+	}
+	if (anchor.y >= cells.bottom)
+	{
+		anchor.y = cells.bottom > cells.top ? cells.bottom - 1 : cells.top;
+	}
+	if (Contains(layout.board, cursor))
+	{
+		ZoomAt(anchor, cells, notches);
+		InvalidateRect(hwnd, nullptr, FALSE);
+	}
 	return true;
 }
 
@@ -1222,12 +2085,22 @@ bool OnMouseWheel(HWND hwnd, WPARAM wParam, LPARAM lParam)
 void OnSize(HWND hwnd)
 {
 	PlaceExpandEdits(hwnd);
+	PlaceSideScroll(hwnd);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 换成这一种落笔方式。tool 是画笔、橡皮或开关。点按钮和按 1、2、3 都走这里。
+void SelectTool(HWND hwnd, Tool tool)
+{
+	gApp.tool = tool;
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
 // 左键按下。点到放大、缩小、应用、命令或工具就执行；点到棋盘就开始一笔。
 bool OnLeftDown(HWND hwnd, LPARAM lParam)
 {
+	// 点在数字框外。焦点回到主窗口，1、2、3、-、+、= 才用来切工具和缩放。
+	SetFocus(hwnd);
 	const POINT cursor{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 	RECT client{};
 	const Layout layout = CurrentLayout(hwnd, client);
@@ -1258,17 +2131,27 @@ bool OnLeftDown(HWND hwnd, LPARAM lParam)
 		RunCommand(hwnd, static_cast<Command>(i));
 		return true;
 	}
+	if (Contains(bar.ruler, cursor))
+	{
+		ToggleRulers(hwnd);
+		return true;
+	}
+	if (Contains(bar.home, cursor))
+	{
+		ResetView(hwnd);
+		return true;
+	}
 	for (int i = 0; i < 3; ++i)
 	{
 		if (!Contains(bar.tools[i], cursor))
 		{
 			continue;
 		}
-		gApp.tool = static_cast<Tool>(i);
-		InvalidateRect(hwnd, nullptr, FALSE);
+		SelectTool(hwnd, static_cast<Tool>(i));
 		return true;
 	}
-	if (gApp.dragging || !Contains(layout.board, cursor))
+	const RECT cells = CellArea(layout.board);
+	if (gApp.dragging || !Contains(cells, cursor))
 	{
 		return false;
 	}
@@ -1277,7 +2160,7 @@ bool OnLeftDown(HWND hwnd, LPARAM lParam)
 	SetCapture(hwnd);
 	int x = 0;
 	int y = 0;
-	if (CellAt(cursor, layout.board, x, y))
+	if (CellAt(cursor, cells, x, y))
 	{
 		StrokeTo(x, y);
 	}
@@ -1310,16 +2193,45 @@ bool OnMiddleDown(HWND hwnd, LPARAM lParam)
 		return false;
 	}
 	PlaceView(layout.board);
+	// 拖动时焦点也回到主窗口，随后的快捷键不再填数字框。
+	SetFocus(hwnd);
 	gApp.dragging = true;
 	gApp.dragLast = cursor;
 	SetCapture(hwnd);
 	return true;
 }
 
-// 鼠标移动。拖动时改原点，落笔时改格子。
+// 记下鼠标下的格子，标尺和 01 用它标出当前行列。不在图上则清掉。
+void UpdateHover(HWND hwnd, POINT cursor)
+{
+	RECT client{};
+	const Layout layout = CurrentLayout(hwnd, client);
+	int x = 0;
+	int y = 0;
+	bool on = CellAt(cursor, CellArea(layout.board), x, y);
+	if (!on)
+	{
+		on = SideCellAt(cursor, layout.side, x, y);
+	}
+	if (gApp.hover == on && (!on || (gApp.hoverX == x && gApp.hoverY == y)))
+	{
+		return;
+	}
+	gApp.hover = on;
+	gApp.hoverX = x;
+	gApp.hoverY = y;
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 鼠标移动。拖动时改原点，落笔时改格子，并刷新标尺上的当前行列。
 bool OnMouseMove(HWND hwnd, LPARAM lParam)
 {
 	const POINT cursor{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+	TRACKMOUSEEVENT track{};
+	track.cbSize = sizeof(track);
+	track.dwFlags = TME_LEAVE;
+	track.hwndTrack = hwnd;
+	TrackMouseEvent(&track);
 	if (gApp.dragging)
 	{
 		gApp.originX += cursor.x - gApp.dragLast.x;
@@ -1331,9 +2243,10 @@ bool OnMouseMove(HWND hwnd, LPARAM lParam)
 	{
 		RECT client{};
 		const Layout layout = CurrentLayout(hwnd, client);
+		const RECT cells = CellArea(layout.board);
 		int x = 0;
 		int y = 0;
-		if (CellAt(cursor, layout.board, x, y))
+		if (CellAt(cursor, cells, x, y))
 		{
 			StrokeTo(x, y);
 		}
@@ -1343,6 +2256,7 @@ bool OnMouseMove(HWND hwnd, LPARAM lParam)
 		}
 		InvalidateRect(hwnd, nullptr, FALSE);
 	}
+	UpdateHover(hwnd, cursor);
 	return true;
 }
 
@@ -1365,22 +2279,111 @@ bool OnCaptureChanged()
 	return true;
 }
 
-// Ctrl+Z 撤销，Ctrl+Y 重做。
-bool OnKeyDown(HWND hwnd, WPARAM wParam)
+// 这个键会打出的字符。key 是虚拟键。用来认出不同键盘上的 - 和 +。
+wchar_t PrintedKey(WPARAM key)
 {
-	const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-	if (!ctrl)
+	BYTE state[256]{};
+	if (!GetKeyboardState(state))
 	{
-		return false;
+		return 0;
 	}
-	if (wParam == 'Z')
+	wchar_t text[8]{};
+	const UINT scan = MapVirtualKeyW(static_cast<UINT>(key), MAPVK_VK_TO_VSC);
+	const int count = ToUnicode(static_cast<UINT>(key), scan, state, text, 8, 0);
+	if (count <= 0)
+	{
+		return 0;
+	}
+	return text[0];
+}
+
+// 快捷键。Ctrl+Z 撤销，Ctrl+Y 恢复，Ctrl+Delete 清空，Ctrl+0 归位，Ctrl+Tab 开关标尺。
+// 1、2、3 换工具。- 缩小。+ 和 = 放大。都按整十，以棋盘中心为基准。
+bool OnKeyDown(HWND hwnd, WPARAM wParam, LPARAM lParam)
+{
+	gApp.zoomKeyUsed = false;
+	const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+	if (ctrl && wParam == 'Z')
 	{
 		DoUndo(hwnd);
 		return true;
 	}
-	if (wParam == 'Y')
+	if (ctrl && wParam == 'Y')
 	{
 		DoRedo(hwnd);
+		return true;
+	}
+	if (ctrl && wParam == VK_DELETE)
+	{
+		DoClear(hwnd);
+		return true;
+	}
+	if (ctrl && (wParam == '0' || wParam == VK_NUMPAD0))
+	{
+		ResetView(hwnd);
+		return true;
+	}
+	if (ctrl && wParam == VK_TAB)
+	{
+		// 按住不放时系统会连发。只在第一次按下时开关，避免标尺来回闪。
+		const bool repeated = (static_cast<ULONG>(lParam) & (1u << 30)) != 0;
+		if (!repeated)
+		{
+			ToggleRulers(hwnd);
+		}
+		return true;
+	}
+	if (ctrl)
+	{
+		return false;
+	}
+	if (wParam == '1' || wParam == VK_NUMPAD1)
+	{
+		SelectTool(hwnd, Tool::Pen);
+		return true;
+	}
+	if (wParam == '2' || wParam == VK_NUMPAD2)
+	{
+		SelectTool(hwnd, Tool::Eraser);
+		return true;
+	}
+	if (wParam == '3' || wParam == VK_NUMPAD3)
+	{
+		SelectTool(hwnd, Tool::Toggle);
+		return true;
+	}
+	const wchar_t printed = PrintedKey(wParam);
+	if (wParam == VK_OEM_MINUS || wParam == VK_SUBTRACT || printed == L'-')
+	{
+		ZoomStep(hwnd, -1);
+		gApp.zoomKeyUsed = true;
+		return true;
+	}
+	if (wParam == VK_OEM_PLUS || wParam == VK_ADD || printed == L'+' || printed == L'=')
+	{
+		ZoomStep(hwnd, 1);
+		gApp.zoomKeyUsed = true;
+		return true;
+	}
+	return false;
+}
+
+// 字符键。+ 放大，- 缩小。按键消息已经缩放过的，这里不再缩一次。
+bool OnChar(HWND hwnd, WPARAM wParam)
+{
+	if (gApp.zoomKeyUsed)
+	{
+		gApp.zoomKeyUsed = false;
+		return true;
+	}
+	if (wParam == L'+' || wParam == L'=')
+	{
+		ZoomStep(hwnd, 1);
+		return true;
+	}
+	if (wParam == L'-')
+	{
+		ZoomStep(hwnd, -1);
 		return true;
 	}
 	return false;
@@ -1427,6 +2430,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 		}
 		break;
+	case WM_HSCROLL:
+		OnSideBar(hwnd, gApp.sideHScroll, true, wParam);
+		return 0;
+	case WM_VSCROLL:
+		OnSideBar(hwnd, gApp.sideVScroll, false, wParam);
+		return 0;
 	case WM_LBUTTONDOWN:
 		if (OnLeftDown(hwnd, lParam))
 		{
@@ -1451,6 +2460,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 		}
 		break;
+	case WM_MOUSELEAVE:
+		if (gApp.hover)
+		{
+			gApp.hover = false;
+			InvalidateRect(hwnd, nullptr, FALSE);
+		}
+		return 0;
 	case WM_MBUTTONUP:
 		if (OnMiddleUp(hwnd))
 		{
@@ -1464,7 +2480,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_KEYDOWN:
-		if (OnKeyDown(hwnd, wParam))
+		if (OnKeyDown(hwnd, wParam, lParam))
+		{
+			return 0;
+		}
+		break;
+	case WM_CHAR:
+		if (OnChar(hwnd, wParam))
 		{
 			return 0;
 		}
