@@ -1,10 +1,16 @@
 #include "IconDrawer.h"
 
 #include <Windows.h>
+#include <commdlg.h>
 #include <windowsx.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <string>
+
+// 打开和保存用系统文件框。库写在这里，工程文件不用再加。
+#pragma comment(lib, "comdlg32.lib")
 
 ////////////////////////////////////////////////////////////////////////////////
 // 状态
@@ -163,6 +169,10 @@ struct App
 	HWND sideHScroll{};
 	// 右侧文字的竖滑条。文字比窗口矮时藏起来。
 	HWND sideVScroll{};
+	// 上次打开或保存的 01 文本完整路径。下一次文件框从这里接着选。
+	wchar_t textPath[MAX_PATH]{};
+	// 上次保存的黑白 BMP 完整路径。下一次文件框从这里接着选。
+	wchar_t bmpPath[MAX_PATH]{};
 };
 
 // 整个程序只有这一份图和视图。
@@ -320,10 +330,16 @@ RECT CellArea(const RECT& board)
 	return cells;
 }
 
-// 右侧文字的分区。colRuler、rowRuler 是列号和行号。
+// 右侧文字的分区。openText、saveText、saveBmp 是打开和两种保存。colRuler、rowRuler 是列号和行号。
 // text 是 01。hScroll、vScroll 是滑条。showH、showV 表示这两条现在要不要露出来。
 struct SideView
 {
+	// 打开一份 01 文本，换成当前图。
+	RECT openText{};
+	// 把当前图写成 01 文本。
+	RECT saveText{};
+	// 把当前图写成黑白 BMP。一格一个像素。
+	RECT saveBmp{};
 	RECT colRuler{};
 	RECT rowRuler{};
 	RECT text{};
@@ -340,7 +356,7 @@ int ScrollBarThickness()
 	return thickness > 0 ? thickness : 16;
 }
 
-// 在右栏里排行号、列号、01 和滑条。side 是右栏。
+// 在右栏里排打开、保存文本、保存图片、行号、列号、01 和滑条。side 是右栏。
 // 文字放得下时不留滑条。行号在文字左边，不跟着左右滚动。
 SideView MakeSideView(const RECT& side)
 {
@@ -358,8 +374,38 @@ SideView MakeSideView(const RECT& side)
 	}
 
 	SideView view{};
+	// fileH 是顶部那排按钮的高度。三颗按钮平分右栏宽度。
+	int fileH = 26;
+	const int roomH = bottom - top;
+	if (fileH > roomH)
+	{
+		fileH = roomH;
+	}
+	if (fileH < 1)
+	{
+		fileH = 1;
+	}
+	const int fileGap = 6;
+	const int fileCount = 3;
+	int span = right - left - fileGap * (fileCount - 1);
+	if (span < fileCount)
+	{
+		span = fileCount;
+	}
+	const int buttonW = span / fileCount;
+	view.openText = RECT{ left, top, left + buttonW, top + fileH };
+	view.saveText = RECT{ left + buttonW + fileGap, top, left + buttonW * 2 + fileGap, top + fileH };
+	view.saveBmp = RECT{ left + buttonW * 2 + fileGap * 2, top, right, top + fileH };
+	if (view.saveBmp.left > right)
+	{
+		view.saveBmp.left = right;
+	}
 	const int contentLeft = left;
-	const int contentTop = top;
+	int contentTop = top + fileH + kSidePad;
+	if (contentTop > bottom)
+	{
+		contentTop = bottom;
+	}
 	const int contentRight = right;
 	const int contentBottom = bottom;
 	const int rowW = gApp.rulers ? kSideRowRuler : 0;
@@ -1503,6 +1549,384 @@ void ReleaseExpandUi()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// 打开和保存
+// 右栏三颗按钮。01 文本一行一排，只写 0 和 1。BMP 是无压缩 24 位，一格一个像素。
+////////////////////////////////////////////////////////////////////////////////
+
+// 从 01 文本收出来的网格。width、height 是格数。cells 按行排，0 是灭，1 是亮。
+struct TextGrid
+{
+	int width{ 0 };
+	int height{ 0 };
+	std::vector<std::uint8_t> cells;
+};
+
+// 读出整个文件。path 是完整路径。bytes 写出字节。空文件、太大或读失败则返回 false。
+bool ReadWholeFile(const wchar_t* path, std::vector<std::uint8_t>& bytes)
+{
+	bytes.clear();
+	// file 是只读句柄。读完就关。
+	const HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (file == INVALID_HANDLE_VALUE)
+	{
+		return false;
+	}
+	LARGE_INTEGER size{};
+	// 1024 行，每行 1024 个字再加回车换行。比这更大的文件不必再读。
+	const LONGLONG limit = static_cast<LONGLONG>(IconSheet::kMaxSide) * (IconSheet::kMaxSide + 2);
+	if (!GetFileSizeEx(file, &size) || size.QuadPart <= 0 || size.QuadPart > limit)
+	{
+		CloseHandle(file);
+		return false;
+	}
+	bytes.resize(static_cast<std::size_t>(size.QuadPart));
+	DWORD read = 0;
+	const BOOL ok = ReadFile(file, bytes.data(), static_cast<DWORD>(bytes.size()), &read, nullptr);
+	CloseHandle(file);
+	return ok && read == bytes.size();
+}
+
+// 把字节写进文件。path 是完整路径。已有的文件会被盖掉。
+bool WriteWholeFile(const wchar_t* path, const void* data, std::size_t size)
+{
+	const HANDLE file = CreateFileW(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (file == INVALID_HANDLE_VALUE)
+	{
+		return false;
+	}
+	const auto* bytes = static_cast<const std::uint8_t*>(data);
+	std::size_t left = size;
+	while (left > 0)
+	{
+		const DWORD chunk = left > (1u << 20) ? (1u << 20) : static_cast<DWORD>(left);
+		DWORD wrote = 0;
+		if (!WriteFile(file, bytes, chunk, &wrote, nullptr) || wrote != chunk)
+		{
+			CloseHandle(file);
+			return false;
+		}
+		bytes += chunk;
+		left -= chunk;
+	}
+	CloseHandle(file);
+	return true;
+}
+
+// 把文件字节收成网格。bytes 是整个文件。
+// 行末可以是换行，也可以是回车加换行。文件末尾那一个换行不算空行。
+// 每一行要一样长，只能是 0 和 1，宽高在 1 到 1024。不合规则时 grid 不动。
+bool Parse01Text(const std::vector<std::uint8_t>& bytes, TextGrid& grid)
+{
+	std::vector<std::uint8_t> cells;
+	cells.reserve(bytes.size());
+	// width 是第一行的格数。后面每一行都要等于它。-1 表示还没遇到行尾。
+	int width = -1;
+	int row = 0;
+	int col = 0;
+	for (std::size_t i = 0; i < bytes.size(); ++i)
+	{
+		const unsigned char ch = bytes[i];
+		if (ch == '\r')
+		{
+			if (i + 1 >= bytes.size() || bytes[i + 1] != '\n')
+			{
+				return false;
+			}
+			continue;
+		}
+		if (ch == '\n')
+		{
+			if (width < 0)
+			{
+				width = col;
+			}
+			if (col != width || width < 1)
+			{
+				return false;
+			}
+			++row;
+			if (row > IconSheet::kMaxSide)
+			{
+				return false;
+			}
+			col = 0;
+			continue;
+		}
+		if (ch != '0' && ch != '1')
+		{
+			return false;
+		}
+		if (col >= IconSheet::kMaxSide)
+		{
+			return false;
+		}
+		cells.push_back(ch == '1' ? 1 : 0);
+		++col;
+	}
+	if (col > 0)
+	{
+		if (width < 0)
+		{
+			width = col;
+		}
+		if (col != width || width < 1)
+		{
+			return false;
+		}
+		++row;
+	}
+	if (row < 1 || width < 1 || width > IconSheet::kMaxSide || row > IconSheet::kMaxSide)
+	{
+		return false;
+	}
+	if (cells.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(row))
+	{
+		return false;
+	}
+	grid.width = width;
+	grid.height = row;
+	grid.cells = std::move(cells);
+	return true;
+}
+
+// 核对 01 文本的行规。失败返回 false，程序不出窗口。
+bool TextSelfCheck()
+{
+	TextGrid grid;
+	const std::vector<std::uint8_t> rows{ '0', '1', '\r', '\n', '1', '0', '\n' };
+	if (!Parse01Text(rows, grid) || grid.width != 2 || grid.height != 2 || grid.cells.size() != 4)
+	{
+		return false;
+	}
+	if (grid.cells[0] != 0 || grid.cells[1] != 1 || grid.cells[2] != 1 || grid.cells[3] != 0)
+	{
+		return false;
+	}
+	const std::vector<std::uint8_t> other{ '0', '2' };
+	const std::vector<std::uint8_t> uneven{ '0', '1', '\n', '0' };
+	const std::vector<std::uint8_t> blank{ '0', '\n', '\n' };
+	if (Parse01Text(other, grid) || Parse01Text(uneven, grid) || Parse01Text(blank, grid))
+	{
+		return false;
+	}
+	return grid.width == 2 && grid.height == 2;
+}
+
+// 弹出系统文件框。filter 是类型列表，title 是标题，extension 是省略后缀时补上的扩展名。
+// save 为真时是保存。path 里已有的路径当作起点，确定后改成选中的完整路径。取消则返回 false。
+bool PickFile(HWND hwnd, bool save, const wchar_t* filter, const wchar_t* title, const wchar_t* extension, wchar_t* path, int pathCount)
+{
+	OPENFILENAMEW dialog{};
+	dialog.lStructSize = sizeof(dialog);
+	dialog.hwndOwner = hwnd;
+	dialog.lpstrFilter = filter;
+	dialog.lpstrFile = path;
+	dialog.nMaxFile = static_cast<DWORD>(pathCount);
+	dialog.lpstrTitle = title;
+	dialog.lpstrDefExt = extension;
+	dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
+	if (save)
+	{
+		dialog.Flags |= OFN_OVERWRITEPROMPT;
+	}
+	else
+	{
+		dialog.Flags |= OFN_FILEMUSTEXIST;
+	}
+	const BOOL ok = save ? GetSaveFileNameW(&dialog) : GetOpenFileNameW(&dialog);
+	if (ok)
+	{
+		return true;
+	}
+	if (CommDlgExtendedError() != 0)
+	{
+		MessageBoxW(hwnd, L"文件框打不开。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+	}
+	return false;
+}
+
+// 把当前图写成 01 文本。path 是完整路径。一行一排，行末是回车换行。
+bool Write01Text(const wchar_t* path)
+{
+	const int width = gApp.sheet.Width();
+	const int height = gApp.sheet.Height();
+	// bytes 是要写出去的字符。每个格子一个 0 或 1。
+	std::string bytes;
+	bytes.reserve(static_cast<std::size_t>(height) * static_cast<std::size_t>(width + 2));
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			bytes.push_back(gApp.sheet.Get(x, y) ? '1' : '0');
+		}
+		bytes.push_back('\r');
+		bytes.push_back('\n');
+	}
+	return WriteWholeFile(path, bytes.data(), bytes.size());
+}
+
+// 打开一份 01 文本并换成当前图。正在落笔或拖动时不动。不合规则时保持原图。
+void OpenText(HWND hwnd)
+{
+	if (ViewBusy())
+	{
+		return;
+	}
+	// path 是文件框里的完整路径。先放上次用过的，确定后再记住。
+	wchar_t path[MAX_PATH]{};
+	lstrcpynW(path, gApp.textPath, MAX_PATH);
+	if (!PickFile(hwnd, false, L"01 文本 (*.txt)\0*.txt\0", L"打开 01 文本", L"txt", path, MAX_PATH))
+	{
+		return;
+	}
+	std::vector<std::uint8_t> bytes;
+	TextGrid grid;
+	if (!ReadWholeFile(path, bytes) || !Parse01Text(bytes, grid))
+	{
+		MessageBoxW(
+			hwnd,
+			L"这份 01 文本不能打开。每一行要一样长，只能有 0 和 1，宽和高要在 1 到 1024。",
+			L"IconDrawer",
+			MB_OK | MB_ICONWARNING);
+		return;
+	}
+	const int beforeLeft = gApp.sheet.Left();
+	const int beforeUp = gApp.sheet.Up();
+	if (!gApp.sheet.LoadGrid(grid.width, grid.height, std::move(grid.cells)))
+	{
+		MessageBoxW(hwnd, L"这份 01 文本不能打开。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	lstrcpynW(gApp.textPath, path, MAX_PATH);
+	HoldOrigin(beforeLeft, beforeUp);
+	SyncExpandFields();
+	PlaceSideScroll(hwnd);
+	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 把当前图保存成 01 文本。取消或写失败时图不动。
+void SaveText(HWND hwnd)
+{
+	wchar_t path[MAX_PATH]{};
+	lstrcpynW(path, gApp.textPath, MAX_PATH);
+	if (!PickFile(hwnd, true, L"01 文本 (*.txt)\0*.txt\0", L"保存 01 文本", L"txt", path, MAX_PATH))
+	{
+		return;
+	}
+	if (!Write01Text(path))
+	{
+		MessageBoxW(hwnd, L"这份 01 文本写不出去。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	lstrcpynW(gApp.textPath, path, MAX_PATH);
+}
+
+// 把一张图收成无压缩 24 位 BMP。sheet 是要写的图。一格一个像素，0 是黑，1 是白。
+// 不看屏幕上放大后的格子。宽或高不合法时返回空。
+std::vector<std::uint8_t> BuildBmp(const IconSheet& sheet)
+{
+	const int width = sheet.Width();
+	const int height = sheet.Height();
+	if (width < 1 || height < 1)
+	{
+		return {};
+	}
+	// stride 是文件里一行的字节数。24 位一行要补到 4 的倍数，补出来的字节保持 0。
+	const int stride = (width * 3 + 3) / 4 * 4;
+	const std::size_t headerSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	const std::size_t imageSize = static_cast<std::size_t>(stride) * static_cast<std::size_t>(height);
+	std::vector<std::uint8_t> bytes(headerSize + imageSize, 0);
+
+	BITMAPFILEHEADER file{};
+	file.bfType = 0x4D42;
+	file.bfOffBits = static_cast<DWORD>(headerSize);
+	file.bfSize = static_cast<DWORD>(bytes.size());
+	BITMAPINFOHEADER info{};
+	info.biSize = sizeof(info);
+	info.biWidth = width;
+	info.biHeight = height;
+	info.biPlanes = 1;
+	info.biBitCount = 24;
+	info.biCompression = BI_RGB;
+	info.biSizeImage = static_cast<DWORD>(imageSize);
+	std::memcpy(bytes.data(), &file, sizeof(file));
+	std::memcpy(bytes.data() + sizeof(file), &info, sizeof(info));
+
+	// pixels 是像素区的开头。BMP 从画面最下边那一行开始存。
+	std::uint8_t* pixels = bytes.data() + headerSize;
+	for (int y = 0; y < height; ++y)
+	{
+		std::uint8_t* row = pixels + static_cast<std::size_t>(height - 1 - y) * static_cast<std::size_t>(stride);
+		for (int x = 0; x < width; ++x)
+		{
+			const std::uint8_t value = sheet.Get(x, y) ? 255 : 0;
+			row[static_cast<std::size_t>(x) * 3] = value;
+			row[static_cast<std::size_t>(x) * 3 + 1] = value;
+			row[static_cast<std::size_t>(x) * 3 + 2] = value;
+		}
+	}
+	return bytes;
+}
+
+// 核对黑白 BMP 的尺寸、黑白和行尾补齐。失败返回 false，程序不出窗口。
+bool BmpSelfCheck()
+{
+	IconSheet sheet;
+	sheet.Set(0, 0, true);
+	sheet.Set(1, 15, true);
+	const std::vector<std::uint8_t> bytes = BuildBmp(sheet);
+	const int stride = (16 * 3 + 3) / 4 * 4;
+	const std::size_t headerSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	if (bytes.size() != headerSize + static_cast<std::size_t>(stride) * 16 || bytes[0] != 'B' || bytes[1] != 'M')
+	{
+		return false;
+	}
+	// top 是画面最上边那一行，在文件像素区的最后一行。
+	const std::uint8_t* top = bytes.data() + headerSize + static_cast<std::size_t>(15) * static_cast<std::size_t>(stride);
+	if (top[0] != 255 || top[1] != 255 || top[2] != 255 || top[3] != 0)
+	{
+		return false;
+	}
+	// bottom 是画面最下边那一行，在文件像素区的第一行。第 2 格是白。
+	const std::uint8_t* bottom = bytes.data() + headerSize;
+	if (bottom[0] != 0 || bottom[3] != 255 || bottom[4] != 255 || bottom[5] != 255)
+	{
+		return false;
+	}
+
+	IconSheet thin;
+	if (!thin.LoadGrid(1, 1, std::vector<std::uint8_t>{ 1 }))
+	{
+		return false;
+	}
+	const std::vector<std::uint8_t> one = BuildBmp(thin);
+	if (one.size() != headerSize + 4)
+	{
+		return false;
+	}
+	return one[headerSize] == 255 && one[headerSize + 1] == 255 && one[headerSize + 2] == 255 && one[headerSize + 3] == 0;
+}
+
+// 把当前图保存成黑白 BMP。取消或写失败时图不动。像素尺寸等于格子宽高。
+void SaveBmp(HWND hwnd)
+{
+	// path 是文件框里的完整路径。先放上次用过的，确定后再记住。
+	wchar_t path[MAX_PATH]{};
+	lstrcpynW(path, gApp.bmpPath, MAX_PATH);
+	if (!PickFile(hwnd, true, L"黑白 BMP (*.bmp)\0*.bmp\0", L"保存黑白 BMP", L"bmp", path, MAX_PATH))
+	{
+		return;
+	}
+	const std::vector<std::uint8_t> bytes = BuildBmp(gApp.sheet);
+	if (bytes.empty() || !WriteWholeFile(path, bytes.data(), bytes.size()))
+	{
+		MessageBoxW(hwnd, L"这份图片写不出去。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	lstrcpynW(gApp.bmpPath, path, MAX_PATH);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // 画面
 // 把四块区域、棋盘、标尺、右侧 01、左栏按钮、顶栏扩像素和放大百分比画出来。
 ////////////////////////////////////////////////////////////////////////////////
@@ -1728,11 +2152,14 @@ void PaintBoard(HDC dc, const RECT& board)
 	RestoreDC(dc, saved);
 }
 
-// 画右侧的 01 和同一套原点标尺。side 是右栏。只显示，不在这里改字。
+// 画右侧的打开、保存文本、保存图片、01 和同一套原点标尺。side 是右栏。文字只显示，不在这里改字。
 void PaintSide(HDC dc, const RECT& side)
 {
 	ClampSideScroll(side);
 	const SideView view = MakeSideView(side);
+	DrawButton(dc, view.openText, L"打开", false, !ViewBusy());
+	DrawButton(dc, view.saveText, L"保存文本", false, true);
+	DrawButton(dc, view.saveBmp, L"保存图片", false, true);
 	if (gApp.monoFont == nullptr || gApp.monoW <= 0 || gApp.monoH <= 0)
 	{
 		return;
@@ -2096,7 +2523,7 @@ void SelectTool(HWND hwnd, Tool tool)
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-// 左键按下。点到放大、缩小、应用、命令或工具就执行；点到棋盘就开始一笔。
+// 左键按下。点到放大、缩小、应用、打开、保存、命令或工具就执行；点到棋盘就开始一笔。
 bool OnLeftDown(HWND hwnd, LPARAM lParam)
 {
 	// 点在数字框外。焦点回到主窗口，1、2、3、-、+、= 才用来切工具和缩放。
@@ -2104,6 +2531,22 @@ bool OnLeftDown(HWND hwnd, LPARAM lParam)
 	const POINT cursor{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 	RECT client{};
 	const Layout layout = CurrentLayout(hwnd, client);
+	const SideView sideView = MakeSideView(layout.side);
+	if (Contains(sideView.openText, cursor))
+	{
+		OpenText(hwnd);
+		return true;
+	}
+	if (Contains(sideView.saveText, cursor))
+	{
+		SaveText(hwnd);
+		return true;
+	}
+	if (Contains(sideView.saveBmp, cursor))
+	{
+		SaveBmp(hwnd);
+		return true;
+	}
 	const ZoomBar zoom = MakeZoomBar(layout.top);
 	if (Contains(zoom.out, cursor))
 	{
@@ -2509,8 +2952,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 // instance 是本程序实例，用来注册窗口类。show 是启动时窗口怎么显示。
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show)
 {
-	// 画布规则不对就不出窗口。
-	if (!IconSheet::SelfCheck())
+	// 画布、01 文本或黑白 BMP 的规则不对就不出窗口。
+	if (!IconSheet::SelfCheck() || !TextSelfCheck() || !BmpSelfCheck())
 	{
 		return -1;
 	}

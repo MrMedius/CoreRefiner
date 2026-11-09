@@ -183,6 +183,36 @@ public:
 		}
 	}
 
+	// 用一份 01 网格换掉整张图，并占一步撤销。失败时栈和图都不动。
+	// width、height 是格数，要在 1 到 kMaxSide。cells 按行从左到右排，长度必须是宽乘高，每位只能是 0 或 1。
+	// 左、上回到 0。文件里不记原来往左、往上的格数，原点落到网格左上角。
+	[[nodiscard]] bool LoadGrid(int width, int height, std::vector<std::uint8_t> cells)
+	{
+		if (width < 1 || height < 1 || width > kMaxSide || height > kMaxSide)
+		{
+			return false;
+		}
+		const std::size_t count = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+		if (cells.size() != count)
+		{
+			return false;
+		}
+		for (const std::uint8_t cell : cells)
+		{
+			if (cell > 1)
+			{
+				return false;
+			}
+		}
+		PushUndo();
+		width_ = width;
+		height_ = height;
+		left_ = 0;
+		up_ = 0;
+		cells_ = std::move(cells);
+		return true;
+	}
+
 	// 把当前宽高、四个方向的格数和各位压进撤销栈，并丢掉重做记录。超过 kMaxUndo 时丢掉最旧的一份。
 	void PushUndo()
 	{
@@ -240,7 +270,7 @@ public:
 		return !redo_.empty();
 	}
 
-	// 核对初始方向格数、位、扩展、裁剪、16:9 和撤销。失败返回 false。
+	// 核对初始方向格数、位、扩展、裁剪、16:9、01 网格和撤销。失败返回 false。
 	[[nodiscard]] static bool SelfCheck()
 	{
 		IconSheet sheet;
@@ -311,6 +341,25 @@ public:
 			return false;
 		}
 		if (wide.Left() != 6 || wide.Right() != 22 || wide.Up() != 0 || wide.Down() != 16)
+		{
+			return false;
+		}
+
+		IconSheet loaded;
+		loaded.Set(0, 0, true);
+		if (!loaded.LoadGrid(2, 1, std::vector<std::uint8_t>{ 0, 1 }) || loaded.Width() != 2 || loaded.Height() != 1)
+		{
+			return false;
+		}
+		if (loaded.Left() != 0 || loaded.Up() != 0 || loaded.Get(0, 0) || !loaded.Get(1, 0))
+		{
+			return false;
+		}
+		if (!loaded.Undo() || loaded.Width() != 16 || !loaded.Get(0, 0))
+		{
+			return false;
+		}
+		if (loaded.LoadGrid(1, 1, std::vector<std::uint8_t>{ 2 }) || loaded.LoadGrid(0, 1, {}) || loaded.Width() != 16 || !loaded.CanRedo())
 		{
 			return false;
 		}
