@@ -1,0 +1,4 @@
+#include "resource.h"
+
+// 程序图标。编号最小，资源管理器把它当作 exe 的图标。窗口也用这一份。
+IDI_ICON1 ICON "..\\CoreRefiner\\asset\\Icon\\XYX.ico"

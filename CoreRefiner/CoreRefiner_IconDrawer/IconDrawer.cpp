@@ -1,4 +1,5 @@
 #include "IconDrawer.h"
+#include "resource.h"
 
 #include <Windows.h>
 #include <commdlg.h>
@@ -3319,14 +3320,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show)
 		return -1;
 	}
 
-	// wc 描述窗口类：消息函数、实例、类名、光标和背景。
-	WNDCLASSW wc{};
+	// wc 描述窗口类。hIcon 是大图标，hIconSm 是标题栏小图标。两张都从编进 exe 的 XYX.ico 取出。
+	WNDCLASSEXW wc{};
+	wc.cbSize = sizeof(wc);
 	wc.lpfnWndProc = WindowProc;
 	wc.hInstance = instance;
 	wc.lpszClassName = kWindowClass;
+	wc.hIcon = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_ICON1), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+	wc.hIconSm = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_ICON1), IMAGE_ICON, 16, 16, 0));
 	wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-	if (RegisterClassW(&wc) == 0)
+	if (RegisterClassExW(&wc) == 0)
 	{
 		return -1;
 	}

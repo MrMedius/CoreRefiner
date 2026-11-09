@@ -83,6 +83,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IconDrawer.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="IconDrawer.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="XYX.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
