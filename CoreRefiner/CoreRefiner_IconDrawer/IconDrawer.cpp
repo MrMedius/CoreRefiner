@@ -1410,37 +1410,54 @@ void SyncExpandFields()
 	}
 }
 
-// 按四个方向的格数重排。成功占一步撤销，原点停在原来的屏幕位置。写回框里，去掉多余的前导零。
+// 四个数字框都离开之后，主窗口用这条消息把数字写回实际格数。
+// 不能在失去焦点的当时写回：点应用会先把焦点拉走，写回要等这次点击读完数字。
+constexpr UINT WM_SYNC_EXPAND = WM_APP + 1;
+
+// 按四个方向的格数重排。成功占一步撤销，原点停在原来的屏幕位置。
+// 无论有没有改成，四个数字框最后都写回当前的实际格数。
 void DoExpand(HWND hwnd)
 {
-	if (ViewBusy())
+	if (!ViewBusy())
 	{
-		return;
+		int left = 0;
+		int right = 0;
+		int up = 0;
+		int down = 0;
+		if (ReadExpandSides(left, right, up, down) && gApp.sheet.CanSetSides(left, right, up, down))
+		{
+			const int beforeLeft = gApp.sheet.Left();
+			const int beforeUp = gApp.sheet.Up();
+			gApp.sheet.PushUndo();
+			if (gApp.sheet.SetSides(left, right, up, down))
+			{
+				HoldOrigin(beforeLeft, beforeUp);
+				ClearTextSelect();
+				InvalidateRect(hwnd, nullptr, FALSE);
+			}
+		}
 	}
-	int left = 0;
-	int right = 0;
-	int up = 0;
-	int down = 0;
-	if (!ReadExpandSides(left, right, up, down) || !gApp.sheet.CanSetSides(left, right, up, down))
-	{
-		return;
-	}
-	const int beforeLeft = gApp.sheet.Left();
-	const int beforeUp = gApp.sheet.Up();
-	gApp.sheet.PushUndo();
-	if (!gApp.sheet.SetSides(left, right, up, down))
-	{
-		return;
-	}
-	HoldOrigin(beforeLeft, beforeUp);
-	ClearTextSelect();
 	SyncExpandFields();
-	InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+// 焦点是不是还在四个数字框里。next 是接下来拿到焦点的窗口。
+// 还在的话先不写回，玩家可能接着改另一格再按应用。
+bool FocusStaysInExpand(HWND next)
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		if (next == gApp.expandEdits[i])
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 // 数字框的消息。回车执行应用。Ctrl+Z、Ctrl+Y 仍交给主窗口撤销和恢复。
 // Ctrl+Tab 交给主窗口开关标尺。Ctrl+C、Ctrl+V 留在框里复制和粘贴数字。
 // 1、2、3、-、+、= 留在框里填格数，不切工具，也不缩放。
+// 焦点离开四个数字框时，等这次操作结束再把数字写回实际格数。
 LRESULT CALLBACK ExpandEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (msg == WM_KEYDOWN)
@@ -1456,6 +1473,10 @@ LRESULT CALLBACK ExpandEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			SendMessageW(GetParent(hwnd), WM_KEYDOWN, wParam, lParam);
 			return 0;
 		}
+	}
+	if (msg == WM_KILLFOCUS && !FocusStaysInExpand(reinterpret_cast<HWND>(wParam)))
+	{
+		PostMessageW(GetParent(hwnd), WM_SYNC_EXPAND, 0, 0);
 	}
 	return CallWindowProcW(gApp.expandEditProc, hwnd, msg, wParam, lParam);
 }
@@ -3215,6 +3236,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 		}
 		break;
+	case WM_SYNC_EXPAND:
+		SyncExpandFields();
+		return 0;
 	case WM_CTLCOLOREDIT:
 	{
 		if (gApp.editBrush == nullptr)
