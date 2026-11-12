@@ -29,6 +29,9 @@ namespace
 	{
 		return kCells * kCellPx + (kCells - 1u) * kGapPx;
 	}
+
+	// 和 UI_UltraRedraw::strokeSeen_ 的长度一致。边长改了这里会先报错。
+	static_assert(kCells * kCells == 256u);
 }
 
 UI_UltraRedraw::UI_UltraRedraw(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -135,6 +138,7 @@ const IconAtlas::IconBits& UI_UltraRedraw::GetBits() const noexcept
 
 void UI_UltraRedraw::Show(const IconAtlas::IconBits& bits)
 {
+	EndStroke_();
 	SetBits(bits);
 	open_ = true;
 	if (uiRoot_ != nullptr)
@@ -147,6 +151,7 @@ void UI_UltraRedraw::Show(const IconAtlas::IconBits& bits)
 
 void UI_UltraRedraw::Hide() noexcept
 {
+	EndStroke_();
 	open_ = false;
 }
 
@@ -178,19 +183,43 @@ void UI_UltraRedraw::Update(float dt)
 	uiRoot_->UpdateAfterInput();
 
 	const Ui::UiInputFrame frame = mouse_.BuildFrame();
-	if (!frame.pointer.primaryPressed || !frame.pointer.insideLogicalSurface)
+	if (!frame.pointer.primaryDown)
 	{
+		if (stroking_)
+		{
+			EndStroke_();
+		}
+		return;
+	}
+
+	const float pointerX = frame.pointer.logicalX;
+	const float pointerY = frame.pointer.logicalY;
+	const bool onBoard = frame.pointer.insideLogicalSurface && InsideBoard_(pointerX, pointerY);
+	if (!stroking_)
+	{
+		// 只有这一下是在画布上按下的，才开始画。从按钮拖进来不算。
+		if (!frame.pointer.primaryPressed || !onBoard)
+		{
+			return;
+		}
+		BeginStroke_();
+	}
+	else if (!onBoard)
+	{
+		hasStrokeCell_ = false;
 		return;
 	}
 
 	unsigned cellX = 0u;
 	unsigned cellY = 0u;
-	if (!HitCell_(frame.pointer.logicalX, frame.pointer.logicalY, cellX, cellY))
+	if (!HitCell_(pointerX, pointerY, cellX, cellY))
 	{
 		return;
 	}
-	ToggleCell_(cellX, cellY);
-	Paint_();
+	if (StrokeTo_(cellX, cellY))
+	{
+		Paint_();
+	}
 }
 
 void UI_UltraRedraw::Submit()
@@ -244,6 +273,14 @@ void UI_UltraRedraw::Paint_()
 	canvas.NotifyPixelsChanged();
 }
 
+bool UI_UltraRedraw::InsideBoard_(const float logicalX, const float logicalY) const noexcept
+{
+	const float localX = logicalX - boardLeft_;
+	const float localY = logicalY - boardTop_;
+	const float boardPixels = static_cast<float>(BoardPixels());
+	return localX >= 0.0f && localY >= 0.0f && localX < boardPixels && localY < boardPixels;
+}
+
 bool UI_UltraRedraw::HitCell_(
 	const float logicalX,
 	const float logicalY,
@@ -284,4 +321,82 @@ void UI_UltraRedraw::ToggleCell_(const unsigned cellX, const unsigned cellY) noe
 	}
 	const std::uint16_t mask = static_cast<std::uint16_t>(1u << (15u - cellX));
 	bits_[cellY] = static_cast<std::uint16_t>(bits_[cellY] ^ mask);
+}
+
+void UI_UltraRedraw::BeginStroke_() noexcept
+{
+	stroking_ = true;
+	hasStrokeCell_ = false;
+	for (std::uint8_t& seen : strokeSeen_)
+	{
+		seen = 0u;
+	}
+}
+
+void UI_UltraRedraw::EndStroke_() noexcept
+{
+	stroking_ = false;
+	hasStrokeCell_ = false;
+}
+
+bool UI_UltraRedraw::ApplyToggle_(const unsigned cellX, const unsigned cellY) noexcept
+{
+	if (cellX >= kCells || cellY >= kCells)
+	{
+		return false;
+	}
+	// index 是这一笔的记录下标。翻过的格子再经过就停住。
+	const unsigned index = cellY * kCells + cellX;
+	if (strokeSeen_[index] != 0u)
+	{
+		return false;
+	}
+	strokeSeen_[index] = 1u;
+	ToggleCell_(cellX, cellY);
+	return true;
+}
+
+bool UI_UltraRedraw::StrokeTo_(const unsigned cellX, const unsigned cellY) noexcept
+{
+	if (!hasStrokeCell_)
+	{
+		const bool flipped = ApplyToggle_(cellX, cellY);
+		strokeX_ = cellX;
+		strokeY_ = cellY;
+		hasStrokeCell_ = true;
+		return flipped;
+	}
+
+	int x0 = static_cast<int>(strokeX_);
+	int y0 = static_cast<int>(strokeY_);
+	const int x1 = static_cast<int>(cellX);
+	const int y1 = static_cast<int>(cellY);
+	const int dx = x1 > x0 ? x1 - x0 : x0 - x1;
+	const int sx = x0 < x1 ? 1 : -1;
+	const int dy = y1 > y0 ? y0 - y1 : y1 - y0;
+	const int sy = y0 < y1 ? 1 : -1;
+	int err = dx + dy;
+	bool flipped = false;
+	while (true)
+	{
+		flipped = ApplyToggle_(static_cast<unsigned>(x0), static_cast<unsigned>(y0)) || flipped;
+		if (x0 == x1 && y0 == y1)
+		{
+			break;
+		}
+		const int e2 = err * 2;
+		if (e2 >= dy)
+		{
+			err += dy;
+			x0 += sx;
+		}
+		if (e2 <= dx)
+		{
+			err += dx;
+			y0 += sy;
+		}
+	}
+	strokeX_ = cellX;
+	strokeY_ = cellY;
+	return flipped;
 }

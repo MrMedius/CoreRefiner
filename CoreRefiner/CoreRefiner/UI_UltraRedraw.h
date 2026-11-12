@@ -45,7 +45,7 @@ public:
 	// 只刷新确定和退出的文案，不改格子。
 	void RefreshLabels();
 
-	// 打开时接收格子点击，以及确定和退出。
+	// 打开时接收画布上的按下和拖动，以及确定和退出。
 	void Update(float dt);
 	// 打开时才提交遮罩、画布和按钮。
 	void Submit();
@@ -53,10 +53,20 @@ public:
 private:
 	// 按 bits_ 把 16×16 画到放大的画布上。
 	void Paint_();
+	// 逻辑坐标是不是还在整块画布里。缝也算在里面，画布外不算。
+	[[nodiscard]] bool InsideBoard_(float logicalX, float logicalY) const noexcept;
 	// 逻辑坐标落在哪一格。点在缝上返回 false。
 	[[nodiscard]] bool HitCell_(float logicalX, float logicalY, unsigned& cellX, unsigned& cellY) const noexcept;
 	// 翻转这一格。x 从左到右，和 IconAtlas 的位序一致。
 	void ToggleCell_(unsigned cellX, unsigned cellY) noexcept;
+	// 按下落在画布上时开始一笔。清掉上一笔翻过的格子。
+	void BeginStroke_() noexcept;
+	// 松开或关掉界面时结束这一笔。
+	void EndStroke_() noexcept;
+	// 这一笔里这格还没翻过才翻转。翻了返回 true。
+	[[nodiscard]] bool ApplyToggle_(unsigned cellX, unsigned cellY) noexcept;
+	// 从上一格连到这一格，中间跳过的格子也翻。任一格翻了返回 true。
+	[[nodiscard]] bool StrokeTo_(unsigned cellX, unsigned cellY) noexcept;
 
 	// 全屏半透明遮罩。
 	std::unique_ptr<Canvas2D> bg_;
@@ -79,6 +89,16 @@ private:
 	// 画布左上角的逻辑坐标。用来把点击换算成格子。
 	float boardLeft_{ 0.0f };
 	float boardTop_{ 0.0f };
+	// 这一笔已经翻过的格子。下标是 y * 16 + x。同一笔再经过不再翻。
+	std::uint8_t strokeSeen_[256]{};
+	// 上一格的列。hasStrokeCell_ 为 true 时才用。
+	unsigned strokeX_{ 0u };
+	// 上一格的行。hasStrokeCell_ 为 true 时才用。
+	unsigned strokeY_{ 0u };
 	// 为 true 时才接收点击并提交。
 	bool open_{ false };
+	// 正在按住左键画。只有按下时落在画布上才变成 true。
+	bool stroking_{ false };
+	// 这一笔是否已经有上一格。离开画布后清掉，再进来不把线连过空白。
+	bool hasStrokeCell_{ false };
 };
