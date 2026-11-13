@@ -35,8 +35,9 @@ namespace ModuleNodeKindFill
 		Color(255u, 180u,  60u, 255u), // Spawn     RGB(255,180, 60) #FFB43C 橙
 		Color(120u, 200u, 255u, 255u), // Attribute RGB(120,200,255) #78C8FF 青
 		Color(140u, 220u, 130u, 255u), // Rule      RGB(140,220,130) #8CDC82 绿
+		Color(200u, 160u, 255u, 255u), // Element   RGB(200,160,255) #C8A0FF 紫
 		Color(192u, 192u, 192u, 255u), // Passive   RGB(192,192,192) #C0C0C0 银
-		Color(200u, 160u, 255u, 255u), // Other     RGB(200,160,255) #C8A0FF 紫
+		Color(255u, 120u, 130u, 255u), // Other     RGB(255,120,130) #FF7882 淡红
 		Color(  0u,   0u,   0u,   0u), // Fusion    表槽；外观对半用子节点 Kind 色
 		Color(255u, 255u, 255u, 255u), // Ultra     RGB(255,255,255) #FFFFFF 白
 	};

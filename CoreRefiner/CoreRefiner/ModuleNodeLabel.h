@@ -7,6 +7,7 @@ enum class ModuleNodeKind : unsigned char
 	Spawn,
 	Attribute,
 	Rule,
+	Element,
 	Passive,
 	Other,
 	Fusion,
@@ -38,6 +39,10 @@ enum class ModuleNodeLabel : unsigned char
 	Rule_Return,
 	Rule_Child,
 	Rule_Revive,
+	// ————————————————————————————————————————————————————
+	// Kind —— Element
+	// ————————————————————————————————————————————————————
+	Element_Yin,
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
@@ -110,6 +115,12 @@ inline constexpr ModuleNodeLabel kRuleLabels[] = {
 	ModuleNodeLabel::Rule_Revive,
 };
 // ————————————————————————————————————————————————————
+// Kind —— Element
+// ————————————————————————————————————————————————————
+inline constexpr ModuleNodeLabel kElementLabels[] = {
+	ModuleNodeLabel::Element_Yin,
+};
+// ————————————————————————————————————————————————————
 // Kind —— Passive
 // ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kPassiveLabels[] = {
@@ -174,6 +185,8 @@ template<std::size_t N>
 		return MakeLabelTable(kAttributeLabels);
 	case ModuleNodeKind::Rule:
 		return MakeLabelTable(kRuleLabels);
+	case ModuleNodeKind::Element:
+		return MakeLabelTable(kElementLabels);
 	case ModuleNodeKind::Passive:
 		return MakeLabelTable(kPassiveLabels);
 	case ModuleNodeKind::Other:

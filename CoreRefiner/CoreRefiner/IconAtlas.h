@@ -325,6 +325,11 @@ namespace NodeIconAtlas
 			0b0000001111000000,
 		};
 		// ————————————————————————————————————————————————————
+		// Kind —— Element
+		// ————————————————————————————————————————————————————
+		// 还没有图案。先放一张空图，让这个标签在表里有自己的一格。
+		inline constexpr IconAtlas::IconBits kElementYin{};
+		// ————————————————————————————————————————————————————
 		// Kind —— Passive
 		// ————————————————————————————————————————————————————
 		inline constexpr IconAtlas::IconBits kPassiveDamageFix{
@@ -369,47 +374,108 @@ namespace NodeIconAtlas
 		// ————————————————————————————————————————————————————
 		// Kind —— Fusion
 		// ————————————————————————————————————————————————————
-		// Label::Fusion 下标槽；绘制走主体/素材对半 blit，不用这张图。
+		// 融合没有自己的图案。绘制走主体和素材各一半。
 		inline constexpr IconAtlas::IconBits kFusion{};
 		// ————————————————————————————————————————————————————
 		// Kind —— Ultra
 		// ————————————————————————————————————————————————————
 		// 图集槽用圆框。实例图案以后存在奥义自己身上。
 		inline constexpr IconAtlas::IconBits kUltra = kRoundFrame;
+		// 查不到标签时返回这张空图。
+		inline constexpr IconAtlas::IconBits kBlank{};
 	}
 
-	inline constexpr std::array<IconAtlas::IconBits, ModuleNodeLabelCount()> kNodeIcons{
-		detail::kCoreBall,            // Core_Ball
-		detail::kSpawnBall,           // Spawn_Ball
-
-		detail::kAttributeLifetimeRate,   // Attribute_LifetimeRate
-		detail::kAttributeSpeedRate,  // Attribute_SpeedRate
-		detail::kAttributeSizeRate,   // Attribute_SizeRate
-		detail::kAttributeDamageRate, // Attribute_DamageRate
-
-		detail::kRuleOrbit,           // Rule_Orbit
-		detail::kRuleReturn,          // Rule_Return
-		detail::kRuleChild,           // Rule_Child
-		detail::kRuleRevive,          // Rule_Revive
-
-		detail::kPassiveDamageFix,    // Passive_DamageFix
-
-		detail::kOtherRepeat,         // Other_Repeat
-		detail::kFusion,              // Fusion
-		detail::kUltra,               // Ultra
+	// 一张节点图。label 是它对应的标签，bits 指向图案。取图认标签，不认这张表的先后。
+	struct NodeIconSlot
+	{
+		ModuleNodeLabel label;
+		const IconAtlas::IconBits* bits;
 	};
 
-	static_assert(kNodeIcons.size() == ModuleNodeLabelCount());
+	inline constexpr NodeIconSlot kNodeIcons[] = {
+		// ————————————————————————————————————————————————————
+		// Kind —— Core
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Core_Ball, &detail::kCoreBall },
+		// ————————————————————————————————————————————————————
+		// Kind —— Spawn
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Spawn_Ball, &detail::kSpawnBall },
+		// ————————————————————————————————————————————————————
+		// Kind —— Attribute
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Attribute_LifetimeRate, &detail::kAttributeLifetimeRate },
+		{ ModuleNodeLabel::Attribute_SpeedRate, &detail::kAttributeSpeedRate },
+		{ ModuleNodeLabel::Attribute_SizeRate, &detail::kAttributeSizeRate },
+		{ ModuleNodeLabel::Attribute_DamageRate, &detail::kAttributeDamageRate },
+		// ————————————————————————————————————————————————————
+		// Kind —— Rule
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Rule_Orbit, &detail::kRuleOrbit },
+		{ ModuleNodeLabel::Rule_Return, &detail::kRuleReturn },
+		{ ModuleNodeLabel::Rule_Child, &detail::kRuleChild },
+		{ ModuleNodeLabel::Rule_Revive, &detail::kRuleRevive },
+		// ————————————————————————————————————————————————————
+		// Kind —— Element
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Element_Yin, &detail::kElementYin },
+		// ————————————————————————————————————————————————————
+		// Kind —— Passive
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Passive_DamageFix, &detail::kPassiveDamageFix },
+		// ————————————————————————————————————————————————————
+		// Kind —— Other
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Other_Repeat, &detail::kOtherRepeat },
+		// ————————————————————————————————————————————————————
+		// Kind —— Fusion
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Fusion, &detail::kFusion },
+		// ————————————————————————————————————————————————————
+		// Kind —— Ultra
+		// ————————————————————————————————————————————————————
+		{ ModuleNodeLabel::Ultra, &detail::kUltra },
+	};
 
+	// 每个标签恰好有一张图。漏一张或写重一张时，编译失败。
+	[[nodiscard]] inline constexpr bool NodeIconsCoverLabels() noexcept
+	{
+		constexpr std::size_t count = sizeof(kNodeIcons) / sizeof(kNodeIcons[0]);
+		if (count != ModuleNodeLabelCount())
+		{
+			return false;
+		}
+		for (std::size_t i = 0; i < ModuleNodeLabelCount(); ++i)
+		{
+			const auto label = static_cast<ModuleNodeLabel>(i);
+			std::size_t hits = 0;
+			for (std::size_t n = 0; n < count; ++n)
+			{
+				if (kNodeIcons[n].label == label && kNodeIcons[n].bits != nullptr)
+				{
+					++hits;
+				}
+			}
+			if (hits != 1u)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	static_assert(NodeIconsCoverLabels());
+
+	// 按标签取图案。对不上时返回空图。
 	[[nodiscard]] inline const IconAtlas::IconBits& Get(ModuleNodeLabel id) noexcept
 	{
-		const std::size_t i = ToIndex(id);
-		assert(i < ModuleNodeLabelCount());
-		if (i >= ModuleNodeLabelCount())
+		for (const NodeIconSlot& slot : kNodeIcons)
 		{
-			return kNodeIcons[0];
+			if (slot.label == id && slot.bits != nullptr)
+			{
+				return *slot.bits;
+			}
 		}
-		return kNodeIcons[i];
+		return detail::kBlank;
 	}
 }
 
