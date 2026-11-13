@@ -242,6 +242,7 @@ namespace
 				Text::Span span{};
 				span.start = s.value("start", 0u);
 				span.length = s.value("length", 0u);
+				// 写了颜色就用这一段自己的颜色。没写的留给 ApplyKindColor_ 填种类色。
 				if (s.contains("r") || s.contains("g") || s.contains("b") || s.contains("a"))
 				{
 					const unsigned char r = static_cast<unsigned char>(s.value("r", 255));
@@ -262,6 +263,29 @@ namespace
 			}
 		}
 		return entry;
+	}
+
+	// 说明书没写颜色的标题段，用这个标签的种类色。融合的填充色是透明的，不填。
+	void ApplyKindColor_(ModuleNodeInfoEntry& entry, ModuleNodeLabel label)
+	{
+		const ModuleNodeKind kind = KindOf(label);
+		const std::size_t index = ToIndex(kind);
+		if (index >= ModuleNodeKindCount())
+		{
+			return;
+		}
+		const Color color = ModuleNodeKindFill::kFill[index];
+		if (color.GetA() == 0u)
+		{
+			return;
+		}
+		for (Text::Span& span : entry.spans)
+		{
+			if (!span.color.has_value())
+			{
+				span.color = color;
+			}
+		}
 	}
 
 	[[nodiscard]] const ModuleNodeInfoEntry* TryGet_(
@@ -375,7 +399,9 @@ bool LoadModuleNodeInfoCopy(const std::filesystem::path& path)
 			{
 				continue;
 			}
-			table[ToIndex(*labelOpt)] = ParseEntry_(lit.value());
+			ModuleNodeInfoEntry entry = ParseEntry_(lit.value());
+			ApplyKindColor_(entry, *labelOpt);
+			table[ToIndex(*labelOpt)] = std::move(entry);
 			any = true;
 		}
 	});
