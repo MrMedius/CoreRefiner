@@ -67,12 +67,116 @@ enum class Command
 	Clear
 };
 
-// 三个工具按钮上的字。顺序与 Tool 相同。快捷键不写在按钮上。
-constexpr const wchar_t* kToolLabels[] = { L"画笔", L"橡皮", L"开关" };
-// 三个命令按钮上的字。顺序与 Command 相同。快捷键不写在按钮上。
-constexpr const wchar_t* kCommandLabels[] = { L"撤销", L"恢复", L"清空" };
-// 顶栏四个方向的字。顺序是左、右、上、下。
-constexpr const wchar_t* kExpandLabels[] = { L"左", L"右", L"上", L"下" };
+// 界面语言。打开时用日语。日、中、EN 三颗按钮上的字不跟着这门语言改。
+enum class Lang
+{
+	Ja,
+	Zh,
+	En,
+	Count
+};
+
+// 一句界面文字。三门语言的表按这个顺序各写一列。
+enum class TextId
+{
+	Pen,
+	Eraser,
+	Toggle,
+	Undo,
+	Redo,
+	Clear,
+	Ruler,
+	Home,
+	Left,
+	Right,
+	Up,
+	Down,
+	Apply,
+	Open,
+	SaveText,
+	SaveBmp,
+	DialogFail,
+	OpenTitle,
+	OpenBadLong,
+	OpenBadShort,
+	SaveTextTitle,
+	SaveTextFail,
+	SaveBmpTitle,
+	SaveBmpFail,
+	CopyFail,
+	PasteTooBig,
+	PasteNeedSelect,
+	PasteBadSelect,
+	PasteNot01,
+	Count
+};
+
+// 三门语言的界面文字。第一行是日语，第二行是中文，第三行是英文。
+constexpr const wchar_t* kText[][static_cast<int>(TextId::Count)] = {
+	{
+		L"ペン", L"消す", L"反転",
+		L"戻す", L"進む", L"消去",
+		L"定規", L"原点",
+		L"左", L"右", L"上", L"下",
+		L"適用",
+		L"開く", L"保存文字", L"保存画像",
+		L"ファイルを開けません。",
+		L"01 テキストを開く",
+		L"この 01 テキストは開けません。各行は同じ長さで、0 と 1 だけにして、幅と高さは 1 から 1024 にしてください。",
+		L"この 01 テキストは開けません。",
+		L"01 テキストを保存",
+		L"この 01 テキストは書けません。",
+		L"白黒 BMP を保存",
+		L"この画像は書けません。",
+		L"この 01 はコピーできません。",
+		L"1024 を超えるので、図は変えていません。",
+		L"先に 01 で 1 マス選んでから貼り付けてください。",
+		L"この選択は今の図に合いません。図は変えていません。",
+		L"クリップボードは 01 テキストではありません。各行は同じ長さで、0 と 1 だけにして、幅と高さは 1 から 1024 にしてください。",
+	},
+	{
+		L"画笔", L"橡皮", L"开关",
+		L"撤销", L"恢复", L"清空",
+		L"标尺", L"归位",
+		L"左", L"右", L"上", L"下",
+		L"应用",
+		L"打开", L"保存文本", L"保存图片",
+		L"文件框打不开。",
+		L"打开 01 文本",
+		L"这份 01 文本不能打开。每一行要一样长，只能有 0 和 1，宽和高要在 1 到 1024。",
+		L"这份 01 文本不能打开。",
+		L"保存 01 文本",
+		L"这份 01 文本写不出去。",
+		L"保存黑白 BMP",
+		L"这份图片写不出去。",
+		L"这片 01 复制不出去。",
+		L"贴下去会超过 1024，图没有改。",
+		L"先在 01 上选一格，再粘贴。",
+		L"这块选区对不上当前图，图没有改。",
+		L"剪贴板里不是 01 文本。每一行要一样长，只能有 0 和 1，宽和高要在 1 到 1024。",
+	},
+	{
+		L"Pen", L"Erase", L"Flip",
+		L"Undo", L"Redo", L"Clear",
+		L"Ruler", L"Home",
+		L"L", L"R", L"U", L"D",
+		L"Apply",
+		L"Open", L"Save Text", L"Save Image",
+		L"The file dialog could not be opened.",
+		L"Open 01 Text",
+		L"This 01 text cannot be opened. Each row must be the same length, contain only 0 and 1, and stay within 1 to 1024.",
+		L"This 01 text cannot be opened.",
+		L"Save 01 Text",
+		L"This 01 text could not be written.",
+		L"Save Black-and-White BMP",
+		L"This image could not be written.",
+		L"This 01 could not be copied.",
+		L"The paste would pass 1024. The sheet was not changed.",
+		L"Select one cell on the 01 text, then paste.",
+		L"This selection does not match the sheet. The sheet was not changed.",
+		L"The clipboard is not 01 text. Each row must be the same length, contain only 0 and 1, and stay within 1 to 1024.",
+	},
+};
 
 // 左栏按钮位置。tools 在上，commands 在中，views 在下。组与组之间空得比按钮间距大。
 struct ToolBar
@@ -95,12 +199,18 @@ struct ExpandBar
 	RECT apply{};
 };
 
-// 顶栏右侧的放大控件。out 是缩小，percent 是百分数，in 是放大。
+// 顶栏中间的放大控件。out 是缩小，percent 是百分数，in 是放大。
 struct ZoomBar
 {
 	RECT out{};
 	RECT percent{};
 	RECT in{};
+};
+
+// 顶栏最右边的语言按钮。顺序是日、中、EN，和 Lang 一致。
+struct LangBar
+{
+	RECT buttons[3]{};
 };
 
 // 当前图和视图。zoom 是一格的像素边长。
@@ -186,10 +296,52 @@ struct App
 	int selectX1{ 0 };
 	// 选区另一头的缓冲区行号。
 	int selectY1{ 0 };
+	// 界面语言。打开时是日语。
+	Lang lang{ Lang::Ja };
 };
 
 // 整个程序只有这一份图和视图。
 App gApp{};
+
+// 按当前语言取一句界面文字。id 是哪一句。对不上时给空字。
+const wchar_t* Text(TextId id)
+{
+	const int lang = static_cast<int>(gApp.lang);
+	const int index = static_cast<int>(id);
+	if (lang < 0 || lang >= static_cast<int>(Lang::Count) || index < 0 || index >= static_cast<int>(TextId::Count))
+	{
+		return L"";
+	}
+	return kText[lang][index];
+}
+
+// 01 文本文件框的类型列表。串里的空字符用来隔开说明和通配符。
+const wchar_t* TextFilter()
+{
+	switch (gApp.lang)
+	{
+	case Lang::Zh:
+		return L"01 文本 (*.txt)\0*.txt\0";
+	case Lang::En:
+		return L"01 text (*.txt)\0*.txt\0";
+	default:
+		return L"01 テキスト (*.txt)\0*.txt\0";
+	}
+}
+
+// 黑白 BMP 文件框的类型列表。串里的空字符用来隔开说明和通配符。
+const wchar_t* BmpFilter()
+{
+	switch (gApp.lang)
+	{
+	case Lang::Zh:
+		return L"黑白 BMP (*.bmp)\0*.bmp\0";
+	case Lang::En:
+		return L"Black-and-white BMP (*.bmp)\0*.bmp\0";
+	default:
+		return L"白黒 BMP (*.bmp)\0*.bmp\0";
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // 绘制基础
@@ -659,15 +811,11 @@ ToolBar MakeToolBar(const RECT& tool)
 	return bar;
 }
 
-// 在顶栏左侧排四个数字框和应用按钮。top 是顶栏。顺序是左、右、上、下。
-ExpandBar MakeExpandBar(const RECT& top)
+// 顶栏一行控件的位置。rowH 写出高度，y 写出顶边。
+void TopRowBox(const RECT& top, int& y, int& rowH)
 {
-	const int margin = 16;
-	const int labelW = 24;
-	const int gap = 10;
-	const int applyW = 72;
 	const int topH = top.bottom - top.top;
-	int rowH = 26;
+	rowH = 26;
 	if (rowH > topH)
 	{
 		rowH = topH;
@@ -676,7 +824,19 @@ ExpandBar MakeExpandBar(const RECT& top)
 	{
 		rowH = 1;
 	}
-	const int y = top.top + (topH - rowH) / 2;
+	y = top.top + (topH - rowH) / 2;
+}
+
+// 在顶栏左侧排四个数字框和应用按钮。top 是顶栏。顺序是左、右、上、下。
+ExpandBar MakeExpandBar(const RECT& top)
+{
+	const int margin = 16;
+	const int labelW = 24;
+	const int gap = 10;
+	const int applyW = 72;
+	int y = 0;
+	int rowH = 0;
+	TopRowBox(top, y, rowH);
 	int inner = (top.right - top.left) - margin * 2 - labelW * 4 - gap * 4 - applyW;
 	int editW = 56;
 	if (inner < editW * 4)
@@ -701,25 +861,63 @@ ExpandBar MakeExpandBar(const RECT& top)
 	return bar;
 }
 
-// 在顶栏右侧排缩小、百分数和放大。top 是顶栏。
-ZoomBar MakeZoomBar(const RECT& top)
+// 在顶栏最右边排日、中、EN。top 是顶栏。三颗同宽，当前语言用亮底。
+LangBar MakeLangBar(const RECT& top)
 {
 	const int margin = 16;
 	const int gap = 8;
+	const int buttonW = 44;
+	int y = 0;
+	int rowH = 0;
+	TopRowBox(top, y, rowH);
+	int x = top.right - margin - buttonW * 3 - gap * 2;
+	if (x < top.left)
+	{
+		x = top.left;
+	}
+	LangBar bar{};
+	for (int i = 0; i < 3; ++i)
+	{
+		bar.buttons[i] = RECT{ x, y, x + buttonW, y + rowH };
+		x += buttonW + gap;
+	}
+	return bar;
+}
+
+// 在应用和语言按钮之间的空档正中排缩小、百分数和放大。top 是顶栏。
+ZoomBar MakeZoomBar(const RECT& top)
+{
+	const ExpandBar expand = MakeExpandBar(top);
+	const LangBar lang = MakeLangBar(top);
+	const int gap = 8;
 	const int buttonW = 28;
-	const int percentW = 84;
-	const int topH = top.bottom - top.top;
-	int rowH = 26;
-	if (rowH > topH)
+	const int pad = 10;
+	int y = 0;
+	int rowH = 0;
+	TopRowBox(top, y, rowH);
+	int leftLimit = expand.apply.right + pad;
+	int rightLimit = lang.buttons[0].left - pad;
+	if (rightLimit < leftLimit)
 	{
-		rowH = topH;
+		rightLimit = leftLimit;
 	}
-	if (rowH < 1)
+	int percentW = 84;
+	int need = buttonW + gap + percentW + gap + buttonW;
+	const int room = rightLimit - leftLimit;
+	if (room < need)
 	{
-		rowH = 1;
+		percentW = room - buttonW * 2 - gap * 2;
+		if (percentW < 36)
+		{
+			percentW = 36;
+		}
+		need = buttonW + gap + percentW + gap + buttonW;
 	}
-	const int y = top.top + (topH - rowH) / 2;
-	int x = top.right - margin - buttonW - gap - percentW - gap - buttonW;
+	int x = leftLimit + (room - need) / 2;
+	if (x < top.left)
+	{
+		x = top.left;
+	}
 	ZoomBar bar{};
 	bar.out = RECT{ x, y, x + buttonW, y + rowH };
 	x += buttonW + gap;
@@ -1781,7 +1979,7 @@ bool PickFile(HWND hwnd, bool save, const wchar_t* filter, const wchar_t* title,
 	}
 	if (CommDlgExtendedError() != 0)
 	{
-		MessageBoxW(hwnd, L"文件框打不开。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::DialogFail), L"IconDrawer", MB_OK | MB_ICONWARNING);
 	}
 	return false;
 }
@@ -1816,7 +2014,7 @@ void OpenText(HWND hwnd)
 	// path 是文件框里的完整路径。先放上次用过的，确定后再记住。
 	wchar_t path[MAX_PATH]{};
 	lstrcpynW(path, gApp.textPath, MAX_PATH);
-	if (!PickFile(hwnd, false, L"01 文本 (*.txt)\0*.txt\0", L"打开 01 文本", L"txt", path, MAX_PATH))
+	if (!PickFile(hwnd, false, TextFilter(), Text(TextId::OpenTitle), L"txt", path, MAX_PATH))
 	{
 		return;
 	}
@@ -1824,18 +2022,14 @@ void OpenText(HWND hwnd)
 	TextGrid grid;
 	if (!ReadWholeFile(path, bytes) || !Parse01Text(bytes, grid))
 	{
-		MessageBoxW(
-			hwnd,
-			L"这份 01 文本不能打开。每一行要一样长，只能有 0 和 1，宽和高要在 1 到 1024。",
-			L"IconDrawer",
-			MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::OpenBadLong), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	const int beforeLeft = gApp.sheet.Left();
 	const int beforeUp = gApp.sheet.Up();
 	if (!gApp.sheet.LoadGrid(grid.width, grid.height, std::move(grid.cells)))
 	{
-		MessageBoxW(hwnd, L"这份 01 文本不能打开。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::OpenBadShort), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	lstrcpynW(gApp.textPath, path, MAX_PATH);
@@ -1851,13 +2045,13 @@ void SaveText(HWND hwnd)
 {
 	wchar_t path[MAX_PATH]{};
 	lstrcpynW(path, gApp.textPath, MAX_PATH);
-	if (!PickFile(hwnd, true, L"01 文本 (*.txt)\0*.txt\0", L"保存 01 文本", L"txt", path, MAX_PATH))
+	if (!PickFile(hwnd, true, TextFilter(), Text(TextId::SaveTextTitle), L"txt", path, MAX_PATH))
 	{
 		return;
 	}
 	if (!Write01Text(path))
 	{
-		MessageBoxW(hwnd, L"这份 01 文本写不出去。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::SaveTextFail), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	lstrcpynW(gApp.textPath, path, MAX_PATH);
@@ -1955,14 +2149,14 @@ void SaveBmp(HWND hwnd)
 	// path 是文件框里的完整路径。先放上次用过的，确定后再记住。
 	wchar_t path[MAX_PATH]{};
 	lstrcpynW(path, gApp.bmpPath, MAX_PATH);
-	if (!PickFile(hwnd, true, L"黑白 BMP (*.bmp)\0*.bmp\0", L"保存黑白 BMP", L"bmp", path, MAX_PATH))
+	if (!PickFile(hwnd, true, BmpFilter(), Text(TextId::SaveBmpTitle), L"bmp", path, MAX_PATH))
 	{
 		return;
 	}
 	const std::vector<std::uint8_t> bytes = BuildBmp(gApp.sheet);
 	if (bytes.empty() || !WriteWholeFile(path, bytes.data(), bytes.size()))
 	{
-		MessageBoxW(hwnd, L"这份图片写不出去。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::SaveBmpFail), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	lstrcpynW(gApp.bmpPath, path, MAX_PATH);
@@ -2108,7 +2302,7 @@ void Copy01(HWND hwnd)
 	}
 	if (!CopyWideText(hwnd, Build01Range(gApp.sheet, x0, y0, x1, y1)))
 	{
-		MessageBoxW(hwnd, L"这片 01 复制不出去。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::CopyFail), L"IconDrawer", MB_OK | MB_ICONWARNING);
 	}
 }
 
@@ -2169,7 +2363,7 @@ void PasteAt(HWND hwnd, const TextGrid& grid, int x0, int y0)
 	const int needH = y0 + grid.height;
 	if (needW > IconSheet::kMaxSide || needH > IconSheet::kMaxSide)
 	{
-		MessageBoxW(hwnd, L"贴下去会超过 1024，图没有改。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::PasteTooBig), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	const int addRight = needW > gApp.sheet.Width() ? needW - gApp.sheet.Width() : 0;
@@ -2181,7 +2375,7 @@ void PasteAt(HWND hwnd, const TextGrid& grid, int x0, int y0)
 	{
 		if (gApp.sheet.Undo())
 		{
-			MessageBoxW(hwnd, L"贴下去会超过 1024，图没有改。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+			MessageBoxW(hwnd, Text(TextId::PasteTooBig), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		}
 		return;
 	}
@@ -2213,7 +2407,7 @@ void Paste01(HWND hwnd)
 	}
 	if (!gApp.textSelect)
 	{
-		MessageBoxW(hwnd, L"先在 01 上选一格，再粘贴。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::PasteNeedSelect), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	int x0 = 0;
@@ -2222,18 +2416,14 @@ void Paste01(HWND hwnd)
 	int y1 = 0;
 	if (!TextSelection(x0, y0, x1, y1))
 	{
-		MessageBoxW(hwnd, L"这块选区对不上当前图，图没有改。", L"IconDrawer", MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::PasteBadSelect), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	std::wstring wide;
 	TextGrid grid;
 	if (!ReadClipboardText(hwnd, wide) || !ParseClipboard01(wide, grid))
 	{
-		MessageBoxW(
-			hwnd,
-			L"剪贴板里不是 01 文本。每一行要一样长，只能有 0 和 1，宽和高要在 1 到 1024。",
-			L"IconDrawer",
-			MB_OK | MB_ICONWARNING);
+		MessageBoxW(hwnd, Text(TextId::PasteNot01), L"IconDrawer", MB_OK | MB_ICONWARNING);
 		return;
 	}
 	PasteAt(hwnd, grid, x0, y0);
@@ -2470,9 +2660,9 @@ void PaintSide(HDC dc, const RECT& side)
 {
 	ClampSideScroll(side);
 	const SideView view = MakeSideView(side);
-	DrawButton(dc, view.openText, L"打开", false, !ViewBusy());
-	DrawButton(dc, view.saveText, L"保存文本", false, true);
-	DrawButton(dc, view.saveBmp, L"保存图片", false, true);
+	DrawButton(dc, view.openText, Text(TextId::Open), false, !ViewBusy());
+	DrawButton(dc, view.saveText, Text(TextId::SaveText), false, true);
+	DrawButton(dc, view.saveBmp, Text(TextId::SaveBmp), false, true);
 	if (gApp.monoFont == nullptr || gApp.monoW <= 0 || gApp.monoH <= 0)
 	{
 		return;
@@ -2617,17 +2807,19 @@ void PaintToolBar(HDC dc, const RECT& tool)
 	const ToolBar bar = MakeToolBar(tool);
 	const int clip = SaveDC(dc);
 	IntersectClipRect(dc, tool.left, tool.top, tool.right, tool.bottom);
+	const TextId toolNames[] = { TextId::Pen, TextId::Eraser, TextId::Toggle };
 	for (int i = 0; i < 3; ++i)
 	{
-		DrawButton(dc, bar.tools[i], kToolLabels[i], static_cast<int>(gApp.tool) == i, true);
+		DrawButton(dc, bar.tools[i], Text(toolNames[i]), static_cast<int>(gApp.tool) == i, true);
 	}
+	const TextId commandNames[] = { TextId::Undo, TextId::Redo, TextId::Clear };
 	for (int i = 0; i < 3; ++i)
 	{
 		const Command command = static_cast<Command>(i);
-		DrawButton(dc, bar.commands[i], kCommandLabels[i], false, CommandEnabled(command));
+		DrawButton(dc, bar.commands[i], Text(commandNames[i]), false, CommandEnabled(command));
 	}
-	DrawButton(dc, bar.ruler, L"标尺", gApp.rulers, true);
-	DrawButton(dc, bar.home, L"归位", false, true);
+	DrawButton(dc, bar.ruler, Text(TextId::Ruler), gApp.rulers, true);
+	DrawButton(dc, bar.home, Text(TextId::Home), false, true);
 	RestoreDC(dc, clip);
 }
 
@@ -2644,20 +2836,21 @@ void PaintExpandBar(HDC dc, const RECT& top)
 	{
 		old = SelectObject(dc, gApp.fieldFont);
 	}
+	const TextId sideNames[] = { TextId::Left, TextId::Right, TextId::Up, TextId::Down };
 	for (int i = 0; i < 4; ++i)
 	{
 		RECT text = bar.labels[i];
-		DrawTextW(dc, kExpandLabels[i], -1, &text, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+		DrawTextW(dc, Text(sideNames[i]), -1, &text, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 	}
 	if (gApp.fieldFont != nullptr)
 	{
 		SelectObject(dc, old);
 	}
-	DrawButton(dc, bar.apply, L"应用", false, ExpandEnabled());
+	DrawButton(dc, bar.apply, Text(TextId::Apply), false, ExpandEnabled());
 	RestoreDC(dc, clip);
 }
 
-// 画顶栏右侧的缩小、百分数和放大。top 是顶栏矩形。
+// 画顶栏中间的缩小、百分数和放大。top 是顶栏矩形。
 void PaintZoomBar(HDC dc, const RECT& top)
 {
 	const ZoomBar bar = MakeZoomBar(top);
@@ -2679,6 +2872,21 @@ void PaintZoomBar(HDC dc, const RECT& top)
 	if (gApp.fieldFont != nullptr)
 	{
 		SelectObject(dc, old);
+	}
+	RestoreDC(dc, clip);
+}
+
+// 画顶栏最右边的日、中、EN。top 是顶栏矩形。当前语言用亮底。字本身不翻译。
+void PaintLangBar(HDC dc, const RECT& top)
+{
+	const LangBar bar = MakeLangBar(top);
+	// labels 是三颗按钮上的字。不进语言表，换语言时这三颗仍写日、中、EN。
+	const wchar_t* labels[] = { L"日", L"中", L"EN" };
+	const int clip = SaveDC(dc);
+	IntersectClipRect(dc, top.left, top.top, top.right, top.bottom);
+	for (int i = 0; i < 3; ++i)
+	{
+		DrawButton(dc, bar.buttons[i], labels[i], gApp.lang == static_cast<Lang>(i), true);
 	}
 	RestoreDC(dc, clip);
 }
@@ -2708,6 +2916,7 @@ void Paint(HDC dc, const RECT& client)
 	PaintToolBar(dc, layout.tool);
 	PaintExpandBar(dc, layout.top);
 	PaintZoomBar(dc, layout.top);
+	PaintLangBar(dc, layout.top);
 	PaintFrames(dc, layout);
 }
 
@@ -2856,7 +3065,7 @@ void SelectTool(HWND hwnd, Tool tool)
 	InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-// 左键按下。点到放大、缩小、应用、打开、保存、命令或工具就执行；点到棋盘就开始一笔。
+// 左键按下。点到语言、放大、缩小、应用、打开、保存、命令或工具就执行；点到棋盘就开始一笔。
 bool OnLeftDown(HWND hwnd, LPARAM lParam)
 {
 	// 点在数字框外。焦点回到主窗口，1、2、3、-、+、= 才用来切工具和缩放。
@@ -2878,6 +3087,17 @@ bool OnLeftDown(HWND hwnd, LPARAM lParam)
 	if (Contains(sideView.saveBmp, cursor))
 	{
 		SaveBmp(hwnd);
+		return true;
+	}
+	const LangBar langBar = MakeLangBar(layout.top);
+	for (int i = 0; i < 3; ++i)
+	{
+		if (!Contains(langBar.buttons[i], cursor))
+		{
+			continue;
+		}
+		gApp.lang = static_cast<Lang>(i);
+		InvalidateRect(hwnd, nullptr, FALSE);
 		return true;
 	}
 	const ZoomBar zoom = MakeZoomBar(layout.top);
