@@ -1,6 +1,7 @@
 #include "Ball_Shape.h"
 #include "Sphere.h"
 #include "BindableCommon.h"
+#include "AttackShadeCbuf.h"
 #include "Channels.h"
 
 Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
@@ -20,18 +21,15 @@ Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 		Technique head{ "Shade", Chan::main };
 		Step only("lambertian");
 
-		auto pvs = VertexShader::Resolve(gfx, "Solid_VS.cso");
+		auto pvs = VertexShader::Resolve(gfx, "Attack_VS.cso");
 		only.AddBindable(InputLayout::Resolve(gfx, model_Head.vertices.GetLayout(), *pvs));
 		only.AddBindable(std::move(pvs));
 
-		only.AddBindable(PixelShader::Resolve(gfx, "Solid_PS.cso"));
+		only.AddBindable(PixelShader::Resolve(gfx, "Attack_PS.cso"));
 
-		struct PSColorConstant
-		{
-			dx::XMFLOAT3 color = { 1.0f,0.0f,0.0f }; // 纯白色
-			float padding;
-		} colorConst;
-		only.AddBindable(PixelConstantBuffer<PSColorConstant>::Resolve(gfx, colorConst, 1u));
+		// 留住这一发的颜色缓冲，和步骤里绑定的是同一个。默认编号 0。
+		shade_ = std::make_shared<AttackShadeCbuf>(gfx);
+		only.AddBindable(shade_);
 
 		only.AddBindable(std::make_shared<TransformCbuf>(gfx));
 		only.AddBindable(Rasterizer::Resolve(gfx, false));
@@ -45,6 +43,15 @@ Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 void Ball_Shape::Update(float dt)
 {
 	trans.RotateDegreeToRad(1.0f, 1.0f, 1.0f);
+}
+
+void Ball_Shape::SetColorId(std::uint32_t colorId) noexcept
+{
+	// colorId 是颜色编号。缓冲还没接上时跳过。
+	if (shade_ != nullptr)
+	{
+		shade_->SetColorId(colorId);
+	}
 }
 
 DirectX::XMMATRIX Ball_Shape::GetTransformXM() const noexcept

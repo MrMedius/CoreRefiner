@@ -189,6 +189,7 @@
   <ItemGroup>
     <ClCompile Include="Attack.cpp" />
     <ClCompile Include="AttackManager.cpp" />
+    <ClCompile Include="AttackShadeCbuf.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="DisplaySettings.cpp" />
     <ClCompile Include="Enemy.cpp" />
@@ -378,6 +379,7 @@
     <ClInclude Include="AttackContext.h" />
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="AttackNodeSteps.h" />
+    <ClInclude Include="AttackShadeCbuf.h" />
     <ClInclude Include="AttackStepRecord.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
@@ -659,6 +661,22 @@
     <Image Include="asset\Icon\XYX.ico" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Attack_PS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Attack_VS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="BlurOutline_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

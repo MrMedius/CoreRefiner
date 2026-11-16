@@ -766,6 +766,9 @@
     <ClCompile Include="SpriteUVCbuf.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
+    <ClCompile Include="AttackShadeCbuf.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1602,6 +1605,9 @@
     <ClInclude Include="SpriteUVCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
+    <ClInclude Include="AttackShadeCbuf.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
@@ -1795,6 +1801,12 @@
       <Filter>Shader\3D</Filter>
     </FxCompile>
     <FxCompile Include="SolidTrans_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Attack_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Attack_PS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
   </ItemGroup>

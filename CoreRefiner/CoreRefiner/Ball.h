@@ -9,6 +9,7 @@
 #include "XMath.h"
 #include "AttackManager.h"
 
+#include <cstdint>
 #include <vector>
 
 class Ball : public Attack
@@ -23,7 +24,11 @@ class Ball : public Attack
 
 		{
 			auto shape = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ 1.0f,1.0f,1.0f });
+			// shape_ 留住这一发的外形。所有权交给视觉组件后，这个指针仍然指向它。
+			shape_ = shape.get();
 			shape->LinkTechniques(rg);
+			// 测试行：1 是白。看完白球后删掉，默认编号 0 就是灰。
+			shape_->SetColorId(1);
 			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
 		}
 
@@ -31,6 +36,15 @@ class Ball : public Attack
 		pCollider_ = AddComponent<SphereColliderComponent>(1.0f, ColliderSyncMode::FollowCenter);
 		pCollider_->LinkDebugWire(gfx, rg, XMFLOAT3(0.0f, 1.0f, 0.0f), "wireSphere");
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
+	}
+
+	// 把颜色编号交给这一发的外形。colorId 为 0 是灰，1 是白。
+	void SetColorId(std::uint32_t colorId) noexcept
+	{
+		if (shape_ != nullptr)
+		{
+			shape_->SetColorId(colorId);
+		}
 	}
 
 	// 记下缩放，以及组装想要的碰撞开关。
@@ -202,6 +216,8 @@ private:
 	}
 
 	SphereColliderComponent* pCollider_{ nullptr };
+	// 这一发的外形。负责把颜色编号写进它的着色缓冲。
+	Ball_Shape* shape_{ nullptr };
 	// 组装和出生流程想要的碰撞开关。真正开启还要等已出生。
 	bool colliderWanted_{ true };
 };
