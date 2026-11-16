@@ -134,9 +134,6 @@
     <Filter Include="UI">
       <UniqueIdentifier>{8308996a-329a-4be0-b591-b911c2d837e6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Framework\Graphics\Bindable\ConstantBuffers\Provides">
-      <UniqueIdentifier>{e25ee930-2deb-4743-91b2-e243cfb6df91}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Framework\Helpers\Time">
       <UniqueIdentifier>{82f81be1-f7ae-455f-b534-ff872edff379}</UniqueIdentifier>
     </Filter>
@@ -547,21 +544,6 @@
     <ClCompile Include="SliderCanvasComponent.cpp">
       <Filter>Framework\UI\Component</Filter>
     </ClCompile>
-    <ClCompile Include="DynamicCubeTexture.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClCompile>
-    <ClCompile Include="SpriteUVCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClCompile>
-    <ClCompile Include="DynamicTexture.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClCompile>
-    <ClCompile Include="DynamicTexture.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClCompile>
-    <ClCompile Include="RingParamsCbuf.cpp">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClCompile>
     <ClCompile Include="Timer.cpp">
       <Filter>Framework\Helpers\Time</Filter>
     </ClCompile>
@@ -768,6 +750,21 @@
     </ClCompile>
     <ClCompile Include="ModuleShopDraw.cpp">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicCubeTexture.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicTexture.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicTexture.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="RingParamsCbuf.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="SpriteUVCbuf.cpp">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1257,18 +1254,6 @@
     <ClInclude Include="CanvasTexture.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="DynamicCubeTexture.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClInclude>
-    <ClInclude Include="SpriteUVCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClInclude>
-    <ClInclude Include="Provides.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClInclude>
-    <ClInclude Include="RingParamsCbuf.h">
-      <Filter>Framework\Graphics\Bindable\ConstantBuffers\Provides</Filter>
-    </ClInclude>
     <ClInclude Include="Timer.h">
       <Filter>Framework\Helpers\Time</Filter>
     </ClInclude>
@@ -1607,6 +1592,15 @@
     </ClInclude>
     <ClInclude Include="ModuleShopRefine.h">
       <Filter>Object\Attack\ModuleSystem\ModuleZone</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicCubeTexture.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="RingParamsCbuf.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="SpriteUVCbuf.h">
+      <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

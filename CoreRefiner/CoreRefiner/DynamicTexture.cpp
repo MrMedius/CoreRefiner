@@ -1,7 +1,6 @@
 #include "DynamicTexture.h"
 #include "Texture.h"
 #include <cassert>
-#include "Provides.h"
 
 namespace Bind
 {
@@ -15,11 +14,6 @@ namespace Bind
 		assert(!frames.empty());
 	}
 
-	void DynamicTexture::InitializeParentReference(const Drawable& parent) noexcept
-	{
-		pParent = &parent;
-	}
-
 	std::unique_ptr<CloningBindable> DynamicTexture::Clone() const noexcept
 	{
 		return std::make_unique<DynamicTexture>(*this);
@@ -27,13 +21,11 @@ namespace Bind
 
 	void DynamicTexture::Bind(Graphics& gfx) noxnd
 	{
-		assert(pParent != nullptr);
-
-		int idx = TryProvide<DynamicTextureTag>(pParent);
-
 		const int n = (int)frames.size();
 		if (n <= 0) return;
-		idx %= n;
+
+		// idx 是落在现有帧里的下标。frame_ 由拥有者写入，负数先绕回正数。
+		int idx = frame_ % n;
 		if (idx < 0) idx += n;
 
 		frames[(size_t)idx]->Bind(gfx);

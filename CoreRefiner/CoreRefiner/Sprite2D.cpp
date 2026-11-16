@@ -19,6 +19,8 @@ Sprite2D::Sprite2D(Graphics& gfx, std::vector<std::string> paths)
 	auto tcb = std::make_shared<Transform2DCbuf>(gfx);
 	auto uvcb = std::make_shared<SpriteUVCbuf>(gfx);
 	auto dynTex = std::make_shared<DynamicTexture>(gfx, paths);
+	// 留住下面要绑定的那一份帧贴图和 UV 缓冲。帧号、UV 变化时写入它们。
+	AttachFrameBinds(dynTex, uvcb);
 
 	{
 		Technique ui("UI", Chan::ui);

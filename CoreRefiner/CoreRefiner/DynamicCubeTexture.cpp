@@ -1,6 +1,5 @@
 #include "DynamicCubeTexture.h"
 #include "CubeTexture.h"
-#include "Provides.h"
 #include <cassert>
 
 namespace Bind
@@ -16,11 +15,6 @@ namespace Bind
         assert(!frames.empty());
     }
 
-    void DynamicCubeTexture::InitializeParentReference(const Drawable& parent) noexcept
-    {
-        pParent = &parent;
-    }
-
     std::unique_ptr<CloningBindable> DynamicCubeTexture::Clone() const noexcept
     {
         return std::make_unique<DynamicCubeTexture>(*this);
@@ -28,14 +22,11 @@ namespace Bind
 
     void DynamicCubeTexture::Bind(Graphics& gfx) noxnd
     {
-        assert(pParent != nullptr);
-
-        int idx = TryProvide<DynamicCubeTextureTag>(pParent);
-
         const int n = (int)frames.size();
         if (n <= 0) return;
 
-        idx %= n;
+        // idx 是落在现有帧里的下标。负数先绕回正数。
+        int idx = frame_ % n;
         if (idx < 0) idx += n;
 
         auto& tex = frames[(size_t)idx];

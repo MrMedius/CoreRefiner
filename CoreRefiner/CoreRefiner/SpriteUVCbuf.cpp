@@ -1,5 +1,4 @@
 #include "SpriteUVCbuf.h"
-#include <cassert>
 
 namespace Bind
 {
@@ -13,13 +12,8 @@ namespace Bind
 
     void SpriteUVCbuf::Bind(Graphics& gfx) noxnd
     {
-        assert(pParent != nullptr);
-        UpdateBindImpl(gfx, GetUVData());
-    }
-
-    void SpriteUVCbuf::InitializeParentReference(const Drawable& parent) noexcept
-    {
-        pParent = &parent;
+        // uv_ 是拥有者写入的采样起点、裁切缩放和采样窗口。
+        UpdateBindImpl(gfx, uv_);
     }
 
     std::unique_ptr<CloningBindable> SpriteUVCbuf::Clone() const noexcept
@@ -31,15 +25,6 @@ namespace Bind
     {
         pVcbuf->Update(gfx, data);
         pVcbuf->Bind(gfx);
-    }
-
-    SpriteUVCbuf::UVData SpriteUVCbuf::GetUVData() const noexcept
-    {
-        assert(pParent != nullptr);
-
-        const auto uv = TryProvide<SpriteUVTag>(pParent);
-
-        return { uv.offset, uv.scale, uv.sampleScale, uv.padding };
     }
 
     std::unique_ptr<VertexConstantBuffer<SpriteUVCbuf::UVData>> SpriteUVCbuf::pVcbuf;

@@ -1,5 +1,4 @@
 #include "RingParamsCbuf.h"
-#include <cassert>
 
 namespace Bind
 {
@@ -14,13 +13,8 @@ namespace Bind
 
     void RingParamsCbuf::Bind(Graphics& gfx) noxnd
     {
-        assert(pParent != nullptr);
-        UpdateBindImpl(gfx, GetRingData());
-    }
-
-    void RingParamsCbuf::InitializeParentReference(const Drawable& parent) noexcept
-    {
-        pParent = &parent;
+        // ring_ 是拥有者写入的起止角和进度。
+        UpdateBindImpl(gfx, ring_);
     }
 
     std::unique_ptr<CloningBindable> RingParamsCbuf::Clone() const noexcept
@@ -32,15 +26,6 @@ namespace Bind
     {
         pPcbuf->Update(gfx, data);
         pPcbuf->Bind(gfx);
-    }
-
-    RingParamsCbuf::RingData RingParamsCbuf::GetRingData() const noexcept
-    {
-        assert(pParent != nullptr);
-
-        const auto rp = TryProvide<RingParamsTag>(pParent);
-
-        return { rp.startAngleDeg, rp.endAngleDeg, rp.ratio, rp.padding };
     }
 
     std::unique_ptr<PixelConstantBuffer<RingParamsCbuf::RingData>> RingParamsCbuf::pPcbuf;

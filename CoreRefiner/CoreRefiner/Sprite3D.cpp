@@ -22,6 +22,8 @@ Sprite3D::Sprite3D(Graphics& gfx, std::vector<std::string> paths)
 	auto tcb = std::make_shared<TransformCbuf>(gfx);
 	auto uvcb = std::make_shared<SpriteUVCbuf>(gfx);
 	auto dynTex = std::make_shared<DynamicTexture>(gfx, paths);
+	// 留住下面要绑定的那一份帧贴图和 UV 缓冲。后面的步骤共用这一份，帧号、UV 变化时写入它们。
+	AttachFrameBinds(dynTex, uvcb);
 
 	{
 		Technique shade("Shade", Chan::main);

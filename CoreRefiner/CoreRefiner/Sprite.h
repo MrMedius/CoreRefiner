@@ -1,11 +1,17 @@
 #pragma once
 #include "Drawable.h"
 #include "Transformation.h"
-#include "Provides.h"
+#include <memory>
 
 namespace dx = DirectX;
 
-class Sprite : public Drawable, public IProvides<DynamicTextureTag>, public IProvides<SpriteUVTag>
+namespace Bind
+{
+	class DynamicTexture;
+	class SpriteUVCbuf;
+}
+
+class Sprite : public Drawable
 {
 public:
     Sprite() = default;
@@ -39,15 +45,18 @@ public:
     // setters
     void SetFlip(bool isFlip_) noexcept { isFlip = isFlip_; }
     void SetLoop(bool isLoop_) noexcept { isLoop = isLoop_; }
-    void SetTextureFrameIndex(int i) noexcept { texIndex = i; }
+    void SetTextureFrameIndex(int i) noexcept;
     // getters
     bool ClipFinished() const noexcept { return frame >= totalTex; }
     int GetCurrentFrame() const noexcept { return frame; }
     int GetTexIndex() const noexcept { return texIndex; }
-    DynamicTextureTag::value_type Provide(DynamicTextureTag) const noexcept override { return texIndex; }
-    SpriteUVTag::value_type Provide(SpriteUVTag) const noexcept override { return { uvOffset, uvScale, { 1.0f, 1.0f }, {} }; }
+protected:
+    // 留住这一份精灵实际绑定的帧贴图和 UV 缓冲。dynTex 是帧贴图，uvcb 是 UV 缓冲。
+    void AttachFrameBinds(std::shared_ptr<Bind::DynamicTexture> dynTex, std::shared_ptr<Bind::SpriteUVCbuf> uvcb) noexcept;
 private:
     void UpdateUV(void) noexcept;
+    // 把当前帧号和 UV 写进留住的缓冲。指针还没接上时跳过。
+    void SyncFrameBinds_() noexcept;
 private:
     // transformation
     Transformation trans;
@@ -68,4 +77,8 @@ private:
     bool isLoop = false;
     // texture num
     int texIndex = 0;
+    // 这一份精灵正在使用的帧贴图。还没接上时为空。
+    std::shared_ptr<Bind::DynamicTexture> dynTex_;
+    // 这一份精灵正在使用的 UV 缓冲。还没接上时为空。
+    std::shared_ptr<Bind::SpriteUVCbuf> uvcb_;
 };

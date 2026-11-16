@@ -1,4 +1,6 @@
 #include "Sprite.h"
+#include "DynamicTexture.h"
+#include "SpriteUVCbuf.h"
 
 void Sprite::Update(float dt)
 {
@@ -109,6 +111,7 @@ void Sprite::SetRatioOffset(float ratioX, float ratioY) noexcept
 	trans.SetScale(size.x * ratioX, size.y * ratioY, 1.0f);
 
 	uvScale = { (float)1 / numU * ratioX, (float)1 / numV * ratioY };
+	SyncFrameBinds_();
 }
 
 
@@ -128,5 +131,37 @@ void Sprite::UpdateUV(void) noexcept
 	{
 		uvScale = { 1.0f / float(numU), 1.0f / float(numV) };
 		uvOffset = { float(u) / float(numU), float(v) / float(numV) };
+	}
+	SyncFrameBinds_();
+}
+
+void Sprite::SetTextureFrameIndex(int i) noexcept
+{
+	texIndex = i;
+	SyncFrameBinds_();
+}
+
+void Sprite::AttachFrameBinds(std::shared_ptr<Bind::DynamicTexture> dynTex, std::shared_ptr<Bind::SpriteUVCbuf> uvcb) noexcept
+{
+	dynTex_ = std::move(dynTex);
+	uvcb_ = std::move(uvcb);
+	// 接上时先写一次当前值，避免等到下一次改帧或 UV 才对齐。
+	SyncFrameBinds_();
+}
+
+void Sprite::SyncFrameBinds_() noexcept
+{
+	if (dynTex_ != nullptr)
+	{
+		dynTex_->SetFrame(texIndex);
+	}
+	if (uvcb_ != nullptr)
+	{
+		// 采样窗口保持 1，和现在向父对象提供的 UV 一样。
+		Bind::SpriteUVCbuf::UVData uv{};
+		uv.offset = uvOffset;
+		uv.scale = uvScale;
+		uv.sampleScale = { 1.0f, 1.0f };
+		uvcb_->SetUV(uv);
 	}
 }

@@ -21,6 +21,10 @@ Sprite2DPolygon::Sprite2DPolygon(Graphics& gfx, std::vector<std::string> paths, 
 	auto uvcb = std::make_shared<SpriteUVCbuf>(gfx);
 	auto rpcb = std::make_shared<RingParamsCbuf>(gfx);
 	auto dynTex = std::make_shared<DynamicTexture>(gfx, paths);
+	// 留住下面要绑定的那一份帧贴图和 UV 缓冲。
+	AttachFrameBinds(dynTex, uvcb);
+	// 留住这一份环参数缓冲，和步骤里绑定的是同一个。
+	rpcb_ = rpcb;
 
 	{
 		Technique ui("UI", Chan::ui);
@@ -44,6 +48,11 @@ Sprite2DPolygon::Sprite2DPolygon(Graphics& gfx, std::vector<std::string> paths, 
 		}
 		AddTechnique(std::move(ui));
 	}
+	// 构造结束时把当前环参数写进缓冲。
+	if (rpcb_ != nullptr)
+	{
+		rpcb_->SetRing(ringParams);
+	}
 }
 
 // setters
@@ -51,9 +60,19 @@ void Sprite2DPolygon::SetRingRange(float start, float end) noexcept
 {
 	ringParams.startAngleDeg = start;
 	ringParams.endAngleDeg = end;
+	// start、end 是起止角。写进环参数缓冲。
+	if (rpcb_ != nullptr)
+	{
+		rpcb_->SetRing(ringParams);
+	}
 }
 
 void Sprite2DPolygon::SetRingRatio(float ratio) noexcept
 {
 	ringParams.ratio = ratio;
+	// ratio 是环的进度。写进环参数缓冲。
+	if (rpcb_ != nullptr)
+	{
+		rpcb_->SetRing(ringParams);
+	}
 }

@@ -22,6 +22,8 @@ Canvas2DSpriteUV::Canvas2DSpriteUV(Graphics& gfx, unsigned width, unsigned heigh
 	auto tcb = std::make_shared<Transform2DCbuf>(gfx);
 	auto uvcb = std::make_shared<SpriteUVCbuf>(gfx);
 	auto canvasTex = std::make_shared<CanvasTexture>(gfx);
+	// 留住这一份 UV 缓冲，和步骤里绑定的是同一个。
+	uvcb_ = uvcb;
 
 	Technique ui("UI", Chan::ui);
 	{
@@ -42,4 +44,40 @@ Canvas2DSpriteUV::Canvas2DSpriteUV(Graphics& gfx, unsigned width, unsigned heigh
 		ui.AddStep(std::move(draw));
 	}
 	AddTechnique(std::move(ui));
+	// 构造结束时写入默认 UV。起点 0，裁切缩放 1，采样窗口 1。
+	SyncUV_();
+}
+
+void Canvas2DSpriteUV::SetUVOffset(DirectX::XMFLOAT2 offset) noexcept
+{
+	// offset 是采样起点。
+	uvOffset_ = offset;
+	SyncUV_();
+}
+
+void Canvas2DSpriteUV::SetUVScale(DirectX::XMFLOAT2 scale) noexcept
+{
+	// scale 是裁切用的缩放。
+	uvScale_ = scale;
+	SyncUV_();
+}
+
+void Canvas2DSpriteUV::SetSampleScale(DirectX::XMFLOAT2 sampleScale) noexcept
+{
+	// sampleScale 是采样窗口。
+	sampleScale_ = sampleScale;
+	SyncUV_();
+}
+
+void Canvas2DSpriteUV::SyncUV_() noexcept
+{
+	if (uvcb_ == nullptr)
+	{
+		return;
+	}
+	Bind::SpriteUVCbuf::UVData uv{};
+	uv.offset = uvOffset_;
+	uv.scale = uvScale_;
+	uv.sampleScale = sampleScale_;
+	uvcb_->SetUV(uv);
 }

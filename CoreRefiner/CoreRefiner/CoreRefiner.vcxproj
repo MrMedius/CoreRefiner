@@ -515,7 +515,6 @@
     <ClInclude Include="UiPointerPressTracker.h" />
     <ClInclude Include="UiVisualPhase.h" />
     <ClInclude Include="Player_Shape.h" />
-    <ClInclude Include="Provides.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="DeferredDisableQueue.h" />
