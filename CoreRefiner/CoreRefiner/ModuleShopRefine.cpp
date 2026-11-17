@@ -882,7 +882,7 @@ bool ModuleShopRefine::CanFuse_() const noexcept
 
 bool ModuleShopRefine::CanEvolve_() const noexcept
 {
-	// 两边都是满级、对上进化表。和合成分开判断。
+	// 两边都满级，并且主体、素材按进化表对上。两边是同一个标签也可以。和合成分开判断。
 	if (!HasPairReady_())
 	{
 		return false;
@@ -895,8 +895,8 @@ bool ModuleShopRefine::CanEvolve_() const noexcept
 	}
 	ModuleNodeLabel product = ModuleNodeLabel::Count;
 	return NodeEvolveRecipes::TryFind(
-		material->GetModuleNodeLabel(),
 		subject->GetModuleNodeLabel(),
+		material->GetModuleNodeLabel(),
 		product);
 }
 
@@ -1035,9 +1035,10 @@ bool ModuleShopRefine::TryEvolve_(IModuleZone* field, IModuleZone* warehouse)
 	IModuleNode* material = parked_[0];
 	IModuleNode* subject = parked_[1];
 	ModuleNodeLabel productLabel = ModuleNodeLabel::Count;
+	// 先主体，后素材。productLabel 是对上的产物。
 	if (!NodeEvolveRecipes::TryFind(
-		material->GetModuleNodeLabel(),
 		subject->GetModuleNodeLabel(),
+		material->GetModuleNodeLabel(),
 		productLabel))
 	{
 		return false;

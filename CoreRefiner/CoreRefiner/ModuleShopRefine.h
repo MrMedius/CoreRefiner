@@ -162,7 +162,7 @@ private:
 	[[nodiscard]] bool CanUpgrade_() const noexcept;
 	// 两边都满级、Label 不同，并且都不是融合或核心。
 	[[nodiscard]] bool CanFuse_() const noexcept;
-	// 两边都满级，并且对得上进化表。
+	// 两边都满级，并且主体、素材按进化表对上。两边是同一个标签也可以。
 	[[nodiscard]] bool CanEvolve_() const noexcept;
 	// 素材或主体至少有一格有 Node。
 	[[nodiscard]] bool CanReturn_() const noexcept;
