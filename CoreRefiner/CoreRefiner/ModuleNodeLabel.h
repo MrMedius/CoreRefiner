@@ -43,6 +43,7 @@ enum class ModuleNodeLabel : unsigned char
 	// Kind —— Element
 	// ————————————————————————————————————————————————————
 	Element_Yin,
+	Element_Yang,
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
@@ -83,6 +84,23 @@ enum class ModuleNodeLabel : unsigned char
 	return static_cast<std::size_t>(id);
 }
 
+// 说明书里一行属性的编号。数值存在各个节点上，这里只给面板找译文。
+// 前四项由面板直接读。后面的由节点在 CollectUniqueStats 里提交。
+enum class ModuleNodeStat : unsigned char
+{
+	NodeRadius,
+	Cooldown,
+	ExpandRadius,
+	ExpandSpeed,
+	LifetimeRate,
+	SpeedRate,
+	SizeRate,
+	DamageRate,
+	DamageFix,
+	RepeatCount,
+	Count
+};
+
 // 每个 Kind 一张 Label 子表
 // ————————————————————————————————————————————————————
 // Kind —— Core
@@ -119,6 +137,7 @@ inline constexpr ModuleNodeLabel kRuleLabels[] = {
 // ————————————————————————————————————————————————————
 inline constexpr ModuleNodeLabel kElementLabels[] = {
 	ModuleNodeLabel::Element_Yin,
+	ModuleNodeLabel::Element_Yang,
 };
 // ————————————————————————————————————————————————————
 // Kind —— Passive

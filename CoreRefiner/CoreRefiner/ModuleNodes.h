@@ -124,7 +124,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::LifetimeRate, lifetimeRate_ });
+		out.push_back({ ModuleNodeStat::LifetimeRate, lifetimeRate_ });
 	}
 
 protected:
@@ -160,7 +160,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::SpeedRate, speedRate_ });
+		out.push_back({ ModuleNodeStat::SpeedRate, speedRate_ });
 	}
 
 protected:
@@ -196,7 +196,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::SizeRate, sizeRate_ });
+		out.push_back({ ModuleNodeStat::SizeRate, sizeRate_ });
 	}
 
 protected:
@@ -232,7 +232,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::DamageRate, damageRate_ });
+		out.push_back({ ModuleNodeStat::DamageRate, damageRate_ });
 	}
 
 protected:
@@ -404,7 +404,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::DamageFix, damageFix_ });
+		out.push_back({ ModuleNodeStat::DamageFix, damageFix_ });
 	}
 
 protected:
@@ -438,7 +438,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::RepeatCount, repeatCount_ });
+		out.push_back({ ModuleNodeStat::RepeatCount, repeatCount_ });
 	}
 
 	void ApplyTo(DeployContext& ctx) override

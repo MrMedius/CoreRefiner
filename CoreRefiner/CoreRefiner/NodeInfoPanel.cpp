@@ -346,35 +346,16 @@ namespace
 		src->CollectUniqueStats(raw);
 		for (const ModuleNodeUniqueStatRow& row : raw)
 		{
-			ModuleNodeStat stat = ModuleNodeStat::Count;
-			switch (row.id)
-			{
-			case ModuleNodeUniqueStat::LifetimeRate:
-				stat = ModuleNodeStat::LifetimeRate;
-				break;
-			case ModuleNodeUniqueStat::SpeedRate:
-				stat = ModuleNodeStat::SpeedRate;
-				break;
-			case ModuleNodeUniqueStat::SizeRate:
-				stat = ModuleNodeStat::SizeRate;
-				break;
-			case ModuleNodeUniqueStat::DamageRate:
-				stat = ModuleNodeStat::DamageRate;
-				break;
-			case ModuleNodeUniqueStat::DamageFix:
-				stat = ModuleNodeStat::DamageFix;
-				break;
-			case ModuleNodeUniqueStat::RepeatCount:
-				stat = ModuleNodeStat::RepeatCount;
-				break;
-			default:
-				break;
-			}
-			if (stat == ModuleNodeStat::Count)
+			// 四基础由面板另读。Count 没有译文，跳过。
+			if (row.id == ModuleNodeStat::Count
+				|| row.id == ModuleNodeStat::NodeRadius
+				|| row.id == ModuleNodeStat::Cooldown
+				|| row.id == ModuleNodeStat::ExpandRadius
+				|| row.id == ModuleNodeStat::ExpandSpeed)
 			{
 				continue;
 			}
-			dst.push_back({ GetStatCopy(stat), FormatStatNumber_(row.value) });
+			dst.push_back({ GetStatCopy(row.id), FormatStatNumber_(row.value) });
 		}
 	}
 

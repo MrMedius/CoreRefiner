@@ -88,21 +88,12 @@ static_assert(ModuleNodeLevel::kCount == static_cast<std::size_t>(ModuleNodeLeve
 static_assert(ModuleNodeLevel::Clamp(0) == ModuleNodeLevel::kMin);
 static_assert(ModuleNodeLevel::Clamp(99) == ModuleNodeLevel::kMax);
 
-// 独有属性一行：不含四基础。Panel 再映射到 GetStatCopy。
-enum class ModuleNodeUniqueStat : unsigned char
-{
-	LifetimeRate, // 生命周期倍率增幅
-	SpeedRate,    // 移动速度倍率增幅
-	SizeRate,     // 体积倍率增幅
-	DamageRate,   // 伤害倍率增幅
-	DamageFix,    // 固定伤害
-	RepeatCount,  // 重复节点个数
-	Count
-};
-
+// 节点交给面板的一行独有属性。id 是说明书词条编号，value 是当前数值。
+// 不含节点半径、冷却、扩散半径、扩散速度，那四项由面板自己读。
 struct ModuleNodeUniqueStatRow
 {
-	ModuleNodeUniqueStat id{ ModuleNodeUniqueStat::Count };
+	ModuleNodeStat id{ ModuleNodeStat::Count };
+	// 这一行要显示的数值。
 	float value{ 0.0f };
 };
 
@@ -308,7 +299,7 @@ protected:
 	ModuleNodeLevel level_{};
 
 public:
-	// 独有行写入 out，不含四基础。默认无行。
+	// 把独有词条写入 out。默认没有独有词条。
 	virtual void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const
 	{
 		(void)out;

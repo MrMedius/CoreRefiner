@@ -27,8 +27,6 @@ class Ball : public Attack
 			// shape_ 留住这一发的外形。所有权交给视觉组件后，这个指针仍然指向它。
 			shape_ = shape.get();
 			shape->LinkTechniques(rg);
-			// 测试行：1 是白。看完白球后删掉，默认编号 0 就是灰。
-			shape_->SetColorId(1);
 			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
 		}
 

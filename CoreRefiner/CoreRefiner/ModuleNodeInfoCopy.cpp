@@ -60,6 +60,11 @@ namespace
 		if (name == "Rule_Child")				{ return ModuleNodeLabel::Rule_Child; }
 		if (name == "Rule_Revive")				{ return ModuleNodeLabel::Rule_Revive; }
 		// ————————————————————————————————————————————————————
+		// Kind —— Element
+		// ————————————————————————————————————————————————————
+		if (name == "Element_Yin")				{ return ModuleNodeLabel::Element_Yin; }
+		if (name == "Element_Yang")				{ return ModuleNodeLabel::Element_Yang; }
+		// ————————————————————————————————————————————————————
 		// Kind —— Passive
 		// ————————————————————————————————————————————————————
 		if (name == "Passive_DamageFix")		{ return ModuleNodeLabel::Passive_DamageFix; }
@@ -85,6 +90,7 @@ namespace
 		if (name == "Spawn")		{ return ModuleNodeKind::Spawn; }
 		if (name == "Attribute")	{ return ModuleNodeKind::Attribute; }
 		if (name == "Rule")		{ return ModuleNodeKind::Rule; }
+		if (name == "Element")	{ return ModuleNodeKind::Element; }
 		if (name == "Passive")	{ return ModuleNodeKind::Passive; }
 		if (name == "Other")		{ return ModuleNodeKind::Other; }
 		if (name == "Fusion")	{ return ModuleNodeKind::Fusion; }
@@ -115,6 +121,7 @@ namespace
 		case ModuleNodeKind::Spawn:		return "Spawn";
 		case ModuleNodeKind::Attribute:	return "Attribute";
 		case ModuleNodeKind::Rule:		return "Rule";
+		case ModuleNodeKind::Element:	return "Element";
 		case ModuleNodeKind::Passive:	return "Passive";
 		case ModuleNodeKind::Other:		return "Other";
 		case ModuleNodeKind::Fusion:	return "Fusion";
@@ -332,6 +339,11 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	case ModuleNodeLabel::Rule_Return:				return "Rule_Return";
 	case ModuleNodeLabel::Rule_Child:				return "Rule_Child";
 	case ModuleNodeLabel::Rule_Revive:				return "Rule_Revive";
+	// ————————————————————————————————————————————————————
+	// Kind —— Element
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Element_Yin:				return "Element_Yin";
+	case ModuleNodeLabel::Element_Yang:				return "Element_Yang";
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
