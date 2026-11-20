@@ -2,13 +2,15 @@
 #include "Character.h"
 #include "Player.h"
 #include "ColliderComponentBase.h"
-#ifdef _DEBUG
-#include "CubeWireframe.h"
-#endif
 
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
 #include "XMath.h"
+#include "AttackMark.h"
+
+#ifdef _DEBUG
+#include "CubeWireframe.h"
+#endif
 
 // 敵状態のID
 enum ENEMY_STATE_ID {
@@ -49,6 +51,7 @@ public:
 	{
 		ResetHpCurrent();
 		SetIsDeath(false);
+		marks_.Clear();
 		if (auto* col = GetComponent<ColliderComponentBase>())
 		{
 			col->SetEnabled(true);
@@ -64,6 +67,10 @@ public:
 			col->SetEnabled(false);
 		}
 	}
+
+	// 这个敌人身上的全部攻击标记。常量和非常量调用都从这里拿。
+	AttackMarkSet& Marks() noexcept { return marks_; }
+	const AttackMarkSet& Marks() const noexcept { return marks_; }
 	void DoChase(void)	// ターゲットを追いかける
 	{
 		if (!IsInAttackArea)
@@ -196,6 +203,8 @@ protected:
 	bool IsInArea{ false };					// ターゲットが検査範囲にいる
 	bool IsInAttackArea{ false };			// ターゲットが攻撃範囲にいる
 	bool WasHurt{ false };					// 攻撃されたかどうかのフラグ
+	// 这个敌人身上的全部攻击标记。每种一格，由容器自己管理。
+	AttackMarkSet marks_{};
 #ifdef _DEBUG
 	std::unique_ptr<CubeWireframe> searchColliderWire;
 #endif

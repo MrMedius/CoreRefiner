@@ -160,10 +160,9 @@ class Ball : public Attack
 		ObjectBase::Submit();
 		SubmitChildren();
 	}
-	void OnCollide(Character* other) override
+	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 Attack::OnCollide 在这之后调用。
+	void ApplyOwnHit(Character* other) override
 	{
-		DispatchOnHit(other);
-
 		RequestDisable();
 
 		SetMoveAccel({0.0f, 0.0f, 0.0f});

@@ -22,7 +22,13 @@ public:
 	void OnEnable(void) override = 0;
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
-	virtual void OnCollide(Character* other) = 0;
+	// 撞上角色时的固定顺序：先结算这发攻击自己的命中，再按写入顺序跑模块的 OnHit。
+	// 以后新增的攻击也走这里。子类只写 ApplyOwnHit。
+	virtual void OnCollide(Character* other) final
+	{
+		ApplyOwnHit(other);
+		DispatchOnHit(other);
+	}
 
 	// Immediate disable: cascade hierarchy, then recycle projectile modules.
 	// Reset / 池回收仍级联子物体；玩法销毁请走 RequestDisable。
@@ -178,6 +184,9 @@ public:
 	}
 
 protected:
+	// 这发攻击自己的命中：伤害、击退、停下。不要在这里调用 DispatchOnHit。
+	virtual void ApplyOwnHit(Character* other) = 0;
+
 	// Run OnSpawn on all bound modules (call from SpawnAt after pose reset).
 	void DispatchOnSpawn()
 	{

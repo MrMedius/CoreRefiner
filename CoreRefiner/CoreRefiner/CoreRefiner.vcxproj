@@ -378,6 +378,7 @@
     <ClInclude Include="Attack.h" />
     <ClInclude Include="AttackContext.h" />
     <ClInclude Include="AttackManager.h" />
+    <ClInclude Include="AttackMark.h" />
     <ClInclude Include="AttackNodeSteps.h" />
     <ClInclude Include="AttackShadeCbuf.h" />
     <ClInclude Include="AttackStepRecord.h" />

@@ -98,6 +98,8 @@ enum class ModuleNodeStat : unsigned char
 	DamageRate,
 	DamageFix,
 	RepeatCount,
+	YinMarkCount,
+	YangMarkCount,
 	Count
 };
 

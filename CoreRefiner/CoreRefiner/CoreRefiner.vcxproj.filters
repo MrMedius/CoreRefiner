@@ -1608,6 +1608,9 @@
     <ClInclude Include="AttackShadeCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
+    <ClInclude Include="AttackMark.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
