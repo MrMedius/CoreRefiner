@@ -78,12 +78,17 @@ public:
 			const auto selfPos = GetPosition();
 			const Vec3 d = V(AttackTarget->GetPosition()) - V(selfPos);
 
-			// ターゲットの方向を向く
-			float angle = atan2f(d.x, d.z);
-			SetRotation({ 0.0f, XMConvertToDegrees(angle), 0.0f });
-
-			// ターゲットに向かって移動
-			CalculateMoveVelocity(sinf(angle) * GetMoveAccel(), 0.0f, cosf(angle) * GetMoveAccel());
+			// dir 是水平追击方向。目标和自己重合时朝世界 +Z。
+			XMFLOAT3 dir{ d.x, 0.0f, d.z };
+			if (!NormalizeXZ(dir))
+			{
+				dir = { 0.0f, 0.0f, 1.0f };
+			}
+			// 本地 +Z 对准目标，移动沿世界 Forward。
+			AimForwardAt(dir);
+			const XMFLOAT3 fwd = GetForward();
+			const float accel = GetMoveAccel();
+			CalculateMoveVelocity(fwd.x * accel, fwd.y * accel, fwd.z * accel);
 		}
 	}
 	bool CheckIsAttack(void)	// 攻撃するかどうかを判断

@@ -1,8 +1,6 @@
 #include "VisualComponent.h"
 #include "ObjectBase.h"
-
-#include <algorithm>
-#include <cmath>
+#include "XMath.h"
 
 VisualComponent::VisualComponent(
 	ObjectBase* owner,
@@ -54,15 +52,15 @@ void VisualComponent::SyncFromOwner()
 
 	if (owner->GetParent() == nullptr)
 	{
-		// Root: legacy Raw Euler → Drawable DegreeToRad (Enemy yawOnly etc.).
+		// 物体旋转已是弧度。根物体按本地欧拉角直接写入外形。
 		const auto rot = owner->GetRotation();
 		if (yawOnly_)
 		{
-			drawable_->SetRotation(0.0f, rot.y, 0.0f);
+			drawable_->SetRotationRad(0.0f, rot.y, 0.0f);
 		}
 		else
 		{
-			drawable_->SetRotation(rot.x, rot.y, rot.z);
+			drawable_->SetRotationRad(rot.x, rot.y, rot.z);
 		}
 
 		if (syncScale_)
@@ -94,38 +92,16 @@ void VisualComponent::SyncFromOwner()
 	}
 
 	const XMMATRIX rotM = XMMatrixRotationQuaternion(quatV);
-	// Extract roll/pitch/yaw (radians) matching XMMatrixRotationRollPitchYaw convention.
-	// Pitch from -m12; yaw/roll from remaining elements (DirectXMath common pattern).
-	const float r12 = XMVectorGetY(rotM.r[2]);
-	const float r00 = XMVectorGetX(rotM.r[0]);
-	const float r01 = XMVectorGetY(rotM.r[0]);
-	const float r02 = XMVectorGetZ(rotM.r[0]);
-	const float r10 = XMVectorGetX(rotM.r[1]);
-	const float r11 = XMVectorGetY(rotM.r[1]);
-	const float r20 = XMVectorGetX(rotM.r[2]);
-	const float r21 = XMVectorGetY(rotM.r[2]);
-	const float r22 = XMVectorGetZ(rotM.r[2]);
-	(void)r01;
-	(void)r10;
-	(void)r21;
-
-	float pitch = std::asin((std::max)(-1.0f, (std::min)(1.0f, -r12)));
-	float yaw = std::atan2(r02, r22);
-	float roll = std::atan2(r10, r11);
-	if (std::fabs(r12) > 0.999f)
-	{
-		yaw = std::atan2(-r20, r00);
-		roll = 0.0f;
-	}
-	(void)r11;
-
-	constexpr float kRadToDeg = 180.0f / 3.14159265f;
+	// euler 是世界旋转拆出的弧度。x 是 pitch，y 是 yaw，z 是 roll。
+	XMFLOAT4X4 rot4{};
+	XMStoreFloat4x4(&rot4, rotM);
+	const XMFLOAT3 euler = ExtractEulerAngles(rot4);
 	if (yawOnly_)
 	{
-		drawable_->SetRotation(0.0f, yaw * kRadToDeg, 0.0f);
+		drawable_->SetRotationRad(0.0f, euler.y, 0.0f);
 	}
 	else
 	{
-		drawable_->SetRotation(roll * kRadToDeg, pitch * kRadToDeg, yaw * kRadToDeg);
+		drawable_->SetRotationRad(euler.x, euler.y, euler.z);
 	}
 }

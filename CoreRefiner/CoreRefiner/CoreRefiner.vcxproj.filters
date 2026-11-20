@@ -1844,14 +1844,17 @@
     <None Include="asset\Icon\WhiteArrow.cur">
       <Filter>Tool\Resource Files</Filter>
     </None>
-    <None Include="Time.hlsli">
-      <Filter>Shader\Common</Filter>
-    </None>
     <None Include="ModuleNodeInfoCopy.json">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </None>
     <None Include="UiCopy.json">
       <Filter>UI</Filter>
+    </None>
+    <None Include="Time_VS.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Time_PS.hlsli">
+      <Filter>Shader\Common</Filter>
     </None>
   </ItemGroup>
 </Project>

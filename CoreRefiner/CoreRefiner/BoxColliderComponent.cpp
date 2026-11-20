@@ -39,7 +39,14 @@ void BoxColliderComponent::Submit()
 	const DirectX::XMFLOAT3 size = (V(box_.half) * 2.0f).ToFloat3();
 	if (syncMode_ == ColliderSyncMode::FollowCenterAxisYFromRotation)
 	{
-		debugBoxWire_->DoSubmit(box_.center, owner->GetRotation(), size);
+		// 线框的 SetRotation 仍按角度。物体旋转已经是弧度，这里换回去。
+		const DirectX::XMFLOAT3 rot = owner->GetRotation();
+		const DirectX::XMFLOAT3 rotDeg{
+			DirectX::XMConvertToDegrees(rot.x),
+			DirectX::XMConvertToDegrees(rot.y),
+			DirectX::XMConvertToDegrees(rot.z)
+		};
+		debugBoxWire_->DoSubmit(box_.center, rotDeg, size);
 	}
 	else
 	{

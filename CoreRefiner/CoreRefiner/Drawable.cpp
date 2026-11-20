@@ -63,6 +63,11 @@ void Drawable::SetRotation(float roll, float pitch, float yaw) noexcept
 	trans.SetRotationDegreeToRad(roll, pitch, yaw);
 }
 
+void Drawable::SetRotationRad(float x, float y, float z) noexcept
+{
+	trans.SetRotationRad(x, y, z);
+}
+
 void Drawable::SetScale(DirectX::XMFLOAT3 size) noexcept
 {
 	trans.SetScale(size.x, size.y, size.z);

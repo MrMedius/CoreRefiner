@@ -1,4 +1,4 @@
-#include "Time.hlsli"
+#include "Time_PS.hlsli"
 
 Texture2D tex : register(t0);
 SamplerState splr : register(s0);

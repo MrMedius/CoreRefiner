@@ -15,11 +15,12 @@ class Ball_Shape : public Drawable
 {
 public:
 	Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size);
-	void Update(float dt);
 	DirectX::XMMATRIX GetTransformXM() const noexcept override;
-	// 记下这一发的颜色编号。colorId 为 0 是灰，1 是白。
-	void SetColorId(std::uint32_t colorId) noexcept;
+	// 清掉这一发外形上已经记下的颜色编号。
+	void ClearColorIds() noexcept;
+	// 按写入顺序再追加一条。colorId 为 0 是灰，1 是白，2 是黑。
+	void AppendColorId(std::uint32_t colorId);
 private:
-	// 这一发正在使用的颜色缓冲。默认编号 0，也就是灰。
+	// 这一发的颜色列表。没有编号时球是灰色。
 	std::shared_ptr<Bind::AttackShadeCbuf> shade_;
 };

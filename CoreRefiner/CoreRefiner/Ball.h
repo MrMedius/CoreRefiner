@@ -36,12 +36,21 @@ class Ball : public Attack
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 	}
 
-	// 把颜色编号交给这一发的外形。colorId 为 0 是灰，1 是白。
-	void SetColorId(std::uint32_t colorId) noexcept
+	// 清掉这一发已经记下的颜色编号。下次出生由模块重新写入。
+	void ClearColorIds() noexcept
 	{
 		if (shape_ != nullptr)
 		{
-			shape_->SetColorId(colorId);
+			shape_->ClearColorIds();
+		}
+	}
+
+	// 按写入顺序再追加一条。colorId 为 0 是灰，1 是白，2 是黑。
+	void AppendColorId(std::uint32_t colorId)
+	{
+		if (shape_ != nullptr)
+		{
+			shape_->AppendColorId(colorId);
 		}
 	}
 
@@ -87,10 +96,18 @@ class Ball : public Attack
 		Stats().size.base = (assembled > 0.0f) ? assembled : 1.0f;
 
 		Stats().lifetime.base = 2.0f;
+		// 出生前清掉上一发留下的颜色。模块在 ArmModules 里按顺序重新写入。
+		ClearColorIds();
+		// 临时测试：2 黑、1 白、2 黑。看完黑白黑条纹后删掉。
+		AppendColorId(0u);
+		AppendColorId(1u);
+		AppendColorId(2u);
 		ArmModules();
 		SetLifeTime(Stats().lifetime.Final());
 
 		SetMoveAccel((V(GetMoveAccel()) * Stats().speed.Final()).ToFloat3());
+		// 本地 +Z 对准这一发的飞行方向。
+		AimForwardAt(GetMoveAccel());
 		const float sz = Stats().size.Final();
 		// 只刷新缩放和半径。碰撞开关已经由出生和模块决定。
 		ApplyScaleKeepCollider_({ sz, sz, sz });
@@ -116,6 +133,8 @@ class Ball : public Attack
 				const float childAssembled = MaxScaleComponent(childBall->GetSize());
 				childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
 				childBall->OpenColliderForLaunch_();
+				// 子弹同样先清掉上一发的颜色，再由自己的模块写入。
+				childBall->ClearColorIds();
 			}
 			childAtk->ArmModules();
 			childAtk->SetLifeTime(childAtk->Stats().lifetime.Final());
@@ -144,6 +163,8 @@ class Ball : public Attack
 	void OnEnable(void) override {};
 	void Update(float dt) override
 	{
+		// start 是本帧移动前的位置。公转会在 DispatchOnUpdate 里改位置。
+		const XMFLOAT3 start = GetPosition();
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 
@@ -152,6 +173,30 @@ class Ball : public Attack
 		{
 			RequestDisable();
 		}
+
+		// step 是本帧实际走的位移。公转时它沿着切线，直线飞行时它就是本帧速度。
+		const XMFLOAT3 end = GetPosition();
+		const XMFLOAT3 step{
+			end.x - start.x,
+			end.y - start.y,
+			end.z - start.z
+		};
+		const float stepSq = step.x * step.x + step.y * step.y + step.z * step.z;
+		if (stepSq >= 1e-8f)
+		{
+			AimForwardAt(step);
+		}
+		else
+		{
+			// 位移几乎为 0 时再看速度。速度也接近 0 就保持上一帧朝向。
+			const XMFLOAT3 velocity = GetMoveVelocity();
+			const float speedSq = velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z;
+			if (speedSq >= 1e-8f)
+			{
+				AimForwardAt(velocity);
+			}
+		}
+
 		UpdateChildren(dt);
 		ObjectBase::Update(dt);
 	}

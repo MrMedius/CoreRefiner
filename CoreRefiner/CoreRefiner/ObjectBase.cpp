@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 
 ObjectBase::~ObjectBase()
 {
@@ -87,6 +88,106 @@ DirectX::XMFLOAT3 ObjectBase::GetWorldPosition() const noexcept
 	XMFLOAT3 out{};
 	XMStoreFloat3(&out, GetWorldMatrix().r[3]);
 	return out;
+}
+
+namespace
+{
+	// row 是世界矩阵的行。fallback 在这行长度接近 0 时返回。
+	XMFLOAT3 AxisFromWorld_(const DirectX::XMMATRIX& world, int row, XMFLOAT3 fallback) noexcept
+	{
+		using namespace DirectX;
+		const XMVECTOR axis = world.r[row];
+		if (XMVectorGetX(XMVector3LengthSq(axis)) < 1e-8f)
+		{
+			return fallback;
+		}
+		XMFLOAT3 out{};
+		XMStoreFloat3(&out, XMVector3Normalize(axis));
+		return out;
+	}
+}
+
+XMFLOAT3 ObjectBase::GetRight() const noexcept
+{
+	return AxisFromWorld_(GetWorldMatrix(), 0, { 1.0f, 0.0f, 0.0f });
+}
+
+XMFLOAT3 ObjectBase::GetUp() const noexcept
+{
+	return AxisFromWorld_(GetWorldMatrix(), 1, { 0.0f, 1.0f, 0.0f });
+}
+
+XMFLOAT3 ObjectBase::GetForward() const noexcept
+{
+	return AxisFromWorld_(GetWorldMatrix(), 2, { 0.0f, 0.0f, 1.0f });
+}
+
+void ObjectBase::AimRightAt(XMFLOAT3 direction)
+{
+	// dx、dy、dz 是归一化后的目标方向。
+	float dx = direction.x;
+	float dy = direction.y;
+	float dz = direction.z;
+	const float lenSq = dx * dx + dy * dy + dz * dz;
+	if (lenSq < 1e-8f)
+	{
+		SetRotation({ 0.0f, 0.0f, 0.0f });
+		return;
+	}
+
+	const float invLen = 1.0f / sqrtf(lenSq);
+	dx *= invLen;
+	dy *= invLen;
+	dz *= invLen;
+	if (dy > 1.0f)
+	{
+		dy = 1.0f;
+	}
+	else if (dy < -1.0f)
+	{
+		dy = -1.0f;
+	}
+
+	// pitch 保持 0。roll 把 +X 抬到方向的高度，yaw 再把它转到水平方向上。
+	const float yaw = atan2f(-dz, dx);
+	const float roll = asinf(dy);
+	SetRotation({ 0.0f, yaw, roll });
+}
+
+void ObjectBase::AimForwardAt(XMFLOAT3 direction)
+{
+	// dx、dy、dz 是归一化后的目标方向。本地 +Z 转到这个方向。
+	float dx = direction.x;
+	float dy = direction.y;
+	float dz = direction.z;
+	const float lenSq = dx * dx + dy * dy + dz * dz;
+	if (lenSq < 1e-8f)
+	{
+		SetRotation({ 0.0f, 0.0f, 0.0f });
+		return;
+	}
+
+	const float invLen = 1.0f / sqrtf(lenSq);
+	dx *= invLen;
+	dy *= invLen;
+	dz *= invLen;
+	if (dy > 1.0f)
+	{
+		dy = 1.0f;
+	}
+	else if (dy < -1.0f)
+	{
+		dy = -1.0f;
+	}
+
+	// pitch 把 +Z 抬到方向的高度。yaw 把它转到水平方向上。roll 保持 0。
+	const float pitch = asinf(-dy);
+	float yaw = 0.0f;
+	if (cosf(pitch) > 1e-4f)
+	{
+		yaw = atan2f(dx, dz);
+	}
+	SetRotation({ pitch, yaw, 0.0f });
 }
 
 void ObjectBase::SetParent(ObjectBase* parent)

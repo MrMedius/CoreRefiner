@@ -125,7 +125,8 @@ public:
 
 	void Update(float dt) override
 	{
-		Rotate(0.0f, 90.0f * dt, 0.0f);
+		// 每秒转 90 度。旋转单位是弧度。
+		Rotate(0.0f, XMConvertToRadians(90.0f) * dt, 0.0f);
 		AttractTowardPlayer_(dt);
 		TryCollectFromPlayer_();
 		ObjectBase::Update(dt);

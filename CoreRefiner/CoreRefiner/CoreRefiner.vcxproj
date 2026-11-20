@@ -1542,7 +1542,8 @@
     <None Include="PShadow.hlsli" />
     <None Include="ShaderOps.hlsli" />
     <None Include="SpriteUV.hlsli" />
-    <None Include="Time.hlsli" />
+    <None Include="Time_PS.hlsli" />
+    <None Include="Time_VS.hlsli" />
     <None Include="Transform.hlsli" />
     <None Include="Transform2D.hlsli" />
     <None Include="UiCopy.json" />

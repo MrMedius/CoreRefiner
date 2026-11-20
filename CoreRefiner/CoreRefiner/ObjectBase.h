@@ -63,6 +63,7 @@ public:
 
 	// Local position (≈ Unity localPosition; ≡ world when unparented).
 	XMFLOAT3 GetPosition(void) const		{ return transform_.GetPosition(); }
+	// 本地旋转，单位弧度。x 是 pitch，y 是 yaw，z 是 roll。
 	XMFLOAT3 GetRotation(void) const		{ return transform_.GetRotationRaw(); }
 	XMFLOAT3 GetSize(void) const			{ return transform_.GetScale(); }
 	Transformation& GetTransform() noexcept { return transform_; }
@@ -74,6 +75,16 @@ public:
 	[[nodiscard]] DirectX::XMMATRIX GetWorldMatrix() const noexcept;
 	// World-space translation extracted from GetWorldMatrix().
 	[[nodiscard]] DirectX::XMFLOAT3 GetWorldPosition() const noexcept;
+	// 世界空间的模型 +X。取世界矩阵第一行并归一化。
+	[[nodiscard]] XMFLOAT3 GetRight() const noexcept;
+	// 世界空间的模型 +Y。取世界矩阵第二行并归一化。
+	[[nodiscard]] XMFLOAT3 GetUp() const noexcept;
+	// 世界空间的模型 +Z。取世界矩阵第三行并归一化。
+	[[nodiscard]] XMFLOAT3 GetForward() const noexcept;
+	// 让本地 +X 指向 direction。没有父物体时，世界 Right 就是这个方向。方向过短则旋转归零。
+	void AimRightAt(XMFLOAT3 direction);
+	// 让本地 +Z 指向 direction。方向过短则旋转归零。
+	void AimForwardAt(XMFLOAT3 direction);
 
 	void SetParent(ObjectBase* parent);
 	void ClearParent();
@@ -131,7 +142,9 @@ public:
 protected:
 	void Transform(float X, float Y, float Z)	{ transform_.Translate(X, Y, Z); }
 	void SetPosition(XMFLOAT3 position)			{ transform_.SetPosition(position); }
+	// 在本地旋转上累加，单位弧度。x 是 pitch，y 是 yaw，z 是 roll。
 	void Rotate(float X, float Y, float Z)		{ transform_.RotateRaw(X, Y, Z); }
+	// 设置本地旋转，单位弧度。x 是 pitch，y 是 yaw，z 是 roll。
 	void SetRotation(XMFLOAT3 rotate)			{ transform_.SetRotationRaw(rotate); }
 	void Scale(float X, float Y, float Z)		{ transform_.AddScale(X, Y, Z); }
 	void SetSize(XMFLOAT3 size)					{ transform_.SetScale(size); }
