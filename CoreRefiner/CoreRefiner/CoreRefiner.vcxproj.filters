@@ -772,6 +772,15 @@
     <ClCompile Include="PreviewScene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Effect_Ring_Shape.cpp">
+      <Filter>Object\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Effect_Yin.cpp">
+      <Filter>Object\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effect_Yang.cpp">
+      <Filter>Object\Effects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imstb_truetype.h">
@@ -1617,6 +1626,18 @@
     <ClInclude Include="PreviewScene.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Ring.h">
+      <Filter>Framework\Graphics\Drawable\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Effect_Ring_Shape.h">
+      <Filter>Object\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Effect_Yin.h">
+      <Filter>Object\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Effect_Yang.h">
+      <Filter>Object\Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
@@ -1816,6 +1837,12 @@
       <Filter>Shader\3D</Filter>
     </FxCompile>
     <FxCompile Include="Attack_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Effect_Ring_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Effect_Ring_VS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
   </ItemGroup>

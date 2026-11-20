@@ -192,6 +192,9 @@
     <ClCompile Include="AttackShadeCbuf.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="DisplaySettings.cpp" />
+    <ClCompile Include="Effect_Ring_Shape.cpp" />
+    <ClCompile Include="Effect_Yang.cpp" />
+    <ClCompile Include="Effect_Yin.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="GameRenderGraph.cpp" />
     <ClCompile Include="GameScene.cpp" />
@@ -387,6 +390,9 @@
     <ClInclude Include="Ball_Shape.h" />
     <ClInclude Include="CanvasPixelDraw.h" />
     <ClInclude Include="CanvasTextDraw.h" />
+    <ClInclude Include="Effect_Ring_Shape.h" />
+    <ClInclude Include="Effect_Yang.h" />
+    <ClInclude Include="Effect_Yin.h" />
     <ClInclude Include="GameRulesCodex.h" />
     <ClInclude Include="IAttackNodeStep.h" />
     <ClInclude Include="IModule.h" />
@@ -405,6 +411,7 @@
     <ClInclude Include="Module_Rule_Revive.h" />
     <ClInclude Include="NodeEvolveRecipes.h" />
     <ClInclude Include="PreviewScene.h" />
+    <ClInclude Include="Ring.h" />
     <ClInclude Include="Stats.h" />
     <ClInclude Include="DisplaySettings.h" />
     <ClInclude Include="GameRenderGraph.h" />
@@ -763,6 +770,22 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Effect_Ring_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Effect_Ring_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\ShaderBins\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="Firefly_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

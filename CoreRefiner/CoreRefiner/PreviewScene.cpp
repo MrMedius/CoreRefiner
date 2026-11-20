@@ -1,6 +1,9 @@
 #include "PreviewScene.h"
 
 #include "Ball.h"
+#include "Effect_Yang.h"
+#include "Effect_Yin.h"
+
 #include "Channels.h"
 #include "GameRenderGraph.h"
 #include "InputCodex.h"
@@ -14,7 +17,9 @@ PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRende
 	gameRG_(gameRG),
 	light_(wnd.Gfx(), { 0.0f, 20.0f, 0.0f }),
 	cameras_(wnd.Gfx()),
-	ball_(std::make_unique<Ball>(wnd.Gfx(), gameRG, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f }, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f }))
+	ball_(std::make_unique<Ball>(wnd.Gfx(), gameRG, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f }, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f })),
+	yin_(std::make_unique<Effect_Yin>(wnd.Gfx(), gameRG)),
+	yang_(std::make_unique<Effect_Yang>(wnd.Gfx(), gameRG))
 {
 	light_.LinkTechniques(gameRG_);
 	cameras_.LinkTechniques(gameRG_);
@@ -29,6 +34,29 @@ PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRende
 
 PreviewScene::~PreviewScene() = default;
 
+void PreviewScene::OnEnter()
+{
+	// yinPos / yangPos 是两只特效的播放中心，左右分开。
+	const XMFLOAT3 yinPos{ 6.0f, 0.0f, 0.0f };
+	const XMFLOAT3 yangPos{ -6.0f, 0.0f, 0.0f };
+	if (yin_ != nullptr)
+	{
+		if (!yin_->IsActive())
+		{
+			yin_->Activate();
+		}
+		yin_->SpawnAt(yinPos, false);
+	}
+	if (yang_ != nullptr)
+	{
+		if (!yang_->IsActive())
+		{
+			yang_->Activate();
+		}
+		yang_->SpawnAt(yangPos, false);
+	}
+}
+
 void PreviewScene::OnLeave()
 {
 	// F2 会锁鼠标并打开原始鼠标。离开时放开，标题才能正常点。
@@ -42,6 +70,28 @@ void PreviewScene::Update(float dt)
 	if (InputCodex::Get().KeyTriggered(VK_ESCAPE))
 	{
 		director_.RequestScene(SceneId::Title);
+	}
+
+	// yinPos / yangPos 和进入预览时的位置相同。
+	const XMFLOAT3 yinPos{ 6.0f, 0.0f, 0.0f };
+	const XMFLOAT3 yangPos{ -6.0f, 0.0f, 0.0f };
+	if (yin_ != nullptr)
+	{
+		if (!yin_->IsActive())
+		{
+			yin_->Activate();
+			yin_->SpawnAt(yinPos, false);
+		}
+		yin_->Update(dt);
+	}
+	if (yang_ != nullptr)
+	{
+		if (!yang_->IsActive())
+		{
+			yang_->Activate();
+			yang_->SpawnAt(yangPos, false);
+		}
+		yang_->Update(dt);
 	}
 
 	// 跟战斗一样：主摄像机看原点，F2 操作的是窗口里选中的受控摄像机。
@@ -60,6 +110,14 @@ void PreviewScene::Submit()
 	if (ball_ != nullptr)
 	{
 		ball_->Submit();
+	}
+	if (yin_ != nullptr && yin_->IsActive())
+	{
+		yin_->Submit();
+	}
+	if (yang_ != nullptr && yang_->IsActive())
+	{
+		yang_->Submit();
 	}
 	gameRG_.Execute(wnd_.Gfx());
 

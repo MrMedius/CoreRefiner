@@ -6,6 +6,8 @@
 #include <memory>
 
 class Ball;
+class Effect_Yang;
+class Effect_Yin;
 class SceneDirector;
 class Window;
 
@@ -24,6 +26,7 @@ public:
 	PreviewScene(const PreviewScene&) = delete;
 	PreviewScene& operator=(const PreviewScene&) = delete;
 
+	void OnEnter() override;
 	void OnLeave() override;
 	void Update(float dt) override;
 	void Submit() override;
@@ -40,4 +43,8 @@ private:
 	CameraContainer cameras_;
 	// 停在原点的测试球。不调用 Update，所以不飞行、不计寿命。
 	std::unique_ptr<Ball> ball_;
+	// 右侧的阴环。播完会再放一次。
+	std::unique_ptr<Effect_Yin> yin_;
+	// 左侧的阳环。播完会再放一次。
+	std::unique_ptr<Effect_Yang> yang_;
 };

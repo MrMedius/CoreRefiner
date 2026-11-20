@@ -22,6 +22,8 @@ enum Object_Type_Tag
 	environment_Field	= 0x200,
 	environment_Coin	= 0x201,
 	// Effect
+	effect_Yin			= 0x301,
+	effect_Yang			= 0x302,
 };
 
 class ObjectBase
