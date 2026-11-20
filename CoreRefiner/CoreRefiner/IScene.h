@@ -4,6 +4,8 @@ enum class SceneId : unsigned char
 	Title,
 	Game,
 	Result,
+	// 着色器预览。不进入战斗。
+	Preview,
 	Count
 };
 
