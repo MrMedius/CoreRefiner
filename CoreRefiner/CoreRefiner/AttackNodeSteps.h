@@ -73,14 +73,22 @@ namespace
 		const DirectX::XMFLOAT3 scale{ rec.a, rec.b, rec.c };
 		const bool enableCollider = rec.flag;
 
-		// Revive 之后只记账：不得先 Flush。否则第二次出球会把当前树推进 shots，
-		// Flush 再清掉 recordOnly，后面的 Child 永远无法在重放时开槽。
-		if (ctx.TryRecordOnly(rec))
+		// 重生之后仍在记账。host 还在表示子物体栏位没开，这次出球是新的一发。
+		// 先封存上一发。Flush 会清掉 recordOnly，这颗球再按普通出球走。
+		if (ctx.recordOnly && s.host != nullptr)
 		{
+			ctx.FlushStandby();
+		}
+		// host 为空表示栏位开着。这次生成记进配方，再把焦点放回主体。
+		// 栏位因此算占用，下一颗生成才会封存前面这一份。
+		if (ctx.recordOnly && s.host == nullptr)
+		{
+			ctx.Record(rec);
+			s.host = s.parent;
 			return;
 		}
-		// 非 recordOnly 且已有 host：这是新的根弹，先把上一套封进 shots。
-		// Child 已把 host 置空时走下面的填坑，不 Flush。
+		// host 是当前焦点。还在就说明没有栏位，上一套先封进 shots。
+		// 子物体栏位把 host 置空后不封存，下面把这颗球填进坑里。
 		if (s.host != nullptr)
 		{
 			ctx.FlushStandby();
@@ -471,11 +479,16 @@ public:
 
 	void Apply(DeployContext& ctx) override
 	{
+		AttackStandby& s = ctx.standby;
+		// 记账时也把焦点让出来。后面的生成靠 host 是否为空判断栏位开了没有。
+		if (ctx.recordOnly && s.parent != nullptr && s.host != nullptr)
+		{
+			s.host = nullptr;
+		}
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Child()))
 		{
 			return;
 		}
-		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
 			ctx.EnqueueOnEmptyPit([](DeployContext& c)

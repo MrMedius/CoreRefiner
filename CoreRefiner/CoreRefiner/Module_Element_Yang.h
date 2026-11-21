@@ -91,6 +91,8 @@ private:
 		ring->Stats().damage.base = areaDamage_;
 		ring->Stats().damage.ResetMods();
 		ring->SetTargetRadius(radius_);
+		// 交给攻击管理器认领。这一帧的攻击更新已经走过，下一帧才进名单。
+		ObjectCodex::Handoff(attack_Ring_Yang, ring);
 	}
 
 	// 这次命中要加上的标记个数。

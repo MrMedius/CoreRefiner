@@ -1,4 +1,5 @@
 #include "AttackBase_Moduled.h"
+#include "ObjectCodex.h"
 
 #include <vector>
 
@@ -35,11 +36,11 @@ void AttackBase_Moduled::DetachSelfFromParent_()
 		ResetMoveVelocity();
 		CalculateMoveVelocity(parentAtk->GetMoveVelocity());
 		SetMoveAccel(parentAtk->GetMoveAccel());
-		parentAtk->AdoptLive(this);
 	}
 	ClearParent();
 	SetPosition(world);
-	SetAwaitingManagerAdopt(true);
+	// 交给攻击管理器认领。这一帧的更新已经开始，下一帧才进名单。
+	ObjectCodex::Handoff(attack_Ball, this);
 }
 
 void AttackBase_Moduled::ReleaseLivingChildren_()

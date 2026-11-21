@@ -39,6 +39,7 @@ public:
 
 private:
 	// 在消失点按配方再 Deploy（消耗第一条 Revive 后封存剩余）；发射加速度用 OnSpawn 记下的那份，不跟鼠标。
+	// 新根弹出生后交出，不调用宿主的收养。
 	void Replay_(AttackBase* owner);
 
 	Graphics* gfx_{ nullptr };

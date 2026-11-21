@@ -3,7 +3,6 @@
 #include "IModule.h"
 #include "AttackStepRecord.h"
 
-#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -38,7 +37,7 @@ public:
 		return raw;
 	}
 
-	// 通知每个模块回收，然后丢掉它们。数值修正、配方和连发登记一起清掉。
+	// 通知每个模块回收，然后丢掉它们。数值修正和配方一起清掉。
 	void ClearModules()
 	{
 		for (auto& module : modules_)
@@ -50,11 +49,9 @@ public:
 		}
 		modules_.clear();
 		Stats().ResetMods();
-		awaitingManagerAdopt_ = false;
 		launchPosLocked_ = false;
 		ClearLaunched_();
 		assembledRecipe_.clear();
-		adoptLive_ = {};
 	}
 
 	// 把当前装配步骤封到这发弹上。清模块时会丢掉。
@@ -71,24 +68,6 @@ public:
 	// 锁住发射点。复活放弹时置位，返回模块就不再改位置。
 	void SetLaunchPosLocked(bool locked) noexcept { launchPosLocked_ = locked; }
 	[[nodiscard]] bool IsLaunchPosLocked() const noexcept { return launchPosLocked_; }
-
-	// 登记谁来收养脱离父弹的子弹。连发放出时由攻击管理器挂上。
-	void SetAdoptLive(std::function<void(AttackBase*)> fn)
-	{
-		adoptLive_ = std::move(fn);
-	}
-	// 把 live 交给已登记的收养回调。没登记就什么都不做。
-	void AdoptLive(AttackBase* live)
-	{
-		if (adoptLive_)
-		{
-			adoptLive_(live);
-		}
-	}
-
-	// 父弹卸下后，等攻击管理器把它收进更新列表。
-	void SetAwaitingManagerAdopt(bool awaiting) noexcept { awaitingManagerAdopt_ = awaiting; }
-	[[nodiscard]] bool IsAwaitingManagerAdopt() const noexcept { return awaitingManagerAdopt_; }
 
 	// 对象池可拿走：已经不在场，并且模块已经清空。
 	[[nodiscard]] bool IsReusable() const noexcept override
@@ -186,14 +165,10 @@ protected:
 private:
 	// 这发弹上的玩法模块。和对象组件列表分开。
 	std::vector<std::unique_ptr<IModule>> modules_;
-	// 是否正在等攻击管理器收养。
-	bool awaitingManagerAdopt_{ false };
 	// 发射点已锁住。返回模块不再改位置。
 	bool launchPosLocked_{ false };
-	// 封存的装配步骤。
+	// 封存的装配步骤。复活时按这份列表重放。
 	std::vector<AttackStepRecord> assembledRecipe_;
-	// 收养脱离父弹的子弹。参数是那颗要活下去的弹。
-	std::function<void(AttackBase*)> adoptLive_{};
 
 	// 是否有模块要求开火时脱离父物体。
 	[[nodiscard]] bool WantsDetachFromParent_() const noexcept
@@ -208,7 +183,7 @@ private:
 		return false;
 	}
 
-	// 记下世界坐标，继承父弹速度，脱离父物体，并交给收养回调。
+	// 记下世界坐标，继承父弹速度，脱离父物体，并交给攻击管理器认领。
 	void DetachSelfFromParent_();
 	// 让每个还活着的子弹子物体脱离。不关掉它们。
 	void ReleaseLivingChildren_();

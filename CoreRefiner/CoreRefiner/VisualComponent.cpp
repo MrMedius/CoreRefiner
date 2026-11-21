@@ -70,7 +70,7 @@ void VisualComponent::SyncFromOwner()
 		return;
 	}
 
-	// Parented: inherit orientation/scale from world matrix (decompose).
+	// 挂在父物体上时，朝向和缩放都从世界矩阵拆出来。
 	using namespace DirectX;
 	XMVECTOR scaleV{};
 	XMVECTOR quatV{};

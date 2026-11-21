@@ -1,5 +1,4 @@
 #include "AttackManager.h"
-#include "AttackBase_Moduled.h"
 #include "ObjectCodex.h"
 #include "HierarchySpawn.h"
 
@@ -16,7 +15,7 @@ namespace
 {
 	// 子弹预热个数。
 	constexpr int kBallWarmup = 48;
-	// 白环预热个数。不进连发队列，也不加仓库伤害。
+	// 白环预热个数。造好后立刻关掉，不交出，不进连发，也不加仓库伤害。
 	constexpr int kRingYangWarmup = 8;
 }
 
@@ -89,6 +88,30 @@ bool AttackManager::TryGetAimVelocity(XMFLOAT3 playerPos, XMFLOAT3& outVel) cons
 	return true;
 }
 
+void AttackManager::ClaimAttack()
+{
+	for (AttackBase* atk : ObjectCodex::TakeHandoff<AttackBase>())
+	{
+		if (atk == nullptr || !atk->IsActive())
+		{
+			continue;
+		}
+		bool tracked = false;
+		for (AttackBase* existing : attacks)
+		{
+			if (existing == atk)
+			{
+				tracked = true;
+				break;
+			}
+		}
+		if (!tracked)
+		{
+			attacks.push_back(atk);
+		}
+	}
+}
+
 void AttackManager::AdoptLive(AttackBase* attack)
 {
 	if (attack == nullptr)
@@ -107,11 +130,6 @@ void AttackManager::AdoptLive(AttackBase* attack)
 	if (!tracked)
 	{
 		attacks.push_back(attack);
-	}
-	// 只有带模组的弹才会在脱离父弹时再把子弹送回来。
-	if (auto* moduled = dynamic_cast<AttackBase_Moduled*>(attack))
-	{
-		moduled->SetAdoptLive([this](AttackBase* live) { AdoptLive(live); });
 	}
 }
 
@@ -138,6 +156,8 @@ void AttackManager::QueueRoots(const std::vector<AttackBase*>& roots)
 
 void AttackManager::Update(float dt)
 {
+	// 上一帧交出的攻击在这里进名单。这一帧才卸下或生成的，下一帧再更新。
+	ClaimAttack();
 	for (int i = 0; i < attacks.size(); i++)
 	{
 		if (attacks[i]->IsActive())
@@ -148,15 +168,6 @@ void AttackManager::Update(float dt)
 			i--;
 		}
 	}
-	// 白环按标签更新。不放进 attacks，所以不会排进连发，也不会吃仓库加成。
-	for (Ring_Yang* ring : ObjectCodex::FindActiveObjectsByTag<Ring_Yang>(attack_Ring_Yang))
-	{
-		if (ring != nullptr)
-		{
-			ring->Update(dt);
-		}
-	}
-	AdoptUnparentedAttacks_();
 
 	// 先更新已经在飞的弹，再放下一颗，避免新弹在出生的同一帧再走一步。
 	sinceLastFire_ += dt;
@@ -237,34 +248,11 @@ void AttackManager::CollectAttackTree(AttackBase* atk, std::vector<AttackBase*>&
 	}
 }
 
-void AttackManager::AdoptUnparentedAttacks_()
-{
-	const std::vector<AttackBase*> live = ObjectCodex::FindActiveObjectsByTag<AttackBase>(attack_Ball);
-	for (AttackBase* a : live)
-	{
-		auto* moduled = dynamic_cast<AttackBase_Moduled*>(a);
-		if (moduled == nullptr || !moduled->IsActive() || !moduled->IsAwaitingManagerAdopt())
-		{
-			continue;
-		}
-		moduled->SetAwaitingManagerAdopt(false);
-		AdoptLive(moduled);
-	}
-}
-
 void AttackManager::Submit(void)
 {
 	for (int i = 0; i < attacks.size(); i++)
 		if (attacks[i]->IsActive())
 			attacks[i]->Submit();
-
-	for (Ring_Yang* ring : ObjectCodex::FindActiveObjectsByTag<Ring_Yang>(attack_Ring_Yang))
-	{
-		if (ring != nullptr)
-		{
-			ring->Submit();
-		}
-	}
 }
 
 void AttackManager::Reset(void)
@@ -292,11 +280,12 @@ void AttackManager::Reset(void)
 		}
 	}
 
-	for (Ring_Yang* ring : ObjectCodex::FindObjectsByTag<Ring_Yang>(attack_Ring_Yang))
+	// 还没认领的攻击关掉，避免波次结束后来才进名单。白环和子弹都在这份名单里。
+	for (AttackBase* atk : ObjectCodex::TakeHandoff<AttackBase>())
 	{
-		if (ring != nullptr && ring->IsActive())
+		if (atk != nullptr && atk->IsActive())
 		{
-			ring->Deactivate();
+			atk->Deactivate();
 		}
 	}
 

@@ -25,7 +25,7 @@ public:
 	// 每颗弹真正出生后调用。atk 是这颗弹。出生会清掉数值修正，仓库加成放在这里加。
 	void SetOnLaunched(std::function<void(AttackBase&)> cb) { onLaunched_ = std::move(cb); }
 
-	// 把已组装、未走连发队列的弹纳入更新列表（停放转活体；不 SpawnAt）。
+	// 把这颗弹放进 attacks。attack 是要更新的攻击。空指针和已经在名单里的不放。
 	void AdoptLive(AttackBase* attack);
 
 	// 瞄准平面上的基准水平速度（再乘 speed.Final()）。
@@ -48,6 +48,7 @@ private:
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;
 
+	// 已启动的攻击。根弹由连发放出时放进来。卸下的子弹和交出的白环由 ClaimAttack 放进来。
 	std::vector<AttackBase*> attacks;
 
 	// 缓存的玩家。空或已失效时，放出前重新查找。
@@ -68,8 +69,8 @@ private:
 	// 离上一颗放出过了多少秒。空队列时封顶在一个间隔，所以下一颗不用等。
 	float sinceLastFire_{ GameRulesCodex::FireInterval };
 
-	// 只收养「父弹卸下时打了标记」的弹，不收组装中的主体。
-	void AdoptUnparentedAttacks_();
+	// 取走所有待认领的 AttackBase，放进 attacks。已经停用或已经在名单里的不放。
+	void ClaimAttack();
 	// 取出队首放出一颗。队列空时什么都不做。找不到玩家时回收这一颗。
 	void ReleaseNextShot_();
 	// 把 atk 和它的子弹拍进 out。入队时调用，公转卸下父子后仍能按这份名单加仓库加成。
