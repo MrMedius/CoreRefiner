@@ -1,5 +1,6 @@
 #include "EffectManager.h"
 
+#include "EffectBase.h"
 #include "Ring_Yin.h"
 #include "HierarchySpawn.h"
 #include "ObjectCodex.h"
@@ -9,26 +10,58 @@ EffectManager::EffectManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
-	// 先生成再关掉，池里留着不播放的实例。
+	// 先生成再关掉。没交出，所以不会进 effects。
 	HierarchySpawn::WarmupPool<Ring_Yin>(effect_Ring_Yin, kPoolCount_, gfx_, rg_);
+}
+
+void EffectManager::ClaimEffect()
+{
+	for (EffectBase* fx : ObjectCodex::TakeHandoff<EffectBase>())
+	{
+		if (fx == nullptr || !fx->IsActive())
+		{
+			continue;
+		}
+		bool tracked = false;
+		for (EffectBase* existing : effects)
+		{
+			if (existing == fx)
+			{
+				tracked = true;
+				break;
+			}
+		}
+		if (!tracked)
+		{
+			effects.push_back(fx);
+		}
+	}
 }
 
 void EffectManager::Update(float dt)
 {
-	for (Ring_Yin* fx : ObjectCodex::FindActiveObjectsByTag<Ring_Yin>(effect_Ring_Yin))
+	// 特效在攻击更新里生成。特效更新在那之后，所以当帧就能播。
+	ClaimEffect();
+	for (int i = 0; i < static_cast<int>(effects.size()); ++i)
 	{
-		if (fx != nullptr)
+		EffectBase* fx = effects[i];
+		if (fx != nullptr && fx->IsActive())
 		{
 			fx->Update(dt);
+		}
+		else
+		{
+			effects.erase(effects.begin() + i);
+			--i;
 		}
 	}
 }
 
 void EffectManager::Submit()
 {
-	for (Ring_Yin* fx : ObjectCodex::FindActiveObjectsByTag<Ring_Yin>(effect_Ring_Yin))
+	for (EffectBase* fx : effects)
 	{
-		if (fx != nullptr)
+		if (fx != nullptr && fx->IsActive())
 		{
 			fx->Submit();
 		}
@@ -37,7 +70,15 @@ void EffectManager::Submit()
 
 void EffectManager::Reset()
 {
-	for (Ring_Yin* fx : ObjectCodex::FindObjectsByTag<Ring_Yin>(effect_Ring_Yin))
+	for (EffectBase* fx : effects)
+	{
+		if (fx != nullptr && fx->IsActive())
+		{
+			fx->Deactivate();
+		}
+	}
+	effects.clear();
+	for (EffectBase* fx : ObjectCodex::TakeHandoff<EffectBase>())
 	{
 		if (fx != nullptr && fx->IsActive())
 		{

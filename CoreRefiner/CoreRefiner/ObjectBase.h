@@ -19,7 +19,7 @@ enum Object_Type_Tag
 	// Attack
 	attack_Ball			= 0x101,
 	attack_Ring_Yang	= 0x102,
-	// Environment				  
+	// Environment
 	environment_Field	= 0x200,
 	environment_Coin	= 0x201,
 	// Effect

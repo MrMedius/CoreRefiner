@@ -11,9 +11,9 @@ public:
 	~EnvironmentManager() = default;
 	void Update(float dt);
 	void Submit(void);
-	// Leave GAME: deactivate environments (keep pointers; no ClearTag).
+	// 离开游戏：关掉还开着的环境物体并清空名单。对象仍留在对象池里。
 	void Reset(void);
-	// Enter GAME: re-Activate all environments.
+	// 进入游戏：名单空时从对象池找回场地，放进来并启动。
 	void EnterGame(void);
 	// 场上所有活跃金币开始强制飞向玩家。
 	void BeginVacuum();
@@ -22,10 +22,14 @@ public:
 	// 立刻结算残留金币（吸取超时兜底）。
 	void CollectAllCoins();
 private:
+	// 取走所有待认领的 EnvironmentBase，放进 environments。已经停用或已经在名单里的不放。
+	void ClaimEnvironment();
+
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;
 
-	std::vector<EnvironmentBase*> eG;
+	// 正在使用的环境物体。场地在构造或进游戏时放进来，认领来的接在后面。
+	std::vector<EnvironmentBase*> environments;
 
 	bool isLearnt{ false };
 	bool isTutorial{ true };

@@ -3,19 +3,21 @@
 #include "AttackBase.h"
 #include "Ball.h"
 #include "EnemyBase.h"
+#include "Ring_Yang.h"
 #include "Graphics.h"
 #include "ObjectCodex.h"
 #include "RenderGraph.h"
 
+#include <cmath>
 #include <cstdint>
 
-// 命中时给敌人加阳标记。每满 5 个消耗一次，对范围内还活着的敌人各扣一次血。
-// 白环已经改成攻击，这一步先不生成。
+// 命中时给敌人加阳标记。每满 5 个消耗一次，就在目标脚下生成一只白环。
+// 周围的敌人不加标记。环自己再按波前扣血。
 class Module_Element_Yang : public IModule
 {
 public:
-	// markCount 这次命中加上的标记数。areaDamage 每触发一次、范围内每人扣的血，不吃加成。
-	// radius 是水平半径。gfx 和 rg 留给以后生成攻击环，这一步先存着。
+	// markCount 这次命中加上的标记数。areaDamage 每触发一次写进白环的伤害，不吃加成。
+	// radius 是白环要扩到的世界半径。gfx 和 rg 在池不够时用来再造一只环。
 	Module_Element_Yang(AttackBase* owner, float markCount, float areaDamage, float radius, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
 		:
 		IModule(owner),
@@ -41,7 +43,7 @@ public:
 		}
 	}
 
-	// 只对敌人结算。触发几次就做几次范围伤害。别人不加标记，不击退，不计统计。
+	// 只给被子弹打中的敌人加标记。触发几次就生成几只环。
 	void OnHit(CharacterBase* other) override
 	{
 		EnemyBase* enemy = dynamic_cast<EnemyBase*>(other);
@@ -52,44 +54,52 @@ public:
 		const int triggers = enemy->Marks().Add(AttackMark::Yang, markCount_, kPerTrigger_);
 		for (int i = 0; i < triggers; ++i)
 		{
-			ApplyAreaDamage_(*enemy);
+			SpawnRing_(*enemy);
 		}
 	}
 
 private:
-	// 以目标为圆心，按水平距离找还活着的敌人，每人扣一次血并进入受伤。目标自己也算在内，只进这一次。
-	void ApplyAreaDamage_(const EnemyBase& center) const
+	// 取宿主当前的水平前进方向。长度接近 0 时用世界 +Z。
+	XMFLOAT3 HorizontalForward_() const
 	{
-		const XMFLOAT3 origin = center.GetWorldPosition();
-		const float reachSq = radius_ * radius_;
-		for (Object_Type_Tag tag : kCharacterTags)
+		XMFLOAT3 dir{ 0.0f, 0.0f, 1.0f };
+		if (AttackBase* owner = GetOwner())
 		{
-			for (EnemyBase* enemy : ObjectCodex::FindActiveObjectsByTag<EnemyBase>(tag))
-			{
-				if (enemy == nullptr || enemy->GetIsDeath())
-				{
-					continue;
-				}
-				const XMFLOAT3 pos = enemy->GetWorldPosition();
-				const float dx = pos.x - origin.x;
-				const float dz = pos.z - origin.z;
-				if (dx * dx + dz * dz > reachSq)
-				{
-					continue;
-				}
-				enemy->SetIsHurt(true);
-				enemy->CalculateHpCurrent(-areaDamage_);
-			}
+			dir = owner->GetForward();
+			dir.y = 0.0f;
 		}
+		const float lenSq = dir.x * dir.x + dir.z * dir.z;
+		if (lenSq <= 1.0e-8f)
+		{
+			return { 0.0f, 0.0f, 1.0f };
+		}
+		const float inv = 1.0f / std::sqrt(lenSq);
+		dir.x *= inv;
+		dir.z *= inv;
+		return dir;
+	}
+
+	// 在被打中的敌人脚下取出一只白环。伤害和半径写在出生之后，出生会把它们收回默认值。
+	void SpawnRing_(const EnemyBase& enemy) const
+	{
+		Ring_Yang* ring = ObjectCodex::SpawnPooled<Ring_Yang>(attack_Ring_Yang, gfx_, rg_);
+		if (ring == nullptr)
+		{
+			return;
+		}
+		ring->SpawnAt(enemy.GetWorldPosition(), HorizontalForward_());
+		ring->Stats().damage.base = areaDamage_;
+		ring->Stats().damage.ResetMods();
+		ring->SetTargetRadius(radius_);
 	}
 
 	// 这次命中要加上的标记个数。
 	int markCount_{ 0 };
-	// 范围内每个还活着的敌人要扣的血量。
+	// 每触发一次写进白环的伤害。
 	float areaDamage_{ 0.0f };
-	// 水平作用半径。比较时用它的平方。
+	// 白环要扩到的世界半径。
 	float radius_{ 0.0f };
-	// 以后生成攻击环时用来扩池。这一步还不生成。
+	// 对象池扩容时传给新的白环。
 	Graphics& gfx_;
 	Rgph::RenderGraph& rg_;
 

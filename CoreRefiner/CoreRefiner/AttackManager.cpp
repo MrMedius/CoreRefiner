@@ -7,13 +7,17 @@
 #include "XMath.h"
 
 #include "Ball.h"
+#include "Ring_Yang.h"
 
 #include <cmath>
 #include <cstddef>
 
 namespace
 {
+	// 子弹预热个数。
 	constexpr int kBallWarmup = 48;
+	// 白环预热个数。不进连发队列，也不加仓库伤害。
+	constexpr int kRingYangWarmup = 8;
 }
 
 AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -26,6 +30,7 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	HierarchySpawn::WarmupPool<Ball>(
 		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
+	HierarchySpawn::WarmupPool<Ring_Yang>(attack_Ring_Yang, kRingYangWarmup, gfx, rg);
 }
 
 bool AttackManager::TryScreenToWorldXZ(
@@ -143,6 +148,14 @@ void AttackManager::Update(float dt)
 			i--;
 		}
 	}
+	// 白环按标签更新。不放进 attacks，所以不会排进连发，也不会吃仓库加成。
+	for (Ring_Yang* ring : ObjectCodex::FindActiveObjectsByTag<Ring_Yang>(attack_Ring_Yang))
+	{
+		if (ring != nullptr)
+		{
+			ring->Update(dt);
+		}
+	}
 	AdoptUnparentedAttacks_();
 
 	// 先更新已经在飞的弹，再放下一颗，避免新弹在出生的同一帧再走一步。
@@ -244,6 +257,14 @@ void AttackManager::Submit(void)
 	for (int i = 0; i < attacks.size(); i++)
 		if (attacks[i]->IsActive())
 			attacks[i]->Submit();
+
+	for (Ring_Yang* ring : ObjectCodex::FindActiveObjectsByTag<Ring_Yang>(attack_Ring_Yang))
+	{
+		if (ring != nullptr)
+		{
+			ring->Submit();
+		}
+	}
 }
 
 void AttackManager::Reset(void)
@@ -268,6 +289,14 @@ void AttackManager::Reset(void)
 		if (a != nullptr && a->IsActive())
 		{
 			a->Deactivate();
+		}
+	}
+
+	for (Ring_Yang* ring : ObjectCodex::FindObjectsByTag<Ring_Yang>(attack_Ring_Yang))
+	{
+		if (ring != nullptr && ring->IsActive())
+		{
+			ring->Deactivate();
 		}
 	}
 

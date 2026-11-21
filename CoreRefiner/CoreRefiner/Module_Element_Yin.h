@@ -64,12 +64,13 @@ private:
 		enemy.CalculateHpCurrent(-extraDamage_);
 	}
 
-	// 在敌人当前位置取出一只阴环开始播放。池里没有就按 gfx、rg 再造。
+	// 在敌人当前位置取出一只阴环开始播放，并交给特效管理器认领。池里没有就按 gfx、rg 再造。
 	void SpawnEffect_(const EnemyBase& enemy) const
 	{
 		if (Ring_Yin* fx = ObjectCodex::SpawnPooled<Ring_Yin>(effect_Ring_Yin, gfx_, rg_))
 		{
 			fx->SpawnAt(enemy.GetWorldPosition(), false);
+			ObjectCodex::Handoff(effect_Ring_Yin, fx);
 		}
 	}
 

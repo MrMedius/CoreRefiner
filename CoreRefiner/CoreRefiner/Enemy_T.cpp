@@ -60,6 +60,8 @@ void Enemy_T::DropCoin()
 	if (Coin* coin = ObjectCodex::SpawnPooled<Coin>(environment_Coin, *gfx_, *rg_, pos))
 	{
 		coin->SpawnAt(pos);
+		// 交给环境管理器认领。本帧的环境更新已经走过，下一帧才进名单。
+		ObjectCodex::Handoff(environment_Coin, coin);
 	}
 }
 void Enemy_T::SetupTransitions(void)
