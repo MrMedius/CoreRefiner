@@ -1,4 +1,4 @@
-#include "Effect_Ring_Shape.h"
+#include "Ring_Shape.h"
 
 #include "Ring.h"
 #include "BindableCommon.h"
@@ -6,10 +6,10 @@
 
 #include <cassert>
 
-static_assert(sizeof(Effect_Ring_Shape::RingData) == 32u);
+static_assert(sizeof(Ring_Shape::RingData) == 32u);
 
 // 所有环共用一份显卡缓冲。轮到哪只环，Bind 时写下它自己的数据。
-class Effect_Ring_Shape::RingCbuf : public Bind::CloningBindable
+class Ring_Shape::RingCbuf : public Bind::CloningBindable
 {
 public:
 	explicit RingCbuf(Graphics& gfx)
@@ -29,7 +29,7 @@ public:
 
 	void InitializeParentReference(const Drawable& parent) noexcept override
 	{
-		pOwner_ = static_cast<const Effect_Ring_Shape*>(&parent);
+		pOwner_ = static_cast<const Ring_Shape*>(&parent);
 	}
 
 	std::unique_ptr<CloningBindable> Clone() const noexcept override
@@ -41,12 +41,12 @@ private:
 	// 像素着色器 b2。时间占用 b1。
 	static std::unique_ptr<Bind::PixelConstantBuffer<RingData>> pPcbuf_;
 	// 当前正在画的那只环。
-	const Effect_Ring_Shape* pOwner_{ nullptr };
+	const Ring_Shape* pOwner_{ nullptr };
 };
 
-std::unique_ptr<Bind::PixelConstantBuffer<Effect_Ring_Shape::RingData>> Effect_Ring_Shape::RingCbuf::pPcbuf_;
+std::unique_ptr<Bind::PixelConstantBuffer<Ring_Shape::RingData>> Ring_Shape::RingCbuf::pPcbuf_;
 
-Effect_Ring_Shape::Effect_Ring_Shape(Graphics& gfx)
+Ring_Shape::Ring_Shape(Graphics& gfx)
 {
 	using namespace Bind;
 
@@ -80,39 +80,39 @@ Effect_Ring_Shape::Effect_Ring_Shape(Graphics& gfx)
 	}
 }
 
-DirectX::XMMATRIX Effect_Ring_Shape::GetTransformXM() const noexcept
+DirectX::XMMATRIX Ring_Shape::GetTransformXM() const noexcept
 {
 	return trans.GetTransformXM();
 }
 
-void Effect_Ring_Shape::SetColor(DirectX::XMFLOAT3 rgb) noexcept
+void Ring_Shape::SetColor(DirectX::XMFLOAT3 rgb) noexcept
 {
 	data_.color.x = rgb.x;
 	data_.color.y = rgb.y;
 	data_.color.z = rgb.z;
 }
 
-void Effect_Ring_Shape::SetOpacity(float opacity) noexcept
+void Ring_Shape::SetOpacity(float opacity) noexcept
 {
 	data_.color.w = opacity;
 }
 
-void Effect_Ring_Shape::SetGradient(bool on) noexcept
+void Ring_Shape::SetGradient(bool on) noexcept
 {
 	data_.gradient = on ? 1.0f : 0.0f;
 }
 
-void Effect_Ring_Shape::SetInnerWave(bool on) noexcept
+void Ring_Shape::SetInnerWave(bool on) noexcept
 {
 	data_.innerWave = on ? 1.0f : 0.0f;
 }
 
-void Effect_Ring_Shape::SetOuterWave(bool on) noexcept
+void Ring_Shape::SetOuterWave(bool on) noexcept
 {
 	data_.outerWave = on ? 1.0f : 0.0f;
 }
 
-void Effect_Ring_Shape::SetAmplitude(float amplitude) noexcept
+void Ring_Shape::SetAmplitude(float amplitude) noexcept
 {
 	data_.amplitude = amplitude;
 }

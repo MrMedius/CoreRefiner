@@ -1,6 +1,6 @@
 #pragma once
 #include "Effect.h"
-#include "Effect_Ring_Shape.h"
+#include "Ring_Shape.h"
 
 #include <array>
 #include <memory>
@@ -12,11 +12,11 @@ namespace Rgph
 }
 
 // 阴的三重环。黑色，只做外浓内淡，错开出发。
-class Effect_Yin : public Effect
+class Ring_Yin : public Effect
 {
 public:
-	Effect_Yin(Graphics& gfx, Rgph::RenderGraph& rg);
-	~Effect_Yin() override;
+	Ring_Yin(Graphics& gfx, Rgph::RenderGraph& rg);
+	~Ring_Yin() override;
 
 	// pos 是播放中心。flip 这只环不用。
 	void SpawnAt(XMFLOAT3 pos, bool flip) override;
@@ -30,7 +30,7 @@ private:
 	bool ApplyRing_(std::size_t index);
 
 	// 三只环。下标越大，出发越晚。
-	std::array<std::unique_ptr<Effect_Ring_Shape>, 3> rings_{};
+	std::array<std::unique_ptr<Ring_Shape>, 3> rings_{};
 	// 这一次播放的中心。
 	XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
 	// 从 SpawnAt 起算的秒数。

@@ -1,8 +1,8 @@
 #include "PreviewScene.h"
 
 #include "Ball.h"
-#include "Effect_Yang.h"
-#include "Effect_Yin.h"
+#include "Ring_Yang.h"
+#include "Ring_Yin.h"
 
 #include "Channels.h"
 #include "GameRenderGraph.h"
@@ -18,8 +18,8 @@ PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRende
 	light_(wnd.Gfx(), { 0.0f, 20.0f, 0.0f }),
 	cameras_(wnd.Gfx()),
 	ball_(std::make_unique<Ball>(wnd.Gfx(), gameRG, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f }, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f })),
-	yin_(std::make_unique<Effect_Yin>(wnd.Gfx(), gameRG)),
-	yang_(std::make_unique<Effect_Yang>(wnd.Gfx(), gameRG))
+	yin_(std::make_unique<Ring_Yin>(wnd.Gfx(), gameRG)),
+	yang_(std::make_unique<Ring_Yang>(wnd.Gfx(), gameRG))
 {
 	light_.LinkTechniques(gameRG_);
 	cameras_.LinkTechniques(gameRG_);
@@ -53,7 +53,9 @@ void PreviewScene::OnEnter()
 		{
 			yang_->Activate();
 		}
-		yang_->SpawnAt(yangPos, false);
+		// hitDir 预览不需要击退，传零。Ring_Yang 只把它存下来。
+		const XMFLOAT3 hitDir{ 0.0f, 0.0f, 0.0f };
+		yang_->SpawnAt(yangPos, hitDir);
 	}
 }
 
@@ -89,7 +91,9 @@ void PreviewScene::Update(float dt)
 		if (!yang_->IsActive())
 		{
 			yang_->Activate();
-			yang_->SpawnAt(yangPos, false);
+			// hitDir 预览不需要击退，传零。Ring_Yang 只把它存下来。
+			const XMFLOAT3 hitDir{ 0.0f, 0.0f, 0.0f };
+			yang_->SpawnAt(yangPos, hitDir);
 		}
 		yang_->Update(dt);
 	}

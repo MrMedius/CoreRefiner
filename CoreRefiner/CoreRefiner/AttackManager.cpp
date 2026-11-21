@@ -1,4 +1,5 @@
 #include "AttackManager.h"
+#include "Attack_Moduled.h"
 #include "ObjectCodex.h"
 #include "HierarchySpawn.h"
 
@@ -102,7 +103,11 @@ void AttackManager::AdoptLive(Attack* attack)
 	{
 		attacks.push_back(attack);
 	}
-	attack->SetAdoptLive([this](Attack* live) { AdoptLive(live); });
+	// 只有带模组的弹才会在脱离父弹时再把子弹送回来。
+	if (auto* moduled = dynamic_cast<Attack_Moduled*>(attack))
+	{
+		moduled->SetAdoptLive([this](Attack* live) { AdoptLive(live); });
+	}
 }
 
 void AttackManager::QueueRoots(const std::vector<Attack*>& roots)
@@ -224,12 +229,13 @@ void AttackManager::AdoptUnparentedAttacks_()
 	const std::vector<Attack*> live = ObjectCodex::FindActiveObjectsByTag<Attack>(attack_Ball);
 	for (Attack* a : live)
 	{
-		if (a == nullptr || !a->IsActive() || !a->IsAwaitingManagerAdopt())
+		auto* moduled = dynamic_cast<Attack_Moduled*>(a);
+		if (moduled == nullptr || !moduled->IsActive() || !moduled->IsAwaitingManagerAdopt())
 		{
 			continue;
 		}
-		a->SetAwaitingManagerAdopt(false);
-		AdoptLive(a);
+		moduled->SetAwaitingManagerAdopt(false);
+		AdoptLive(moduled);
 	}
 }
 

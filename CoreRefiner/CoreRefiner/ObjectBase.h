@@ -18,12 +18,12 @@ enum Object_Type_Tag
 	character_Enemy_T	= 0x011,
 	// Attack
 	attack_Ball			= 0x101,
+	attack_Ring_Yang	= 0x102,
 	// Environment				  
 	environment_Field	= 0x200,
 	environment_Coin	= 0x201,
 	// Effect
-	effect_Yin			= 0x301,
-	effect_Yang			= 0x302,
+	effect_Ring_Yin		= 0x301,
 };
 
 class ObjectBase
@@ -56,11 +56,11 @@ public:
 	void Activate();
 	// Immediate disable: cascade children, detach hierarchy, OnDisable components.
 	// Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
-	// Attack overrides to ClearModules after the base cascade.
+	// Attack_Moduled 清模块发生在对象回收之后。
 	virtual void Deactivate();
 
 	// Mark inactive for queries, cascade RequestDisable to remaining children, queue Deactivate at frame end.
-	// Attack overrides: first detaches living Attack children so they keep flying.
+	// Attack_Moduled 先让活着的子弹脱离，再关掉自己。
 	virtual void RequestDisable();
 
 	// Local position (≈ Unity localPosition; ≡ world when unparented).

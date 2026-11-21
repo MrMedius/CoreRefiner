@@ -1,6 +1,6 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "Attack_Moduled.h"
 #include "AttackManager.h"
 #include "InputCodex.h"
 #include "Player.h"
@@ -33,7 +33,9 @@ public:
 			return;
 		}
 
-		if (!owner->IsLaunchPosLocked() && gfx_ != nullptr)
+		// 发射点锁在带模组的弹上。锁住时不再改位置。
+		const auto* moduled = dynamic_cast<const Attack_Moduled*>(owner);
+		if ((moduled == nullptr || !moduled->IsLaunchPosLocked()) && gfx_ != nullptr)
 		{
 			const auto mouse = InputCodex::Get().MousePos();
 			XMFLOAT3 world{};

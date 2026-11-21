@@ -1,0 +1,88 @@
+#pragma once
+#include "IModule.h"
+#include "Attack.h"
+#include "Ball.h"
+#include "Enemy.h"
+#include "Ring_Yin.h"
+#include "Graphics.h"
+#include "ObjectCodex.h"
+#include "RenderGraph.h"
+
+#include <cstdint>
+
+// 命中时给敌人加阴标记。每满 5 个消耗一次，扣一次额外伤害，并在目标处放一只黑环。
+class Module_Element_Yin : public IModule
+{
+public:
+	// markCount 这次命中加上的标记数。extraDamage 每触发一次扣的血，不吃加成。
+	// gfx 和 rg 在池不够时用来再造一只阴环。
+	Module_Element_Yin(Attack* owner, float markCount, float extraDamage, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
+		:
+		IModule(owner),
+		markCount_(static_cast<int>(markCount)),
+		extraDamage_(extraDamage),
+		gfx_(gfx),
+		rg_(rg)
+	{}
+
+	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Element_Yin;
+	}
+
+	// 给宿主球追加一条黑色条纹。
+	void OnSpawn() override
+	{
+		if (Ball* ball = dynamic_cast<Ball*>(GetOwner()))
+		{
+			ball->AppendColorId(kColorId_);
+		}
+	}
+
+	// 只对敌人结算。触发几次就扣几次血、放几只环。不击退，不计统计。
+	void OnHit(Character* other) override
+	{
+		Enemy* enemy = dynamic_cast<Enemy*>(other);
+		if (enemy == nullptr)
+		{
+			return;
+		}
+		const int triggers = enemy->Marks().Add(AttackMark::Yin, markCount_, kPerTrigger_);
+		for (int i = 0; i < triggers; ++i)
+		{
+			ApplyExtraDamage_(*enemy);
+			SpawnEffect_(*enemy);
+		}
+	}
+
+private:
+	// 扣这次触发的额外伤害，并进入受伤，血量归零才能走进死亡。
+	void ApplyExtraDamage_(Enemy& enemy) const
+	{
+		enemy.SetIsHurt(true);
+		enemy.CalculateHpCurrent(-extraDamage_);
+	}
+
+	// 在敌人当前位置取出一只阴环开始播放。池里没有就按 gfx、rg 再造。
+	void SpawnEffect_(const Enemy& enemy) const
+	{
+		if (Ring_Yin* fx = ObjectCodex::SpawnPooled<Ring_Yin>(effect_Ring_Yin, gfx_, rg_))
+		{
+			fx->SpawnAt(enemy.GetWorldPosition(), false);
+		}
+	}
+
+	// 这次命中要加上的标记个数。
+	int markCount_{ 0 };
+	// 每触发一次扣掉的血量。
+	float extraDamage_{ 0.0f };
+	// 对象池扩容时传给新特效。
+	Graphics& gfx_;
+	Rgph::RenderGraph& rg_;
+
+	// 满这么多个就消耗一次，余数留下。
+	static constexpr int kPerTrigger_{ 5 };
+	// 阴的条纹颜色编号，黑色。
+	static constexpr std::uint32_t kColorId_{ 2u };
+};

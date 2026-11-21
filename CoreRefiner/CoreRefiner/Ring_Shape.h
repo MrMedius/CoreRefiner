@@ -4,7 +4,7 @@
 #include <DirectXMath.h>
 
 // 半透明圆环。着色器只给它用，参数缓冲也留在这里。
-class Effect_Ring_Shape : public Drawable
+class Ring_Shape : public Drawable
 {
 public:
 	// 和像素着色器 b2 的布局一致，共 32 字节。
@@ -20,7 +20,7 @@ public:
 		float amplitude{ 0.0f };
 	};
 
-	explicit Effect_Ring_Shape(Graphics& gfx);
+	explicit Ring_Shape(Graphics& gfx);
 	DirectX::XMMATRIX GetTransformXM() const noexcept override;
 
 	// rgb 是基色，不改透明度。

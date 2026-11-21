@@ -12,6 +12,8 @@
 #include "Module_Rule_Orbit.h"
 #include "Module_Rule_Return.h"
 #include "Module_Rule_Revive.h"
+#include "Module_Element_Yin.h"
+#include "Module_Element_Yang.h"
 
 #include <cmath>
 #include <memory>
@@ -27,7 +29,7 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 
 	constexpr float kDefaultChildRingRadius{ 2.0f };
 	float radius = kDefaultChildRingRadius;
-	for (Attack* child : s.children)
+	for (Attack_Moduled* child : s.children)
 	{
 		if (child == nullptr)
 		{
@@ -41,7 +43,7 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 
 	for (std::size_t i = 0; i < n; ++i)
 	{
-		Attack* child = s.children[i];
+		Attack_Moduled* child = s.children[i];
 		if (child == nullptr)
 		{
 			continue;
@@ -542,6 +544,123 @@ public:
 	}
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Element
+// ————————————————————————————————————————————————————
+// 把阴模块挂到当前这发弹上。重复和复活重放时走这里。
+class AttackNodeStep_Element_Yin final : public IAttackNodeStep
+{
+public:
+	// markCount 这次命中加上的标记数。extraDamage 每触发一次扣的隐藏伤害。
+	AttackNodeStep_Element_Yin(float markCount, float extraDamage) noexcept
+		:
+		markCount_(markCount),
+		extraDamage_(extraDamage)
+	{}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Element_Yin;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Element_Yin"; }
+	[[nodiscard]] bool HasModule() const noexcept override { return true; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
+
+	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造阴环。
+	void Apply(DeployContext& ctx) override
+	{
+		const AttackStepRecord rec = AttackStepRecordMake::ElementYin(markCount_, extraDamage_);
+		if (ctx.TryRecordOnly(rec))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.host == nullptr || s.gfx == nullptr || s.rg == nullptr)
+		{
+			const float marks = markCount_;
+			const float damage = extraDamage_;
+			ctx.EnqueueOnEmptyPit([marks, damage](DeployContext& c)
+			{
+				AttackNodeStep_Element_Yin(marks, damage).Apply(c);
+			});
+			return;
+		}
+		// 主体就绪后把阴模块装上，并记下这条步骤。等待队列不能拷贝 Graphics 和渲染图。
+		s.host->AddModule<Module_Element_Yin>(markCount_, extraDamage_, *s.gfx, *s.rg);
+		ctx.Record(rec);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Element_Yin> Make(float markCount, float extraDamage)
+	{
+		return std::make_unique<AttackNodeStep_Element_Yin>(markCount, extraDamage);
+	}
+
+private:
+	// 这次命中要加上的标记个数。
+	float markCount_{ 0.0f };
+	// 每触发一次扣掉的血量。
+	float extraDamage_{ 0.0f };
+};
+
+// 把阳模块挂到当前这发弹上。重复和复活重放时走这里。
+class AttackNodeStep_Element_Yang final : public IAttackNodeStep
+{
+public:
+	// markCount 这次命中加上的标记数。areaDamage 每触发一次的范围伤害。radius 是水平半径。
+	AttackNodeStep_Element_Yang(float markCount, float areaDamage, float radius) noexcept
+		:
+		markCount_(markCount),
+		areaDamage_(areaDamage),
+		radius_(radius)
+	{}
+
+	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
+	{
+		return ModuleNodeLabel::Element_Yang;
+	}
+	[[nodiscard]] const char* GetName() const noexcept override { return "Element_Yang"; }
+	[[nodiscard]] bool HasModule() const noexcept override { return true; }
+	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
+
+	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造阳环。
+	void Apply(DeployContext& ctx) override
+	{
+		const AttackStepRecord rec = AttackStepRecordMake::ElementYang(markCount_, areaDamage_, radius_);
+		if (ctx.TryRecordOnly(rec))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.host == nullptr || s.gfx == nullptr || s.rg == nullptr)
+		{
+			const float marks = markCount_;
+			const float damage = areaDamage_;
+			const float radius = radius_;
+			ctx.EnqueueOnEmptyPit([marks, damage, radius](DeployContext& c)
+			{
+				AttackNodeStep_Element_Yang(marks, damage, radius).Apply(c);
+			});
+			return;
+		}
+		// 主体就绪后把阳模块装上，并记下这条步骤。等待队列不能拷贝 Graphics 和渲染图。
+		s.host->AddModule<Module_Element_Yang>(markCount_, areaDamage_, radius_, *s.gfx, *s.rg);
+		ctx.Record(rec);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Element_Yang> Make(float markCount, float areaDamage, float radius)
+	{
+		return std::make_unique<AttackNodeStep_Element_Yang>(markCount, areaDamage, radius);
+	}
+
+private:
+	// 这次命中要加上的标记个数。
+	float markCount_{ 0.0f };
+	// 范围内每个还活着的敌人要扣的血量。
+	float areaDamage_{ 0.0f };
+	// 水平作用半径。
+	float radius_{ 0.0f };
+};
+
 // 按快照 Apply 一条 Step。
 // Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
@@ -570,6 +689,11 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 	case ModuleNodeLabel::Rule_Return:	AttackNodeStep_Rule_Return::Make()->Apply(ctx);				break;
 	case ModuleNodeLabel::Rule_Child:	AttackNodeStep_Rule_Child::Make()->Apply(ctx);				break;
 	case ModuleNodeLabel::Rule_Revive:	AttackNodeStep_Rule_Revive::Make()->Apply(ctx);				break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Element
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Element_Yin:	AttackNodeStep_Element_Yin::Make(rec.a, rec.b)->Apply(ctx);				break;
+	case ModuleNodeLabel::Element_Yang:	AttackNodeStep_Element_Yang::Make(rec.a, rec.b, rec.c)->Apply(ctx);		break;
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

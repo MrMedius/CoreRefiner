@@ -772,14 +772,20 @@
     <ClCompile Include="PreviewScene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Effect_Ring_Shape.cpp">
+    <ClCompile Include="Ring_Shape.cpp">
       <Filter>Object\Shapes</Filter>
     </ClCompile>
-    <ClCompile Include="Effect_Yin.cpp">
+    <ClCompile Include="Ring_Yin.cpp">
       <Filter>Object\Effects</Filter>
     </ClCompile>
-    <ClCompile Include="Effect_Yang.cpp">
-      <Filter>Object\Effects</Filter>
+    <ClCompile Include="EffectManager.cpp">
+      <Filter>Tool\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Attack_Moduled.cpp">
+      <Filter>Object\Attack</Filter>
+    </ClCompile>
+    <ClCompile Include="Ring_Yang.cpp">
+      <Filter>Object\Attack</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1629,14 +1635,26 @@
     <ClInclude Include="Ring.h">
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="Effect_Ring_Shape.h">
+    <ClInclude Include="Ring_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
-    <ClInclude Include="Effect_Yin.h">
+    <ClInclude Include="Ring_Yin.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
-    <ClInclude Include="Effect_Yang.h">
-      <Filter>Object\Effects</Filter>
+    <ClInclude Include="EffectManager.h">
+      <Filter>Tool\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Element_Yin.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Element_Yang.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Attack_Moduled.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="Ring_Yang.h">
+      <Filter>Object\Attack</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

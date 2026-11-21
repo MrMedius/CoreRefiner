@@ -1,4 +1,5 @@
 #include "Module_Rule_Revive.h"
+#include "Attack_Moduled.h"
 #include "AttackDeployer.h"
 #include "XMath.h"
 
@@ -35,7 +36,13 @@ void Module_Rule_Revive::Replay_(Attack* owner)
 		return;
 	}
 
-	const std::vector<AttackStepRecord>& records = owner->GetAssembledRecipe();
+	auto* moduled = dynamic_cast<Attack_Moduled*>(owner);
+	if (moduled == nullptr)
+	{
+		return;
+	}
+
+	const std::vector<AttackStepRecord>& records = moduled->GetAssembledRecipe();
 	if (records.empty())
 	{
 		return;
@@ -82,8 +89,11 @@ void Module_Rule_Revive::Replay_(Attack* owner)
 		{
 			continue;
 		}
-		root->SetLaunchPosLocked(true);
-		owner->AdoptLive(root);
+		if (auto* rootMod = dynamic_cast<Attack_Moduled*>(root))
+		{
+			rootMod->SetLaunchPosLocked(true);
+			moduled->AdoptLive(root);
+		}
 		root->SpawnAt(pos, dir);
 	}
 }

@@ -6,8 +6,8 @@
 #include <memory>
 
 class Ball;
-class Effect_Yang;
-class Effect_Yin;
+class Ring_Yang;
+class Ring_Yin;
 class SceneDirector;
 class Window;
 
@@ -44,7 +44,7 @@ private:
 	// 停在原点的测试球。不调用 Update，所以不飞行、不计寿命。
 	std::unique_ptr<Ball> ball_;
 	// 右侧的阴环。播完会再放一次。
-	std::unique_ptr<Effect_Yin> yin_;
-	// 左侧的阳环。播完会再放一次。
-	std::unique_ptr<Effect_Yang> yang_;
+	std::unique_ptr<Ring_Yin> yin_;
+	// 左侧的阳攻击环。播完会再放一次。
+	std::unique_ptr<Ring_Yang> yang_;
 };

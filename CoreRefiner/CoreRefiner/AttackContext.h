@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Attack.h"
+#include "Attack_Moduled.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "Player.h"
@@ -23,9 +23,10 @@ struct AttackStandby
 	Rgph::RenderGraph* rg{ nullptr };
 	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
 
-	Attack* parent{ nullptr };
-	std::vector<Attack*> children;
-	Attack* host{ nullptr };
+	// 正在组装的带模组弹。白环这类没有模块的攻击不进这里。
+	Attack_Moduled* parent{ nullptr };
+	std::vector<Attack_Moduled*> children;
+	Attack_Moduled* host{ nullptr };
 	Player* player{ nullptr };
 	// 当前 parent 是停放克隆，FlushStandby 不得把它当根弹发射。
 	bool parked{ false };

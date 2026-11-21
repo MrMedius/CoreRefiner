@@ -1,5 +1,5 @@
 #pragma once
-#include "Attack.h"
+#include "Attack_Moduled.h"
 #include "Enemy.h"
 #include "RenderGraph.h"
 #include "Channels.h"
@@ -12,12 +12,12 @@
 #include <cstdint>
 #include <vector>
 
-class Ball : public Attack
+class Ball : public Attack_Moduled
 {
 	public:
 	Ball(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 direction, Object_Type_Tag tag = attack_Ball)
 		:
-		Attack(tag)
+		Attack_Moduled(tag)
 	{
 		SetPosition(position);
 		SetMoveAccel(direction);
@@ -98,10 +98,6 @@ class Ball : public Attack
 		Stats().lifetime.base = 2.0f;
 		// 出生前清掉上一发留下的颜色。模块在 ArmModules 里按顺序重新写入。
 		ClearColorIds();
-		// 临时测试：2 黑、1 白、2 黑。看完黑白黑条纹后删掉。
-		AppendColorId(0u);
-		AppendColorId(1u);
-		AppendColorId(2u);
 		ArmModules();
 		SetLifeTime(Stats().lifetime.Final());
 
@@ -112,17 +108,17 @@ class Ball : public Attack
 		// 只刷新缩放和半径。碰撞开关已经由出生和模块决定。
 		ApplyScaleKeepCollider_({ sz, sz, sz });
 
-		std::vector<Attack*> kids;
+		std::vector<Attack_Moduled*> kids;
 		kids.reserve(GetChildCount());
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
 		{
-			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));
+			if (auto* childAtk = dynamic_cast<Attack_Moduled*>(GetChild(i));
 				childAtk != nullptr && childAtk->IsActive())
 			{
 				kids.push_back(childAtk);
 			}
 		}
-		for (Attack* childAtk : kids)
+		for (Attack_Moduled* childAtk : kids)
 		{
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;
