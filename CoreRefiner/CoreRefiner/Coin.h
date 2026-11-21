@@ -1,10 +1,10 @@
 #pragma once
-#include "Environment.h"
+#include "EnvironmentBase.h"
 #include "RenderGraph.h"
 #include "Channels.h"
 #include "VisualComponent.h"
 #include "BoxColliderComponent.h"
-#include "Character.h"
+#include "CharacterBase.h"
 #include "ObjectCodex.h"
 #include "GameStatsCodex.h"
 #include "ColliderComponentBase.h"
@@ -64,7 +64,7 @@ public:
 };
 
 
-class Coin : public Environment
+class Coin : public EnvironmentBase
 {
 public:
 	static constexpr float kSize = 0.6f;
@@ -81,7 +81,7 @@ public:
 		XMFLOAT3 position,
 		Object_Type_Tag tag = environment_Coin)
 		:
-		Environment(tag)
+		EnvironmentBase(tag)
 	{
 		SetPosition(position);
 		SetSize({ kSize, kSize, kSize });
@@ -137,7 +137,7 @@ public:
 		ObjectBase::Submit();
 	}
 
-	void OnCollide(Character* other) override
+	void OnCollide(CharacterBase* other) override
 	{
 		if (other == nullptr || other->GetTag() != character_Player)
 		{
@@ -166,7 +166,7 @@ private:
 			return;
 		}
 
-		Character* player = ObjectCodex::FindFirstActiveObjectByTag<Character>(character_Player);
+		CharacterBase* player = ObjectCodex::FindFirstActiveObjectByTag<CharacterBase>(character_Player);
 		if (player == nullptr)
 		{
 			return;
@@ -203,7 +203,7 @@ private:
 			return;
 		}
 
-		Character* player = ObjectCodex::FindFirstActiveObjectByTag<Character>(character_Player);
+		CharacterBase* player = ObjectCodex::FindFirstActiveObjectByTag<CharacterBase>(character_Player);
 		if (player == nullptr)
 		{
 			return;

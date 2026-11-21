@@ -5,7 +5,7 @@
 
 Ring_Yang::Ring_Yang(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
-	Attack(attack_Ring_Yang)
+	AttackBase(attack_Ring_Yang)
 {
 	// 这一步没有伤害。base 是基础值，ResetMods 清掉加算、倍率和固定补正。
 	Stats().damage.base = 0.0f;
@@ -48,7 +48,7 @@ void Ring_Yang::OnEnable(void)
 	outer_ = 0.0f;
 }
 
-void Ring_Yang::ApplyOwnHit(Character* other)
+void Ring_Yang::ApplyOwnHit(CharacterBase* other)
 {
 	// 还没有波前命中。
 	(void)other;

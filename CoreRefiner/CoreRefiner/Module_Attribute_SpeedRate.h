@@ -1,11 +1,11 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 
 class Module_Attribute_SpeedRate : public IModule
 {
 public:
-	Module_Attribute_SpeedRate(Attack* owner, float speedRate = 1.0f) noexcept
+	Module_Attribute_SpeedRate(AttackBase* owner, float speedRate = 1.0f) noexcept
 		:
 		IModule(owner),
 		speedRate_(speedRate)
@@ -20,7 +20,7 @@ public:
 	// 把配置倍率加进 speed.mul；直线弹 SpawnAt、公转 OnUpdate 都读 Final()。
 	void OnSpawn() override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr || speedRate_ <= 0.0f)
 		{
 			return;

@@ -7,7 +7,7 @@
 
 // Registry + pool for gameplay ObjectBase instances.
 // Semantics:
-// - SpawnPooled: Ball / Enemy etc. — reuse inactive instances; expect RequestDisable/Deactivate recycle.
+// - SpawnPooled: Ball / Enemy_T etc. — reuse inactive instances; expect RequestDisable/Deactivate recycle.
 // - AcquirePersistent: Player / Field etc. — long-lived; scene leave should Reset/Activate, not ClearTag.
 // - Acquire / AcquireDeactive: legacy names kept as thin aliases.
 class ObjectCodex

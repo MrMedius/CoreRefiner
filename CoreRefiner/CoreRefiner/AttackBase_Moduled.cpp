@@ -1,27 +1,27 @@
-#include "Attack_Moduled.h"
+#include "AttackBase_Moduled.h"
 
 #include <vector>
 
-void Attack_Moduled::OnCollide(Character* other)
+void AttackBase_Moduled::OnCollide(CharacterBase* other)
 {
 	ApplyOwnHit(other);
 	DispatchOnHit(other);
 }
 
-void Attack_Moduled::RequestDisable()
+void AttackBase_Moduled::RequestDisable()
 {
 	ReleaseLivingChildren_();
 	ObjectBase::RequestDisable();
 }
 
-void Attack_Moduled::Deactivate()
+void AttackBase_Moduled::Deactivate()
 {
 	DispatchOnDisable();
 	ObjectBase::Deactivate();
 	ClearModules();
 }
 
-void Attack_Moduled::DetachSelfFromParent_()
+void AttackBase_Moduled::DetachSelfFromParent_()
 {
 	ObjectBase* parent = GetParent();
 	if (parent == nullptr)
@@ -30,7 +30,7 @@ void Attack_Moduled::DetachSelfFromParent_()
 	}
 
 	const XMFLOAT3 world = GetWorldPosition();
-	if (auto* parentAtk = dynamic_cast<Attack_Moduled*>(parent))
+	if (auto* parentAtk = dynamic_cast<AttackBase_Moduled*>(parent))
 	{
 		ResetMoveVelocity();
 		CalculateMoveVelocity(parentAtk->GetMoveVelocity());
@@ -42,21 +42,21 @@ void Attack_Moduled::DetachSelfFromParent_()
 	SetAwaitingManagerAdopt(true);
 }
 
-void Attack_Moduled::ReleaseLivingChildren_()
+void AttackBase_Moduled::ReleaseLivingChildren_()
 {
-	std::vector<Attack_Moduled*> living;
+	std::vector<AttackBase_Moduled*> living;
 	const std::size_t n = GetChildCount();
 	living.reserve(n);
 	for (std::size_t i = 0; i < n; ++i)
 	{
-		if (auto* child = dynamic_cast<Attack_Moduled*>(GetChild(i));
+		if (auto* child = dynamic_cast<AttackBase_Moduled*>(GetChild(i));
 			child != nullptr && child->IsActive())
 		{
 			living.push_back(child);
 		}
 	}
 
-	for (Attack_Moduled* child : living)
+	for (AttackBase_Moduled* child : living)
 	{
 		child->DetachSelfFromParent_();
 	}

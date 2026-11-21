@@ -1,8 +1,8 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 #include "Ball.h"
-#include "Enemy.h"
+#include "EnemyBase.h"
 #include "Ring_Yin.h"
 #include "Graphics.h"
 #include "ObjectCodex.h"
@@ -16,7 +16,7 @@ class Module_Element_Yin : public IModule
 public:
 	// markCount 这次命中加上的标记数。extraDamage 每触发一次扣的血，不吃加成。
 	// gfx 和 rg 在池不够时用来再造一只阴环。
-	Module_Element_Yin(Attack* owner, float markCount, float extraDamage, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
+	Module_Element_Yin(AttackBase* owner, float markCount, float extraDamage, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
 		:
 		IModule(owner),
 		markCount_(static_cast<int>(markCount)),
@@ -41,9 +41,9 @@ public:
 	}
 
 	// 只对敌人结算。触发几次就扣几次血、放几只环。不击退，不计统计。
-	void OnHit(Character* other) override
+	void OnHit(CharacterBase* other) override
 	{
-		Enemy* enemy = dynamic_cast<Enemy*>(other);
+		EnemyBase* enemy = dynamic_cast<EnemyBase*>(other);
 		if (enemy == nullptr)
 		{
 			return;
@@ -58,14 +58,14 @@ public:
 
 private:
 	// 扣这次触发的额外伤害，并进入受伤，血量归零才能走进死亡。
-	void ApplyExtraDamage_(Enemy& enemy) const
+	void ApplyExtraDamage_(EnemyBase& enemy) const
 	{
 		enemy.SetIsHurt(true);
 		enemy.CalculateHpCurrent(-extraDamage_);
 	}
 
 	// 在敌人当前位置取出一只阴环开始播放。池里没有就按 gfx、rg 再造。
-	void SpawnEffect_(const Enemy& enemy) const
+	void SpawnEffect_(const EnemyBase& enemy) const
 	{
 		if (Ring_Yin* fx = ObjectCodex::SpawnPooled<Ring_Yin>(effect_Ring_Yin, gfx_, rg_))
 		{

@@ -1,17 +1,17 @@
 #pragma once
-#include "Environment.h"
+#include "EnvironmentBase.h"
 #include "RenderGraph.h"
 #include "Field_Shape.h"
 #include "Channels.h"
 #include "VisualComponent.h"
 #include "BoxColliderComponent.h"
 
-class Field : public Environment
+class Field : public EnvironmentBase
 {
 public:
 	Field(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 size, bool onCollision, Object_Type_Tag tag = environment_Field)
 		:
-		Environment(tag)
+		EnvironmentBase(tag)
 	{
 		// parameters init
 		SetPosition(position);
@@ -39,7 +39,7 @@ public:
 	{
 		ObjectBase::Submit();
 	}
-	void OnCollide(Character* other) override {}
+	void OnCollide(CharacterBase* other) override {}
 private:
 	BoxColliderComponent* pCollider_{ nullptr };
 };

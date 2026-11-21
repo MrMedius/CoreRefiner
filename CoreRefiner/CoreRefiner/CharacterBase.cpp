@@ -1,17 +1,17 @@
 #include <math.h>
 #include <cassert>
 #include <algorithm>
-#include "Character.h"
-#include "Environment.h"
-#include "Attack.h"
+#include "CharacterBase.h"
+#include "EnvironmentBase.h"
+#include "AttackBase.h"
 #include "ObjectCodex.h"
 #include "Collision3D.h"
 #include "ColliderComponentBase.h"
 #include "XMath.h"
 
-// Default Box AABB resolve for Environment / Attack.
-// Enemy 先调本函数再互挤。Player 整段 override，不要调基类。
-void Character::MapItemCollide(void)
+// Default Box AABB resolve for EnvironmentBase / AttackBase.
+// EnemyBase 先调本函数再互挤。Player 整段 override，不要调基类。
+void CharacterBase::MapItemCollide(void)
 {
 	auto* selfCol = GetComponent<ColliderComponentBase>();
 	if (selfCol == nullptr || !selfCol->IsEnabled())
@@ -21,7 +21,7 @@ void Character::MapItemCollide(void)
 	// Base path is Box AABB only (non-Box hosts must override MapItemCollide).
 	if (selfCol->GetCollideType() != Collider3D::CollideType::Box)
 	{
-		assert(false && "Character::MapItemCollide requires Box collider; override for other shapes");
+		assert(false && "CharacterBase::MapItemCollide requires Box collider; override for other shapes");
 		return;
 	}
 
@@ -61,12 +61,12 @@ void Character::MapItemCollide(void)
 	------------------------------------------------------------------------------*/
 	OnFloor = false; //先ずは床にいないを想定する
 
-	std::vector<Environment*> mapEnvironment;
+	std::vector<EnvironmentBase*> mapEnvironment;
 	for (auto tag : {
 		environment_Field
 		}) {
 		// 全てのマップオブジェクトを探す
-		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
+		auto found = ObjectCodex::FindActiveObjectsByTag<EnvironmentBase>(tag);
 		// 全てのマップオブジェクトをマップオブジェクトをして整理する
 		mapEnvironment.reserve(mapEnvironment.size() + found.size());
 		mapEnvironment.insert(mapEnvironment.end(), found.begin(), found.end());
@@ -154,12 +154,12 @@ void Character::MapItemCollide(void)
 	------------------------------------------------------------------------------*/
 	if (this->Tag != character_Player)
 	{
-		std::vector<Attack*> mapAttack_P;
+		std::vector<AttackBase*> mapAttack_P;
 		for (auto tag : {
 			attack_Ball,
 			}) {
 			// 全てのキャラクターを探す
-			auto found = ObjectCodex::FindActiveObjectsByTag<Attack>(tag);
+			auto found = ObjectCodex::FindActiveObjectsByTag<AttackBase>(tag);
 			// 全てのキャラクターを整理する
 			mapAttack_P.reserve(mapAttack_P.size() + found.size());
 			mapAttack_P.insert(mapAttack_P.end(), found.begin(), found.end());

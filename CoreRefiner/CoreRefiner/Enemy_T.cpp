@@ -32,7 +32,7 @@ void Enemy_T::Update(float dt)
 	// 贴身伤害必须在本帧 Transform 之后、被 MapItemCollide 推开之前测，
 	// 否则读到的是上一帧已经分离的位置，永远 overlap 不上。
 	TryContactHit();
-	// Enemy::MapItemCollide → Character 场地/对弹 + 怪互挤
+	// EnemyBase::MapItemCollide → CharacterBase 场地/对弹 + 怪互挤
 	MapItemCollide();
 
 	// host-driven: sync Visual/Collider to post-collision transform
@@ -66,37 +66,37 @@ void Enemy_T::SetupTransitions(void)
 {
 	// 状態の遷移条件を増加する
 	// ENEMY_CHASE → ENEMY_ATTACK
-	FSM->AddTransition(ENEMY_STATE[ENEMY_CHASE], ENEMY_STATE[ENEMY_ATTACK], [](Character* owner) {
+	FSM->AddTransition(ENEMY_STATE[ENEMY_CHASE], ENEMY_STATE[ENEMY_ATTACK], [](CharacterBase* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsAttack;
 		});
 
 	// ENEMY_CHASE → ENEMY_HURT
-	FSM->AddTransition(ENEMY_STATE[ENEMY_CHASE], ENEMY_STATE[ENEMY_HURT], [](Character* owner) {
+	FSM->AddTransition(ENEMY_STATE[ENEMY_CHASE], ENEMY_STATE[ENEMY_HURT], [](CharacterBase* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsHurt;
 		});
 
 	// ENEMY_ATTACK → ENEMY_CHASE
-	FSM->AddTransition(ENEMY_STATE[ENEMY_ATTACK], ENEMY_STATE[ENEMY_CHASE], [](Character* owner) {
+	FSM->AddTransition(ENEMY_STATE[ENEMY_ATTACK], ENEMY_STATE[ENEMY_CHASE], [](CharacterBase* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return !enemy->IsAttack;
 		});
 
 	// ENEMY_ATTACK → ENEMY_HURT
-	FSM->AddTransition(ENEMY_STATE[ENEMY_ATTACK], ENEMY_STATE[ENEMY_HURT], [](Character* owner) {
+	FSM->AddTransition(ENEMY_STATE[ENEMY_ATTACK], ENEMY_STATE[ENEMY_HURT], [](CharacterBase* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsHurt;
 		});
 
 	// ENEMY_HURT → ENEMY_CHASE
-	FSM->AddTransition(ENEMY_STATE[ENEMY_HURT], ENEMY_STATE[ENEMY_CHASE], [](Character* owner) {
+	FSM->AddTransition(ENEMY_STATE[ENEMY_HURT], ENEMY_STATE[ENEMY_CHASE], [](CharacterBase* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return !enemy->IsHurt && !enemy->IsDeath;
 		});
 
 	// ENEMY_HURT → ENEMY_DEATH
-	FSM->AddTransition(ENEMY_STATE[ENEMY_HURT], ENEMY_STATE[ENEMY_DEATH], [](Character* owner) {
+	FSM->AddTransition(ENEMY_STATE[ENEMY_HURT], ENEMY_STATE[ENEMY_DEATH], [](CharacterBase* owner) {
 		auto enemy = static_cast<Enemy_T*>(owner);
 		return enemy->IsDeath;
 		});

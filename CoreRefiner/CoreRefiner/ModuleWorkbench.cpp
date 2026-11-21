@@ -542,7 +542,7 @@ void ModuleWorkbench::SubmitPrep()
 
 // 战斗。冷却、扫描、开火，以及把扫描波交给场。
 
-void ModuleWorkbench::ApplyWarehouseBonuses(Attack& atk)
+void ModuleWorkbench::ApplyWarehouseBonuses(AttackBase& atk)
 {
 	warehouse_.ForEach([&](IModuleNode& node)
 	{
@@ -581,7 +581,7 @@ void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
 		}
 		else
 		{
-			for (Attack* root : batch.roots)
+			for (AttackBase* root : batch.roots)
 			{
 				if (root != nullptr)
 				{

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Attack_Moduled.h"
+#include "AttackBase_Moduled.h"
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "Player.h"
@@ -24,9 +24,9 @@ struct AttackStandby
 	DirectX::XMFLOAT3 spawnPos{ 0.0f, 0.0f, 0.0f };
 
 	// 正在组装的带模组弹。白环这类没有模块的攻击不进这里。
-	Attack_Moduled* parent{ nullptr };
-	std::vector<Attack_Moduled*> children;
-	Attack_Moduled* host{ nullptr };
+	AttackBase_Moduled* parent{ nullptr };
+	std::vector<AttackBase_Moduled*> children;
+	AttackBase_Moduled* host{ nullptr };
 	Player* player{ nullptr };
 	// 当前 parent 是停放克隆，FlushStandby 不得把它当根弹发射。
 	bool parked{ false };
@@ -35,7 +35,7 @@ struct AttackStandby
 struct DeployContext
 {
 	AttackStandby standby;
-	std::vector<Attack*> shots;
+	std::vector<AttackBase*> shots;
 	// 当前未 Flush 的流水线 Step；FlushStandby 时封到根弹。
 	std::vector<AttackStepRecord> recipe;
 	// 已完成配方组在 recipe 中的起点，不含当前组。

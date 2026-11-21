@@ -1,5 +1,5 @@
 #pragma once
-#include "Attack.h"
+#include "AttackBase.h"
 #include "IModule.h"
 #include "AttackStepRecord.h"
 
@@ -10,16 +10,16 @@
 #include <vector>
 
 // 带玩法模块的攻击。子弹走这一层。模块列表空着也可以，回收和命中仍按这一层走。
-class Attack_Moduled : public Attack
+class AttackBase_Moduled : public AttackBase
 {
 public:
-	explicit Attack_Moduled(Object_Type_Tag tag)
+	explicit AttackBase_Moduled(Object_Type_Tag tag)
 		:
-		Attack(tag)
+		AttackBase(tag)
 	{}
 
 	// 先结算自己的命中，再按写入顺序跑模块的 OnHit。
-	void OnCollide(Character* other) override final;
+	void OnCollide(CharacterBase* other) override final;
 
 	// 先通知模块，再做对象回收，最后清掉模块。
 	void Deactivate() override;
@@ -73,12 +73,12 @@ public:
 	[[nodiscard]] bool IsLaunchPosLocked() const noexcept { return launchPosLocked_; }
 
 	// 登记谁来收养脱离父弹的子弹。连发放出时由攻击管理器挂上。
-	void SetAdoptLive(std::function<void(Attack*)> fn)
+	void SetAdoptLive(std::function<void(AttackBase*)> fn)
 	{
 		adoptLive_ = std::move(fn);
 	}
 	// 把 live 交给已登记的收养回调。没登记就什么都不做。
-	void AdoptLive(Attack* live)
+	void AdoptLive(AttackBase* live)
 	{
 		if (adoptLive_)
 		{
@@ -161,7 +161,7 @@ protected:
 		}
 	}
 	// 按写入顺序跑每个模块的 OnHit。
-	void DispatchOnHit(Character* other)
+	void DispatchOnHit(CharacterBase* other)
 	{
 		for (auto& module : modules_)
 		{
@@ -193,7 +193,7 @@ private:
 	// 封存的装配步骤。
 	std::vector<AttackStepRecord> assembledRecipe_;
 	// 收养脱离父弹的子弹。参数是那颗要活下去的弹。
-	std::function<void(Attack*)> adoptLive_{};
+	std::function<void(AttackBase*)> adoptLive_{};
 
 	// 是否有模块要求开火时脱离父物体。
 	[[nodiscard]] bool WantsDetachFromParent_() const noexcept

@@ -1,6 +1,6 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 #include "AttackManager.h"
 #include "ColliderComponentBase.h"
 #include "Player.h"
@@ -19,7 +19,7 @@ public:
 	static constexpr float kClearance{ 0.0f };
 
 	// center 公转圆心（玩家或主弹）；空则不公转。
-	Module_Rule_Orbit(Attack* owner, float radius, float phase0, ObjectBase* center = nullptr) noexcept
+	Module_Rule_Orbit(AttackBase* owner, float radius, float phase0, ObjectBase* center = nullptr) noexcept
 		:
 		IModule(owner),
 		radius_(radius),
@@ -38,7 +38,7 @@ public:
 
 	void OnSpawn() override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr)
 		{
 			return;
@@ -64,7 +64,7 @@ public:
 
 	void OnUpdate(float dt) override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr)
 		{
 			return;
@@ -155,14 +155,14 @@ private:
 		{
 			return PlayerCapsuleTuning::kRadius;
 		}
-		if (const auto* atk = dynamic_cast<const Attack*>(&body))
+		if (const auto* atk = dynamic_cast<const AttackBase*>(&body))
 		{
 			return atk->Stats().size.Final();
 		}
 		return 0.0f;
 	}
 
-	[[nodiscard]] float ComputeTargetRadius_(const Attack& owner) const noexcept
+	[[nodiscard]] float ComputeTargetRadius_(const AttackBase& owner) const noexcept
 	{
 		const float parentR = IsCenterLive_() ? BodyRadius_(*center_) : 0.0f;
 		const float childR = owner.Stats().size.Final();
@@ -171,7 +171,7 @@ private:
 	}
 
 	// 用当前世界坐标当极径起点（脚边→扩出，远处→收回）。
-	void SampleRadialStart_(const Attack& owner)
+	void SampleRadialStart_(const AttackBase& owner)
 	{
 		const XMFLOAT3 c = center_->GetWorldPosition();
 		const XMFLOAT3 p = owner.GetWorldPosition();
@@ -195,7 +195,7 @@ private:
 
 	// 圆心刚失效：沿当下公转切线带上本帧弧长速度，加速度也沿该切线。
 	// 本帧 Ball 已用旧加速度位移，先扳回最后一圈上的切向一步，避免先朝开火方向冲。
-	void ReleaseToBallistic_(Attack& owner, float dt)
+	void ReleaseToBallistic_(AttackBase& owner, float dt)
 	{
 		const float stepDt = (dt > 1.0e-4f) ? dt : (1.0f / 60.0f);
 		const float omega = 1.0f + owner.Stats().speed.Final();
@@ -235,7 +235,7 @@ private:
 
 	void ApplyWorldPose_()
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr || !IsCenterLive_())
 		{
 			return;
@@ -250,7 +250,7 @@ private:
 
 	void SetOwnerColliderEnabled_(bool enabled)
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr)
 		{
 			return;

@@ -2,7 +2,7 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
 
-#include "Environment.h"
+#include "EnvironmentBase.h"
 
 class EnvironmentManager
 {
@@ -25,7 +25,7 @@ private:
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;
 
-	std::vector<Environment*> eG;
+	std::vector<EnvironmentBase*> eG;
 
 	bool isLearnt{ false };
 	bool isTutorial{ true };

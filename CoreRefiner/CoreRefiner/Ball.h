@@ -1,6 +1,6 @@
 #pragma once
-#include "Attack_Moduled.h"
-#include "Enemy.h"
+#include "AttackBase_Moduled.h"
+#include "EnemyBase.h"
 #include "RenderGraph.h"
 #include "Channels.h"
 #include "Ball_Shape.h"
@@ -12,12 +12,12 @@
 #include <cstdint>
 #include <vector>
 
-class Ball : public Attack_Moduled
+class Ball : public AttackBase_Moduled
 {
 	public:
 	Ball(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 direction, Object_Type_Tag tag = attack_Ball)
 		:
-		Attack_Moduled(tag)
+		AttackBase_Moduled(tag)
 	{
 		SetPosition(position);
 		SetMoveAccel(direction);
@@ -108,17 +108,17 @@ class Ball : public Attack_Moduled
 		// 只刷新缩放和半径。碰撞开关已经由出生和模块决定。
 		ApplyScaleKeepCollider_({ sz, sz, sz });
 
-		std::vector<Attack_Moduled*> kids;
+		std::vector<AttackBase_Moduled*> kids;
 		kids.reserve(GetChildCount());
 		for (std::size_t i = 0; i < GetChildCount(); ++i)
 		{
-			if (auto* childAtk = dynamic_cast<Attack_Moduled*>(GetChild(i));
+			if (auto* childAtk = dynamic_cast<AttackBase_Moduled*>(GetChild(i));
 				childAtk != nullptr && childAtk->IsActive())
 			{
 				kids.push_back(childAtk);
 			}
 		}
-		for (Attack_Moduled* childAtk : kids)
+		for (AttackBase_Moduled* childAtk : kids)
 		{
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;
@@ -201,8 +201,8 @@ class Ball : public Attack_Moduled
 		ObjectBase::Submit();
 		SubmitChildren();
 	}
-	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 Attack::OnCollide 在这之后调用。
-	void ApplyOwnHit(Character* other) override
+	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
+	void ApplyOwnHit(CharacterBase* other) override
 	{
 		RequestDisable();
 
@@ -216,7 +216,7 @@ class Ball : public Attack_Moduled
 		hitPos.z -= 0.1f;
 		SetPosition(hitPos);
 
-		if (auto* e = dynamic_cast<Enemy*>(other))
+		if (auto* e = dynamic_cast<EnemyBase*>(other))
 		{
 			e->SetIsHurt(true);
 			e->SetWasHurt(true);

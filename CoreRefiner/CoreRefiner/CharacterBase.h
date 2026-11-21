@@ -14,14 +14,14 @@ inline constexpr Object_Type_Tag kCharacterTags[] = {
 	character_Enemy_T,
 };
 
-class Character : public ObjectBase
+class CharacterBase : public ObjectBase
 {
 public:
-	Character(Object_Type_Tag tag)
+	CharacterBase(Object_Type_Tag tag)
 		:
 		ObjectBase(tag)
 	{}
-	Character(Object_Type_Tag tag, XMFLOAT3 position, XMFLOAT3 size, XMFLOAT3 collisionSize, bool onCollision)
+	CharacterBase(Object_Type_Tag tag, XMFLOAT3 position, XMFLOAT3 size, XMFLOAT3 collisionSize, bool onCollision)
 		:
 		ObjectBase(tag)
 	{

@@ -8,7 +8,7 @@
 
 Ring_Yin::Ring_Yin(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
-	Effect(effect_Ring_Yin)
+	EffectBase(effect_Ring_Yin)
 {
 	for (auto& ring : rings_)
 	{
@@ -50,7 +50,7 @@ void Ring_Yin::OnEnable(void)
 	age_ = 0.0f;
 }
 
-void Ring_Yin::OnCollide(Character* other)
+void Ring_Yin::OnCollide(CharacterBase* other)
 {
 	// 环不挡碰撞。
 	(void)other;

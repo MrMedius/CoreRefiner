@@ -1,6 +1,6 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 
 class Graphics;
 class Player;
@@ -16,7 +16,7 @@ class Module_Rule_Revive : public IModule
 {
 public:
 	Module_Rule_Revive(
-		Attack* owner,
+		AttackBase* owner,
 		Graphics* gfx,
 		Rgph::RenderGraph* rg,
 		Player* player) noexcept
@@ -39,7 +39,7 @@ public:
 
 private:
 	// 在消失点按配方再 Deploy（消耗第一条 Revive 后封存剩余）；发射加速度用 OnSpawn 记下的那份，不跟鼠标。
-	void Replay_(Attack* owner);
+	void Replay_(AttackBase* owner);
 
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };

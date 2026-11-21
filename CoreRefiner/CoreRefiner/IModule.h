@@ -2,24 +2,24 @@
 
 #include "ModuleNodeLabel.h"
 
-class Attack;
-class Character;
+class AttackBase;
+class CharacterBase;
 
 class IModule
 {
 public:
 	IModule() = delete;
-	explicit IModule(Attack* owner) noexcept : owner_(owner) {}
+	explicit IModule(AttackBase* owner) noexcept : owner_(owner) {}
 	virtual ~IModule() = default;
 
 	virtual void OnSpawn() {}
 	virtual void OnUpdate(float dt) { (void)dt; }
-	virtual void OnHit(Character* other) { (void)other; }
+	virtual void OnHit(CharacterBase* other) { (void)other; }
 	virtual void OnRecycle() {}
 	// 宿主即将 Disable / ClearModules；Revive 在此放弹。默认空。
 	virtual void OnDisable() {}
 
-	// 开火 ArmModules 时是否从父物体卸下（独立世界坐标，由 Attack 执行）。
+	// 开火 ArmModules 时是否从父物体卸下（独立世界坐标，由 AttackBase_Moduled 执行）。
 	[[nodiscard]] virtual bool WantsDetachFromParent() const noexcept { return false; }
 
 	[[nodiscard]] virtual bool HasModuleNodeLabel() const noexcept { return false; }
@@ -28,8 +28,8 @@ public:
 		return ModuleNodeLabel::Count;
 	}
 
-	[[nodiscard]] Attack* GetOwner() const noexcept { return owner_; }
+	[[nodiscard]] AttackBase* GetOwner() const noexcept { return owner_; }
 
 private:
-	Attack* owner_{ nullptr };
+	AttackBase* owner_{ nullptr };
 };

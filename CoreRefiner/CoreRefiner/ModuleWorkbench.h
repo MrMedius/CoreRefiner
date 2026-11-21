@@ -16,7 +16,7 @@ class UI_SellConfirm;
 class UI_UltraRename;
 class UI_UltraRedraw;
 
-class Attack;
+class AttackBase;
 class AttackManager;
 class Graphics;
 class Window;
@@ -96,7 +96,7 @@ public:
 	// 战斗。冷却、扫描和开火。
 	void Update(float dt, AttackManager* attackManager);
 	// 仓内每个占用节点对这颗弹调用 ApplyWarehouseBonus。
-	void ApplyWarehouseBonuses(Attack& atk);
+	void ApplyWarehouseBonuses(AttackBase& atk);
 
 private:
 	// 战斗按钮的逻辑宽高。布局和按钮共用。

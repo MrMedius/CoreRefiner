@@ -1,6 +1,6 @@
 #pragma once
 #include "IModule.h"
-#include "Attack_Moduled.h"
+#include "AttackBase_Moduled.h"
 #include "AttackManager.h"
 #include "InputCodex.h"
 #include "Player.h"
@@ -12,7 +12,7 @@
 class Module_Rule_Return : public IModule
 {
 public:
-	Module_Rule_Return(Attack* owner, Graphics* gfx, Player* player) noexcept
+	Module_Rule_Return(AttackBase* owner, Graphics* gfx, Player* player) noexcept
 		:
 		IModule(owner),
 		gfx_(gfx),
@@ -27,14 +27,14 @@ public:
 
 	void OnSpawn() override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr || player_ == nullptr || !player_->IsActive())
 		{
 			return;
 		}
 
 		// 发射点锁在带模组的弹上。锁住时不再改位置。
-		const auto* moduled = dynamic_cast<const Attack_Moduled*>(owner);
+		const auto* moduled = dynamic_cast<const AttackBase_Moduled*>(owner);
 		if ((moduled == nullptr || !moduled->IsLaunchPosLocked()) && gfx_ != nullptr)
 		{
 			const auto mouse = InputCodex::Get().MousePos();

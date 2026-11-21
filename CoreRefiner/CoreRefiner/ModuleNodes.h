@@ -397,7 +397,7 @@ public:
 		(void)ctx;
 	}
 
-	void ApplyWarehouseBonus(Attack& attack) override
+	void ApplyWarehouseBonus(AttackBase& attack) override
 	{
 		attack.Stats().damage.fix += damageFix_;
 	}
@@ -563,7 +563,7 @@ public:
 		}
 	}
 
-	void ApplyWarehouseBonus(Attack& attack) override
+	void ApplyWarehouseBonus(AttackBase& attack) override
 	{
 		if (primary_ != nullptr)
 		{
@@ -828,7 +828,7 @@ public:
 		}
 	}
 
-	void ApplyWarehouseBonus(Attack& attack) override
+	void ApplyWarehouseBonus(AttackBase& attack) override
 	{
 		for (const std::unique_ptr<IModuleNode>& slot : slots_)
 		{

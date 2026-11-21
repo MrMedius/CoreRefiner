@@ -187,17 +187,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Attack.cpp" />
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="AttackShadeCbuf.cpp" />
-    <ClCompile Include="Attack_Moduled.cpp" />
+    <ClCompile Include="AttackBase_Moduled.cpp" />
     <ClCompile Include="Ring_Yang.cpp" />
     <ClCompile Include="Ball_Shape.cpp" />
     <ClCompile Include="DisplaySettings.cpp" />
     <ClCompile Include="EffectManager.cpp" />
     <ClCompile Include="Ring_Shape.cpp" />
     <ClCompile Include="Ring_Yin.cpp" />
-    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="EnemyBase.cpp" />
     <ClCompile Include="GameRenderGraph.cpp" />
     <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="IModuleNode.cpp" />
@@ -239,7 +238,7 @@
     <ClCompile Include="Canvas2DSpriteUV.cpp" />
     <ClCompile Include="Canvas3D.cpp" />
     <ClCompile Include="CanvasTexture.cpp" />
-    <ClCompile Include="Character.cpp" />
+    <ClCompile Include="CharacterBase.cpp" />
     <ClCompile Include="DeferredDisableQueue.cpp" />
     <ClCompile Include="Collision3D.cpp" />
     <ClCompile Include="Collision2D.cpp" />
@@ -381,14 +380,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationInfo.h" />
-    <ClInclude Include="Attack.h" />
+    <ClInclude Include="AttackBase.h" />
     <ClInclude Include="AttackContext.h" />
     <ClInclude Include="AttackManager.h" />
     <ClInclude Include="AttackMark.h" />
     <ClInclude Include="AttackNodeSteps.h" />
     <ClInclude Include="AttackShadeCbuf.h" />
     <ClInclude Include="AttackStepRecord.h" />
-    <ClInclude Include="Attack_Moduled.h" />
+    <ClInclude Include="AttackBase_Moduled.h" />
     <ClInclude Include="Ring_Yang.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />
@@ -482,7 +481,7 @@
     <ClInclude Include="Enemy_T_Shape.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="Coin.h" />
-    <ClInclude Include="Character.h" />
+    <ClInclude Include="CharacterBase.h" />
     <ClInclude Include="Collision3D.h" />
     <ClInclude Include="Collision2D.h" />
     <ClInclude Include="DynamicCubeTexture.h" />
@@ -491,10 +490,10 @@
     <ClInclude Include="CubeWireframe.h" />
     <ClInclude Include="SphereWireframe.h" />
     <ClInclude Include="CapsuleWireframe.h" />
-    <ClInclude Include="Effect.h" />
-    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="EffectBase.h" />
+    <ClInclude Include="EnemyBase.h" />
     <ClInclude Include="EnemyManager.h" />
-    <ClInclude Include="Environment.h" />
+    <ClInclude Include="EnvironmentBase.h" />
     <ClInclude Include="EnvironmentManager.h" />
     <ClInclude Include="FocusManager.h" />
     <ClInclude Include="FocusTypes.h" />

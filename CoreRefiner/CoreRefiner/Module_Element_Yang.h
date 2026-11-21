@@ -1,8 +1,8 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 #include "Ball.h"
-#include "Enemy.h"
+#include "EnemyBase.h"
 #include "Graphics.h"
 #include "ObjectCodex.h"
 #include "RenderGraph.h"
@@ -16,7 +16,7 @@ class Module_Element_Yang : public IModule
 public:
 	// markCount 这次命中加上的标记数。areaDamage 每触发一次、范围内每人扣的血，不吃加成。
 	// radius 是水平半径。gfx 和 rg 留给以后生成攻击环，这一步先存着。
-	Module_Element_Yang(Attack* owner, float markCount, float areaDamage, float radius, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
+	Module_Element_Yang(AttackBase* owner, float markCount, float areaDamage, float radius, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
 		:
 		IModule(owner),
 		markCount_(static_cast<int>(markCount)),
@@ -42,9 +42,9 @@ public:
 	}
 
 	// 只对敌人结算。触发几次就做几次范围伤害。别人不加标记，不击退，不计统计。
-	void OnHit(Character* other) override
+	void OnHit(CharacterBase* other) override
 	{
-		Enemy* enemy = dynamic_cast<Enemy*>(other);
+		EnemyBase* enemy = dynamic_cast<EnemyBase*>(other);
 		if (enemy == nullptr)
 		{
 			return;
@@ -58,13 +58,13 @@ public:
 
 private:
 	// 以目标为圆心，按水平距离找还活着的敌人，每人扣一次血并进入受伤。目标自己也算在内，只进这一次。
-	void ApplyAreaDamage_(const Enemy& center) const
+	void ApplyAreaDamage_(const EnemyBase& center) const
 	{
 		const XMFLOAT3 origin = center.GetWorldPosition();
 		const float reachSq = radius_ * radius_;
 		for (Object_Type_Tag tag : kCharacterTags)
 		{
-			for (Enemy* enemy : ObjectCodex::FindActiveObjectsByTag<Enemy>(tag))
+			for (EnemyBase* enemy : ObjectCodex::FindActiveObjectsByTag<EnemyBase>(tag))
 			{
 				if (enemy == nullptr || enemy->GetIsDeath())
 				{

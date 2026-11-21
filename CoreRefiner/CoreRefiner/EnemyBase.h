@@ -1,5 +1,5 @@
 #pragma once
-#include "Character.h"
+#include "CharacterBase.h"
 #include "Player.h"
 #include "ColliderComponentBase.h"
 
@@ -34,12 +34,12 @@ enum ENEMY_TYPE_ID {
 };
 
 
-class Enemy : public Character
+class EnemyBase : public CharacterBase
 {
 public:
-	Enemy(Object_Type_Tag tag)
+	EnemyBase(Object_Type_Tag tag)
 		:
-		Character(tag)
+		CharacterBase(tag)
 	{
 		AttackTarget = ObjectCodex::FindFirstObjectByTag<Player>(character_Player);
 	}
@@ -180,7 +180,7 @@ public:
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
 protected:
-	// 先 Character 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
+	// 先 CharacterBase 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
 	void MapItemCollide() override;
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = (V(area) * 0.5f).ToFloat3(); }

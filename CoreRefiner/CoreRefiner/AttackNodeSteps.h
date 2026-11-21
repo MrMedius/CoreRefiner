@@ -29,7 +29,7 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 
 	constexpr float kDefaultChildRingRadius{ 2.0f };
 	float radius = kDefaultChildRingRadius;
-	for (Attack_Moduled* child : s.children)
+	for (AttackBase_Moduled* child : s.children)
 	{
 		if (child == nullptr)
 		{
@@ -43,7 +43,7 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 
 	for (std::size_t i = 0; i < n; ++i)
 	{
-		Attack_Moduled* child = s.children[i];
+		AttackBase_Moduled* child = s.children[i];
 		if (child == nullptr)
 		{
 			continue;

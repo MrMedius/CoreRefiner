@@ -47,7 +47,7 @@ GameScene::GameScene(Window& wnd, SceneDirector& director, Rgph::GameRenderGraph
 
 	moduleWorkbench_ = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG_);
 	// 每颗弹出生后补仓库加成。SpawnAt 会先清掉数值修正。
-	pAttackManager_->SetOnLaunched([this](Attack& atk)
+	pAttackManager_->SetOnLaunched([this](AttackBase& atk)
 	{
 		if (moduleWorkbench_ != nullptr)
 		{

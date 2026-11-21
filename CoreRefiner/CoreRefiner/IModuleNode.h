@@ -20,7 +20,7 @@ namespace Rgph
 }
 
 struct DeployContext;
-class Attack;
+class AttackBase;
 
 enum class ModuleReadyState : unsigned char
 {
@@ -268,7 +268,7 @@ public:
 	// ---- 种类与装配：扫描命中时写入配方 ----
 	virtual void ApplyTo(DeployContext& ctx) = 0;
 	// 开火前仓内被动加算。默认空；Passive 节点覆写。
-	virtual void ApplyWarehouseBonus(Attack& attack)
+	virtual void ApplyWarehouseBonus(AttackBase& attack)
 	{
 		(void)attack;
 	}

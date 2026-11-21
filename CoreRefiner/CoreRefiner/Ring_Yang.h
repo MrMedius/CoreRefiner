@@ -1,5 +1,5 @@
 #pragma once
-#include "Attack.h"
+#include "AttackBase.h"
 #include "Ring_Shape.h"
 
 #include <memory>
@@ -11,7 +11,7 @@ namespace Rgph
 }
 
 // 阳的攻击环。自己画一只扩散的白环，不挂模块。
-class Ring_Yang : public Attack
+class Ring_Yang : public AttackBase
 {
 public:
 	Ring_Yang(Graphics& gfx, Rgph::RenderGraph& rg);
@@ -25,7 +25,7 @@ public:
 
 protected:
 	// 这一步不扣血、不击退。
-	void ApplyOwnHit(Character* other) override;
+	void ApplyOwnHit(CharacterBase* other) override;
 
 private:
 	// 按 age_ 和 outer_ 写下环的位置、缩放和透明度。还在播放返回 true。

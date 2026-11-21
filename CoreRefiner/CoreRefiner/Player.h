@@ -1,5 +1,5 @@
 #pragma once
-#include "Character.h"
+#include "CharacterBase.h"
 #include "RenderGraph.h"
 #include "ObjectCodex.h"
 #include "CameraContainer.h"
@@ -45,19 +45,19 @@ namespace PlayerCapsuleTuning
 	constexpr float kFloorNormalY = 0.5f;
 	// Downward probe distance to re-acquire floor after skin push.
 	constexpr float kFloorProbe = 0.08f;
-	// Cyan debug wire — contrasts Enemy Box red / Ball Sphere green.
+	// Cyan debug wire — contrasts EnemyBase Box red / Ball Sphere green.
 	inline constexpr float kDebugWireR = 0.0f;
 	inline constexpr float kDebugWireG = 1.0f;
 	inline constexpr float kDebugWireB = 1.0f;
 	inline constexpr const char* kDebugWireName = "wirePlayerCapsule";
 }
 
-class Player : public Character
+class Player : public CharacterBase
 {
 public:
 	Player(Graphics& gfx, Rgph::RenderGraph& rg, CameraContainer* camera, XMFLOAT3 position, Object_Type_Tag tag = character_Player)
 		:
-		Character(tag),
+		CharacterBase(tag),
 		Gfx(gfx),
 		Rg(rg),
 		pCamera(camera)
@@ -156,7 +156,7 @@ public:
 		CalculateHpCurrent(GetHpMax() * kWaveStartHealRatio);
 	}
 protected:
-	// Player collision resolve via Capsule + TrySeparate (not Character AABB).
+	// Player collision resolve via Capsule + TrySeparate (not CharacterBase AABB).
 	void MapItemCollide(void) override;
 private:
 	void SetupTransitions(void) override;

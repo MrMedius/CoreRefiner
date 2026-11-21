@@ -56,11 +56,11 @@ public:
 	void Activate();
 	// Immediate disable: cascade children, detach hierarchy, OnDisable components.
 	// Prefer RequestDisable() from Update/collision; use this for Reset / pool warmup / Flush.
-	// Attack_Moduled 清模块发生在对象回收之后。
+	// AttackBase_Moduled 清模块发生在对象回收之后。
 	virtual void Deactivate();
 
 	// Mark inactive for queries, cascade RequestDisable to remaining children, queue Deactivate at frame end.
-	// Attack_Moduled 先让活着的子弹脱离，再关掉自己。
+	// AttackBase_Moduled 先让活着的子弹脱离，再关掉自己。
 	virtual void RequestDisable();
 
 	// Local position (≈ Unity localPosition; ≡ world when unparented).

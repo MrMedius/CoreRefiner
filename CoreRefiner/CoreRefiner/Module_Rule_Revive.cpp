@@ -1,12 +1,12 @@
 #include "Module_Rule_Revive.h"
-#include "Attack_Moduled.h"
+#include "AttackBase_Moduled.h"
 #include "AttackDeployer.h"
 #include "XMath.h"
 
 void Module_Rule_Revive::OnSpawn()
 {
 	armed_ = true;
-	if (Attack* owner = GetOwner())
+	if (AttackBase* owner = GetOwner())
 	{
 		launchDir_ = owner->GetMoveAccel();
 	}
@@ -14,7 +14,7 @@ void Module_Rule_Revive::OnSpawn()
 
 void Module_Rule_Revive::OnDisable()
 {
-	Attack* owner = GetOwner();
+	AttackBase* owner = GetOwner();
 	if (owner == nullptr || !armed_ || owner->IsActive())
 	{
 		return;
@@ -29,14 +29,14 @@ void Module_Rule_Revive::OnRecycle()
 	launchDir_ = { 0.0f, 0.0f, 0.0f };
 }
 
-void Module_Rule_Revive::Replay_(Attack* owner)
+void Module_Rule_Revive::Replay_(AttackBase* owner)
 {
 	if (owner == nullptr || gfx_ == nullptr || rg_ == nullptr)
 	{
 		return;
 	}
 
-	auto* moduled = dynamic_cast<Attack_Moduled*>(owner);
+	auto* moduled = dynamic_cast<AttackBase_Moduled*>(owner);
 	if (moduled == nullptr)
 	{
 		return;
@@ -83,13 +83,13 @@ void Module_Rule_Revive::Replay_(Attack* owner)
 	}
 	ctx.FlushStandby();
 
-	for (Attack* root : ctx.shots)
+	for (AttackBase* root : ctx.shots)
 	{
 		if (root == nullptr)
 		{
 			continue;
 		}
-		if (auto* rootMod = dynamic_cast<Attack_Moduled*>(root))
+		if (auto* rootMod = dynamic_cast<AttackBase_Moduled*>(root))
 		{
 			rootMod->SetLaunchPosLocked(true);
 			moduled->AdoptLive(root);

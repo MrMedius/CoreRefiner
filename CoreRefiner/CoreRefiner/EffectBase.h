@@ -1,8 +1,8 @@
 #pragma once
 #include "ObjectBase.h"
-#include "Character.h"
+#include "CharacterBase.h"
 
-class Effect : public ObjectBase
+class EffectBase : public ObjectBase
 {
 protected:
 	enum EffectState
@@ -12,7 +12,7 @@ protected:
 		Disappear,
 	};
 public:
-	Effect(Object_Type_Tag tag)
+	EffectBase(Object_Type_Tag tag)
 		:
 		ObjectBase(tag)
 	{}
@@ -20,7 +20,7 @@ public:
 	void OnEnable(void) override = 0;
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
-	virtual void OnCollide(Character* other) = 0;
+	virtual void OnCollide(CharacterBase* other) = 0;
 public:
 	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity = (V(MoveVelocity) + Vec3{ X, Y, Z }).ToFloat3(); }
 	void CalculateMoveVelocity(XMFLOAT3 offset)				{ MoveVelocity = (V(MoveVelocity) + V(offset)).ToFloat3(); }

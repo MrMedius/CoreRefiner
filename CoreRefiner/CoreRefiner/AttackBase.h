@@ -1,16 +1,16 @@
 #pragma once
 #include "ObjectBase.h"
-#include "Character.h"
+#include "CharacterBase.h"
 #include "Stats.h"
 
 #include <vector>
 
 // 一次攻击的公共部分：出生、位移、寿命、数值，以及自己的命中。
-// 玩法模块、配方和连发收养在 Attack_Moduled 里。
-class Attack : public ObjectBase
+// 玩法模块、配方和连发收养在 AttackBase_Moduled 里。
+class AttackBase : public ObjectBase
 {
 public:
-	Attack(Object_Type_Tag tag)
+	AttackBase(Object_Type_Tag tag)
 		:
 		ObjectBase(tag)
 	{}
@@ -19,7 +19,7 @@ public:
 	void Update(float dt) override = 0;
 	void Submit(void) override = 0;
 	// 只结算这发攻击自己的命中。带模组的弹会覆盖它，命中后再跑模块。
-	virtual void OnCollide(Character* other)
+	virtual void OnCollide(CharacterBase* other)
 	{
 		ApplyOwnHit(other);
 	}
@@ -59,7 +59,7 @@ public:
 
 protected:
 	// 这发攻击自己的命中：伤害、击退、停下。不要在这里调用模块。
-	virtual void ApplyOwnHit(Character* other) = 0;
+	virtual void ApplyOwnHit(CharacterBase* other) = 0;
 
 	// 回收时清掉“已经出生”。带模组的弹清模块时调用。
 	void ClearLaunched_() noexcept { launched_ = false; }

@@ -1,11 +1,11 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 
 class Module_Attribute_SizeRate : public IModule
 {
 public:
-	Module_Attribute_SizeRate(Attack* owner, float sizeRate = 0.0f) noexcept
+	Module_Attribute_SizeRate(AttackBase* owner, float sizeRate = 0.0f) noexcept
 		:
 		IModule(owner),
 		sizeRate_(sizeRate)
@@ -21,7 +21,7 @@ public:
 	// 加算 size.rate；Ball::SpawnAt 在 ArmModules 之后用 size.Final() 调 ApplyPresentation。
 	void OnSpawn() override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr)
 		{
 			return;

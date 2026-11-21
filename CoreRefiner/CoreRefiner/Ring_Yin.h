@@ -1,5 +1,5 @@
 #pragma once
-#include "Effect.h"
+#include "EffectBase.h"
 #include "Ring_Shape.h"
 
 #include <array>
@@ -12,7 +12,7 @@ namespace Rgph
 }
 
 // 阴的三重环。黑色，只做外浓内淡，错开出发。
-class Ring_Yin : public Effect
+class Ring_Yin : public EffectBase
 {
 public:
 	Ring_Yin(Graphics& gfx, Rgph::RenderGraph& rg);
@@ -23,7 +23,7 @@ public:
 	void OnEnable(void) override;
 	void Update(float dt) override;
 	void Submit(void) override;
-	void OnCollide(Character* other) override;
+	void OnCollide(CharacterBase* other) override;
 
 private:
 	// 按这一圈已经播放的时间写下缩放和透明度。还没开始或已经结束就返回 false。
