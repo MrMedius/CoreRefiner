@@ -5,6 +5,7 @@
       "Spawn": "生成类",
       "Attribute": "属性类",
       "Rule": "规则类",
+      "Element": "元素类",
       "Passive": "被动类",
       "Other": "其他类",
       "Fusion": "合成类",
@@ -20,7 +21,9 @@
       "size_rate": "体积倍率",
       "damage_rate": "伤害倍率",
       "damage_fix": "固定伤害",
-      "repeat_count": "重复节点个数"
+      "repeat_count": "重复节点个数",
+      "yin_mark_count": "给予阴标记数量",
+      "yang_mark_count": "给予阳标记数量"
     },
     "Core_Ball": {
       "title": "核心·球体生成",
@@ -132,6 +135,26 @@
         }
       ]
     },
+    "Element_Yin": {
+      "title": "阴",
+      "body": "命中时给予阴标记。\n每满5个消耗一次，并造成额外伤害。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 1
+        }
+      ]
+    },
+    "Element_Yang": {
+      "title": "阳",
+      "body": "命中时给予阳标记。\n每满5个消耗一次，以目标为中心造成范围伤害。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 1
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "固定伤害增幅",
       "body": "如果处于仓库中，则为所有攻击节点增加固定伤害。",
@@ -165,6 +188,7 @@
       "Spawn": "生成タイプ",
       "Attribute": "属性タイプ",
       "Rule": "ルールタイプ",
+      "Element": "元素タイプ",
       "Passive": "パッシブタイプ",
       "Other": "その他タイプ",
       "Fusion": "合成タイプ",
@@ -180,7 +204,9 @@
       "size_rate": "体積倍率",
       "damage_rate": "ダメージ倍率",
       "damage_fix": "固定ダメージ",
-      "repeat_count": "繰り返しノード数"
+      "repeat_count": "繰り返しノード数",
+      "yin_mark_count": "付与陰マーク",
+      "yang_mark_count": "付与陽マーク"
     },
     "Core_Ball": {
       "title": "コア・球体生成",
@@ -292,6 +318,26 @@
         }
       ]
     },
+    "Element_Yin": {
+      "title": "陰",
+      "body": "命中時に陰のマークを付与する。\n5個たまるごとに消費し、追加ダメージを与える。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 1
+        }
+      ]
+    },
+    "Element_Yang": {
+      "title": "陽",
+      "body": "命中時に陽のマークを付与する。\n5個たまるごとに消費し、対象を中心に範囲ダメージを与える。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 1
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "固定ダメージ増幅",
       "body": "倉庫にあるとき、すべての攻撃ノードに固定ダメージを加算する。",
@@ -325,6 +371,7 @@
       "Spawn": "Spawn",
       "Attribute": "Attribute",
       "Rule": "Rule",
+      "Element": "Element",
       "Passive": "Passive",
       "Other": "Other",
       "Fusion": "Fusion",
@@ -340,7 +387,9 @@
       "size_rate": "Size Rate",
       "damage_rate": "Damage Rate",
       "damage_fix": "Flat Damage",
-      "repeat_count": "Repeat Count"
+      "repeat_count": "Repeat Count",
+      "yin_mark_count": "Yin Marks Granted",
+      "yang_mark_count": "Yang Marks Granted"
     },
     "Core_Ball": {
       "title": "Core Sphere Spawn",
@@ -449,6 +498,26 @@
           "start": 0,
           "length": 6,
           "weight": "bold"
+        }
+      ]
+    },
+    "Element_Yin": {
+      "title": "Yin",
+      "body": "On hit, grants Yin marks.\nEvery 5 marks are spent to deal extra damage.",
+      "spans": [
+        {
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    "Element_Yang": {
+      "title": "Yang",
+      "body": "On hit, grants Yang marks.\nEvery 5 marks are spent to deal area damage centered on the target.",
+      "spans": [
+        {
+          "start": 0,
+          "length": 4
         }
       ]
     },

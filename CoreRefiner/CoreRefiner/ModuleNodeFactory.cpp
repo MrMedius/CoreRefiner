@@ -42,6 +42,11 @@ namespace ModuleNodeFactory
 		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Other_Repeat:				return std::make_unique<ModuleNode_Other_Repeat>(localPos);
 		// ————————————————————————————————————————————————————
+		// Kind —— Element
+		// ————————————————————————————————————————————————————
+		case ModuleNodeLabel::Element_Yin:				return std::make_unique<ModuleNode_Element_Yin>(localPos);
+		case ModuleNodeLabel::Element_Yang:				return std::make_unique<ModuleNode_Element_Yang>(localPos);
+		// ————————————————————————————————————————————————————
 		// Kind —— Fusion
 		// ————————————————————————————————————————————————————
 		case ModuleNodeLabel::Fusion:					return nullptr;

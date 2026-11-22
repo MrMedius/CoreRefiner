@@ -110,6 +110,8 @@ namespace
 		if (name == "damage_rate")	{ return ModuleNodeStat::DamageRate; }
 		if (name == "damage_fix")		{ return ModuleNodeStat::DamageFix; }
 		if (name == "repeat_count")	{ return ModuleNodeStat::RepeatCount; }
+		if (name == "yin_mark_count")	{ return ModuleNodeStat::YinMarkCount; }
+		if (name == "yang_mark_count")	{ return ModuleNodeStat::YangMarkCount; }
 		return std::nullopt;
 	}
 
@@ -145,6 +147,8 @@ namespace
 		case ModuleNodeStat::DamageRate:	return "damage_rate";
 		case ModuleNodeStat::DamageFix:		return "damage_fix";
 		case ModuleNodeStat::RepeatCount:	return "repeat_count";
+		case ModuleNodeStat::YinMarkCount:	return "yin_mark_count";
+		case ModuleNodeStat::YangMarkCount:	return "yang_mark_count";
 		case ModuleNodeStat::Count:			return "";
 		}
 		return "";
