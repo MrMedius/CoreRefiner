@@ -59,9 +59,11 @@ public:
 	[[nodiscard]] std::size_t GetZoneNodeCount() const noexcept override;
 	// 下标 0 是奥义本体。后面只排看得见且不为空的内部 Node。
 	[[nodiscard]] IModuleNode* GetZoneNode(std::size_t index) const noexcept override;
-	// 提交奥义本体和看得见的内部 Node。
+	// 提交奥义本体和看得见的内部 Node。滚出窗口且残影还开着的，只补交图标。
 	void SubmitNodes() override;
-	// 把本体和看得见的内部 Node 对齐到 hostOrigin_。滚出画面的不在这里同步。
+	// 格子滚出窗口、残影还开着的内部 Node，只交图标。阴影不进绘制名单，炼成格里的本体仍要看见。
+	void SubmitOffscreenRefineIcons();
+	// 把本体、看得见的内部 Node，以及滚出窗口但仍停在炼成格的图标对齐到 hostOrigin_。不改图标位置。
 	void SyncNodes() override;
 
 	// ---- 独有 · 本体 ----
@@ -174,7 +176,7 @@ private:
 	bool TryPage_(int direction);
 
 	// ---- 独有 · 对齐 ----
-	// 按当前 Layout 把看得见的本体和内部 Node 摆回栏位。
+	// 看得见且没有残影的内部 Node 摆回栏位。残影只更新到当前格子，图标位置不动；格子滚出窗口也更新，回退才能回到这一格。
 	void RealignVisible_();
 
 	// ---- 数据 · 底板 ----

@@ -122,6 +122,8 @@ public:
 	[[nodiscard]] std::unique_ptr<IModuleNode> TakeNode(IModuleNode* node) override;
 	// 按买卖、炼成、奥义提交要画出来的 Node。
 	void SubmitNodes() override;
+	// 先交商店绘制名单里的图标，再由奥义区补上滚出窗口、还停在炼成格里的图标。
+	void SubmitNodeIcons();
 	// 点选顺序是炼成停放、货架、奥义。距离更近的才替换，相等不算。
 	[[nodiscard]] IModuleNode* PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept override;
 	// 落点先问炼成格，再拦炼成带和奥义带，最后才是买卖框的卖出或放回货架。
