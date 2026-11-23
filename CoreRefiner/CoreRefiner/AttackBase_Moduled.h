@@ -18,6 +18,7 @@ public:
 	{}
 
 	// 先结算自己的命中，再按写入顺序跑模块的 OnHit。
+	// 子弹第一次提交绘制之前，这里直接返回。
 	void OnCollide(CharacterBase* other) override final;
 
 	// 先通知模块，再做对象回收，最后清掉模块。
@@ -140,6 +141,9 @@ public:
 	}
 
 protected:
+	// 这一发能不能结算命中。默认可以。子弹在第一次提交绘制之前返回 false。
+	virtual bool IsPresentedForHit_() const noexcept { return true; }
+
 	// 跑每个模块的 OnSpawn。
 	void DispatchOnSpawn()
 	{

@@ -82,6 +82,8 @@ class Ball : public AttackBase_Moduled
 	// 子弹从父加速度只取方向，再写成 kAimSpeed × 自身 speed.Final()，避免连乘。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
+		// 这一发出生。清掉上一发留下的「已经画过」，等第一次提交后再结算命中。
+		presented_ = false;
 		Stats().ResetMods();
 		SetPosition(pos);
 		SetMoveAccel(dir);
@@ -115,21 +117,15 @@ class Ball : public AttackBase_Moduled
 			{
 				continue;
 			}
-			// 组装时记下的是相对主体的偏移。加在主体跑完模块后的位置上。
-			// 返回会把主体挪走，不能再用传入的发射点。
-			const XMFLOAT3 corePos = GetPosition();
-			const XMFLOAT3 offset = childAtk->GetPosition();
-			childAtk->SetLocalPosition({
-				corePos.x + offset.x,
-				corePos.y + offset.y,
-				corePos.z + offset.z
-			});
+			// 站位由子物体模块在下面的 ArmModules 里写。生成时的玩家坐标不能当成偏移。
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;
 			// 子弹同样先出生，再按想要的开关写入碰撞，然后才 ArmModules。
 			childAtk->MarkLaunched();
 			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
 			{
+				// 子物体不走自己的 SpawnAt。这一发同样先清掉「已经画过」。
+				childBall->presented_ = false;
 				const float childAssembled = MaxScaleComponent(childBall->GetSize());
 				childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
 				childBall->OpenColliderForLaunch_();
@@ -160,7 +156,11 @@ class Ball : public AttackBase_Moduled
 			}
 		}
 	}
-	void OnEnable(void) override {};
+	// 从对象池取出时清掉上一发的绘制标记。真正出生还要等 SpawnAt。
+	void OnEnable(void) override
+	{
+		presented_ = false;
+	}
 	void Update(float dt) override
 	{
 		// start 是本帧移动前的位置。公转会在 DispatchOnUpdate 里改位置。
@@ -201,7 +201,14 @@ class Ball : public AttackBase_Moduled
 	}
 	void Submit(void) override
 	{
+		// 这次已经交去绘制。下一帧起命中才结算。
+		presented_ = true;
 		ObjectBase::Submit();
+	}
+	// 给 OnCollide 看。没提交过绘制就先不结算。
+	bool IsPresentedForHit_() const noexcept override
+	{
+		return presented_;
 	}
 	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
 	void ApplyOwnHit(CharacterBase* other) override
@@ -260,4 +267,6 @@ private:
 	Ball_Shape* shape_{ nullptr };
 	// 组装和出生流程想要的碰撞开关。真正开启还要等已出生。
 	bool colliderWanted_{ true };
+	// 这一发是否已经提交过绘制。为假时命中不结算。
+	bool presented_{ false };
 };

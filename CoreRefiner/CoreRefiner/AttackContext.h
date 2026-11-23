@@ -19,7 +19,7 @@ struct AttackStandby
 
 	// 正在组装的带模组弹。白环这类没有模块的攻击不进这里。
 	AttackBase_Moduled* parent{ nullptr };
-	// 这一发里还没封存的子物体。只在组装时用来摆出生位置。
+	// 这一发里还没封存的子物体。扫描作废时用来关掉它们。站位不在这里算。
 	std::vector<AttackBase_Moduled*> children;
 	// 当前要装模块的那颗弹。子物体节点把它清空，表示栏位开了。
 	AttackBase_Moduled* host{ nullptr };

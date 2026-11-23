@@ -569,9 +569,10 @@ public:
 			take = groupCount;
 		}
 
-		// 先拷贝再重放：重放出球会 Flush，把配方和分组清掉。
+		// 先按组拷贝。重放时的 Record 和 Flush 会改配方，不能边读边改。
 		const std::size_t firstGroup = groupCount - take;
-		std::vector<AttackStepRecord> window;
+		// 每个元素是一个已封口的节点组。空组不放进来。
+		std::vector<std::vector<AttackStepRecord>> copiedGroups;
 		for (std::size_t g = firstGroup; g < groupCount; ++g)
 		{
 			const std::size_t begin = ctx.recipeGroupStarts[g];
@@ -582,15 +583,43 @@ public:
 			{
 				continue;
 			}
-			window.insert(
-				window.end(),
+			copiedGroups.emplace_back(
 				ctx.recipe.begin() + static_cast<std::ptrdiff_t>(begin),
 				ctx.recipe.begin() + static_cast<std::ptrdiff_t>(end));
 		}
 
-		// 复活会先打开 recordOnly。重复里的 Core / Spawn 仍要当场发射。
-		// 没发射则恢复，只含属性的重放不会改掉复活后的只记账。
-		// 新分组只在这次从 recordOnly 里发射之后重开，普通重放的分组不变。
+		// 复活已经打开记账。整段只再写进配方，不把生成改回当场发射。
+		// 按原来的组切开，后面的重复仍按组数取。
+		if (ctx.recordOnly)
+		{
+			bool opened = false;
+			for (const std::vector<AttackStepRecord>& group : copiedGroups)
+			{
+				if (group.empty())
+				{
+					continue;
+				}
+				if (opened)
+				{
+					ctx.BeginRecipeGroup();
+				}
+				opened = true;
+				for (const AttackStepRecord& rec : group)
+				{
+					ApplyAttackStepRecord(ctx, rec);
+				}
+			}
+			return;
+		}
+
+		// 还没记账。核心和生成照旧当场发射。
+		// 窗口里若有步骤把记账打开，后面的核心和生成仍要发射；没发射则把记账恢复。
+		// 新分组只在这次从记账里发射之后重开。
+		std::vector<AttackStepRecord> window;
+		for (const std::vector<AttackStepRecord>& group : copiedGroups)
+		{
+			window.insert(window.end(), group.begin(), group.end());
+		}
 		const bool recordOnlyBefore = ctx.recordOnly;
 		bool fired = false;
 		for (const AttackStepRecord& rec : window)
@@ -618,7 +647,6 @@ public:
 		{
 			ctx.recordOnly = recordOnlyBefore;
 		}
-		RedistributeChildrenEvenly(ctx.standby);
 	}
 
 protected:

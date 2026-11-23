@@ -4,6 +4,11 @@
 
 void AttackBase_Moduled::OnCollide(CharacterBase* other)
 {
+	// 还没提交过绘制就不结算。普通伤害和模块的 OnHit 都不跑。
+	if (!IsPresentedForHit_())
+	{
+		return;
+	}
 	ApplyOwnHit(other);
 	DispatchOnHit(other);
 }

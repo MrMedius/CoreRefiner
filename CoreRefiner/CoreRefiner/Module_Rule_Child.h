@@ -1,10 +1,12 @@
 #pragma once
 #include "IModule.h"
-#include "AttackBase.h"
+#include "AttackBase_Moduled.h"
 #include "ConstraintComponent.h"
 #include "XMath.h"
 
-// 子物体跟随。读约束上的目标做平移，锚点记在模块里。
+#include <cmath>
+
+// 子物体跟随。出生时按主体的同伴名单站开，之后读约束上的目标做平移。
 // 目标还在就加上这一帧的位移，并记下它的速度和加速度。
 // 目标刚没时用记下的速度放手，不读主体被命中清掉之后的值。
 // 放手这一帧先留着约束上的旧目标，下一帧再清掉。后装的公转同一帧还能读到它。
@@ -16,7 +18,7 @@ public:
 		IModule(owner)
 	{}
 
-	// 对齐锚点。这时主体已经在发射点，子弹也已经放到环上的偏移处。
+	// 先按同伴名单站开，再对齐锚点。主体的模块已经跑完，返回造成的位移能读到。
 	void OnSpawn() override
 	{
 		AttackBase* owner = GetOwner();
@@ -34,6 +36,7 @@ public:
 		{
 			return;
 		}
+		PlaceOnRing_(*owner, *live);
 		anchor_ = live->GetWorldPosition();
 		anchorValid_ = true;
 		RememberMotion_(live);
@@ -118,6 +121,39 @@ public:
 	}
 
 private:
+	// 没有被公转盖掉时，子物体离主体的水平距离。
+	static constexpr float kRingSpacing{ 2.0f };
+
+	// 按自己在主体同伴名单里的序号站开。core 是约束上还在场的目标。
+	// 目标不是带模组的攻击，或名单里没有自己时，叠在目标上。
+	void PlaceOnRing_(AttackBase& owner, ObjectBase& core)
+	{
+		const XMFLOAT3 at = core.GetWorldPosition();
+		float offsetX = 0.0f;
+		float offsetZ = 0.0f;
+		if (auto* moduled = dynamic_cast<AttackBase_Moduled*>(&core))
+		{
+			const std::vector<AttackBase_Moduled*>& born = moduled->GetBornWith();
+			const std::size_t n = born.size();
+			for (std::size_t i = 0; i < n; ++i)
+			{
+				if (born[i] == &owner)
+				{
+					// phase 是这一颗在整圈上的角度。
+					const float phase = DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
+					offsetX = kRingSpacing * std::cos(phase);
+					offsetZ = kRingSpacing * std::sin(phase);
+					break;
+				}
+			}
+		}
+		owner.SetLocalPosition({
+			at.x + offsetX,
+			at.y,
+			at.z + offsetZ
+		});
+	}
+
 	// 从还在场上的攻击目标抄下速度和加速度。target 不是攻击时什么都不记。
 	void RememberMotion_(ObjectBase* target) noexcept
 	{

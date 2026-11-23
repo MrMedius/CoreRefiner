@@ -19,56 +19,7 @@
 
 #include "ConstraintComponent.h"
 
-#include <cmath>
 #include <memory>
-#include <vector>
-
-inline void RedistributeChildrenEvenly(AttackStandby& s)
-{
-	const std::size_t n = s.children.size();
-	if (n == 0)
-	{
-		return;
-	}
-
-	constexpr float kDefaultChildRingRadius{ 2.0f };
-	float radius = kDefaultChildRingRadius;
-	for (AttackBase_Moduled* child : s.children)
-	{
-		if (child == nullptr)
-		{
-			continue;
-		}
-		if (Module_Rule_Orbit* orbit = child->GetModule<Module_Rule_Orbit>())
-		{
-			radius = orbit->GetRadius();
-		}
-	}
-
-	for (std::size_t i = 0; i < n; ++i)
-	{
-		AttackBase_Moduled* child = s.children[i];
-		if (child == nullptr)
-		{
-			continue;
-		}
-
-		// phase 只用来摆这一圈的出生偏移，不写进公转。
-		// 起始角由公转在出生时按同伴名单自己算。
-		const float phase = DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
-		// 没有变换父子。这个偏移先记在本地位置上，出生时再加到主体的位置。
-		child->SetLocalPosition(Vec3{
-			radius * std::cos(phase),
-			0.0f,
-			radius * std::sin(phase)
-		});
-
-		if (Module_Rule_Orbit* orbit = child->GetModule<Module_Rule_Orbit>())
-		{
-			orbit->SetRadius(radius);
-		}
-	}
-}
 
 namespace 
 {
@@ -142,7 +93,6 @@ namespace
 		s.host = ball;
 		ctx.Record(rec);
 		ctx.DrainPitQueue();
-		RedistributeChildrenEvenly(s);
 	}
 }
 

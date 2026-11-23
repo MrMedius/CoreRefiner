@@ -123,14 +123,6 @@ public:
 		SetOwnerColliderEnabled_(true);
 	}
 
-	// 改节点半径。均分用它把已经装上的公转对齐到同一个半径。
-	void SetRadius(float radius) noexcept
-	{
-		radius_ = radius;
-	}
-
-	[[nodiscard]] float GetRadius() const noexcept { return radius_; }
-
 private:
 	// 起始角为负时，按约束目标的同伴名单算角度。绕玩家或名单里没有自己时用 0。
 	[[nodiscard]] float ComputeAutoPhase_() const noexcept
@@ -334,6 +326,7 @@ private:
 		}
 	}
 
+	// 节点传入的公转半径。实际飞行半径还要和双方体积取较大值。
 	float radius_{ 2.0f };
 	// 起始角。负值表示自动，出生时再算。
 	float phase0_{ 0.0f };
