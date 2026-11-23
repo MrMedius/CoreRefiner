@@ -64,29 +64,6 @@ protected:
 	// 回收时清掉“已经出生”。带模组的弹清模块时调用。
 	void ClearLaunched_() noexcept { launched_ = false; }
 
-	// 更新还活着的子物体。
-	void UpdateChildren(float dt)
-	{
-		for (std::size_t i = 0; i < GetChildCount(); ++i)
-		{
-			if (ObjectBase* child = GetChild(i); child != nullptr && child->IsActive())
-			{
-				child->Update(dt);
-			}
-		}
-	}
-	// 提交还活着的子物体。
-	void SubmitChildren()
-	{
-		for (std::size_t i = 0; i < GetChildCount(); ++i)
-		{
-			if (ObjectBase* child = GetChild(i); child != nullptr && child->IsActive())
-			{
-				child->Submit();
-			}
-		}
-	}
-
 protected:
 	XMFLOAT3 MoveAccel{ 0.0f,0.0f,0.0f };
 	XMFLOAT3 MoveVelocity{ 0.0f,0.0f,0.0f };

@@ -21,9 +21,8 @@ public:
 	void OnCollide(CharacterBase* other) override final;
 
 	// 先通知模块，再做对象回收，最后清掉模块。
+	// 还没一起出生的子弹跟着关掉。已经交出的不在名单里，不会跟着消失。
 	void Deactivate() override;
-	// 先让还活着的子弹脱离并继承速度，再排队关掉自己。子弹不会跟着一起关掉。
-	void RequestDisable() override;
 
 	// 挂上一个玩法模块。T 必须继承 IModule，构造的第一个参数是这发弹。
 	// 返回的指针不拥有模块，清模块时会失效。
@@ -52,6 +51,8 @@ public:
 		launchPosLocked_ = false;
 		ClearLaunched_();
 		assembledRecipe_.clear();
+		// 模块清掉时同伴名单也丢掉。还没出生的同伴由 Deactivate 先关掉。
+		bornWith_.clear();
 	}
 
 	// 把当前装配步骤封到这发弹上。清模块时会丢掉。
@@ -105,13 +106,38 @@ public:
 		return nullptr;
 	}
 
-	// 有模块要求独立时先卸下父子，再跑各模块的 OnSpawn。
+	// 记下同一次出生的子弹。不是变换父子，不拥有。
+	void AddBornWith(AttackBase_Moduled* ball)
+	{
+		if (ball == nullptr || ball == this)
+		{
+			return;
+		}
+		for (AttackBase_Moduled* existing : bornWith_)
+		{
+			if (existing == ball)
+			{
+				return;
+			}
+		}
+		bornWith_.push_back(ball);
+	}
+	// 还没交出的同伴。出生前用它一起启动，也用来加仓库加成。
+	[[nodiscard]] const std::vector<AttackBase_Moduled*>& GetBornWith() const noexcept
+	{
+		return bornWith_;
+	}
+	// 拿走同伴名单并清掉。调用方让它们自己更新。之后主体消失不会再碰到它们。
+	[[nodiscard]] std::vector<AttackBase_Moduled*> TakeBornWith() noexcept
+	{
+		std::vector<AttackBase_Moduled*> out = std::move(bornWith_);
+		bornWith_.clear();
+		return out;
+	}
+
+	// 跑各模块的 OnSpawn。
 	void ArmModules()
 	{
-		if (WantsDetachFromParent_())
-		{
-			DetachSelfFromParent_();
-		}
 		DispatchOnSpawn();
 		ObjectBase::Update(0.0f);
 	}
@@ -169,22 +195,6 @@ private:
 	bool launchPosLocked_{ false };
 	// 封存的装配步骤。复活时按这份列表重放。
 	std::vector<AttackStepRecord> assembledRecipe_;
-
-	// 是否有模块要求开火时脱离父物体。
-	[[nodiscard]] bool WantsDetachFromParent_() const noexcept
-	{
-		for (const auto& module : modules_)
-		{
-			if (module != nullptr && module->WantsDetachFromParent())
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-
-	// 记下世界坐标，继承父弹速度，脱离父物体，并交给攻击管理器认领。
-	void DetachSelfFromParent_();
-	// 让每个还活着的子弹子物体脱离。不关掉它们。
-	void ReleaseLivingChildren_();
+	// 同一次出生、还没交出的子弹。不是变换父子，不拥有。
+	std::vector<AttackBase_Moduled*> bornWith_;
 };

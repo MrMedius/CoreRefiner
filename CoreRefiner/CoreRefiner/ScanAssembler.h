@@ -488,7 +488,7 @@ private:
 	std::vector<ScanSession> sessions_;
 
 	// Deactivate roots held by a session (committed, shots, standby parent).
-	// 子物体跟着 AttackBase_Moduled::Deactivate 一起回收。RequestDisable 才会先把活着的子弹拆出去。
+	// 还没一起出生的子弹由主体 Deactivate 关掉。已经交出的子弹不跟着关。
 	static void DiscardSessionAttacks_(ScanSession& session)
 	{
 		auto deactivate = [](AttackBase* attack)

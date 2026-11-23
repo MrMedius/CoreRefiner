@@ -12,8 +12,11 @@
 #include "Module_Rule_Orbit.h"
 #include "Module_Rule_Return.h"
 #include "Module_Rule_Revive.h"
+
 #include "Module_Element_Yin.h"
 #include "Module_Element_Yang.h"
+
+#include "ConstraintComponent.h"
 
 #include <cmath>
 #include <memory>
@@ -50,6 +53,7 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 		}
 
 		const float phase = DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
+		// 没有变换父子。这个偏移先记在本地位置上，出生时再加到主体的位置。
 		child->SetLocalPosition(Vec3{
 			radius * std::cos(phase),
 			0.0f,
@@ -127,7 +131,9 @@ namespace
 			return;
 		}
 
-		ball->SetParent(s.parent);
+		// 栏位填上时记下主体。攻击球之间不组成变换父子，只留约束。
+		SetConstraintTarget(ball, s.parent);
+		s.parent->AddBornWith(ball);
 		s.children.push_back(ball);
 		s.host = ball;
 		ctx.Record(rec);
@@ -412,7 +418,12 @@ public:
 		{
 			phase = 0.0f;
 		}
-		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, phase, center);
+		// 绕玩家时把约束目标写成玩家。绕主体的目标已在填栏位时记下。
+		if (!aroundParentShot)
+		{
+			SetConstraintTarget(s.host, center);
+		}
+		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, phase);
 		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, phase));
 	}
 

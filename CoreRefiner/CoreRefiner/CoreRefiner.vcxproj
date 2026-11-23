@@ -388,6 +388,7 @@
     <ClInclude Include="AttackShadeCbuf.h" />
     <ClInclude Include="AttackStepRecord.h" />
     <ClInclude Include="AttackBase_Moduled.h" />
+    <ClInclude Include="ConstraintComponent.h" />
     <ClInclude Include="Ring_Yang.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Ball_Shape.h" />

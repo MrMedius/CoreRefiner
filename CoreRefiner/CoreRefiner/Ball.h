@@ -108,18 +108,20 @@ class Ball : public AttackBase_Moduled
 		// 只刷新缩放和半径。碰撞开关已经由出生和模块决定。
 		ApplyScaleKeepCollider_({ sz, sz, sz });
 
-		std::vector<AttackBase_Moduled*> kids;
-		kids.reserve(GetChildCount());
-		for (std::size_t i = 0; i < GetChildCount(); ++i)
-		{
-			if (auto* childAtk = dynamic_cast<AttackBase_Moduled*>(GetChild(i));
-				childAtk != nullptr && childAtk->IsActive())
-			{
-				kids.push_back(childAtk);
-			}
-		}
+		const std::vector<AttackBase_Moduled*> kids = GetBornWith();
 		for (AttackBase_Moduled* childAtk : kids)
 		{
+			if (childAtk == nullptr || !childAtk->IsActive())
+			{
+				continue;
+			}
+			// 组装时记下的是相对主体的偏移。没有变换父子，出生时加到主体的位置上。
+			const XMFLOAT3 offset = childAtk->GetPosition();
+			childAtk->SetLocalPosition({
+				pos.x + offset.x,
+				pos.y + offset.y,
+				pos.z + offset.z
+			});
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;
 			// 子弹同样先出生，再按想要的开关写入碰撞，然后才 ArmModules。
@@ -193,13 +195,11 @@ class Ball : public AttackBase_Moduled
 			}
 		}
 
-		UpdateChildren(dt);
 		ObjectBase::Update(dt);
 	}
 	void Submit(void) override
 	{
 		ObjectBase::Submit();
-		SubmitChildren();
 	}
 	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
 	void ApplyOwnHit(CharacterBase* other) override

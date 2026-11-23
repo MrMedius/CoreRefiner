@@ -3,29 +3,29 @@
 #include "AttackBase.h"
 #include "AttackManager.h"
 #include "ColliderComponentBase.h"
+#include "ConstraintComponent.h"
 #include "Player.h"
 #include "XMath.h"
 
 #include <algorithm>
 #include <cmath>
 
-// 绕圆心公转：圆心只是指针，模块不改父子。
+// 绕约束目标公转。圆心每帧从约束上读，模块自己不保存。
 // 实际半径 = max(节点半径, 圆心半径 + 自身半径 + 余量)。
 // 绕玩家时从出生极径边转到目标半径；径向加速度与普通发射相同。
-// 圆心失效时沿当下切线甩出，并继续沿该切线加速。
+// 目标没了就沿当下切线甩出，并继续沿该切线加速。
 class Module_Rule_Orbit : public IModule
 {
 public:
 	static constexpr float kClearance{ 0.0f };
 
-	// center 公转圆心（玩家或主弹）；空则不公转。
-	Module_Rule_Orbit(AttackBase* owner, float radius, float phase0, ObjectBase* center = nullptr) noexcept
+	// radius 是节点半径。phase0 是起始角。圆心在宿主的约束上。
+	Module_Rule_Orbit(AttackBase* owner, float radius, float phase0) noexcept
 		:
 		IModule(owner),
 		radius_(radius),
 		phase0_(phase0),
-		angle_(phase0),
-		center_(center)
+		angle_(phase0)
 	{}
 
 	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
@@ -33,8 +33,6 @@ public:
 	{
 		return ModuleNodeLabel::Rule_Orbit;
 	}
-
-	[[nodiscard]] bool WantsDetachFromParent() const noexcept override { return true; }
 
 	void OnSpawn() override
 	{
@@ -71,10 +69,11 @@ public:
 		}
 		if (!IsCenterLive_())
 		{
-			if (center_ != nullptr)
+			// 目标刚停用：沿切线甩出一次，然后清掉指针，下一帧不再甩。
+			if (StoredCenter_() != nullptr)
 			{
 				ReleaseToBallistic_(*owner, dt);
-				center_ = nullptr;
+				ClearCenter_();
 			}
 			return;
 		}
@@ -121,7 +120,6 @@ public:
 		radialVel_ = 0.0f;
 		interpolating_ = false;
 		pendingRadialStart_ = false;
-		center_ = nullptr;
 		SetOwnerColliderEnabled_(true);
 	}
 
@@ -139,14 +137,57 @@ public:
 	[[nodiscard]] float GetRadius() const noexcept { return radius_; }
 
 private:
+	// 宿主上的约束。没有就返回空。
+	[[nodiscard]] ConstraintComponent* Constraint_() const noexcept
+	{
+		AttackBase* owner = GetOwner();
+		if (owner == nullptr)
+		{
+			return nullptr;
+		}
+		return owner->GetComponent<ConstraintComponent>();
+	}
+
+	// 约束上还在场的目标。
+	[[nodiscard]] ObjectBase* LiveCenter_() const noexcept
+	{
+		ConstraintComponent* constraint = Constraint_();
+		if (constraint == nullptr)
+		{
+			return nullptr;
+		}
+		return constraint->GetTarget();
+	}
+
+	// 约束记下的指针。目标停用时也要，甩出那一帧取它的位置。
+	[[nodiscard]] ObjectBase* StoredCenter_() const noexcept
+	{
+		ConstraintComponent* constraint = Constraint_();
+		if (constraint == nullptr)
+		{
+			return nullptr;
+		}
+		return constraint->GetStoredTarget();
+	}
+
+	// 甩出之后清掉约束目标，避免下一帧再甩一次。
+	void ClearCenter_() noexcept
+	{
+		if (ConstraintComponent* constraint = Constraint_())
+		{
+			constraint->SetTarget(nullptr);
+		}
+	}
+
 	[[nodiscard]] bool IsCenterLive_() const noexcept
 	{
-		return center_ != nullptr && center_->IsActive();
+		return LiveCenter_() != nullptr;
 	}
 
 	[[nodiscard]] bool IsPlayerCenter_() const noexcept
 	{
-		return center_ != nullptr && center_->GetTag() == character_Player;
+		ObjectBase* center = LiveCenter_();
+		return center != nullptr && center->GetTag() == character_Player;
 	}
 
 	[[nodiscard]] static float BodyRadius_(const ObjectBase& body) noexcept
@@ -164,7 +205,8 @@ private:
 
 	[[nodiscard]] float ComputeTargetRadius_(const AttackBase& owner) const noexcept
 	{
-		const float parentR = IsCenterLive_() ? BodyRadius_(*center_) : 0.0f;
+		const ObjectBase* center = LiveCenter_();
+		const float parentR = (center != nullptr) ? BodyRadius_(*center) : 0.0f;
 		const float childR = owner.Stats().size.Final();
 		const float floorR = parentR + childR + kClearance;
 		return (std::max)(radius_, floorR);
@@ -173,7 +215,12 @@ private:
 	// 用当前世界坐标当极径起点（脚边→扩出，远处→收回）。
 	void SampleRadialStart_(const AttackBase& owner)
 	{
-		const XMFLOAT3 c = center_->GetWorldPosition();
+		ObjectBase* center = LiveCenter_();
+		if (center == nullptr)
+		{
+			return;
+		}
+		const XMFLOAT3 c = center->GetWorldPosition();
 		const XMFLOAT3 p = owner.GetWorldPosition();
 		const float dx = p.x - c.x;
 		const float dz = p.z - c.z;
@@ -217,9 +264,9 @@ private:
 
 		const float arc = omega * r * stepDt;
 		const XMFLOAT3 step = (V(tangent) * arc).ToFloat3();
-		if (center_ != nullptr)
+		if (ObjectBase* center = StoredCenter_())
 		{
-			const XMFLOAT3 c = center_->GetWorldPosition();
+			const XMFLOAT3 c = center->GetWorldPosition();
 			owner.SetLocalPosition(Vec3{
 				c.x + radialX + step.x,
 				c.y,
@@ -240,7 +287,12 @@ private:
 		{
 			return;
 		}
-		const XMFLOAT3 c = center_->GetWorldPosition();
+		ObjectBase* center = LiveCenter_();
+		if (center == nullptr)
+		{
+			return;
+		}
+		const XMFLOAT3 c = center->GetWorldPosition();
 		owner->SetLocalPosition(Vec3{
 			c.x + currentRadius_ * std::cos(angle_),
 			c.y,
@@ -268,5 +320,4 @@ private:
 	float radialVel_{ 0.0f };
 	bool interpolating_{ false };
 	bool pendingRadialStart_{ false };
-	ObjectBase* center_{ nullptr };
 };

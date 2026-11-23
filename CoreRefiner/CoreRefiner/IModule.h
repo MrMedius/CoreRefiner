@@ -19,9 +19,6 @@ public:
 	// 宿主即将 Disable / ClearModules；Revive 在此放弹。默认空。
 	virtual void OnDisable() {}
 
-	// 开火 ArmModules 时是否从父物体卸下（独立世界坐标，由 AttackBase_Moduled 执行）。
-	[[nodiscard]] virtual bool WantsDetachFromParent() const noexcept { return false; }
-
 	[[nodiscard]] virtual bool HasModuleNodeLabel() const noexcept { return false; }
 	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept
 	{

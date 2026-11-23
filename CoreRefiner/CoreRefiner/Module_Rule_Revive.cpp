@@ -88,12 +88,24 @@ void Module_Rule_Revive::Replay_(AttackBase* owner)
 		{
 			continue;
 		}
-		if (auto* rootMod = dynamic_cast<AttackBase_Moduled*>(root))
+		auto* rootMod = dynamic_cast<AttackBase_Moduled*>(root);
+		if (rootMod != nullptr)
 		{
 			rootMod->SetLaunchPosLocked(true);
 		}
 		root->SpawnAt(pos, dir);
 		// 交给攻击管理器认领。复活发生在这一帧的更新里，下一帧才进名单。
 		ObjectCodex::Handoff(attack_Ball, root);
+		if (rootMod != nullptr)
+		{
+			// 同伴排在主体后面。下一帧先更新主体，再让公转读它的位置。
+			for (AttackBase_Moduled* child : rootMod->TakeBornWith())
+			{
+				if (child != nullptr)
+				{
+					ObjectCodex::Handoff(attack_Ball, child);
+				}
+			}
+		}
 	}
 }

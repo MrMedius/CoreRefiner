@@ -223,6 +223,14 @@ void AttackManager::ReleaseNextShot_()
 	TryGetAimVelocity(pos, vel);
 	AdoptLive(root);
 	root->SpawnAt(pos, vel);
+	// 同一次出生的子弹自己进名单。这一帧的更新已经走过，下一帧才动。
+	if (auto* rootMod = dynamic_cast<AttackBase_Moduled*>(root))
+	{
+		for (AttackBase_Moduled* child : rootMod->TakeBornWith())
+		{
+			AdoptLive(child);
+		}
+	}
 	if (onLaunched_)
 	{
 		for (AttackBase* atk : shot.tree)
@@ -242,9 +250,13 @@ void AttackManager::CollectAttackTree(AttackBase* atk, std::vector<AttackBase*>&
 		return;
 	}
 	out.push_back(atk);
-	for (std::size_t i = 0; i < atk->GetChildCount(); ++i)
+	// 同伴不是变换子物体。出生前还在这份名单里。
+	if (auto* moduled = dynamic_cast<AttackBase_Moduled*>(atk))
 	{
-		CollectAttackTree(dynamic_cast<AttackBase*>(atk->GetChild(i)), out);
+		for (AttackBase_Moduled* child : moduled->GetBornWith())
+		{
+			CollectAttackTree(child, out);
+		}
 	}
 }
 

@@ -48,7 +48,7 @@ private:
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;
 
-	// 已启动的攻击。根弹由连发放出时放进来。卸下的子弹和交出的白环由 ClaimAttack 放进来。
+	// 已启动的攻击。根弹由连发放出时放进来。同一次出生的子弹和交出的白环由 ClaimAttack 放进来。
 	std::vector<AttackBase*> attacks;
 
 	// 缓存的玩家。空或已失效时，放出前重新查找。
@@ -60,7 +60,7 @@ private:
 	struct PendingShot
 	{
 		AttackBase* root{ nullptr };
-		// 根弹和子弹。公转弹出生后会卸父子，加成仍按这份名单加。
+		// 根弹和同一次出生、还没交出的子弹。加成按这份名单加。
 		std::vector<AttackBase*> tree;
 	};
 
@@ -73,6 +73,6 @@ private:
 	void ClaimAttack();
 	// 取出队首放出一颗。队列空时什么都不做。找不到玩家时回收这一颗。
 	void ReleaseNextShot_();
-	// 把 atk 和它的子弹拍进 out。入队时调用，公转卸下父子后仍能按这份名单加仓库加成。
+	// 把 atk 和同一次出生、还没交出的子弹拍进 out。入队时调用，出生后仍按这份名单加仓库加成。
 	static void CollectAttackTree(AttackBase* atk, std::vector<AttackBase*>& out);
 };
