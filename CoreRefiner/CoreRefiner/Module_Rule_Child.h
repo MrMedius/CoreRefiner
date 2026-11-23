@@ -16,12 +16,6 @@ public:
 		IModule(owner)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Child;
-	}
-
 	// 对齐锚点。这时主体已经在发射点，子弹也已经放到环上的偏移处。
 	void OnSpawn() override
 	{

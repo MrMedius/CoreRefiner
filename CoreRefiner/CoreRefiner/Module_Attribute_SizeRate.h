@@ -11,14 +11,7 @@ public:
 		sizeRate_(sizeRate)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SizeRate;
-	}
-
-	
-	// 加算 size.rate；Ball::SpawnAt 在 ArmModules 之后用 size.Final() 调 ApplyPresentation。
+	// 加算 size.rate。Ball::SpawnAt 在模块出生之后用 size.Final() 改缩放。
 	void OnSpawn() override
 	{
 		AttackBase* owner = GetOwner();
@@ -32,5 +25,6 @@ public:
 	void OnRecycle() override {}
 
 private:
+	// 加到 size.rate 上的数值。
 	float sizeRate_{ 0.0f };
 };

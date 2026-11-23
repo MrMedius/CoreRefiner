@@ -2,29 +2,18 @@
 #include "ObjectCodex.h"
 
 #include <cstddef>
-#include <tuple>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
-// Assemble parent/child ObjectBase graphs via ObjectCodex pools (no pool-algorithm change).
-// SpawnPooled reuses inactive instances; this layer only ClearParent / SetParent / setup.
-// Parent RequestDisable/Deactivate already cascades children and clears links (ObjectBase).
+// 对象池预热。按标签造好再立刻关掉，不交接，所以不会进管理器名单。
 namespace HierarchySpawn
 {
-	// Non-owning pointers into ObjectCodex pools after AssembleParentChildren.
-	template <typename ParentT, typename ChildT>
-	struct ParentChildren
-	{
-		ParentT* parent{ nullptr };
-		std::vector<ChildT*> children;
-	};
-
-	// Warm up a tag pool: SpawnPooled then Deactivate (same pattern as AttackManager balls).
+	// tag 是对象池标签。count 是要预热的个数。args 是传给 SpawnPooled 的构造参数。
 	template <typename T, typename... Args>
 	void WarmupPool(Object_Type_Tag tag, int count, Args&&... args)
 	{
 		static_assert(std::is_base_of_v<ObjectBase, T>, "T must inherit from ObjectBase");
+		// batch 先收齐再关闭，避免边造边关时把刚造的又拿出来。
 		std::vector<T*> batch;
 		batch.reserve(static_cast<std::size_t>(count));
 		for (int i = 0; i < count; ++i)
@@ -38,73 +27,5 @@ namespace HierarchySpawn
 		{
 			o->Deactivate();
 		}
-	}
-
-	// Spawn/reuse one parent and N children, wire hierarchy, then run setupChild.
-	// SetupChildFn void(ChildT* child, std::size_t index) — local pose / gameplay setup.
-	// parentTag / childTag Must differ so pools do not mix.
-	// childCtorArgs Args pack applied to every child SpawnPooled (refs OK).
-	// parentArgs Forwarded to SpawnPooled&lt;ParentT&gt;.
-	// ClearParent on both sides before SetParent to scrub pooled dirty links.
-	template <
-		typename ParentT,
-		typename ChildT,
-		typename SetupChildFn,
-		typename... ParentArgs,
-		typename... ChildArgs>
-	ParentChildren<ParentT, ChildT> AssembleParentChildren(
-		Object_Type_Tag parentTag,
-		Object_Type_Tag childTag,
-		std::size_t childCount,
-		SetupChildFn&& setupChild,
-		const std::tuple<ChildArgs...>& childCtorArgs,
-		ParentArgs&&... parentArgs)
-	{
-		static_assert(std::is_base_of_v<ObjectBase, ParentT>, "ParentT must inherit from ObjectBase");
-		static_assert(std::is_base_of_v<ObjectBase, ChildT>, "ChildT must inherit from ObjectBase");
-
-		ParentChildren<ParentT, ChildT> out;
-		out.parent = ObjectCodex::SpawnPooled<ParentT>(
-			parentTag, std::forward<ParentArgs>(parentArgs)...);
-		if (out.parent == nullptr)
-		{
-			return out;
-		}
-
-		out.parent->ClearParent();
-		out.children.reserve(childCount);
-
-		for (std::size_t i = 0; i < childCount; ++i)
-		{
-			ChildT* child = std::apply(
-				[childTag](auto&&... args) -> ChildT*
-				{
-					return ObjectCodex::SpawnPooled<ChildT>(
-						childTag, std::forward<decltype(args)>(args)...);
-				},
-				childCtorArgs);
-
-			if (child == nullptr)
-			{
-				continue;
-			}
-
-			child->ClearParent();
-			child->SetParent(out.parent);
-			setupChild(child, i);
-			out.children.push_back(child);
-		}
-
-		return out;
-	}
-
-	// Disable hierarchy root (cascades children via ObjectBase).
-	inline void RequestDisableRoot(ObjectBase* root) noexcept
-	{
-		if (root == nullptr || !root->IsActive())
-		{
-			return;
-		}
-		root->RequestDisable();
 	}
 }

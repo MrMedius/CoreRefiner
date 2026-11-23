@@ -11,12 +11,6 @@
 #include <utility>
 #include <vector>
 
-enum class DeployTarget : unsigned char
-{
-	Focus,
-	ShotRoot,
-};
-
 struct AttackStandby
 {
 	Graphics* gfx{ nullptr };
@@ -25,11 +19,12 @@ struct AttackStandby
 
 	// 正在组装的带模组弹。白环这类没有模块的攻击不进这里。
 	AttackBase_Moduled* parent{ nullptr };
+	// 这一发里还没封存的子物体。只在组装时用来摆出生位置。
 	std::vector<AttackBase_Moduled*> children;
+	// 当前要装模块的那颗弹。子物体节点把它清空，表示栏位开了。
 	AttackBase_Moduled* host{ nullptr };
+	// 绕玩家的公转用它当圆心。
 	Player* player{ nullptr };
-	// 当前 parent 是停放克隆，FlushStandby 不得把它当根弹发射。
-	bool parked{ false };
 };
 
 struct DeployContext
@@ -66,15 +61,13 @@ struct DeployContext
 		return true;
 	}
 
+	// 把当前配方封到根弹上，并把根弹放进待发射名单。然后清空这一发的组装现场。
 	void FlushStandby()
 	{
 		if (standby.parent != nullptr)
 		{
 			standby.parent->SealAssembledRecipe(std::move(recipe));
-			if (!standby.parked)
-			{
-				shots.push_back(standby.parent);
-			}
+			shots.push_back(standby.parent);
 		}
 		recipe.clear();
 		recipeGroupStarts.clear();
@@ -82,7 +75,6 @@ struct DeployContext
 		standby.parent = nullptr;
 		standby.children.clear();
 		standby.host = nullptr;
-		standby.parked = false;
 		recordOnly = false;
 		pitQueue.clear();
 	}

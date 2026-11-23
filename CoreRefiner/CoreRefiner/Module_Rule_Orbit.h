@@ -20,7 +20,7 @@ class Module_Rule_Orbit : public IModule
 public:
 	static constexpr float kClearance{ 0.0f };
 
-	// radius 是节点半径。phase0 是起始角。圆心在宿主的约束上。
+	// radius 是节点半径。phase0 是节点上的起始角，负值表示自动，留到 OnSpawn 再算。圆心在宿主的约束上。
 	Module_Rule_Orbit(AttackBase* owner, float radius, float phase0) noexcept
 		:
 		IModule(owner),
@@ -28,12 +28,6 @@ public:
 		phase0_(phase0),
 		angle_(phase0)
 	{}
-
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Orbit;
-	}
 
 	void OnSpawn() override
 	{
@@ -129,15 +123,10 @@ public:
 		SetOwnerColliderEnabled_(true);
 	}
 
+	// 改节点半径。均分用它把已经装上的公转对齐到同一个半径。
 	void SetRadius(float radius) noexcept
 	{
 		radius_ = radius;
-	}
-
-	void SetPhase0(float phase0) noexcept
-	{
-		phase0_ = phase0;
-		angle_ = phase0;
 	}
 
 	[[nodiscard]] float GetRadius() const noexcept { return radius_; }

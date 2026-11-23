@@ -160,12 +160,6 @@ public:
 		enableCollider_(enableCollider)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Core_Ball;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Core_Ball"; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		ApplyBallSpawnStep(ctx, AttackStepRecordMake::CoreBall(scale_, enableCollider_));
@@ -197,12 +191,6 @@ public:
 		enableCollider_(enableCollider)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Spawn_Ball;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Spawn_Ball"; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		ApplyBallSpawnStep(ctx, AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
@@ -231,14 +219,6 @@ public:
 		lifetimeRate_(lifetimeRate)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_LifetimeRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_LifetimeRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		AddToFocus<Module_Attribute_LifetimeRate>(
@@ -262,14 +242,6 @@ public:
 	explicit AttackNodeStep_Attribute_SpeedRate(float speedRate) noexcept
 		: speedRate_{ speedRate }
 	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SpeedRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SpeedRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
@@ -295,14 +267,6 @@ public:
 		: sizeRate_{ sizeRate }
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SizeRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SizeRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		AddToFocus<Module_Attribute_SizeRate>(
@@ -326,14 +290,6 @@ public:
 	explicit AttackNodeStep_Attribute_DamageRate(float damageRate) noexcept
 		: damageRate_{ damageRate }
 	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_DamageRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_DamageRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
@@ -364,13 +320,6 @@ public:
 		orbitPhase_(phase)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Orbit;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Orbit"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Orbit(orbitRadius_, orbitPhase_)))
@@ -399,36 +348,14 @@ public:
 			return;
 		}
 
-		float phase = orbitPhase_;
-		if (aroundParentShot)
-		{
-			if (phase < 0.0f)
-			{
-				phase = 0.0f;
-				const std::size_t n = s.children.size();
-				for (std::size_t i = 0; i < n; ++i)
-				{
-					if (s.children[i] == s.host)
-					{
-						phase = (n > 0)
-							? (DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n))
-							: 0.0f;
-						break;
-					}
-				}
-			}
-		}
-		else if (phase < 0.0f)
-		{
-			phase = 0.0f;
-		}
 		// 绕玩家时把约束目标写成玩家。绕主体的目标已在填栏位时记下。
 		if (!aroundParentShot)
 		{
 			SetConstraintTarget(s.host, center);
 		}
-		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, phase);
-		// 配方记节点原来的角度。自动角度仍是负值，重放时再算。
+		// 角度原样装上。orbitPhase_ 是节点上的起始角，负值表示自动，出生时再算。
+		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, orbitPhase_);
+		// 配方也记节点原来的角度。重放时同样等到出生再算。
 		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, orbitPhase_));
 	}
 
@@ -440,21 +367,15 @@ public:
 	}
 
 private:
+	// 节点半径。公转用它和双方体积一起决定实际半径。
 	float orbitRadius_{ 2.0f };
+	// 节点上的起始角。负值表示自动，装配时不改，出生时再按同伴名单算。
 	float orbitPhase_{ -1.0f };
 };
 
 class AttackNodeStep_Rule_Return final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Return;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Return"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Return()))
@@ -487,12 +408,6 @@ public:
 class AttackNodeStep_Rule_Child final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Child;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Child"; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		AttackStandby& s = ctx.standby;
@@ -530,14 +445,6 @@ public:
 class AttackNodeStep_Rule_Revive final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Revive;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Revive"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Revive()))
@@ -587,14 +494,6 @@ public:
 		extraDamage_(extraDamage)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Element_Yin;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Element_Yin"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
-
 	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造阴环。
 	void Apply(DeployContext& ctx) override
 	{
@@ -642,14 +541,6 @@ public:
 		areaDamage_(areaDamage),
 		radius_(radius)
 	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Element_Yang;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Element_Yang"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造阳环。
 	void Apply(DeployContext& ctx) override

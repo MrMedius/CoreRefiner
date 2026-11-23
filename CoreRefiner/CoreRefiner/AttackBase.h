@@ -3,8 +3,6 @@
 #include "CharacterBase.h"
 #include "Stats.h"
 
-#include <vector>
-
 // 一次攻击的公共部分：出生、位移、寿命、数值，以及自己的命中。
 // 玩法模块、配方和连发收养在 AttackBase_Moduled 里。
 class AttackBase : public ObjectBase
@@ -40,10 +38,8 @@ public:
 	void SetMoveAccel(XMFLOAT3 accel) { MoveAccel = accel; }
 	XMFLOAT3 GetMoveAccel(void) const { return MoveAccel; }
 
-	// 写入本地位置。带模组的弹用来摆开火点。
+	// 写入本地位置。带模组的弹用来摆开火点和公转位置。
 	void SetLocalPosition(XMFLOAT3 position) { SetPosition(position); }
-	// 写入本地缩放。
-	void SetLocalScale(XMFLOAT3 scale) { SetSize(scale); }
 
 	// 开火时拍板的寿命秒数。
 	void SetLifeTime(float seconds) { lifeTime = seconds; }

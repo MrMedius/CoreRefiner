@@ -76,9 +76,6 @@ public:
 		return !IsActive() && modules_.empty();
 	}
 
-	// 当前挂着的模块个数。
-	[[nodiscard]] std::size_t GetModuleCount() const noexcept { return modules_.size(); }
-
 	template <typename T>
 	T* GetModule() noexcept
 	{

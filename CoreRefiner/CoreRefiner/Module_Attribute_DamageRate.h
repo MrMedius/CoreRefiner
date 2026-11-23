@@ -11,13 +11,7 @@ public:
 		damageRate_(damageRate)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_DamageRate;
-	}
-
-	// 加算 damage.rate；Ball::OnCollide 用 damage.Final() 扣血。
+	// 加算 damage.rate。球命中时用 damage.Final() 扣血。
 	void OnSpawn() override
 	{
 		AttackBase* owner = GetOwner();
@@ -31,5 +25,6 @@ public:
 	void OnRecycle() override {}
 
 private:
+	// 加到 damage.rate 上的数值。
 	float damageRate_{ 0.0f };
 };

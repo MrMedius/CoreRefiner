@@ -12,12 +12,6 @@ public:
 		lifetimeRate_(lifetimeRate)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_LifetimeRate;
-	}
-
 	void OnSpawn() override
 	{
 		AttackBase* owner = GetOwner();
@@ -31,5 +25,6 @@ public:
 	void OnRecycle() override {}
 
 private:
+	// 加到 lifetime.rate 上的数值。
 	float lifetimeRate_{ 0.5f };
 };

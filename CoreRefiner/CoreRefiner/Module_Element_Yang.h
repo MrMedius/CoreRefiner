@@ -28,12 +28,6 @@ public:
 		rg_(rg)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Element_Yang;
-	}
-
 	// 给宿主球追加一条白色条纹。
 	void OnSpawn() override
 	{

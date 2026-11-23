@@ -1,17 +1,14 @@
 #pragma once
 
 #include "AttackContext.h"
-#include "ModuleNodeLabel.h"
 
+// 装配步骤。只把一条记录做进当前组装现场，不提供查询。
 class IAttackNodeStep
 {
 public:
 	virtual ~IAttackNodeStep() = default;
+	// 把这一步写进 ctx。可能生成弹、装模块，或只改栏位。
 	virtual void Apply(DeployContext& ctx) = 0;
-	[[nodiscard]] virtual ModuleNodeLabel GetModuleNodeLabel() const noexcept = 0;
-	[[nodiscard]] virtual const char* GetName() const noexcept = 0;
-	[[nodiscard]] virtual bool HasModule() const noexcept { return false; }
-	[[nodiscard]] virtual DeployTarget GetTarget() const noexcept { return DeployTarget::Focus; }
 
 protected:
 	IAttackNodeStep() = default;

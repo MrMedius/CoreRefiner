@@ -59,8 +59,8 @@ public:
 	// AttackBase_Moduled 清模块发生在对象回收之后。
 	virtual void Deactivate();
 
-	// Mark inactive for queries, cascade RequestDisable to remaining children, queue Deactivate at frame end.
-	// AttackBase_Moduled 先让活着的子弹脱离，再关掉自己。
+	// 标记为即将关闭，并把还挂着的变换子物体也标记关闭。帧末再真正 Deactivate。
+	// 攻击球之间不是变换父子，所以这里不会关掉同一次出生的子弹。那份名单在 Deactivate 里处理。
 	virtual void RequestDisable();
 
 	// Local position (≈ Unity localPosition; ≡ world when unparented).

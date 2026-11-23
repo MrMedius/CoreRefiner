@@ -27,12 +27,6 @@ public:
 		player_(player)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Revive;
-	}
-
 	void OnSpawn() override;
 	void OnDisable() override;
 	void OnRecycle() override;

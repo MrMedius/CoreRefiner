@@ -19,12 +19,6 @@ public:
 		player_(player)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Return;
-	}
-
 	void OnSpawn() override
 	{
 		AttackBase* owner = GetOwner();
