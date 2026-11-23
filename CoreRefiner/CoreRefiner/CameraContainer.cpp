@@ -67,7 +67,7 @@ void CameraContainer::Update(float dt, DirectX::XMFLOAT3 pos,Window* wnd) noexce
 
 		switch (e->GetCode())
 		{
-		case VK_ESCAPE:
+		case VK_F2:
 			if (wnd->CursorEnabled())
 			{
 				wnd->DisableCursor();

@@ -9,6 +9,7 @@
 #include "SoundCodex.h"
 
 #include "AttackManager.h"
+#include "EffectManager.h"
 #include "EnemyManager.h"
 #include "EnvironmentManager.h"
 #include "ModuleWorkbench.h"
@@ -42,10 +43,11 @@ GameScene::GameScene(Window& wnd, SceneDirector& director, Rgph::GameRenderGraph
 	pAttackManager_ = std::make_unique<AttackManager>(wnd.Gfx(), gameRG_);
 	pEnvironmentManager_ = std::make_unique<EnvironmentManager>(wnd.Gfx(), gameRG_);
 	pEnemyManager_ = std::make_unique<EnemyManager>(wnd.Gfx(), gameRG_);
+	pEffectManager_ = std::make_unique<EffectManager>(wnd.Gfx(), gameRG_);
 
 	moduleWorkbench_ = std::make_unique<ModuleWorkbench>(wnd.Gfx(), gameRG_);
 	// 每颗弹出生后补仓库加成。SpawnAt 会先清掉数值修正。
-	pAttackManager_->SetOnLaunched([this](Attack& atk)
+	pAttackManager_->SetOnLaunched([this](AttackBase& atk)
 	{
 		if (moduleWorkbench_ != nullptr)
 		{
@@ -136,6 +138,7 @@ void GameScene::OnLeave()
 	pAttackManager_->Reset();
 	pEnemyManager_->Reset();
 	pEnvironmentManager_->Reset();
+	pEffectManager_->Reset();
 	DeferredDisableQueue::Get().Flush();
 	ClosePauseMenu_();
 	wnd_.EnableCursor();
@@ -225,6 +228,7 @@ void GameScene::Submit()
 		pEnemyManager_->Submit();
 		pEnvironmentManager_->Submit();
 		pPlayer_->Submit();
+		pEffectManager_->Submit();
 	}
 
 	if (waveDirector_.GetPhase() == GamePhase::Prep)
@@ -294,6 +298,7 @@ void GameScene::BeginVacuumSweep_()
 	pEnemyManager_->HaltSpawning();
 	pEnemyManager_->ClearAll();
 	pAttackManager_->Reset();
+	pEffectManager_->Reset();
 	pEnvironmentManager_->BeginVacuum();
 }
 
@@ -413,6 +418,7 @@ void GameScene::UpdateCombat_(float dt)
 		pAttackManager_->Update(dt);
 		pEnvironmentManager_->Update(dt);
 		pEnemyManager_->Update(dt);
+		pEffectManager_->Update(dt);
 	}
 	gameRG_.Update(dt);
 	SoundCodex::Get().SetListenerPosition(playerPos);

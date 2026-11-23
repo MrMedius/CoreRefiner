@@ -1,14 +1,16 @@
 #pragma once
-#include "Character.h"
+#include "CharacterBase.h"
 #include "Player.h"
 #include "ColliderComponentBase.h"
-#ifdef _DEBUG
-#include "CubeWireframe.h"
-#endif
 
 #include "SoundCodex.h"
 #include "GameStatsCodex.h"
 #include "XMath.h"
+#include "AttackMark.h"
+
+#ifdef _DEBUG
+#include "CubeWireframe.h"
+#endif
 
 // 敵状態のID
 enum ENEMY_STATE_ID {
@@ -32,12 +34,12 @@ enum ENEMY_TYPE_ID {
 };
 
 
-class Enemy : public Character
+class EnemyBase : public CharacterBase
 {
 public:
-	Enemy(Object_Type_Tag tag)
+	EnemyBase(Object_Type_Tag tag)
 		:
-		Character(tag)
+		CharacterBase(tag)
 	{
 		AttackTarget = ObjectCodex::FindFirstObjectByTag<Player>(character_Player);
 	}
@@ -49,6 +51,7 @@ public:
 	{
 		ResetHpCurrent();
 		SetIsDeath(false);
+		marks_.Clear();
 		if (auto* col = GetComponent<ColliderComponentBase>())
 		{
 			col->SetEnabled(true);
@@ -64,6 +67,10 @@ public:
 			col->SetEnabled(false);
 		}
 	}
+
+	// 这个敌人身上的全部攻击标记。常量和非常量调用都从这里拿。
+	AttackMarkSet& Marks() noexcept { return marks_; }
+	const AttackMarkSet& Marks() const noexcept { return marks_; }
 	void DoChase(void)	// ターゲットを追いかける
 	{
 		if (!IsInAttackArea)
@@ -71,12 +78,17 @@ public:
 			const auto selfPos = GetPosition();
 			const Vec3 d = V(AttackTarget->GetPosition()) - V(selfPos);
 
-			// ターゲットの方向を向く
-			float angle = atan2f(d.x, d.z);
-			SetRotation({ 0.0f, XMConvertToDegrees(angle), 0.0f });
-
-			// ターゲットに向かって移動
-			CalculateMoveVelocity(sinf(angle) * GetMoveAccel(), 0.0f, cosf(angle) * GetMoveAccel());
+			// dir 是水平追击方向。目标和自己重合时朝世界 +Z。
+			XMFLOAT3 dir{ d.x, 0.0f, d.z };
+			if (!NormalizeXZ(dir))
+			{
+				dir = { 0.0f, 0.0f, 1.0f };
+			}
+			// 本地 +Z 对准目标，移动沿世界 Forward。
+			AimForwardAt(dir);
+			const XMFLOAT3 fwd = GetForward();
+			const float accel = GetMoveAccel();
+			CalculateMoveVelocity(fwd.x * accel, fwd.y * accel, fwd.z * accel);
 		}
 	}
 	bool CheckIsAttack(void)	// 攻撃するかどうかを判断
@@ -168,7 +180,7 @@ public:
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
 protected:
-	// 先 Character 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
+	// 先 CharacterBase 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
 	void MapItemCollide() override;
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = (V(area) * 0.5f).ToFloat3(); }
@@ -196,6 +208,8 @@ protected:
 	bool IsInArea{ false };					// ターゲットが検査範囲にいる
 	bool IsInAttackArea{ false };			// ターゲットが攻撃範囲にいる
 	bool WasHurt{ false };					// 攻撃されたかどうかのフラグ
+	// 这个敌人身上的全部攻击标记。每种一格，由容器自己管理。
+	AttackMarkSet marks_{};
 #ifdef _DEBUG
 	std::unique_ptr<CubeWireframe> searchColliderWire;
 #endif

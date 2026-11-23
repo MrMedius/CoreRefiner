@@ -65,22 +65,6 @@ struct ModuleNodeInfoEntry
 	}
 };
 
-// 说明书 JSON stats 键：四基础 + Attribute/Passive 独有 + Repeat 独有
-enum class ModuleNodeStat : unsigned char
-{
-	NodeRadius,
-	Cooldown,
-	ExpandRadius,
-	ExpandSpeed,
-	LifetimeRate,
-	SpeedRate,
-	SizeRate,
-	DamageRate,
-	DamageFix,
-	RepeatCount,
-	Count
-};
-
 bool LoadModuleNodeInfoCopy(const std::filesystem::path& path);
 
 bool LoadModuleNodeInfoCopy();

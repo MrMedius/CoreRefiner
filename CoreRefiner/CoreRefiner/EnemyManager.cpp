@@ -91,7 +91,7 @@ void EnemyManager::SetWave(const WaveSpec& spec)
 
 void EnemyManager::ClearAll()
 {
-	for (Enemy* enemy : enemies)
+	for (EnemyBase* enemy : enemies)
 	{
 		if (enemy != nullptr && enemy->IsActive())
 		{
@@ -139,7 +139,7 @@ void EnemyManager::TrySpawnOne_()
 	}
 
 	const XMFLOAT3 pos = PickSpawnPos_();
-	Enemy* enemy = ObjectCodex::SpawnPooled<Enemy_T>(character_Enemy_T, gfx, rg, pos);
+	EnemyBase* enemy = ObjectCodex::SpawnPooled<Enemy_T>(character_Enemy_T, gfx, rg, pos);
 	if (enemy == nullptr)
 	{
 		return;

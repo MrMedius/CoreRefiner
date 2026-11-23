@@ -125,6 +125,30 @@ namespace AttackStepRecordMake
 	}
 
 	// ————————————————————————————————————————————————————
+	// Kind —— Element
+	// ————————————————————————————————————————————————————
+	// Element_Yin：a = 这次加上的标记数，b = 每触发一次的隐藏伤害。
+	inline AttackStepRecord ElementYin(float markCount, float extraDamage) noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Element_Yin;
+		r.a = markCount;
+		r.b = extraDamage;
+		return r;
+	}
+
+	// Element_Yang：a = 这次加上的标记数，b = 每触发一次的范围伤害，c = 水平半径。
+	inline AttackStepRecord ElementYang(float markCount, float areaDamage, float radius) noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Element_Yang;
+		r.a = markCount;
+		r.b = areaDamage;
+		r.c = radius;
+		return r;
+	}
+
+	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
 	

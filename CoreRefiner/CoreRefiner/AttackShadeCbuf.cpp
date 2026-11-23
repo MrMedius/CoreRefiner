@@ -1,13 +1,13 @@
 #include "AttackShadeCbuf.h"
 #include <cassert>
 
-static_assert(sizeof(Bind::AttackShadeCbuf::ShadeData) == 16);
+static_assert(sizeof(Bind::AttackShadeCbuf::ShadeData) == 1040);
 
 namespace Bind
 {
     AttackShadeCbuf::AttackShadeCbuf(Graphics& gfx, UINT slot)
     {
-        // 缓冲只建一次。slot 是像素着色器寄存器号，攻击着色器的 AttackShade 在 b1。
+        // 缓冲只建一次。slot 是像素着色器寄存器号，攻击着色器的 AttackShade 在 b2。
         if (!pPcbuf)
         {
             pPcbuf = std::make_unique<PixelConstantBuffer<ShadeData>>(gfx, ShadeData{}, slot);
@@ -16,8 +16,18 @@ namespace Bind
 
     void AttackShadeCbuf::Bind(Graphics& gfx) noxnd
     {
-        // shade_ 是这一发的颜色编号。先写入共用缓冲，再绑到像素着色器。
-        UpdateBindImpl(gfx, shade_);
+        // uploadCount 是这次实际上传的条数，最多 256。
+        constexpr std::size_t kUploadMax = 256u;
+        const std::size_t uploadCount = (ids_.size() < kUploadMax) ? ids_.size() : kUploadMax;
+
+        ShadeData data{};
+        data.count = static_cast<std::uint32_t>(uploadCount);
+        for (std::size_t i = 0; i < uploadCount; ++i)
+        {
+            data.ids[i] = ids_[i];
+        }
+
+        UpdateBindImpl(gfx, data);
     }
 
     std::unique_ptr<CloningBindable> AttackShadeCbuf::Clone() const noexcept

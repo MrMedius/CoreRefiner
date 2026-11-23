@@ -2,7 +2,7 @@
 #include "Graphics.h"
 #include "RenderGraph.h"
 #include "Player.h"
-#include "Enemy.h"
+#include "EnemyBase.h"
 #include "WaveRules.h"
 
 #include <random>
@@ -33,7 +33,7 @@ private:
 	Graphics& gfx;
 	Rgph::RenderGraph& rg;
 
-	std::vector<Enemy*> enemies;
+	std::vector<EnemyBase*> enemies;
 	std::mt19937 rng_;
 
 	WaveSpec spec_{};

@@ -124,7 +124,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::LifetimeRate, lifetimeRate_ });
+		out.push_back({ ModuleNodeStat::LifetimeRate, lifetimeRate_ });
 	}
 
 protected:
@@ -160,7 +160,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::SpeedRate, speedRate_ });
+		out.push_back({ ModuleNodeStat::SpeedRate, speedRate_ });
 	}
 
 protected:
@@ -196,7 +196,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::SizeRate, sizeRate_ });
+		out.push_back({ ModuleNodeStat::SizeRate, sizeRate_ });
 	}
 
 protected:
@@ -232,7 +232,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::DamageRate, damageRate_ });
+		out.push_back({ ModuleNodeStat::DamageRate, damageRate_ });
 	}
 
 protected:
@@ -375,6 +375,111 @@ private:
 };
 
 // ————————————————————————————————————————————————————
+// Kind —— Element
+// ————————————————————————————————————————————————————
+// 阴。扫到后挂到当前聚焦的那发弹上。造价用默认 4。
+class ModuleNode_Element_Yin final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Element_Yin(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Element_Yin)
+	{
+		localPos_ = localPos;
+		hitRadius_ = 12.0f;
+		markCount_ = kMarkCount_[0];
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(50.0f);
+	}
+
+	// 把当前等级的标记数和固定隐藏伤害交给阴步骤。
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Element_Yin::Make(markCount_, extraDamage_)->Apply(ctx);
+	}
+
+	// 面板只提交标记数。隐藏伤害不进说明书。
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeStat::YinMarkCount, markCount_ });
+	}
+
+protected:
+	// 按等级改标记数和冷却。半径和扩散速度不变。
+	void ApplyLevelStats_() override
+	{
+		markCount_ = kMarkCount_[level_.Index()];
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
+	}
+
+private:
+	// 这一级每次命中加上的标记个数。
+	float markCount_{ 1.0f };
+	// 每触发一次扣的隐藏伤害。不随等级变。
+	float extraDamage_{ kExtraDamage_ };
+	// 1、2、3 级的标记数。
+	static constexpr float kMarkCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 3.0f };
+	// 1、2、3 级的冷却秒数。
+	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 5.0f, 3.5f, 2.0f };
+	// 每满一次标记扣的血。
+	static constexpr float kExtraDamage_{ 2.0f };
+};
+
+// 阳。扫到后挂到当前聚焦的那发弹上。半径、扩散、冷却和造价与阴相同。
+class ModuleNode_Element_Yang final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Element_Yang(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Element_Yang)
+	{
+		localPos_ = localPos;
+		hitRadius_ = 12.0f;
+		markCount_ = kMarkCount_[0];
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(50.0f);
+		SetScanExpandSpeed(50.0f);
+	}
+
+	// 把当前等级的标记数、固定范围伤害和环半径交给阳步骤。
+	void ApplyTo(DeployContext& ctx) override
+	{
+		AttackNodeStep_Element_Yang::Make(markCount_, areaDamage_, radius_)->Apply(ctx);
+	}
+
+	// 面板只提交标记数。范围伤害和半径不进说明书。
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeStat::YangMarkCount, markCount_ });
+	}
+
+protected:
+	// 按等级改标记数和冷却。半径和扩散速度不变。
+	void ApplyLevelStats_() override
+	{
+		markCount_ = kMarkCount_[level_.Index()];
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
+	}
+
+private:
+	// 这一级每次命中加上的标记个数。
+	float markCount_{ 1.0f };
+	// 白环外沿碰到的每个敌人要扣的血。不随等级变。
+	float areaDamage_{ kAreaDamage_ };
+	// 白环要扩到的世界半径。不随等级变。
+	float radius_{ kRadius_ };
+	// 1、2、3 级的标记数。
+	static constexpr float kMarkCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 3.0f };
+	// 1、2、3 级的冷却秒数。与阴相同。
+	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 5.0f, 3.5f, 2.0f };
+	// 每满一次标记，环上每个被外沿打到的敌人扣的血。
+	static constexpr float kAreaDamage_{ 0.5f };
+	// 白环的世界半径。
+	static constexpr float kRadius_{ 10.0f };
+};
+
+// ————————————————————————————————————————————————————
 // Kind —— Passive
 // ————————————————————————————————————————————————————
 class ModuleNode_Passive_DamageFix final : public IModuleNode
@@ -397,14 +502,14 @@ public:
 		(void)ctx;
 	}
 
-	void ApplyWarehouseBonus(Attack& attack) override
+	void ApplyWarehouseBonus(AttackBase& attack) override
 	{
 		attack.Stats().damage.fix += damageFix_;
 	}
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::DamageFix, damageFix_ });
+		out.push_back({ ModuleNodeStat::DamageFix, damageFix_ });
 	}
 
 protected:
@@ -438,7 +543,7 @@ public:
 
 	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
 	{
-		out.push_back({ ModuleNodeUniqueStat::RepeatCount, repeatCount_ });
+		out.push_back({ ModuleNodeStat::RepeatCount, repeatCount_ });
 	}
 
 	void ApplyTo(DeployContext& ctx) override
@@ -464,9 +569,10 @@ public:
 			take = groupCount;
 		}
 
-		// 先拷贝再重放：重放出球会 Flush，把配方和分组清掉。
+		// 先按组拷贝。重放时的 Record 和 Flush 会改配方，不能边读边改。
 		const std::size_t firstGroup = groupCount - take;
-		std::vector<AttackStepRecord> window;
+		// 每个元素是一个已封口的节点组。空组不放进来。
+		std::vector<std::vector<AttackStepRecord>> copiedGroups;
 		for (std::size_t g = firstGroup; g < groupCount; ++g)
 		{
 			const std::size_t begin = ctx.recipeGroupStarts[g];
@@ -477,15 +583,43 @@ public:
 			{
 				continue;
 			}
-			window.insert(
-				window.end(),
+			copiedGroups.emplace_back(
 				ctx.recipe.begin() + static_cast<std::ptrdiff_t>(begin),
 				ctx.recipe.begin() + static_cast<std::ptrdiff_t>(end));
 		}
 
-		// 复活会先打开 recordOnly。重复里的 Core / Spawn 仍要当场发射。
-		// 没发射则恢复，只含属性的重放不会改掉复活后的只记账。
-		// 新分组只在这次从 recordOnly 里发射之后重开，普通重放的分组不变。
+		// 复活已经打开记账。整段只再写进配方，不把生成改回当场发射。
+		// 按原来的组切开，后面的重复仍按组数取。
+		if (ctx.recordOnly)
+		{
+			bool opened = false;
+			for (const std::vector<AttackStepRecord>& group : copiedGroups)
+			{
+				if (group.empty())
+				{
+					continue;
+				}
+				if (opened)
+				{
+					ctx.BeginRecipeGroup();
+				}
+				opened = true;
+				for (const AttackStepRecord& rec : group)
+				{
+					ApplyAttackStepRecord(ctx, rec);
+				}
+			}
+			return;
+		}
+
+		// 还没记账。核心和生成照旧当场发射。
+		// 窗口里若有步骤把记账打开，后面的核心和生成仍要发射；没发射则把记账恢复。
+		// 新分组只在这次从记账里发射之后重开。
+		std::vector<AttackStepRecord> window;
+		for (const std::vector<AttackStepRecord>& group : copiedGroups)
+		{
+			window.insert(window.end(), group.begin(), group.end());
+		}
 		const bool recordOnlyBefore = ctx.recordOnly;
 		bool fired = false;
 		for (const AttackStepRecord& rec : window)
@@ -513,7 +647,6 @@ public:
 		{
 			ctx.recordOnly = recordOnlyBefore;
 		}
-		RedistributeChildrenEvenly(ctx.standby);
 	}
 
 protected:
@@ -563,7 +696,7 @@ public:
 		}
 	}
 
-	void ApplyWarehouseBonus(Attack& attack) override
+	void ApplyWarehouseBonus(AttackBase& attack) override
 	{
 		if (primary_ != nullptr)
 		{
@@ -828,7 +961,7 @@ public:
 		}
 	}
 
-	void ApplyWarehouseBonus(Attack& attack) override
+	void ApplyWarehouseBonus(AttackBase& attack) override
 	{
 		for (const std::unique_ptr<IModuleNode>& slot : slots_)
 		{

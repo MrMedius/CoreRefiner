@@ -1,5 +1,5 @@
 #pragma once
-#include "Enemy.h"
+#include "EnemyBase.h"
 #include "Enemy_T_Shape.h"
 #include "VisualComponent.h"
 #include "BoxColliderComponent.h"
@@ -10,12 +10,12 @@ class Enemy_T_AttackState;
 class Enemy_T_HurtState;
 class Enemy_T_DeathState;
 
-class Enemy_T : public Enemy
+class Enemy_T : public EnemyBase
 {
 public:
 	Enemy_T(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, Object_Type_Tag tag = character_Enemy_T)
 		:
-		Enemy(tag),
+		EnemyBase(tag),
 		gfx_(&gfx),
 		rg_(&rg)
 	{
@@ -56,7 +56,7 @@ public:
 	}
 	void OnEnable(void) override
 	{
-		Enemy::OnEnable();
+		EnemyBase::OnEnable();
 		FSM->ChangeState(ENEMY_STATE[ENEMY_CHASE]);
 	};
 	void Update(float dt) override;

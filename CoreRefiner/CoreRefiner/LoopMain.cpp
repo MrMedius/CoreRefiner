@@ -11,6 +11,7 @@
 
 #include "GameScene.h"
 #include "IScene.h"
+#include "PreviewScene.h"
 #include "ResultScene.h"
 #include "TitleScene.h"
 
@@ -48,6 +49,7 @@ void LoopMain::AssembleScenes_()
 	director_->Adopt(SceneId::Title, std::make_unique<TitleScene>(wnd, *director_, uiRG, onSettings));
 	director_->Adopt(SceneId::Game, std::make_unique<GameScene>(wnd, *director_, gameRG, onSettings));
 	director_->Adopt(SceneId::Result, std::make_unique<ResultScene>(wnd, uiRG));
+	director_->Adopt(SceneId::Preview, std::make_unique<PreviewScene>(wnd, *director_, gameRG));
 
 	director_->RequestScene(SceneId::Title);
 
@@ -148,6 +150,11 @@ void LoopMain::Update(float dt)
 	}
 
 #ifdef _DEBUG
+	if (director_ != nullptr && InputCodex::Get().KeyTriggered(VK_F1))
+	{
+		// F1 直接进入着色器预览，不必先走过战斗。
+		director_->RequestScene(SceneId::Preview);
+	}
 	if (InputCodex::Get().KeyTriggered(VK_SHIFT) && director_ != nullptr)
 	{
 		const SceneId cur = director_->GetCurrent();

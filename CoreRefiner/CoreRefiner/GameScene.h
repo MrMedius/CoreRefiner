@@ -14,6 +14,7 @@ class Player;
 class AttackManager;
 class EnvironmentManager;
 class EnemyManager;
+class EffectManager;
 class ModuleWorkbench;
 class UI_Prep;
 class UI_Pause;
@@ -81,6 +82,8 @@ private:
 	std::unique_ptr<AttackManager> pAttackManager_;
 	std::unique_ptr<EnvironmentManager> pEnvironmentManager_;
 	std::unique_ptr<EnemyManager> pEnemyManager_;
+	// 阴阳环的对象池。波次结束和离开场景时收回。
+	std::unique_ptr<EffectManager> pEffectManager_;
 
 	std::unique_ptr<ModuleWorkbench> moduleWorkbench_;
 

@@ -264,6 +264,28 @@ void ModuleShopUltra::SubmitNodes()
 			node->SubmitVisual();
 		}
 	}
+	// 滚出窗口的不走上面的整颗提交，只补图标。
+	SubmitOffscreenRefineIcons();
+}
+
+void ModuleShopUltra::SubmitOffscreenRefineIcons()
+{
+	const int innerCount = GetInnerSlotCount();
+	for (int i = 0; i < innerCount; ++i)
+	{
+		const std::size_t slot = static_cast<std::size_t>(i);
+		if (IsInnerSlotVisible(slot))
+		{
+			continue;
+		}
+		IModuleNode* node = GetInnerSlot(slot);
+		// 残影开着才说明图标还在炼成格或跟手。只交图标，阴影不画。
+		if (node == nullptr || !node->IsLayoutGhostActive())
+		{
+			continue;
+		}
+		node->SubmitIcon();
+	}
 }
 
 void ModuleShopUltra::SyncNodes()
@@ -282,11 +304,17 @@ void ModuleShopUltra::SyncNodes()
 	for (int i = 0; i < innerCount; ++i)
 	{
 		const std::size_t slot = static_cast<std::size_t>(i);
-		if (!IsInnerSlotVisible(slot))
+		IModuleNode* node = GetInnerSlot(slot);
+		if (node == nullptr)
 		{
 			continue;
 		}
-		syncOwned(GetInnerSlot(slot));
+		// 看得见的照常对齐。滚出窗口的只有图标还在别处时才对齐，不把图标拉回格子。
+		if (!IsInnerSlotVisible(slot) && !node->IsLayoutGhostActive())
+		{
+			continue;
+		}
+		syncOwned(node);
 	}
 }
 
@@ -1008,7 +1036,20 @@ void ModuleShopUltra::RealignVisible_()
 	{
 		const std::size_t index = static_cast<std::size_t>(i);
 		IModuleNode* node = GetInnerSlot(index);
-		if (node == nullptr || node->IsLayoutGhostActive() || !IsInnerSlotVisible(index))
+		if (node == nullptr)
+		{
+			continue;
+		}
+		// 残影开着说明图标在别处（炼成格或跟手）。只改阴影坐标，图标留在原地。
+		// 格子滚出窗口也要改，回退读的是这个坐标；这一颗不进绘制名单，所以阴影不会画出来。
+		if (node->IsLayoutGhostActive())
+		{
+			const DirectX::XMFLOAT2 local = ToLocal_(hostOrigin_, GetInnerSlotCenter(index));
+			node->BeginLayoutGhost(local);
+			node->SyncVisual();
+			continue;
+		}
+		if (!IsInnerSlotVisible(index))
 		{
 			continue;
 		}

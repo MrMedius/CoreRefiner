@@ -27,6 +27,9 @@ Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 		only.AddBindable(PixelShader::Resolve(gfx, "Attack_PS.cso"));
 
+		// 像素时间。Attack_PS 用 totalTime 转动竖条，寄存器 b1。
+		only.AddBindable(std::make_shared<TimeCbuf_PS>(gfx));
+
 		// 留住这一发的颜色缓冲，和步骤里绑定的是同一个。默认编号 0。
 		shade_ = std::make_shared<AttackShadeCbuf>(gfx);
 		only.AddBindable(shade_);
@@ -40,17 +43,21 @@ Ball_Shape::Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 }
 
-void Ball_Shape::Update(float dt)
+void Ball_Shape::ClearColorIds() noexcept
 {
-	trans.RotateDegreeToRad(1.0f, 1.0f, 1.0f);
-}
-
-void Ball_Shape::SetColorId(std::uint32_t colorId) noexcept
-{
-	// colorId 是颜色编号。缓冲还没接上时跳过。
+	// 外形还没接上颜色缓冲时跳过。
 	if (shade_ != nullptr)
 	{
-		shade_->SetColorId(colorId);
+		shade_->ClearColorIds();
+	}
+}
+
+void Ball_Shape::AppendColorId(std::uint32_t colorId)
+{
+	// colorId 是这一条的颜色编号。缓冲还没接上时跳过。
+	if (shade_ != nullptr)
+	{
+		shade_->AppendColorId(colorId);
 	}
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase_Moduled.h"
 #include "AttackManager.h"
 #include "InputCodex.h"
 #include "Player.h"
@@ -12,28 +12,24 @@
 class Module_Rule_Return : public IModule
 {
 public:
-	Module_Rule_Return(Attack* owner, Graphics* gfx, Player* player) noexcept
+	Module_Rule_Return(AttackBase* owner, Graphics* gfx, Player* player) noexcept
 		:
 		IModule(owner),
 		gfx_(gfx),
 		player_(player)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Return;
-	}
-
 	void OnSpawn() override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr || player_ == nullptr || !player_->IsActive())
 		{
 			return;
 		}
 
-		if (!owner->IsLaunchPosLocked() && gfx_ != nullptr)
+		// 发射点锁在带模组的弹上。锁住时不再改位置。
+		const auto* moduled = dynamic_cast<const AttackBase_Moduled*>(owner);
+		if ((moduled == nullptr || !moduled->IsLaunchPosLocked()) && gfx_ != nullptr)
 		{
 			const auto mouse = InputCodex::Get().MousePos();
 			XMFLOAT3 world{};

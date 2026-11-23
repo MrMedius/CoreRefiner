@@ -1,11 +1,13 @@
 #include "Module_Rule_Revive.h"
+#include "AttackBase_Moduled.h"
 #include "AttackDeployer.h"
+#include "ObjectCodex.h"
 #include "XMath.h"
 
 void Module_Rule_Revive::OnSpawn()
 {
 	armed_ = true;
-	if (Attack* owner = GetOwner())
+	if (AttackBase* owner = GetOwner())
 	{
 		launchDir_ = owner->GetMoveAccel();
 	}
@@ -13,7 +15,7 @@ void Module_Rule_Revive::OnSpawn()
 
 void Module_Rule_Revive::OnDisable()
 {
-	Attack* owner = GetOwner();
+	AttackBase* owner = GetOwner();
 	if (owner == nullptr || !armed_ || owner->IsActive())
 	{
 		return;
@@ -28,14 +30,20 @@ void Module_Rule_Revive::OnRecycle()
 	launchDir_ = { 0.0f, 0.0f, 0.0f };
 }
 
-void Module_Rule_Revive::Replay_(Attack* owner)
+void Module_Rule_Revive::Replay_(AttackBase* owner)
 {
 	if (owner == nullptr || gfx_ == nullptr || rg_ == nullptr)
 	{
 		return;
 	}
 
-	const std::vector<AttackStepRecord>& records = owner->GetAssembledRecipe();
+	auto* moduled = dynamic_cast<AttackBase_Moduled*>(owner);
+	if (moduled == nullptr)
+	{
+		return;
+	}
+
+	const std::vector<AttackStepRecord>& records = moduled->GetAssembledRecipe();
 	if (records.empty())
 	{
 		return;
@@ -58,32 +66,46 @@ void Module_Rule_Revive::Replay_(Attack* owner)
 	ctx.standby.spawnPos = pos;
 	ctx.standby.player = player_;
 
-	// 消耗封存列表里第一条 Rule_Revive：只把 Focus 拨回主体，不 Apply、不记账、不进入 recordOnly。
+	// 消耗封存列表里第一条 Rule_Revive：跳过它，不改 host。
+	// 子物体已经打开的栏位留着，后面的生成照旧填进去。
 	// 其后的 Revive 仍走 ApplyAttackStepRecord（挂一层模块）。Flush 封到新根的是剩余配方。
+	// consumedRevive 为真表示第一条复活已经跳过。
 	bool consumedRevive = false;
 	for (const AttackStepRecord& rec : records)
 	{
 		if (!consumedRevive && rec.label == ModuleNodeLabel::Rule_Revive)
 		{
 			consumedRevive = true;
-			if (ctx.standby.parent != nullptr)
-			{
-				ctx.standby.host = ctx.standby.parent;
-			}
 			continue;
 		}
 		ApplyAttackStepRecord(ctx, rec);
 	}
 	ctx.FlushStandby();
 
-	for (Attack* root : ctx.shots)
+	for (AttackBase* root : ctx.shots)
 	{
 		if (root == nullptr)
 		{
 			continue;
 		}
-		root->SetLaunchPosLocked(true);
-		owner->AdoptLive(root);
+		auto* rootMod = dynamic_cast<AttackBase_Moduled*>(root);
+		if (rootMod != nullptr)
+		{
+			rootMod->SetLaunchPosLocked(true);
+		}
 		root->SpawnAt(pos, dir);
+		// 交给攻击管理器认领。复活发生在这一帧的更新里，下一帧才进名单。
+		ObjectCodex::Handoff(attack_Ball, root);
+		if (rootMod != nullptr)
+		{
+			// 同伴排在主体后面。下一帧先更新主体，再让公转读它的位置。
+			for (AttackBase_Moduled* child : rootMod->TakeBornWith())
+			{
+				if (child != nullptr)
+				{
+					ObjectCodex::Handoff(attack_Ball, child);
+				}
+			}
+		}
 	}
 }

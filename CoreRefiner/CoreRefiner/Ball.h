@@ -1,6 +1,6 @@
 #pragma once
-#include "Attack.h"
-#include "Enemy.h"
+#include "AttackBase_Moduled.h"
+#include "EnemyBase.h"
 #include "RenderGraph.h"
 #include "Channels.h"
 #include "Ball_Shape.h"
@@ -12,12 +12,12 @@
 #include <cstdint>
 #include <vector>
 
-class Ball : public Attack
+class Ball : public AttackBase_Moduled
 {
 	public:
 	Ball(Graphics& gfx, Rgph::RenderGraph& rg, XMFLOAT3 position, XMFLOAT3 direction, Object_Type_Tag tag = attack_Ball)
 		:
-		Attack(tag)
+		AttackBase_Moduled(tag)
 	{
 		SetPosition(position);
 		SetMoveAccel(direction);
@@ -27,8 +27,6 @@ class Ball : public Attack
 			// shape_ 留住这一发的外形。所有权交给视觉组件后，这个指针仍然指向它。
 			shape_ = shape.get();
 			shape->LinkTechniques(rg);
-			// 测试行：1 是白。看完白球后删掉，默认编号 0 就是灰。
-			shape_->SetColorId(1);
 			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
 		}
 
@@ -38,12 +36,21 @@ class Ball : public Attack
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 	}
 
-	// 把颜色编号交给这一发的外形。colorId 为 0 是灰，1 是白。
-	void SetColorId(std::uint32_t colorId) noexcept
+	// 清掉这一发已经记下的颜色编号。下次出生由模块重新写入。
+	void ClearColorIds() noexcept
 	{
 		if (shape_ != nullptr)
 		{
-			shape_->SetColorId(colorId);
+			shape_->ClearColorIds();
+		}
+	}
+
+	// 按写入顺序再追加一条。colorId 为 0 是灰，1 是白，2 是黑。
+	void AppendColorId(std::uint32_t colorId)
+	{
+		if (shape_ != nullptr)
+		{
+			shape_->AppendColorId(colorId);
 		}
 	}
 
@@ -75,6 +82,8 @@ class Ball : public Attack
 	// 子弹从父加速度只取方向，再写成 kAimSpeed × 自身 speed.Final()，避免连乘。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
+		// 这一发出生。清掉上一发留下的「已经画过」，等第一次提交后再结算命中。
+		presented_ = false;
 		Stats().ResetMods();
 		SetPosition(pos);
 		SetMoveAccel(dir);
@@ -89,35 +98,39 @@ class Ball : public Attack
 		Stats().size.base = (assembled > 0.0f) ? assembled : 1.0f;
 
 		Stats().lifetime.base = 2.0f;
+		// 出生前清掉上一发留下的颜色。模块在 ArmModules 里按顺序重新写入。
+		ClearColorIds();
 		ArmModules();
 		SetLifeTime(Stats().lifetime.Final());
 
 		SetMoveAccel((V(GetMoveAccel()) * Stats().speed.Final()).ToFloat3());
+		// 本地 +Z 对准这一发的飞行方向。
+		AimForwardAt(GetMoveAccel());
 		const float sz = Stats().size.Final();
 		// 只刷新缩放和半径。碰撞开关已经由出生和模块决定。
 		ApplyScaleKeepCollider_({ sz, sz, sz });
 
-		std::vector<Attack*> kids;
-		kids.reserve(GetChildCount());
-		for (std::size_t i = 0; i < GetChildCount(); ++i)
+		const std::vector<AttackBase_Moduled*> kids = GetBornWith();
+		for (AttackBase_Moduled* childAtk : kids)
 		{
-			if (auto* childAtk = dynamic_cast<Attack*>(GetChild(i));
-				childAtk != nullptr && childAtk->IsActive())
+			if (childAtk == nullptr || !childAtk->IsActive())
 			{
-				kids.push_back(childAtk);
+				continue;
 			}
-		}
-		for (Attack* childAtk : kids)
-		{
+			// 站位由子物体模块在下面的 ArmModules 里写。生成时的玩家坐标不能当成偏移。
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;
 			// 子弹同样先出生，再按想要的开关写入碰撞，然后才 ArmModules。
 			childAtk->MarkLaunched();
 			if (auto* childBall = dynamic_cast<Ball*>(childAtk))
 			{
+				// 子物体不走自己的 SpawnAt。这一发同样先清掉「已经画过」。
+				childBall->presented_ = false;
 				const float childAssembled = MaxScaleComponent(childBall->GetSize());
 				childBall->Stats().size.base = (childAssembled > 0.0f) ? childAssembled : 1.0f;
 				childBall->OpenColliderForLaunch_();
+				// 子弹同样先清掉上一发的颜色，再由自己的模块写入。
+				childBall->ClearColorIds();
 			}
 			childAtk->ArmModules();
 			childAtk->SetLifeTime(childAtk->Stats().lifetime.Final());
@@ -143,9 +156,15 @@ class Ball : public Attack
 			}
 		}
 	}
-	void OnEnable(void) override {};
+	// 从对象池取出时清掉上一发的绘制标记。真正出生还要等 SpawnAt。
+	void OnEnable(void) override
+	{
+		presented_ = false;
+	}
 	void Update(float dt) override
 	{
+		// start 是本帧移动前的位置。公转会在 DispatchOnUpdate 里改位置。
+		const XMFLOAT3 start = GetPosition();
 		CalculateMoveVelocity(GetMoveAccel());
 		Transform(MoveVelocity.x, MoveVelocity.y, MoveVelocity.z);
 
@@ -154,18 +173,46 @@ class Ball : public Attack
 		{
 			RequestDisable();
 		}
-		UpdateChildren(dt);
+
+		// step 是本帧实际走的位移。公转时它沿着切线，直线飞行时它就是本帧速度。
+		const XMFLOAT3 end = GetPosition();
+		const XMFLOAT3 step{
+			end.x - start.x,
+			end.y - start.y,
+			end.z - start.z
+		};
+		const float stepSq = step.x * step.x + step.y * step.y + step.z * step.z;
+		if (stepSq >= 1e-8f)
+		{
+			AimForwardAt(step);
+		}
+		else
+		{
+			// 位移几乎为 0 时再看速度。速度也接近 0 就保持上一帧朝向。
+			const XMFLOAT3 velocity = GetMoveVelocity();
+			const float speedSq = velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z;
+			if (speedSq >= 1e-8f)
+			{
+				AimForwardAt(velocity);
+			}
+		}
+
 		ObjectBase::Update(dt);
 	}
 	void Submit(void) override
 	{
+		// 这次已经交去绘制。下一帧起命中才结算。
+		presented_ = true;
 		ObjectBase::Submit();
-		SubmitChildren();
 	}
-	void OnCollide(Character* other) override
+	// 给 OnCollide 看。没提交过绘制就先不结算。
+	bool IsPresentedForHit_() const noexcept override
 	{
-		DispatchOnHit(other);
-
+		return presented_;
+	}
+	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
+	void ApplyOwnHit(CharacterBase* other) override
+	{
 		RequestDisable();
 
 		SetMoveAccel({0.0f, 0.0f, 0.0f});
@@ -178,7 +225,7 @@ class Ball : public Attack
 		hitPos.z -= 0.1f;
 		SetPosition(hitPos);
 
-		if (auto* e = dynamic_cast<Enemy*>(other))
+		if (auto* e = dynamic_cast<EnemyBase*>(other))
 		{
 			e->SetIsHurt(true);
 			e->SetWasHurt(true);
@@ -220,4 +267,6 @@ private:
 	Ball_Shape* shape_{ nullptr };
 	// 组装和出生流程想要的碰撞开关。真正开启还要等已出生。
 	bool colliderWanted_{ true };
+	// 这一发是否已经提交过绘制。为假时命中不结算。
+	bool presented_{ false };
 };

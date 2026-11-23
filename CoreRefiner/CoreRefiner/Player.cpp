@@ -1,6 +1,6 @@
 #include "Player.h"
-#include "Enemy.h"
-#include "Environment.h"
+#include "EnemyBase.h"
+#include "EnvironmentBase.h"
 #include "ObjectCodex.h"
 #include "Collision3D.h"
 #include "ColliderComponentBase.h"
@@ -101,10 +101,10 @@ void Player::MapItemCollide(void)
 	/*------------------------------------------------------------------------------
 	   MapEnvironment — contact normal from Capsule↔Box separation
 	------------------------------------------------------------------------------*/
-	std::vector<Environment*> mapEnvironment;
+	std::vector<EnvironmentBase*> mapEnvironment;
 	for (auto tag : { environment_Field })
 	{
-		auto found = ObjectCodex::FindActiveObjectsByTag<Environment>(tag);
+		auto found = ObjectCodex::FindActiveObjectsByTag<EnvironmentBase>(tag);
 		mapEnvironment.reserve(mapEnvironment.size() + found.size());
 		mapEnvironment.insert(mapEnvironment.end(), found.begin(), found.end());
 	}
@@ -182,10 +182,10 @@ void Player::MapItemCollide(void)
 	   角色 — 不挪玩家；每个重叠敌人 ShoveXZ（两轮，含叠堆）。
 	------------------------------------------------------------------------------*/
 	constexpr float kShoveSkin = 0.02f;
-	std::vector<Enemy*> mapEnemies;
+	std::vector<EnemyBase*> mapEnemies;
 	for (auto tag : kCharacterTags)
 	{
-		auto found = ObjectCodex::FindActiveObjectsByTag<Enemy>(tag);
+		auto found = ObjectCodex::FindActiveObjectsByTag<EnemyBase>(tag);
 		mapEnemies.reserve(mapEnemies.size() + found.size());
 		mapEnemies.insert(mapEnemies.end(), found.begin(), found.end());
 	}
@@ -287,12 +287,12 @@ void Player::DoMove(float ratio)
 
 bool Player::AttackCollide(float damage, XMFLOAT3 repel)
 {
-	std::vector<Enemy*> enemies;
+	std::vector<EnemyBase*> enemies;
 	for (auto tag : {
 		character_Enemy_T,
 		}) {
 		// プレイヤーを攻撃できる全ての敵を探す
-		auto found = ObjectCodex::FindActiveObjectsByTag<Enemy>(tag);
+		auto found = ObjectCodex::FindActiveObjectsByTag<EnemyBase>(tag);
 		// 全ての敵を整理する
 		enemies.reserve(enemies.size() + found.size());
 		enemies.insert(enemies.end(), found.begin(), found.end());
@@ -309,70 +309,70 @@ void Player::AttackCameraShake(int frames, float minRange, float maxRange)
 void Player::SetupTransitions(void)
 {
 	// Hurt 优先于移动/攻击，否则碰撞伤害进不了受击。
-	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_HURT], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsHurt;
 		});
-	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_HURT], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsHurt;
 		});
-	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_HURT], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_HURT], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsHurt;
 		});
 
 	// 状態の遷移条件を増加する
 	// PLAYER_IDLE → PLAYER_MOVE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_MOVE], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_MOVE], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);	// 入った対象をPlayerになる
 		return player->Input().moveHeld;
 		});
 
 	// PLAYER_IDLE → PLAYER_ATTACK
-	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_IDLE], PLAYER_STATE[PLAYER_ATTACK], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack;
 		});
 
 	// PLAYER_MOVE → PLAYER_IDLE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_IDLE], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->Input().moveHeld;
 		});
 
 	// PLAYER_MOVE → PLAYER_ATTACK
-	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_MOVE], PLAYER_STATE[PLAYER_ATTACK], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack;
 		});
 
 	// PLAYER_ATTACK → PLAYER_IDLE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_ATTACK], PLAYER_STATE[PLAYER_IDLE], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->IsAttack;
 		});
 
 	// PLAYER_HURT → PLAYER_DEATH
-	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_DEATH], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_DEATH], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsDeath;
 		});
 
 	// PLAYER_HURT → PLAYER_ATTACK
-	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_ATTACK], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_ATTACK], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return player->IsAttack && !player->IsDeath;
 		});
 
 	// PLAYER_HURT → PLAYER_MOVE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_MOVE], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_MOVE], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->IsHurt && !player->IsDeath && player->Input().moveHeld;
 		});
 
 	// PLAYER_HURT → PLAYER_IDLE
-	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_IDLE], [](Character* owner) {
+	FSM->AddTransition(PLAYER_STATE[PLAYER_HURT], PLAYER_STATE[PLAYER_IDLE], [](CharacterBase* owner) {
 		auto player = static_cast<Player*>(owner);
 		return !player->IsHurt && !player->IsDeath && !player->Input().moveHeld;
 		});

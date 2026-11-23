@@ -12,64 +12,88 @@ EnvironmentManager::EnvironmentManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx(gfx),
 	rg(rg)
 {
-	// Environments Game
+	// 场地自己放进名单，不交接。
+	environments.push_back(ObjectCodex::AcquirePersistent<Field>(environment_Field, gfx, rg, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 100.0f, 4.0f, 100.0f }, true));
+	// 先生成再关掉。没交出，所以不会进 environments。
+	for (int i = 0;i < 10;i++)
 	{
-		// Field
-		eG.push_back(ObjectCodex::AcquirePersistent<Field>(environment_Field, gfx, rg, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 100.0f, 4.0f, 100.0f }, true));
-		// Coin
-		for (int i = 0;i < 10;i++)
+		ObjectCodex::SpawnPooled<Coin>(environment_Coin, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
+	}
+	for (int i = 0;i < 10;i++)
+	{
+		ObjectCodex::FindFirstActiveObjectByTag<Coin>(environment_Coin)->Deactivate();
+	}
+}
+
+void EnvironmentManager::ClaimEnvironment()
+{
+	for (EnvironmentBase* env : ObjectCodex::TakeHandoff<EnvironmentBase>())
+	{
+		if (env == nullptr || !env->IsActive())
 		{
-			ObjectCodex::SpawnPooled<Coin>(environment_Coin, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f });
+			continue;
 		}
-		for (int i = 0;i < 10;i++)
+		bool tracked = false;
+		for (EnvironmentBase* existing : environments)
 		{
-			ObjectCodex::FindFirstActiveObjectByTag<Coin>(environment_Coin)->Deactivate();
+			if (existing == env)
+			{
+				tracked = true;
+				break;
+			}
+		}
+		if (!tracked)
+		{
+			environments.push_back(env);
 		}
 	}
-	for (int i = 0;i < eG.size();i++) 
-		eG[i]->Activate();
 }
 
 void EnvironmentManager::Update(float dt)
 {
-	for (int i = 0;i < eG.size();i++)
+	// 金币在敌人更新里掉落，而这一步在敌人之前，所以当帧掉的下一帧才进名单。
+	ClaimEnvironment();
+	for (int i = 0; i < static_cast<int>(environments.size()); ++i)
 	{
-		eG[i]->Update(dt);
-	}
-
-	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
-	{
-		if (coin != nullptr)
+		EnvironmentBase* env = environments[static_cast<std::size_t>(i)];
+		if (env != nullptr && env->IsActive())
 		{
-			coin->Update(dt);
+			env->Update(dt);
+		}
+		else
+		{
+			environments.erase(environments.begin() + i);
+			--i;
 		}
 	}
 }
 
 void EnvironmentManager::Submit(void)
 {
-	for (int i = 0;i < eG.size();i++)
+	for (EnvironmentBase* env : environments)
 	{
-		eG[i]->Submit();
-	}
-
-	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
-	{
-		if (coin != nullptr)
+		if (env != nullptr && env->IsActive())
 		{
-			coin->Submit();
+			env->Submit();
 		}
 	}
 }
 
 void EnvironmentManager::Reset(void)
 {
-	for (int i = 0; i < eG.size(); i++) eG[i]->Deactivate();
-	for (Coin* coin : ObjectCodex::FindObjectsByTag<Coin>(environment_Coin))
+	for (EnvironmentBase* env : environments)
 	{
-		if (coin != nullptr && coin->IsActive())
+		if (env != nullptr && env->IsActive())
 		{
-			coin->Deactivate();
+			env->Deactivate();
+		}
+	}
+	environments.clear();
+	for (EnvironmentBase* env : ObjectCodex::TakeHandoff<EnvironmentBase>())
+	{
+		if (env != nullptr && env->IsActive())
+		{
+			env->Deactivate();
 		}
 	}
 	isLearnt = false;
@@ -78,20 +102,33 @@ void EnvironmentManager::Reset(void)
 
 void EnvironmentManager::EnterGame(void)
 {
-	for (int i = 0; i < eG.size(); i++)
+	if (!environments.empty())
 	{
-		if (eG[i] != nullptr)
+		for (EnvironmentBase* env : environments)
 		{
-			eG[i]->Activate();
+			if (env != nullptr)
+			{
+				env->Activate();
+			}
 		}
+		return;
+	}
+	// 离开游戏时名单已清空。场地还在对象池里，找回来再启动。
+	if (Field* field = ObjectCodex::FindFirstObjectByTag<Field>(environment_Field))
+	{
+		field->Activate();
+		environments.push_back(field);
 	}
 }
 
 void EnvironmentManager::BeginVacuum()
 {
-	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
+	// 清场发生在本帧环境更新之前。先认领，上一帧交出的金币才会飞向玩家。
+	ClaimEnvironment();
+	for (EnvironmentBase* env : environments)
 	{
-		if (coin != nullptr)
+		// 强制吸附是金币自己的行为。
+		if (Coin* coin = dynamic_cast<Coin*>(env); coin != nullptr && coin->IsActive())
 		{
 			coin->SetForceMagnet(true);
 		}
@@ -100,9 +137,9 @@ void EnvironmentManager::BeginVacuum()
 
 bool EnvironmentManager::HasActiveCoins() const
 {
-	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
+	for (EnvironmentBase* env : environments)
 	{
-		if (coin != nullptr)
+		if (Coin* coin = dynamic_cast<Coin*>(env); coin != nullptr && coin->IsActive())
 		{
 			return true;
 		}
@@ -112,9 +149,11 @@ bool EnvironmentManager::HasActiveCoins() const
 
 void EnvironmentManager::CollectAllCoins()
 {
-	for (Coin* coin : ObjectCodex::FindActiveObjectsByTag<Coin>(environment_Coin))
+	ClaimEnvironment();
+	for (EnvironmentBase* env : environments)
 	{
-		if (coin != nullptr)
+		// 立刻收走是金币自己的行为。
+		if (Coin* coin = dynamic_cast<Coin*>(env); coin != nullptr && coin->IsActive())
 		{
 			coin->CollectNow();
 		}

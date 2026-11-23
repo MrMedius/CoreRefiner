@@ -12,55 +12,14 @@
 #include "Module_Rule_Orbit.h"
 #include "Module_Rule_Return.h"
 #include "Module_Rule_Revive.h"
+#include "Module_Rule_Child.h"
 
-#include <cmath>
+#include "Module_Element_Yin.h"
+#include "Module_Element_Yang.h"
+
+#include "ConstraintComponent.h"
+
 #include <memory>
-#include <vector>
-
-inline void RedistributeChildrenEvenly(AttackStandby& s)
-{
-	const std::size_t n = s.children.size();
-	if (n == 0)
-	{
-		return;
-	}
-
-	constexpr float kDefaultChildRingRadius{ 2.0f };
-	float radius = kDefaultChildRingRadius;
-	for (Attack* child : s.children)
-	{
-		if (child == nullptr)
-		{
-			continue;
-		}
-		if (Module_Rule_Orbit* orbit = child->GetModule<Module_Rule_Orbit>())
-		{
-			radius = orbit->GetRadius();
-		}
-	}
-
-	for (std::size_t i = 0; i < n; ++i)
-	{
-		Attack* child = s.children[i];
-		if (child == nullptr)
-		{
-			continue;
-		}
-
-		const float phase = DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
-		child->SetLocalPosition(Vec3{
-			radius * std::cos(phase),
-			0.0f,
-			radius * std::sin(phase)
-		});
-
-		if (Module_Rule_Orbit* orbit = child->GetModule<Module_Rule_Orbit>())
-		{
-			orbit->SetRadius(radius);
-			orbit->SetPhase0(phase);
-		}
-	}
-}
 
 namespace 
 {
@@ -71,14 +30,22 @@ namespace
 		const DirectX::XMFLOAT3 scale{ rec.a, rec.b, rec.c };
 		const bool enableCollider = rec.flag;
 
-		// Revive 之后只记账：不得先 Flush。否则第二次出球会把当前树推进 shots，
-		// Flush 再清掉 recordOnly，后面的 Child 永远无法在重放时开槽。
-		if (ctx.TryRecordOnly(rec))
+		// 重生之后仍在记账。host 还在表示子物体栏位没开，这次出球是新的一发。
+		// 先封存上一发。Flush 会清掉 recordOnly，这颗球再按普通出球走。
+		if (ctx.recordOnly && s.host != nullptr)
 		{
+			ctx.FlushStandby();
+		}
+		// host 为空表示栏位开着。这次生成记进配方，再把焦点放回主体。
+		// 栏位因此算占用，下一颗生成才会封存前面这一份。
+		if (ctx.recordOnly && s.host == nullptr)
+		{
+			ctx.Record(rec);
+			s.host = s.parent;
 			return;
 		}
-		// 非 recordOnly 且已有 host：这是新的根弹，先把上一套封进 shots。
-		// Child 已把 host 置空时走下面的填坑，不 Flush。
+		// host 是当前焦点。还在就说明没有栏位，上一套先封进 shots。
+		// 子物体栏位把 host 置空后不封存，下面把这颗球填进坑里。
 		if (s.host != nullptr)
 		{
 			ctx.FlushStandby();
@@ -117,12 +84,15 @@ namespace
 			return;
 		}
 
-		ball->SetParent(s.parent);
+		// 栏位填上时记下主体。攻击球之间不组成变换父子，只留约束。
+		// 跟随交给子物体模块。它先装上，后装的公转每帧会用自己的位置覆盖。
+		SetConstraintTarget(ball, s.parent);
+		ball->AddModule<Module_Rule_Child>();
+		s.parent->AddBornWith(ball);
 		s.children.push_back(ball);
 		s.host = ball;
 		ctx.Record(rec);
 		ctx.DrainPitQueue();
-		RedistributeChildrenEvenly(s);
 	}
 }
 
@@ -139,12 +109,6 @@ public:
 		scale_(scale),
 		enableCollider_(enableCollider)
 	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Core_Ball;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Core_Ball"; }
 
 	void Apply(DeployContext& ctx) override
 	{
@@ -177,12 +141,6 @@ public:
 		enableCollider_(enableCollider)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Spawn_Ball;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Spawn_Ball"; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		ApplyBallSpawnStep(ctx, AttackStepRecordMake::SpawnBall(scale_, enableCollider_));
@@ -211,14 +169,6 @@ public:
 		lifetimeRate_(lifetimeRate)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_LifetimeRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_LifetimeRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		AddToFocus<Module_Attribute_LifetimeRate>(
@@ -242,14 +192,6 @@ public:
 	explicit AttackNodeStep_Attribute_SpeedRate(float speedRate) noexcept
 		: speedRate_{ speedRate }
 	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SpeedRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SpeedRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
@@ -275,14 +217,6 @@ public:
 		: sizeRate_{ sizeRate }
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SizeRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_SizeRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		AddToFocus<Module_Attribute_SizeRate>(
@@ -306,14 +240,6 @@ public:
 	explicit AttackNodeStep_Attribute_DamageRate(float damageRate) noexcept
 		: damageRate_{ damageRate }
 	{}
-
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_DamageRate;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Attribute_DamageRate"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::Focus; }
 
 	void Apply(DeployContext& ctx) override
 	{
@@ -344,13 +270,6 @@ public:
 		orbitPhase_(phase)
 	{}
 
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Orbit;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Orbit"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Orbit(orbitRadius_, orbitPhase_)))
@@ -379,31 +298,15 @@ public:
 			return;
 		}
 
-		float phase = orbitPhase_;
-		if (aroundParentShot)
+		// 绕玩家时把约束目标写成玩家。绕主体的目标已在填栏位时记下。
+		if (!aroundParentShot)
 		{
-			if (phase < 0.0f)
-			{
-				phase = 0.0f;
-				const std::size_t n = s.children.size();
-				for (std::size_t i = 0; i < n; ++i)
-				{
-					if (s.children[i] == s.host)
-					{
-						phase = (n > 0)
-							? (DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n))
-							: 0.0f;
-						break;
-					}
-				}
-			}
+			SetConstraintTarget(s.host, center);
 		}
-		else if (phase < 0.0f)
-		{
-			phase = 0.0f;
-		}
-		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, phase, center);
-		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, phase));
+		// 角度原样装上。orbitPhase_ 是节点上的起始角，负值表示自动，出生时再算。
+		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, orbitPhase_);
+		// 配方也记节点原来的角度。重放时同样等到出生再算。
+		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, orbitPhase_));
 	}
 
 	static std::unique_ptr<AttackNodeStep_Rule_Orbit> Make(
@@ -414,21 +317,15 @@ public:
 	}
 
 private:
+	// 节点半径。公转用它和双方体积一起决定实际半径。
 	float orbitRadius_{ 2.0f };
+	// 节点上的起始角。负值表示自动，装配时不改，出生时再按同伴名单算。
 	float orbitPhase_{ -1.0f };
 };
 
 class AttackNodeStep_Rule_Return final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Return;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Return"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Return()))
@@ -461,19 +358,18 @@ public:
 class AttackNodeStep_Rule_Child final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Child;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Child"; }
-
 	void Apply(DeployContext& ctx) override
 	{
+		AttackStandby& s = ctx.standby;
+		// 记账时也把焦点让出来。后面的生成靠 host 是否为空判断栏位开了没有。
+		if (ctx.recordOnly && s.parent != nullptr && s.host != nullptr)
+		{
+			s.host = nullptr;
+		}
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Child()))
 		{
 			return;
 		}
-		AttackStandby& s = ctx.standby;
 		if (s.parent == nullptr)
 		{
 			ctx.EnqueueOnEmptyPit([](DeployContext& c)
@@ -499,14 +395,6 @@ public:
 class AttackNodeStep_Rule_Revive final : public IAttackNodeStep
 {
 public:
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Revive;
-	}
-	[[nodiscard]] const char* GetName() const noexcept override { return "Rule_Revive"; }
-	[[nodiscard]] bool HasModule() const noexcept override { return true; }
-	[[nodiscard]] DeployTarget GetTarget() const noexcept override { return DeployTarget::ShotRoot; }
-
 	void Apply(DeployContext& ctx) override
 	{
 		if (ctx.TryRecordOnly(AttackStepRecordMake::Revive()))
@@ -542,6 +430,107 @@ public:
 	}
 };
 
+// ————————————————————————————————————————————————————
+// Kind —— Element
+// ————————————————————————————————————————————————————
+// 把阴模块挂到当前这发弹上。重复和复活重放时走这里。
+class AttackNodeStep_Element_Yin final : public IAttackNodeStep
+{
+public:
+	// markCount 这次命中加上的标记数。extraDamage 每触发一次扣的隐藏伤害。
+	AttackNodeStep_Element_Yin(float markCount, float extraDamage) noexcept
+		:
+		markCount_(markCount),
+		extraDamage_(extraDamage)
+	{}
+
+	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造阴环。
+	void Apply(DeployContext& ctx) override
+	{
+		const AttackStepRecord rec = AttackStepRecordMake::ElementYin(markCount_, extraDamage_);
+		if (ctx.TryRecordOnly(rec))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.host == nullptr || s.gfx == nullptr || s.rg == nullptr)
+		{
+			const float marks = markCount_;
+			const float damage = extraDamage_;
+			ctx.EnqueueOnEmptyPit([marks, damage](DeployContext& c)
+			{
+				AttackNodeStep_Element_Yin(marks, damage).Apply(c);
+			});
+			return;
+		}
+		// 主体就绪后把阴模块装上，并记下这条步骤。等待队列不能拷贝 Graphics 和渲染图。
+		s.host->AddModule<Module_Element_Yin>(markCount_, extraDamage_, *s.gfx, *s.rg);
+		ctx.Record(rec);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Element_Yin> Make(float markCount, float extraDamage)
+	{
+		return std::make_unique<AttackNodeStep_Element_Yin>(markCount, extraDamage);
+	}
+
+private:
+	// 这次命中要加上的标记个数。
+	float markCount_{ 0.0f };
+	// 每触发一次扣掉的血量。
+	float extraDamage_{ 0.0f };
+};
+
+// 把阳模块挂到当前这发弹上。重复和复活重放时走这里。
+class AttackNodeStep_Element_Yang final : public IAttackNodeStep
+{
+public:
+	// markCount 这次命中加上的标记数。areaDamage 每触发一次的范围伤害。radius 是水平半径。
+	AttackNodeStep_Element_Yang(float markCount, float areaDamage, float radius) noexcept
+		:
+		markCount_(markCount),
+		areaDamage_(areaDamage),
+		radius_(radius)
+	{}
+
+	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造阳环。
+	void Apply(DeployContext& ctx) override
+	{
+		const AttackStepRecord rec = AttackStepRecordMake::ElementYang(markCount_, areaDamage_, radius_);
+		if (ctx.TryRecordOnly(rec))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.host == nullptr || s.gfx == nullptr || s.rg == nullptr)
+		{
+			const float marks = markCount_;
+			const float damage = areaDamage_;
+			const float radius = radius_;
+			ctx.EnqueueOnEmptyPit([marks, damage, radius](DeployContext& c)
+			{
+				AttackNodeStep_Element_Yang(marks, damage, radius).Apply(c);
+			});
+			return;
+		}
+		// 主体就绪后把阳模块装上，并记下这条步骤。等待队列不能拷贝 Graphics 和渲染图。
+		s.host->AddModule<Module_Element_Yang>(markCount_, areaDamage_, radius_, *s.gfx, *s.rg);
+		ctx.Record(rec);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Element_Yang> Make(float markCount, float areaDamage, float radius)
+	{
+		return std::make_unique<AttackNodeStep_Element_Yang>(markCount, areaDamage, radius);
+	}
+
+private:
+	// 这次命中要加上的标记个数。
+	float markCount_{ 0.0f };
+	// 范围内每个还活着的敌人要扣的血量。
+	float areaDamage_{ 0.0f };
+	// 水平作用半径。
+	float radius_{ 0.0f };
+};
+
 // 按快照 Apply 一条 Step。
 // Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
@@ -570,6 +559,11 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 	case ModuleNodeLabel::Rule_Return:	AttackNodeStep_Rule_Return::Make()->Apply(ctx);				break;
 	case ModuleNodeLabel::Rule_Child:	AttackNodeStep_Rule_Child::Make()->Apply(ctx);				break;
 	case ModuleNodeLabel::Rule_Revive:	AttackNodeStep_Rule_Revive::Make()->Apply(ctx);				break;
+	// ————————————————————————————————————————————————————
+	// Kind —— Element
+	// ————————————————————————————————————————————————————
+	case ModuleNodeLabel::Element_Yin:	AttackNodeStep_Element_Yin::Make(rec.a, rec.b)->Apply(ctx);				break;
+	case ModuleNodeLabel::Element_Yang:	AttackNodeStep_Element_Yang::Make(rec.a, rec.b, rec.c)->Apply(ctx);		break;
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

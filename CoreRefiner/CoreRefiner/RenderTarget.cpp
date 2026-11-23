@@ -134,7 +134,8 @@ namespace Bind
 
 	void RenderTarget::Clear( Graphics& gfx ) noxnd
 	{
-		Clear( gfx,{ 0.0f,0.0f,0.0f,0.0f } );
+		// 中灰。透明黑环只会把背后变暗，纯黑背景上看不出变化。
+		Clear( gfx,{ 0.35f,0.35f,0.38f,0.0f } );
 	}
 
 	UINT RenderTarget::GetWidth() const noexcept

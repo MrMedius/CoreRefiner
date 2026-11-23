@@ -19,7 +19,7 @@ struct ScanSession
 	bool active{ false };
 	bool pendingFire{ false };
 	IModuleNode* lastSource{ nullptr };
-	std::vector<Attack*> committedShots;
+	std::vector<AttackBase*> committedShots;
 	std::size_t appliedTokenCount{ 0 };
 };
 
@@ -27,7 +27,7 @@ struct ScanSession
 struct FireBatch
 {
 	// 这一批还没出生的根弹。
-	std::vector<Attack*> roots;
+	std::vector<AttackBase*> roots;
 };
 
 // 多条扫描各自带一份 DeployContext。
@@ -128,7 +128,7 @@ public:
 		sessions_[index].active = true;
 	}
 
-	// Drop all sessions without firing; Deactivate any held Attack* back to pool.
+	// Drop all sessions without firing; Deactivate any held AttackBase* back to pool.
 	void Reset()
 	{
 		for (ScanSession& session : sessions_)
@@ -175,7 +175,7 @@ public:
 	}
 
 	// 中止所有正在进行的扫描：把已组装的弹交出去，并让 Ready 节点进冷却。
-	// 不回收 Attack*。调用方应 TakeAllPendingFires，再交给 QueueRoots。
+	// 不回收 AttackBase*。调用方应 TakeAllPendingFires，再交给 QueueRoots。
 	// Ready 节点进入冷却，避免同一帧又接上这次扫描。
 	void ForceFinish(ModuleField& field)
 	{
@@ -203,7 +203,7 @@ public:
 			{
 				FireBatch batch{};
 				batch.roots.reserve(session.committedShots.size());
-				for (Attack* root : session.committedShots)
+				for (AttackBase* root : session.committedShots)
 				{
 					if (root != nullptr)
 					{
@@ -268,7 +268,7 @@ private:
 		session.ctx.FlushStandby();
 
 		session.committedShots.clear();
-		for (Attack* root : session.ctx.shots)
+		for (AttackBase* root : session.ctx.shots)
 		{
 			if (root != nullptr)
 			{
@@ -415,7 +415,7 @@ private:
 		ScanSession fireOnly{};
 		fireOnly.active = false;
 		fireOnly.committedShots.clear();
-		for (Attack* root : session.ctx.shots)
+		for (AttackBase* root : session.ctx.shots)
 		{
 			if (root != nullptr)
 			{
@@ -488,10 +488,10 @@ private:
 	std::vector<ScanSession> sessions_;
 
 	// Deactivate roots held by a session (committed, shots, standby parent).
-	// Children under parent are cascaded by Attack::Deactivate.
+	// 还没一起出生的子弹由主体 Deactivate 关掉。已经交出的子弹不跟着关。
 	static void DiscardSessionAttacks_(ScanSession& session)
 	{
-		auto deactivate = [](Attack* attack)
+		auto deactivate = [](AttackBase* attack)
 		{
 			if (attack != nullptr && attack->IsActive())
 			{
@@ -499,27 +499,26 @@ private:
 			}
 		};
 
-		for (Attack* root : session.committedShots)
+		for (AttackBase* root : session.committedShots)
 		{
 			deactivate(root);
 		}
 		session.committedShots.clear();
 
-		for (Attack* root : session.ctx.shots)
+		for (AttackBase* root : session.ctx.shots)
 		{
 			deactivate(root);
 		}
 		session.ctx.shots.clear();
 
 		deactivate(session.ctx.standby.parent);
-		for (Attack* child : session.ctx.standby.children)
+		for (AttackBase* child : session.ctx.standby.children)
 		{
 			deactivate(child);
 		}
 		session.ctx.standby.parent = nullptr;
 		session.ctx.standby.children.clear();
 		session.ctx.standby.host = nullptr;
-		session.ctx.standby.parked = false;
 
 		session.wave.Stop();
 		session.active = false;

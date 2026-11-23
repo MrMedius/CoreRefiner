@@ -1,26 +1,20 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 
 class Module_Attribute_SpeedRate : public IModule
 {
 public:
-	Module_Attribute_SpeedRate(Attack* owner, float speedRate = 1.0f) noexcept
+	Module_Attribute_SpeedRate(AttackBase* owner, float speedRate = 1.0f) noexcept
 		:
 		IModule(owner),
 		speedRate_(speedRate)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Attribute_SpeedRate;
-	}
-
-	// 把配置倍率加进 speed.mul；直线弹 SpawnAt、公转 OnUpdate 都读 Final()。
+	// 把配置倍率加进 speed.rate。直线弹出生和公转每帧都读 speed.Final()。
 	void OnSpawn() override
 	{
-		Attack* owner = GetOwner();
+		AttackBase* owner = GetOwner();
 		if (owner == nullptr || speedRate_ <= 0.0f)
 		{
 			return;
@@ -31,5 +25,6 @@ public:
 	void OnRecycle() override {}
 
 private:
+	// 加到 speed.rate 上的数值。
 	float speedRate_{ 1.0f };
 };

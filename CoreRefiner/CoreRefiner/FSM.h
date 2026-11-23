@@ -5,18 +5,18 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
-#include "Character.h"
+#include "CharacterBase.h"
 #include <chrono>
 #include "AnimationInfo.h"
 
-class Character;
+class CharacterBase;
 
 // Base State class
 template<typename T>
 class State
 {
 public:
-    State() { static_assert(std::is_base_of<Character, T>::value, "StateType must inherit from State<T>"); }
+    State() { static_assert(std::is_base_of<CharacterBase, T>::value, "StateType must inherit from State<T>"); }
     virtual ~State() = default;
     virtual void OnEnter(T* owner) = 0;
     virtual void OnExit(T* owner) = 0;

@@ -6,13 +6,17 @@
 #include "XMath.h"
 
 #include "Ball.h"
+#include "Ring_Yang.h"
 
 #include <cmath>
 #include <cstddef>
 
 namespace
 {
+	// 子弹预热个数。
 	constexpr int kBallWarmup = 48;
+	// 白环预热个数。造好后立刻关掉，不交出，不进连发，也不加仓库伤害。
+	constexpr int kRingYangWarmup = 8;
 }
 
 AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -25,6 +29,7 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	HierarchySpawn::WarmupPool<Ball>(
 		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
+	HierarchySpawn::WarmupPool<Ring_Yang>(attack_Ring_Yang, kRingYangWarmup, gfx, rg);
 }
 
 bool AttackManager::TryScreenToWorldXZ(
@@ -83,14 +88,38 @@ bool AttackManager::TryGetAimVelocity(XMFLOAT3 playerPos, XMFLOAT3& outVel) cons
 	return true;
 }
 
-void AttackManager::AdoptLive(Attack* attack)
+void AttackManager::ClaimAttack()
+{
+	for (AttackBase* atk : ObjectCodex::TakeHandoff<AttackBase>())
+	{
+		if (atk == nullptr || !atk->IsActive())
+		{
+			continue;
+		}
+		bool tracked = false;
+		for (AttackBase* existing : attacks)
+		{
+			if (existing == atk)
+			{
+				tracked = true;
+				break;
+			}
+		}
+		if (!tracked)
+		{
+			attacks.push_back(atk);
+		}
+	}
+}
+
+void AttackManager::AdoptLive(AttackBase* attack)
 {
 	if (attack == nullptr)
 	{
 		return;
 	}
 	bool tracked = false;
-	for (Attack* existing : attacks)
+	for (AttackBase* existing : attacks)
 	{
 		if (existing == attack)
 		{
@@ -102,14 +131,13 @@ void AttackManager::AdoptLive(Attack* attack)
 	{
 		attacks.push_back(attack);
 	}
-	attack->SetAdoptLive([this](Attack* live) { AdoptLive(live); });
 }
 
-void AttackManager::QueueRoots(const std::vector<Attack*>& roots)
+void AttackManager::QueueRoots(const std::vector<AttackBase*>& roots)
 {
 	// wasEmpty 为真且离上一颗已经够久时，这一批的第一颗当帧就放。
 	const bool wasEmpty = pendingShots_.empty();
-	for (Attack* root : roots)
+	for (AttackBase* root : roots)
 	{
 		if (root == nullptr)
 		{
@@ -128,6 +156,8 @@ void AttackManager::QueueRoots(const std::vector<Attack*>& roots)
 
 void AttackManager::Update(float dt)
 {
+	// 上一帧交出的攻击在这里进名单。这一帧才卸下或生成的，下一帧再更新。
+	ClaimAttack();
 	for (int i = 0; i < attacks.size(); i++)
 	{
 		if (attacks[i]->IsActive())
@@ -138,7 +168,6 @@ void AttackManager::Update(float dt)
 			i--;
 		}
 	}
-	AdoptUnparentedAttacks_();
 
 	// 先更新已经在飞的弹，再放下一颗，避免新弹在出生的同一帧再走一步。
 	sinceLastFire_ += dt;
@@ -172,7 +201,7 @@ void AttackManager::ReleaseNextShot_()
 		sinceLastFire_ = 0.0f;
 	}
 
-	Attack* root = shot.root;
+	AttackBase* root = shot.root;
 	if (root == nullptr || !root->IsActive())
 	{
 		return;
@@ -194,9 +223,17 @@ void AttackManager::ReleaseNextShot_()
 	TryGetAimVelocity(pos, vel);
 	AdoptLive(root);
 	root->SpawnAt(pos, vel);
+	// 同一次出生的子弹自己进名单。这一帧的更新已经走过，下一帧才动。
+	if (auto* rootMod = dynamic_cast<AttackBase_Moduled*>(root))
+	{
+		for (AttackBase_Moduled* child : rootMod->TakeBornWith())
+		{
+			AdoptLive(child);
+		}
+	}
 	if (onLaunched_)
 	{
-		for (Attack* atk : shot.tree)
+		for (AttackBase* atk : shot.tree)
 		{
 			if (atk != nullptr && atk->IsActive())
 			{
@@ -206,30 +243,20 @@ void AttackManager::ReleaseNextShot_()
 	}
 }
 
-void AttackManager::CollectAttackTree(Attack* atk, std::vector<Attack*>& out)
+void AttackManager::CollectAttackTree(AttackBase* atk, std::vector<AttackBase*>& out)
 {
 	if (atk == nullptr)
 	{
 		return;
 	}
 	out.push_back(atk);
-	for (std::size_t i = 0; i < atk->GetChildCount(); ++i)
+	// 同伴不是变换子物体。出生前还在这份名单里。
+	if (auto* moduled = dynamic_cast<AttackBase_Moduled*>(atk))
 	{
-		CollectAttackTree(dynamic_cast<Attack*>(atk->GetChild(i)), out);
-	}
-}
-
-void AttackManager::AdoptUnparentedAttacks_()
-{
-	const std::vector<Attack*> live = ObjectCodex::FindActiveObjectsByTag<Attack>(attack_Ball);
-	for (Attack* a : live)
-	{
-		if (a == nullptr || !a->IsActive() || !a->IsAwaitingManagerAdopt())
+		for (AttackBase_Moduled* child : moduled->GetBornWith())
 		{
-			continue;
+			CollectAttackTree(child, out);
 		}
-		a->SetAwaitingManagerAdopt(false);
-		AdoptLive(a);
 	}
 }
 
@@ -257,11 +284,20 @@ void AttackManager::Reset(void)
 		if (attacks[i]->IsActive())
 			attacks[i]->Deactivate();
 
-	for (Attack* a : ObjectCodex::FindActiveObjectsByTag<Attack>(attack_Ball))
+	for (AttackBase* a : ObjectCodex::FindActiveObjectsByTag<AttackBase>(attack_Ball))
 	{
 		if (a != nullptr && a->IsActive())
 		{
 			a->Deactivate();
+		}
+	}
+
+	// 还没认领的攻击关掉，避免波次结束后来才进名单。白环和子弹都在这份名单里。
+	for (AttackBase* atk : ObjectCodex::TakeHandoff<AttackBase>())
+	{
+		if (atk != nullptr && atk->IsActive())
+		{
+			atk->Deactivate();
 		}
 	}
 

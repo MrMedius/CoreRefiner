@@ -1,4 +1,4 @@
-#include "Enemy.h"
+#include "EnemyBase.h"
 #include "ObjectCodex.h"
 #include "ColliderComponentBase.h"
 #include "Collision3D.h"
@@ -7,9 +7,9 @@
 #include <algorithm>
 
 // 复用基类场地/对弹，再解算敌人互挤。对玩家不写位置、不消速度（Player 调 ShoveXZ）。
-void Enemy::MapItemCollide()
+void EnemyBase::MapItemCollide()
 {
-	Character::MapItemCollide();
+	CharacterBase::MapItemCollide();
 
 	auto* selfCol = GetComponent<ColliderComponentBase>();
 	if (selfCol == nullptr || !selfCol->IsEnabled())
@@ -49,10 +49,10 @@ void Enemy::MapItemCollide()
 		SetPosition(p);
 	};
 
-	std::vector<Character*> mapCharacters;
+	std::vector<CharacterBase*> mapCharacters;
 	for (auto tag : kCharacterTags)
 	{
-		auto found = ObjectCodex::FindActiveObjectsByTag<Character>(tag);
+		auto found = ObjectCodex::FindActiveObjectsByTag<CharacterBase>(tag);
 		mapCharacters.reserve(mapCharacters.size() + found.size());
 		mapCharacters.insert(mapCharacters.end(), found.begin(), found.end());
 	}

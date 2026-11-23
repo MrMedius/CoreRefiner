@@ -427,7 +427,7 @@
     <ClCompile Include="Player.cpp">
       <Filter>Object\Character\Player</Filter>
     </ClCompile>
-    <ClCompile Include="Character.cpp">
+    <ClCompile Include="CharacterBase.cpp">
       <Filter>Object\Character</Filter>
     </ClCompile>
     <ClCompile Include="EnemyManager.cpp">
@@ -450,9 +450,6 @@
     </ClCompile>
     <ClCompile Include="AttackManager.cpp">
       <Filter>Tool\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="Attack.cpp">
-      <Filter>Object\Attack</Filter>
     </ClCompile>
     <ClCompile Include="Enemy_T_Shape.cpp">
       <Filter>Object\Shapes</Filter>
@@ -721,7 +718,7 @@
     <ClCompile Include="LoopMain.cpp">
       <Filter>Framework\Main</Filter>
     </ClCompile>
-    <ClCompile Include="Enemy.cpp">
+    <ClCompile Include="EnemyBase.cpp">
       <Filter>Object\Character\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="Module_Rule_Revive.cpp">
@@ -768,6 +765,24 @@
     </ClCompile>
     <ClCompile Include="AttackShadeCbuf.cpp">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="PreviewScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Ring_Shape.cpp">
+      <Filter>Object\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Ring_Yin.cpp">
+      <Filter>Object\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="EffectManager.cpp">
+      <Filter>Tool\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="AttackBase_Moduled.cpp">
+      <Filter>Object\Attack</Filter>
+    </ClCompile>
+    <ClCompile Include="Ring_Yang.cpp">
+      <Filter>Object\Attack</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -951,7 +966,7 @@
     <ClInclude Include="ObjectCodex.h">
       <Filter>Object</Filter>
     </ClInclude>
-    <ClInclude Include="Character.h">
+    <ClInclude Include="CharacterBase.h">
       <Filter>Object\Character</Filter>
     </ClInclude>
     <ClInclude Include="CubeWireframe.h">
@@ -963,7 +978,7 @@
     <ClInclude Include="CapsuleWireframe.h">
       <Filter>Framework\Graphics\Drawable</Filter>
     </ClInclude>
-    <ClInclude Include="Enemy.h">
+    <ClInclude Include="EnemyBase.h">
       <Filter>Object\Character\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="Projection.h">
@@ -978,13 +993,13 @@
     <ClInclude Include="Transform2DCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="Environment.h">
+    <ClInclude Include="EnvironmentBase.h">
       <Filter>Object\Environment</Filter>
     </ClInclude>
     <ClInclude Include="Player.h">
       <Filter>Object\Character\Player</Filter>
     </ClInclude>
-    <ClInclude Include="Effect.h">
+    <ClInclude Include="EffectBase.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
     <ClInclude Include="EnvironmentManager.h">
@@ -1128,7 +1143,7 @@
     <ClInclude Include="Ball_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
-    <ClInclude Include="Attack.h">
+    <ClInclude Include="AttackBase.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
     <ClInclude Include="AttackManager.h">
@@ -1608,6 +1623,42 @@
     <ClInclude Include="AttackShadeCbuf.h">
       <Filter>Framework\Graphics\Bindable\ConstantBuffers</Filter>
     </ClInclude>
+    <ClInclude Include="AttackMark.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="PreviewScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Ring.h">
+      <Filter>Framework\Graphics\Drawable\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Ring_Shape.h">
+      <Filter>Object\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Ring_Yin.h">
+      <Filter>Object\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectManager.h">
+      <Filter>Tool\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Element_Yin.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Element_Yang.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackBase_Moduled.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="Ring_Yang.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstraintComponent.h">
+      <Filter>Object\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Rule_Child.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
@@ -1809,6 +1860,12 @@
     <FxCompile Include="Attack_PS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
+    <FxCompile Include="Effect_Ring_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Effect_Ring_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="LightVectorData.hlsli">
@@ -1841,14 +1898,17 @@
     <None Include="asset\Icon\WhiteArrow.cur">
       <Filter>Tool\Resource Files</Filter>
     </None>
-    <None Include="Time.hlsli">
-      <Filter>Shader\Common</Filter>
-    </None>
     <None Include="ModuleNodeInfoCopy.json">
       <Filter>Object\Attack\ModuleSystem\ModuleNode</Filter>
     </None>
     <None Include="UiCopy.json">
       <Filter>UI</Filter>
+    </None>
+    <None Include="Time_VS.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Time_PS.hlsli">
+      <Filter>Shader\Common</Filter>
     </None>
   </ItemGroup>
 </Project>

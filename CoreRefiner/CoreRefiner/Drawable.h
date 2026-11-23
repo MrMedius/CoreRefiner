@@ -37,6 +37,8 @@ public:
 	virtual ~Drawable();
 	void SetPosition(DirectX::XMFLOAT3 pos) noexcept;
 	void SetRotation(float roll, float pitch, float yaw) noexcept;
+	// 直接写入弧度。x 是 pitch，y 是 yaw，z 是 roll，不再从角度换算。
+	void SetRotationRad(float x, float y, float z) noexcept;
 	void SetScale(DirectX::XMFLOAT3 pos) noexcept;
 protected:
 	std::shared_ptr<Bind::IndexBuffer> pIndices;

@@ -168,7 +168,7 @@ void ModuleShop::SyncZoneTransforms_()
 	trade_.SyncNodes();
 	// 炼成结果和店有的素材、主体按 hostOrigin_ 对齐。
 	refine_.SyncNodes();
-	// 奥义本体和看得见的内部 Node 由奥义区按 hostOrigin_ 对齐。
+	// 奥义本体、看得见的内部 Node，以及滚出窗口但仍停在炼成格的图标按 hostOrigin_ 对齐。
 	ultra_.SyncNodes();
 	SyncHud();
 }
@@ -275,8 +275,14 @@ void ModuleShop::SubmitNodes()
 {
 	trade_.SubmitNodes();
 	refine_.SubmitNodes();
-	// 奥义本体和看得见的内部 Node 由奥义区提交。
 	ultra_.SubmitNodes();
+}
+
+void ModuleShop::SubmitNodeIcons()
+{
+	// 绘制名单里的图标先画。Ultra区内滚出窗口的不在名单里，否则阴影也会被画出来。
+	IModuleZone::SubmitNodeIcons();
+	ultra_.SubmitOffscreenRefineIcons();
 }
 
 IModuleNode* ModuleShop::PickAt(DirectX::XMFLOAT2 worldPos, float& outDistSq) noexcept

@@ -1,6 +1,6 @@
 #pragma once
 #include "IModule.h"
-#include "Attack.h"
+#include "AttackBase.h"
 
 class Graphics;
 class Player;
@@ -16,7 +16,7 @@ class Module_Rule_Revive : public IModule
 {
 public:
 	Module_Rule_Revive(
-		Attack* owner,
+		AttackBase* owner,
 		Graphics* gfx,
 		Rgph::RenderGraph* rg,
 		Player* player) noexcept
@@ -27,19 +27,14 @@ public:
 		player_(player)
 	{}
 
-	[[nodiscard]] bool HasModuleNodeLabel() const noexcept override { return true; }
-	[[nodiscard]] ModuleNodeLabel GetModuleNodeLabel() const noexcept override
-	{
-		return ModuleNodeLabel::Rule_Revive;
-	}
-
 	void OnSpawn() override;
 	void OnDisable() override;
 	void OnRecycle() override;
 
 private:
 	// 在消失点按配方再 Deploy（消耗第一条 Revive 后封存剩余）；发射加速度用 OnSpawn 记下的那份，不跟鼠标。
-	void Replay_(Attack* owner);
+	// 新根弹出生后交出，不调用宿主的收养。
+	void Replay_(AttackBase* owner);
 
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };
