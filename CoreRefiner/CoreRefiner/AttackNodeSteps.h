@@ -12,6 +12,7 @@
 #include "Module_Rule_Orbit.h"
 #include "Module_Rule_Return.h"
 #include "Module_Rule_Revive.h"
+#include "Module_Rule_Child.h"
 
 #include "Module_Element_Yin.h"
 #include "Module_Element_Yang.h"
@@ -52,6 +53,8 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 			continue;
 		}
 
+		// phase 只用来摆这一圈的出生偏移，不写进公转。
+		// 起始角由公转在出生时按同伴名单自己算。
 		const float phase = DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
 		// 没有变换父子。这个偏移先记在本地位置上，出生时再加到主体的位置。
 		child->SetLocalPosition(Vec3{
@@ -63,7 +66,6 @@ inline void RedistributeChildrenEvenly(AttackStandby& s)
 		if (Module_Rule_Orbit* orbit = child->GetModule<Module_Rule_Orbit>())
 		{
 			orbit->SetRadius(radius);
-			orbit->SetPhase0(phase);
 		}
 	}
 }
@@ -132,7 +134,9 @@ namespace
 		}
 
 		// 栏位填上时记下主体。攻击球之间不组成变换父子，只留约束。
+		// 跟随交给子物体模块。它先装上，后装的公转每帧会用自己的位置覆盖。
 		SetConstraintTarget(ball, s.parent);
+		ball->AddModule<Module_Rule_Child>();
 		s.parent->AddBornWith(ball);
 		s.children.push_back(ball);
 		s.host = ball;
@@ -424,7 +428,8 @@ public:
 			SetConstraintTarget(s.host, center);
 		}
 		s.host->AddModule<Module_Rule_Orbit>(orbitRadius_, phase);
-		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, phase));
+		// 配方记节点原来的角度。自动角度仍是负值，重放时再算。
+		ctx.Record(AttackStepRecordMake::Orbit(orbitRadius_, orbitPhase_));
 	}
 
 	static std::unique_ptr<AttackNodeStep_Rule_Orbit> Make(

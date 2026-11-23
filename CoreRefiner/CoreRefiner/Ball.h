@@ -115,12 +115,14 @@ class Ball : public AttackBase_Moduled
 			{
 				continue;
 			}
-			// 组装时记下的是相对主体的偏移。没有变换父子，出生时加到主体的位置上。
+			// 组装时记下的是相对主体的偏移。加在主体跑完模块后的位置上。
+			// 返回会把主体挪走，不能再用传入的发射点。
+			const XMFLOAT3 corePos = GetPosition();
 			const XMFLOAT3 offset = childAtk->GetPosition();
 			childAtk->SetLocalPosition({
-				pos.x + offset.x,
-				pos.y + offset.y,
-				pos.z + offset.z
+				corePos.x + offset.x,
+				corePos.y + offset.y,
+				corePos.z + offset.z
 			});
 			childAtk->Stats().ResetMods();
 			childAtk->Stats().lifetime.base = 2.0f;

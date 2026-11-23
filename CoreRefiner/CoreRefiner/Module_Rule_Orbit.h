@@ -1,6 +1,7 @@
 #pragma once
 #include "IModule.h"
 #include "AttackBase.h"
+#include "AttackBase_Moduled.h"
 #include "AttackManager.h"
 #include "ColliderComponentBase.h"
 #include "ConstraintComponent.h"
@@ -42,6 +43,11 @@ public:
 			return;
 		}
 
+		// 起始角为负表示自动。按同伴名单算好再往下摆位置。
+		if (phase0_ < 0.0f)
+		{
+			phase0_ = ComputeAutoPhase_();
+		}
 		angle_ = phase0_;
 		if (IsPlayerCenter_())
 		{
@@ -137,6 +143,32 @@ public:
 	[[nodiscard]] float GetRadius() const noexcept { return radius_; }
 
 private:
+	// 起始角为负时，按约束目标的同伴名单算角度。绕玩家或名单里没有自己时用 0。
+	[[nodiscard]] float ComputeAutoPhase_() const noexcept
+	{
+		AttackBase* owner = GetOwner();
+		ObjectBase* center = LiveCenter_();
+		auto* core = dynamic_cast<AttackBase_Moduled*>(center);
+		if (owner == nullptr || core == nullptr)
+		{
+			return 0.0f;
+		}
+		const std::vector<AttackBase_Moduled*>& born = core->GetBornWith();
+		const std::size_t n = born.size();
+		if (n == 0u)
+		{
+			return 0.0f;
+		}
+		for (std::size_t i = 0; i < n; ++i)
+		{
+			if (born[i] == owner)
+			{
+				return DirectX::XM_2PI * static_cast<float>(i) / static_cast<float>(n);
+			}
+		}
+		return 0.0f;
+	}
+
 	// 宿主上的约束。没有就返回空。
 	[[nodiscard]] ConstraintComponent* Constraint_() const noexcept
 	{
@@ -314,6 +346,7 @@ private:
 	}
 
 	float radius_{ 2.0f };
+	// 起始角。负值表示自动，出生时再算。
 	float phase0_{ 0.0f };
 	float angle_{ 0.0f };
 	float currentRadius_{ 0.0f };
