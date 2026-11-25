@@ -33,6 +33,10 @@ public:
 	void Bind(Graphics& gfx) const noxnd;
 	void Accept(TechniqueProbe& probe);
 	UINT GetIndexCount() const noxnd;
+	// 这只外形是否一次画出多颗。默认否，仍走 DrawIndexed。
+	virtual bool IsInstanced() const noexcept { return false; }
+	// 这一帧要画的颗数。不是实例外形时不用。
+	virtual UINT GetInstanceCount() const noexcept { return 0u; }
 	void LinkTechniques(Rgph::RenderGraph&);
 	virtual ~Drawable();
 	void SetPosition(DirectX::XMFLOAT3 pos) noexcept;

@@ -25,6 +25,7 @@ enum Object_Type_Tag
 	// Effect
 	effect_Ring_Yin			= 0x301,
 	effect_ExecuteSphere	= 0x302,
+	effect_AttackTrail		= 0x303,
 };
 
 class ObjectBase
@@ -37,17 +38,34 @@ public:
 	virtual ~ObjectBase();
 
 	virtual void OnEnable(void) = 0;
-	// Host-driven update: derived gameplay should call ObjectBase::Update at the end.
-	// Default drives attached components (Visual/Collider sync, etc.).
+	// 先更新自己的组件，再更新还挂着、并且仍在活动的变换子物体。
+	// 派生类在自己的逻辑之后调用。显示子物体不进管理器，靠这次调用被带动。
 	virtual void Update(float dt)
 	{
 		UpdateComponents(dt);
+		// 先抄一份。子物体更新时可能卸下父子，直接走原名单会改到正在遍历的容器。
+		const std::vector<ObjectBase*> kids = children_;
+		for (ObjectBase* child : kids)
+		{
+			if (child != nullptr && child->IsActive())
+			{
+				child->Update(dt);
+			}
+		}
 	}
-	// Host-driven submit: derived should call ObjectBase::Submit at the end.
-	// Default submits attached components (Drawable / debug wire).
+	// 先提交自己的组件，再提交还挂着、并且仍在活动的变换子物体。
+	// 派生类在自己的逻辑之后调用。显示子物体不进管理器，靠这次调用被画出来。
 	virtual void Submit(void)
 	{
 		SubmitComponents();
+		const std::vector<ObjectBase*> kids = children_;
+		for (ObjectBase* child : kids)
+		{
+			if (child != nullptr && child->IsActive())
+			{
+				child->Submit();
+			}
+		}
 	}
 	Object_Type_Tag GetTag(void) const		{ return Tag; }
 	// True when in use and not marked for deferred disable.

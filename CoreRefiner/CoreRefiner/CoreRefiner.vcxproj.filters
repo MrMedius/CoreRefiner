@@ -1656,6 +1656,9 @@
     <ClInclude Include="ExecuteSphere.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
+    <ClInclude Include="AttackTrail.h">
+      <Filter>Object\Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
@@ -1873,6 +1876,12 @@
       <Filter>Shader\3D</Filter>
     </FxCompile>
     <FxCompile Include="ExecuteSphere_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="AttackTrail_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="AttackTrail_VS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
   </ItemGroup>

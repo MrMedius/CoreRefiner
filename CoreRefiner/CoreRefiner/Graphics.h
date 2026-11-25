@@ -75,6 +75,8 @@ public:
 	void BeginFrame() noexcept;
 	void DrawIndexed( UINT count ) noxnd;
 	void DrawIndexed( UINT count, UINT startIndex, INT baseVertex = 0) noxnd;
+	// count 是网格索引数。instanceCount 是同一张网格画几颗。
+	void DrawIndexedInstanced( UINT count, UINT instanceCount ) noxnd;
 	void SetProjection( DirectX::FXMMATRIX proj ) noexcept;
 	DirectX::XMMATRIX GetProjection() const noexcept;
 	void SetCamera( DirectX::FXMMATRIX cam ) noexcept;
