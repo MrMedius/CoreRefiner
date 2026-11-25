@@ -32,6 +32,8 @@ public:
 			shape->LinkTechniques(rg);
 			pVisual_ = AddComponent<VisualComponent>(
 				std::move(shape), Chan::main | Chan::shadow, true);
+			// 记下身体外形。太阴秒杀时黑球按这只模型做副本。
+			SetBodyDrawable(pVisual_->GetDrawable());
 		}
 
 		// collision: Box + yaw axis sync

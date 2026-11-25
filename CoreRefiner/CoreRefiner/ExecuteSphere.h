@@ -5,6 +5,7 @@
 #include "BindableCommon.h"
 #include "Channels.h"
 #include "RenderGraph.h"
+#include "ColliderComponentBase.h"
 
 #include <cmath>
 #include <memory>
@@ -207,10 +208,40 @@ private:
 
 static_assert(sizeof(ExecuteVictim_Shape::ClipData) == 32u);
 
-// half 是碰撞盒半边长。返回包住这个盒子的球半径。
-inline float ExecuteSphereRadius(XMFLOAT3 half) noexcept
+// fullEdges 是三条整边。返回最长的一条。
+inline float ExecuteSphereRadius(XMFLOAT3 fullEdges) noexcept
 {
-	return std::sqrt(half.x * half.x + half.y * half.y + half.z * half.z);
+	const float longest = fullEdges.x > fullEdges.y ? fullEdges.x : fullEdges.y;
+	return longest > fullEdges.z ? longest : fullEdges.z;
+}
+
+// 碰撞体最长的整条尺寸。盒子是三条整边的最大值，球是直径，胶囊是总高度和直径里较长的。
+// 盒子的 GetCollisionSize 是半边长，这里先乘 2。包住的是碰撞体；模型要在碰撞体里面。
+inline float ExecuteSphereRadius(const ColliderComponentBase& collider) noexcept
+{
+	switch (collider.GetCollideType())
+	{
+	case Collider3D::CollideType::Box:
+	{
+		const auto& box = static_cast<const Collider3D::BoxCollider&>(collider.GetVolume());
+		return ExecuteSphereRadius(XMFLOAT3{ box.half.x * 2.0f, box.half.y * 2.0f, box.half.z * 2.0f });
+	}
+	case Collider3D::CollideType::Sphere:
+	{
+		const auto& sphere = static_cast<const Collider3D::SphereCollider&>(collider.GetVolume());
+		return sphere.radius * 2.0f;
+	}
+	case Collider3D::CollideType::Capsule:
+	{
+		const auto& capsule = static_cast<const Collider3D::CapsuleCollider&>(collider.GetVolume());
+		const float diameter = capsule.radius * 2.0f;
+		const DirectX::XMVECTOR span = DirectX::XMLoadFloat3(&capsule.pointB) - DirectX::XMLoadFloat3(&capsule.pointA);
+		const float totalHeight = DirectX::XMVectorGetX(DirectX::XMVector3Length(span)) + diameter;
+		return totalHeight > diameter ? totalHeight : diameter;
+	}
+	default:
+		return 0.0f;
+	}
 }
 
 // 秒杀用的透明黑球。黑球负责扩大、抖动和缩小。

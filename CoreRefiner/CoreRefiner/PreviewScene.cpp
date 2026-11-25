@@ -18,12 +18,6 @@ namespace
 	constexpr XMFLOAT3 kVictimSize_{ 2.0f, 2.0f, 2.0f };
 	// 测试外形的 yaw。副本应停在这个朝向。
 	constexpr float kVictimYaw_{ 0.7f };
-
-	// fullSize 是整边长。碰撞盒存的是它的一半，这里先收成半边长。
-	XMFLOAT3 HalfOf_(XMFLOAT3 fullSize) noexcept
-	{
-		return { fullSize.x * 0.5f, fullSize.y * 0.5f, fullSize.z * 0.5f };
-	}
 }
 
 PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRenderGraph& gameRG)
@@ -86,7 +80,7 @@ void PreviewScene::OnEnter()
 		}
 		// 来源先放到播放点。黑球记下它的网格、颜色和朝向。
 		victimSource_->SetPosition(spherePos);
-		sphere_->Play(spherePos, ExecuteSphereRadius(HalfOf_(kVictimSize_)), victimSource_.get());
+		sphere_->Play(spherePos, ExecuteSphereRadius(kVictimSize_), victimSource_.get());
 	}
 }
 
@@ -135,7 +129,7 @@ void PreviewScene::Update(float dt)
 		{
 			sphere_->Activate();
 			victimSource_->SetPosition(spherePos);
-			sphere_->Play(spherePos, ExecuteSphereRadius(HalfOf_(kVictimSize_)), victimSource_.get());
+			sphere_->Play(spherePos, ExecuteSphereRadius(kVictimSize_), victimSource_.get());
 		}
 		sphere_->Update(dt);
 	}
