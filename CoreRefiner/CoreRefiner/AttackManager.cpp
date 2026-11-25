@@ -6,7 +6,7 @@
 #include "XMath.h"
 
 #include "Ball.h"
-#include "Ring_Yang.h"
+#include "RingYang.h"
 
 #include <cmath>
 #include <cstddef>
@@ -29,7 +29,7 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 
 	HierarchySpawn::WarmupPool<Ball>(
 		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
-	HierarchySpawn::WarmupPool<Ring_Yang>(attack_Ring_Yang, kRingYangWarmup, gfx, rg);
+	HierarchySpawn::WarmupPool<RingYang>(attack_Ring_Yang, kRingYangWarmup, gfx, rg);
 }
 
 bool AttackManager::TryScreenToWorldXZ(

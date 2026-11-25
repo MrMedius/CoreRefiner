@@ -148,6 +148,16 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
+	// Element_GreaterYin：a = 这次加上的标记数，b = 秒杀倍率。不消耗标记。
+	inline AttackStepRecord ElementGreaterYin(float markCount, float executeRate) noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Element_GreaterYin;
+		r.a = markCount;
+		r.b = executeRate;
+		return r;
+	}
+
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

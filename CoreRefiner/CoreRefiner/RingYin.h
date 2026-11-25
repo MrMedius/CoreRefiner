@@ -12,11 +12,11 @@ namespace Rgph
 }
 
 // 阴的三重环。黑色，只做外浓内淡，错开出发。
-class Ring_Yin : public EffectBase
+class RingYin : public EffectBase
 {
 public:
-	Ring_Yin(Graphics& gfx, Rgph::RenderGraph& rg);
-	~Ring_Yin() override;
+	RingYin(Graphics& gfx, Rgph::RenderGraph& rg);
+	~RingYin() override;
 
 	// pos 是播放中心。flip 这只环不用。
 	void SpawnAt(XMFLOAT3 pos, bool flip) override;

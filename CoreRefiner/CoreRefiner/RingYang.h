@@ -13,11 +13,11 @@ namespace Rgph
 }
 
 // 阳的攻击环。自己画一只扩散的白环，不挂模块。
-class Ring_Yang : public AttackBase
+class RingYang : public AttackBase
 {
 public:
-	Ring_Yang(Graphics& gfx, Rgph::RenderGraph& rg);
-	~Ring_Yang() override;
+	RingYang(Graphics& gfx, Rgph::RenderGraph& rg);
+	~RingYang() override;
 
 	// pos 是圆心。dir 是圆心上那个敌人的击退方向。水平长度接近 0 时用世界 +Z。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override;

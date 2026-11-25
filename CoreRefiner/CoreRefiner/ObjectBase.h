@@ -23,7 +23,8 @@ enum Object_Type_Tag
 	environment_Field	= 0x200,
 	environment_Coin	= 0x201,
 	// Effect
-	effect_Ring_Yin		= 0x301,
+	effect_Ring_Yin			= 0x301,
+	effect_ExecuteSphere	= 0x302,
 };
 
 class ObjectBase

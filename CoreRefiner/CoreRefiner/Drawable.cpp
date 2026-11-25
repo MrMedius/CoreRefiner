@@ -72,3 +72,33 @@ void Drawable::SetScale(DirectX::XMFLOAT3 size) noexcept
 {
 	trans.SetScale(size.x, size.y, size.z);
 }
+
+std::shared_ptr<Bind::VertexBuffer> Drawable::ShareVertices() const noexcept
+{
+	return pVertices;
+}
+
+std::shared_ptr<Bind::IndexBuffer> Drawable::ShareIndices() const noexcept
+{
+	return pIndices;
+}
+
+std::shared_ptr<Bind::Topology> Drawable::ShareTopology() const noexcept
+{
+	return pTopology;
+}
+
+DirectX::XMFLOAT3 Drawable::GetPosition() const noexcept
+{
+	return trans.GetPosition();
+}
+
+DirectX::XMFLOAT3 Drawable::GetRotationRaw() const noexcept
+{
+	return trans.GetRotationRaw();
+}
+
+DirectX::XMFLOAT3 Drawable::GetScale() const noexcept
+{
+	return trans.GetScale();
+}

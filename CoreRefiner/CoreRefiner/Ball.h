@@ -3,14 +3,35 @@
 #include "EnemyBase.h"
 #include "RenderGraph.h"
 #include "Channels.h"
-#include "Ball_Shape.h"
+#include "Drawable.h"
 #include "VisualComponent.h"
 #include "SphereColliderComponent.h"
 #include "XMath.h"
 #include "AttackManager.h"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
+
+namespace Bind
+{
+	class AttackShadeCbuf;
+}
+
+// 攻击球自己的网格。颜色编号留在 shade_ 里，只给 Ball 用。
+class Ball_Shape : public Drawable
+{
+public:
+	Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size);
+	DirectX::XMMATRIX GetTransformXM() const noexcept override;
+	// 清掉这一发外形上已经记下的颜色编号。
+	void ClearColorIds() noexcept;
+	// 按写入顺序再追加一条。colorId 为 0 是灰，1 是白，2 是黑。
+	void AppendColorId(std::uint32_t colorId);
+private:
+	// 这一发的颜色列表。没有编号时球是灰色。
+	std::shared_ptr<Bind::AttackShadeCbuf> shade_;
+};
 
 class Ball : public AttackBase_Moduled
 {

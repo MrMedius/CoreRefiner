@@ -1,7 +1,8 @@
 #include "EffectManager.h"
 
 #include "EffectBase.h"
-#include "Ring_Yin.h"
+#include "RingYin.h"
+#include "ExecuteSphere.h"
 #include "HierarchySpawn.h"
 #include "ObjectCodex.h"
 
@@ -10,8 +11,9 @@ EffectManager::EffectManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
-	// 先生成再关掉。没交出，所以不会进 effects。
-	HierarchySpawn::WarmupPool<Ring_Yin>(effect_Ring_Yin, kPoolCount_, gfx_, rg_);
+	// 先生成再关掉。没交出，所以不会进 effects。阴环和黑球各预热一份。
+	HierarchySpawn::WarmupPool<RingYin>(effect_Ring_Yin, kPoolCount_, gfx_, rg_);
+	HierarchySpawn::WarmupPool<ExecuteSphere>(effect_ExecuteSphere, kPoolCount_, gfx_, rg_);
 }
 
 void EffectManager::ClaimEffect()

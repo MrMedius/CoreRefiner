@@ -479,7 +479,7 @@ private:
 	static constexpr float kRadius_{ 10.0f };
 };
 
-// 太阴。扫到后挂到当前聚焦的那发弹上。造价用默认 4。这一步还不挂攻击。
+// 太阴。扫到后挂到当前聚焦的那发弹上。造价用默认 4。
 class ModuleNode_Element_GreaterYin final : public IModuleNode
 {
 public:
@@ -496,10 +496,10 @@ public:
 		SetScanExpandSpeed(kScanExpandSpeed_);
 	}
 
-	// 配方扫到时先什么都不做。命中结算以后再挂上。
+	// 把当前等级的标记数和秒杀倍率交给太阴步骤。步骤挂上模块，并记入配方，复活重放同一条记录。
 	void ApplyTo(DeployContext& ctx) override
 	{
-		(void)ctx;
+		AttackNodeStep_Element_GreaterYin::Make(markCount_, executeRate_)->Apply(ctx);
 	}
 
 	// 面板提交给予的阴标记个数和秒杀倍率。

@@ -16,6 +16,7 @@
 
 #include "Module_Element_Yin.h"
 #include "Module_Element_Yang.h"
+#include "Module_Element_GreaterYin.h"
 
 #include "ConstraintComponent.h"
 
@@ -531,6 +532,53 @@ private:
 	float radius_{ 0.0f };
 };
 
+// 把太阴模块挂到当前这发弹上。重复和复活重放时走这里。节点扫描还没接上。
+class AttackNodeStep_Element_GreaterYin final : public IAttackNodeStep
+{
+public:
+	// markCount 这次命中加上的标记数。executeRate 是秒杀倍率。
+	AttackNodeStep_Element_GreaterYin(float markCount, float executeRate) noexcept
+		:
+		markCount_(markCount),
+		executeRate_(executeRate)
+	{}
+
+	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，以后池不够时再造黑球。
+	void Apply(DeployContext& ctx) override
+	{
+		const AttackStepRecord rec = AttackStepRecordMake::ElementGreaterYin(markCount_, executeRate_);
+		if (ctx.TryRecordOnly(rec))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.host == nullptr || s.gfx == nullptr || s.rg == nullptr)
+		{
+			const float marks = markCount_;
+			const float rate = executeRate_;
+			ctx.EnqueueOnEmptyPit([marks, rate](DeployContext& c)
+			{
+				AttackNodeStep_Element_GreaterYin(marks, rate).Apply(c);
+			});
+			return;
+		}
+		// 主体就绪后把太阴模块装上，并记下这条步骤。等待队列不能拷贝 Graphics 和渲染图。
+		s.host->AddModule<Module_Element_GreaterYin>(markCount_, executeRate_, *s.gfx, *s.rg);
+		ctx.Record(rec);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Element_GreaterYin> Make(float markCount, float executeRate)
+	{
+		return std::make_unique<AttackNodeStep_Element_GreaterYin>(markCount, executeRate);
+	}
+
+private:
+	// 这次命中要加上的标记个数。
+	float markCount_{ 0.0f };
+	// 格子里的个数乘这个倍率，大于当前血量就秒杀。
+	float executeRate_{ 0.0f };
+};
+
 // 按快照 Apply 一条 Step。
 // Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
@@ -562,8 +610,9 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 	// ————————————————————————————————————————————————————
 	// Kind —— Element
 	// ————————————————————————————————————————————————————
-	case ModuleNodeLabel::Element_Yin:	AttackNodeStep_Element_Yin::Make(rec.a, rec.b)->Apply(ctx);				break;
-	case ModuleNodeLabel::Element_Yang:	AttackNodeStep_Element_Yang::Make(rec.a, rec.b, rec.c)->Apply(ctx);		break;
+	case ModuleNodeLabel::Element_Yin:			AttackNodeStep_Element_Yin::Make(rec.a, rec.b)->Apply(ctx);				break;
+	case ModuleNodeLabel::Element_Yang:			AttackNodeStep_Element_Yang::Make(rec.a, rec.b, rec.c)->Apply(ctx);		break;
+	case ModuleNodeLabel::Element_GreaterYin:	AttackNodeStep_Element_GreaterYin::Make(rec.a, rec.b)->Apply(ctx);		break;
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

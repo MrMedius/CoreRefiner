@@ -1,14 +1,30 @@
 #include "PreviewScene.h"
 
 #include "Ball.h"
-#include "Ring_Yang.h"
-#include "Ring_Yin.h"
+#include "Enemy_T_Shape.h"
+#include "ExecuteSphere.h"
+#include "RingYang.h"
+#include "RingYin.h"
 
 #include "Channels.h"
 #include "GameRenderGraph.h"
 #include "InputCodex.h"
 #include "SceneDirector.h"
 #include "Window.h"
+
+namespace
+{
+	// 测试外形的整边长。和 Enemy_T 交给 SetCollisionSize 的是同一个数。
+	constexpr XMFLOAT3 kVictimSize_{ 2.0f, 2.0f, 2.0f };
+	// 测试外形的 yaw。副本应停在这个朝向。
+	constexpr float kVictimYaw_{ 0.7f };
+
+	// fullSize 是整边长。碰撞盒存的是它的一半，这里先收成半边长。
+	XMFLOAT3 HalfOf_(XMFLOAT3 fullSize) noexcept
+	{
+		return { fullSize.x * 0.5f, fullSize.y * 0.5f, fullSize.z * 0.5f };
+	}
+}
 
 PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRenderGraph& gameRG)
 	:
@@ -18,9 +34,13 @@ PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRende
 	light_(wnd.Gfx(), { 0.0f, 20.0f, 0.0f }),
 	cameras_(wnd.Gfx()),
 	ball_(std::make_unique<Ball>(wnd.Gfx(), gameRG, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f }, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f })),
-	yin_(std::make_unique<Ring_Yin>(wnd.Gfx(), gameRG)),
-	yang_(std::make_unique<Ring_Yang>(wnd.Gfx(), gameRG))
+	yin_(std::make_unique<RingYin>(wnd.Gfx(), gameRG)),
+	yang_(std::make_unique<RingYang>(wnd.Gfx(), gameRG)),
+	sphere_(std::make_unique<ExecuteSphere>(wnd.Gfx(), gameRG)),
+	victimSource_(std::make_unique<Enemy_T_Shape>(wnd.Gfx(), kVictimSize_))
 {
+	// 朝向只写一次。播放时黑球从这只外形记下，之后不再改。
+	victimSource_->SetRotationRad(0.0f, kVictimYaw_, 0.0f);
 	light_.LinkTechniques(gameRG_);
 	cameras_.LinkTechniques(gameRG_);
 	// 灰、白、黑。只写一次，球本身不再出生。
@@ -36,9 +56,10 @@ PreviewScene::~PreviewScene() = default;
 
 void PreviewScene::OnEnter()
 {
-	// yinPos / yangPos 是两只特效的播放中心，左右分开。
+	// yinPos / yangPos / spherePos 是三只特效的播放中心。左右是环，前方是黑球。
 	const XMFLOAT3 yinPos{ 6.0f, 0.0f, 0.0f };
 	const XMFLOAT3 yangPos{ -6.0f, 0.0f, 0.0f };
+	const XMFLOAT3 spherePos{ 0.0f, 0.0f, 6.0f };
 	if (yin_ != nullptr)
 	{
 		if (!yin_->IsActive())
@@ -53,9 +74,19 @@ void PreviewScene::OnEnter()
 		{
 			yang_->Activate();
 		}
-		// hitDir 预览不需要击退，传零。Ring_Yang 只把它存下来。
+		// hitDir 预览不需要击退，传零。RingYang 只把它存下来。
 		const XMFLOAT3 hitDir{ 0.0f, 0.0f, 0.0f };
 		yang_->SpawnAt(yangPos, hitDir);
+	}
+	if (sphere_ != nullptr)
+	{
+		if (!sphere_->IsActive())
+		{
+			sphere_->Activate();
+		}
+		// 来源先放到播放点。黑球记下它的网格、颜色和朝向。
+		victimSource_->SetPosition(spherePos);
+		sphere_->Play(spherePos, ExecuteSphereRadius(HalfOf_(kVictimSize_)), victimSource_.get());
 	}
 }
 
@@ -74,9 +105,10 @@ void PreviewScene::Update(float dt)
 		director_.RequestScene(SceneId::Title);
 	}
 
-	// yinPos / yangPos 和进入预览时的位置相同。
+	// yinPos / yangPos / spherePos 和进入预览时的位置相同。
 	const XMFLOAT3 yinPos{ 6.0f, 0.0f, 0.0f };
 	const XMFLOAT3 yangPos{ -6.0f, 0.0f, 0.0f };
+	const XMFLOAT3 spherePos{ 0.0f, 0.0f, 6.0f };
 	if (yin_ != nullptr)
 	{
 		if (!yin_->IsActive())
@@ -91,11 +123,21 @@ void PreviewScene::Update(float dt)
 		if (!yang_->IsActive())
 		{
 			yang_->Activate();
-			// hitDir 预览不需要击退，传零。Ring_Yang 只把它存下来。
+			// hitDir 预览不需要击退，传零。RingYang 只把它存下来。
 			const XMFLOAT3 hitDir{ 0.0f, 0.0f, 0.0f };
 			yang_->SpawnAt(yangPos, hitDir);
 		}
 		yang_->Update(dt);
+	}
+	if (sphere_ != nullptr)
+	{
+		if (!sphere_->IsActive())
+		{
+			sphere_->Activate();
+			victimSource_->SetPosition(spherePos);
+			sphere_->Play(spherePos, ExecuteSphereRadius(HalfOf_(kVictimSize_)), victimSource_.get());
+		}
+		sphere_->Update(dt);
 	}
 
 	// 跟战斗一样：主摄像机看原点，F2 操作的是窗口里选中的受控摄像机。
@@ -122,6 +164,10 @@ void PreviewScene::Submit()
 	if (yang_ != nullptr && yang_->IsActive())
 	{
 		yang_->Submit();
+	}
+	if (sphere_ != nullptr && sphere_->IsActive())
+	{
+		sphere_->Submit();
 	}
 	gameRG_.Execute(wnd_.Gfx());
 

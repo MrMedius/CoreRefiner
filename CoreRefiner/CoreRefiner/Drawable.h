@@ -40,6 +40,22 @@ public:
 	// 直接写入弧度。x 是 pitch，y 是 yaw，z 是 roll，不再从角度换算。
 	void SetRotationRad(float x, float y, float z) noexcept;
 	void SetScale(DirectX::XMFLOAT3 pos) noexcept;
+	// 交出 Codex 里已有的网格。没有网格时是空指针。
+	[[nodiscard]] std::shared_ptr<Bind::VertexBuffer> ShareVertices() const noexcept;
+	[[nodiscard]] std::shared_ptr<Bind::IndexBuffer> ShareIndices() const noexcept;
+	[[nodiscard]] std::shared_ptr<Bind::Topology> ShareTopology() const noexcept;
+	// 这只外形当前的位置。
+	[[nodiscard]] DirectX::XMFLOAT3 GetPosition() const noexcept;
+	// 这只外形当前的旋转，分量原样返回。
+	[[nodiscard]] DirectX::XMFLOAT3 GetRotationRaw() const noexcept;
+	// 这只外形当前的缩放。
+	[[nodiscard]] DirectX::XMFLOAT3 GetScale() const noexcept;
+	// 写出这只外形自己的颜色。没有单独颜色时返回 false，不改 out。
+	virtual bool GetMaterialColor(DirectX::XMFLOAT4& out) const noexcept
+	{
+		(void)out;
+		return false;
+	}
 protected:
 	std::shared_ptr<Bind::IndexBuffer> pIndices;
 	std::shared_ptr<Bind::VertexBuffer> pVertices;

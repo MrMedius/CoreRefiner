@@ -1,4 +1,4 @@
-#include "Ring_Yang.h"
+#include "RingYang.h"
 
 #include "Channels.h"
 #include "EnemyBase.h"
@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-Ring_Yang::Ring_Yang(Graphics& gfx, Rgph::RenderGraph& rg)
+RingYang::RingYang(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
 	AttackBase(attack_Ring_Yang)
 {
@@ -24,9 +24,9 @@ Ring_Yang::Ring_Yang(Graphics& gfx, Rgph::RenderGraph& rg)
 	ring_->SetAmplitude(kAmplitude_);
 }
 
-Ring_Yang::~Ring_Yang() = default;
+RingYang::~RingYang() = default;
 
-void Ring_Yang::SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir)
+void RingYang::SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir)
 {
 	origin_ = pos;
 	hitDir_ = dir;
@@ -46,7 +46,7 @@ void Ring_Yang::SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir)
 	}
 }
 
-void Ring_Yang::OnEnable(void)
+void RingYang::OnEnable(void)
 {
 	age_ = 0.0f;
 	prevOuter_ = 0.0f;
@@ -54,7 +54,7 @@ void Ring_Yang::OnEnable(void)
 	hitEnemies_.clear();
 }
 
-void Ring_Yang::ApplyOwnHit(CharacterBase* other)
+void RingYang::ApplyOwnHit(CharacterBase* other)
 {
 	auto* enemy = dynamic_cast<EnemyBase*>(other);
 	if (enemy == nullptr || enemy->GetIsDeath())
@@ -111,7 +111,7 @@ void Ring_Yang::ApplyOwnHit(CharacterBase* other)
 	enemy->CalculateMoveVelocity(hx * kKnockbackHorizontal_, kKnockbackUp_, hz * kKnockbackHorizontal_);
 }
 
-void Ring_Yang::SweepWavefront_()
+void RingYang::SweepWavefront_()
 {
 	// 伤害为 0 只播放。外沿没往外走（淡出）不再产生新的命中。
 	if (Stats().damage.Final() == 0.0f || !(outer_ > prevOuter_))
@@ -146,7 +146,7 @@ void Ring_Yang::SweepWavefront_()
 	}
 }
 
-float Ring_Yang::OuterAt_(float age) const
+float RingYang::OuterAt_(float age) const
 {
 	if (age <= 0.0f)
 	{
@@ -159,7 +159,7 @@ float Ring_Yang::OuterAt_(float age) const
 	return targetRadius_;
 }
 
-bool Ring_Yang::ApplyRing_()
+bool RingYang::ApplyRing_()
 {
 	if (ring_ == nullptr || age_ <= 0.0f)
 	{
@@ -188,7 +188,7 @@ bool Ring_Yang::ApplyRing_()
 	return true;
 }
 
-void Ring_Yang::Update(float dt)
+void RingYang::Update(float dt)
 {
 	prevOuter_ = outer_;
 	age_ += dt;
@@ -201,7 +201,7 @@ void Ring_Yang::Update(float dt)
 	ObjectBase::Update(dt);
 }
 
-void Ring_Yang::Submit(void)
+void RingYang::Submit(void)
 {
 	if (ApplyRing_() && ring_ != nullptr)
 	{

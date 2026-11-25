@@ -6,8 +6,10 @@
 #include <memory>
 
 class Ball;
-class Ring_Yang;
-class Ring_Yin;
+class Enemy_T_Shape;
+class ExecuteSphere;
+class RingYang;
+class RingYin;
 class SceneDirector;
 class Window;
 
@@ -44,7 +46,11 @@ private:
 	// 停在原点的测试球。不调用 Update，所以不飞行、不计寿命。
 	std::unique_ptr<Ball> ball_;
 	// 右侧的阴环。播完会再放一次。
-	std::unique_ptr<Ring_Yin> yin_;
+	std::unique_ptr<RingYin> yin_;
 	// 左侧的阳攻击环。播完会再放一次。
-	std::unique_ptr<Ring_Yang> yang_;
+	std::unique_ptr<RingYang> yang_;
+	// 前方的黑球。播完会再放一次。
+	std::unique_ptr<ExecuteSphere> sphere_;
+	// 给黑球当来源的测试外形。不提交，不进战斗。
+	std::unique_ptr<Enemy_T_Shape> victimSource_;
 };

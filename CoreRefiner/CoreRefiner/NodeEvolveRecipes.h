@@ -7,9 +7,9 @@ namespace NodeEvolveRecipes
 	struct Recipe
 	{
 		// 主体格里的标签。
-		ModuleNodeLabel subject;
-		// 素材格里的标签。可以和主体是同一个标签。
 		ModuleNodeLabel material;
+		// 素材格里的标签。
+		ModuleNodeLabel subject;
 		// 进化产物。
 		ModuleNodeLabel product;
 	};
@@ -18,6 +18,8 @@ namespace NodeEvolveRecipes
 	inline constexpr Recipe kRecipes[] = {
 		{ ModuleNodeLabel::Rule_Child,		ModuleNodeLabel::Other_Repeat,	ModuleNodeLabel::Rule_Revive },
 		{ ModuleNodeLabel::Other_Repeat,	ModuleNodeLabel::Rule_Child,	ModuleNodeLabel::Rule_Revive },
+		{ ModuleNodeLabel::Element_Yin,		ModuleNodeLabel::Element_Yin,	ModuleNodeLabel::Element_GreaterYin },
+		{ ModuleNodeLabel::Element_Yang,	ModuleNodeLabel::Element_Yin,	ModuleNodeLabel::Element_LesserYang },
 	};
 
 	// 检测产物必须落在 ModuleNodeLabel.h 的进化表里。本文件不持有那张表。
@@ -28,7 +30,7 @@ namespace NodeEvolveRecipes
 			if (!LabelTableContains(kEvolveLabels, recipe.product))
 			{
 				return false;
-			}
+			}	
 		}
 		return true;
 	}

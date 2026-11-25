@@ -442,12 +442,6 @@
     <ClCompile Include="Player_Shape.cpp">
       <Filter>Object\Shapes</Filter>
     </ClCompile>
-    <ClCompile Include="Field_Shape.cpp">
-      <Filter>Object\Shapes</Filter>
-    </ClCompile>
-    <ClCompile Include="Ball_Shape.cpp">
-      <Filter>Object\Shapes</Filter>
-    </ClCompile>
     <ClCompile Include="AttackManager.cpp">
       <Filter>Tool\Managers</Filter>
     </ClCompile>
@@ -772,7 +766,7 @@
     <ClCompile Include="Ring_Shape.cpp">
       <Filter>Object\Shapes</Filter>
     </ClCompile>
-    <ClCompile Include="Ring_Yin.cpp">
+    <ClCompile Include="RingYin.cpp">
       <Filter>Object\Effects</Filter>
     </ClCompile>
     <ClCompile Include="EffectManager.cpp">
@@ -781,7 +775,10 @@
     <ClCompile Include="AttackBase_Moduled.cpp">
       <Filter>Object\Attack</Filter>
     </ClCompile>
-    <ClCompile Include="Ring_Yang.cpp">
+    <ClCompile Include="RingYang.cpp">
+      <Filter>Object\Attack</Filter>
+    </ClCompile>
+    <ClCompile Include="Ball.cpp">
       <Filter>Object\Attack</Filter>
     </ClCompile>
   </ItemGroup>
@@ -999,9 +996,6 @@
     <ClInclude Include="Player.h">
       <Filter>Object\Character\Player</Filter>
     </ClInclude>
-    <ClInclude Include="EffectBase.h">
-      <Filter>Object\Effects</Filter>
-    </ClInclude>
     <ClInclude Include="EnvironmentManager.h">
       <Filter>Tool\Managers</Filter>
     </ClInclude>
@@ -1135,12 +1129,6 @@
       <Filter>Framework\Graphics\Drawable\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="Player_Shape.h">
-      <Filter>Object\Shapes</Filter>
-    </ClInclude>
-    <ClInclude Include="Field_Shape.h">
-      <Filter>Object\Shapes</Filter>
-    </ClInclude>
-    <ClInclude Include="Ball_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
     <ClInclude Include="AttackBase.h">
@@ -1635,7 +1623,7 @@
     <ClInclude Include="Ring_Shape.h">
       <Filter>Object\Shapes</Filter>
     </ClInclude>
-    <ClInclude Include="Ring_Yin.h">
+    <ClInclude Include="RingYin.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
     <ClInclude Include="EffectManager.h">
@@ -1650,7 +1638,7 @@
     <ClInclude Include="AttackBase_Moduled.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
-    <ClInclude Include="Ring_Yang.h">
+    <ClInclude Include="RingYang.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
     <ClInclude Include="ConstraintComponent.h">
@@ -1658,6 +1646,15 @@
     </ClInclude>
     <ClInclude Include="Module_Rule_Child.h">
       <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module_Element_GreaterYin.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectBase.h">
+      <Filter>Object\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="ExecuteSphere.h">
+      <Filter>Object\Effects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1864,6 +1861,18 @@
       <Filter>Shader\3D</Filter>
     </FxCompile>
     <FxCompile Include="Effect_Ring_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="ModelClip_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="ModelClip_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="ExecuteSphere_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="ExecuteSphere_PS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
   </ItemGroup>

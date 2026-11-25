@@ -3,7 +3,7 @@
 #include "AttackBase.h"
 #include "Ball.h"
 #include "EnemyBase.h"
-#include "Ring_Yang.h"
+#include "RingYang.h"
 #include "Graphics.h"
 #include "ObjectCodex.h"
 #include "RenderGraph.h"
@@ -45,8 +45,14 @@ public:
 		{
 			return;
 		}
-		const int triggers = enemy->Marks().Add(AttackMark::Yang, markCount_, kPerTrigger_);
-		for (int i = 0; i < triggers; ++i)
+		// 这次没有标记可加时，不消耗格子里已经有的个数。
+		if (markCount_ <= 0)
+		{
+			return;
+		}
+		enemy->Marks().Add(AttackMark::Yang, markCount_);
+		// Trigger 一次只扣满 5 个的一轮。返回 1 就放一只白环，直到不够一轮。
+		while (enemy->Marks().Trigger(AttackMark::Yang, kPerTrigger_) > 0)
 		{
 			SpawnRing_(*enemy);
 		}
@@ -76,7 +82,7 @@ private:
 	// 在被打中的敌人脚下取出一只白环。伤害和半径写在出生之后，出生会把它们收回默认值。
 	void SpawnRing_(const EnemyBase& enemy) const
 	{
-		Ring_Yang* ring = ObjectCodex::SpawnPooled<Ring_Yang>(attack_Ring_Yang, gfx_, rg_);
+		RingYang* ring = ObjectCodex::SpawnPooled<RingYang>(attack_Ring_Yang, gfx_, rg_);
 		if (ring == nullptr)
 		{
 			return;
