@@ -23,7 +23,8 @@
       "damage_fix": "固定伤害",
       "repeat_count": "重复节点个数",
       "yin_mark_count": "给予阴标记数量",
-      "yang_mark_count": "给予阳标记数量"
+      "yang_mark_count": "给予阳标记数量",
+      "yin_execute_rate": "秒杀倍率"
     },
     "Core_Ball": {
       "title": "核心·球体生成",
@@ -155,9 +156,29 @@
         }
       ]
     },
+    "Element_GreaterYin": {
+      "title": "太阴",
+      "body": "击中目标后给予对方阴标记。\n当目标身上的阴标记数量达到临界时，秒杀该目标。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    "Element_LesserYang": {
+      "title": "少阳",
+      "body": "击中目标后给予对方阳标记。\n每满10个阳标记，消耗一次，以该目标为中心造成范围伤害，并给每个受击对象增加阳标记后再次按此规则结算。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "固定伤害增幅",
-      "body": "如果处于仓库中，则为所有攻击节点增加固定伤害。",
+      "body": "如果处于仓库中，则为所有新发射的攻击增加固定伤害。",
       "spans": [
         {
           "start": 0,
@@ -206,7 +227,8 @@
       "damage_fix": "固定ダメージ",
       "repeat_count": "繰り返しノード数",
       "yin_mark_count": "付与陰マーク",
-      "yang_mark_count": "付与陽マーク"
+      "yang_mark_count": "付与陽マーク",
+      "yin_execute_rate": "即死倍率"
     },
     "Core_Ball": {
       "title": "コア・球体生成",
@@ -338,9 +360,29 @@
         }
       ]
     },
+    "Element_GreaterYin": {
+      "title": "太陰",
+      "body": "命中時に対象へ陰のマークを付与する。\n対象の陰マークの数が臨界に達すると、その対象を即死させる。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    "Element_LesserYang": {
+      "title": "少陽",
+      "body": "命中時に対象へ陽のマークを付与する。\n陽マークが10個たまるごとに消費し、その対象を中心に範囲ダメージを与える。ダメージを受けた各対象に陽マークを付与し、同じ規則で再び判定する。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "固定ダメージ増幅",
-      "body": "倉庫にあるとき、すべての攻撃ノードに固定ダメージを加算する。",
+      "body": "倉庫にあるとき、新しく発射されたすべての攻撃に固定ダメージを加算する。",
       "spans": [
         {
           "start": 0,
@@ -389,7 +431,8 @@
       "damage_fix": "Flat Damage",
       "repeat_count": "Repeat Count",
       "yin_mark_count": "Yin Marks Granted",
-      "yang_mark_count": "Yang Marks Granted"
+      "yang_mark_count": "Yang Marks Granted",
+      "yin_execute_rate": "Execute Rate"
     },
     "Core_Ball": {
       "title": "Core Sphere Spawn",
@@ -521,9 +564,29 @@
         }
       ]
     },
+    "Element_GreaterYin": {
+      "title": "Greater Yin",
+      "body": "On hit, grants the target Yin marks.\nWhen the target's Yin mark count reaches the threshold, the target is executed.",
+      "spans": [
+        {
+          "start": 0,
+          "length": 11
+        }
+      ]
+    },
+    "Element_LesserYang": {
+      "title": "Lesser Yang",
+      "body": "On hit, grants the target Yang marks.\nEvery 10 Yang marks are spent once to deal area damage centered on that target. Each enemy hit gains Yang marks, then the same rule resolves again.",
+      "spans": [
+        {
+          "start": 0,
+          "length": 11
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "Flat Damage Boost",
-      "body": "While in the warehouse, adds flat damage to all attack nodes.",
+      "body": "While in the warehouse, adds flat damage to every newly fired attack.",
       "spans": [
         {
           "start": 0,

@@ -3,6 +3,12 @@
 #include "BindableCommon.h"
 #include "Channels.h"
 
+namespace
+{
+	// 这只外形的颜色。像素常量和 GetMaterialColor 用同一份。
+	constexpr DirectX::XMFLOAT3 kBodyColor_{ 0.0f, 0.5f, 0.0f };
+}
+
 Enemy_T_Shape::Enemy_T_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 {
 	using namespace Bind;
@@ -28,7 +34,7 @@ Enemy_T_Shape::Enemy_T_Shape(Graphics& gfx, DirectX::XMFLOAT3 size)
 
 		struct PSColorConstant
 		{
-			dx::XMFLOAT3 color = { 0.0f,0.5f,0.0f }; // 纯白色
+			dx::XMFLOAT3 color = kBodyColor_;
 			float padding;
 		} colorConst;
 		only.AddBindable(PixelConstantBuffer<PSColorConstant>::Resolve(gfx, colorConst, 1u));
@@ -50,4 +56,10 @@ void Enemy_T_Shape::Update(float dt)
 DirectX::XMMATRIX Enemy_T_Shape::GetTransformXM() const noexcept
 {
 	return trans.GetTransformXM();
+}
+
+bool Enemy_T_Shape::GetMaterialColor(DirectX::XMFLOAT4& out) const noexcept
+{
+	out = { kBodyColor_.x, kBodyColor_.y, kBodyColor_.z, 1.0f };
+	return true;
 }

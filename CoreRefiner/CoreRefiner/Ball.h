@@ -3,14 +3,37 @@
 #include "EnemyBase.h"
 #include "RenderGraph.h"
 #include "Channels.h"
-#include "Ball_Shape.h"
+#include "Drawable.h"
 #include "VisualComponent.h"
 #include "SphereColliderComponent.h"
 #include "XMath.h"
 #include "AttackManager.h"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
+
+namespace Bind
+{
+	class AttackShadeCbuf;
+}
+
+// 攻击球自己的网格。颜色编号留在 shade_ 里，只给 Ball 用。
+class Ball_Shape : public Drawable
+{
+public:
+	Ball_Shape(Graphics& gfx, DirectX::XMFLOAT3 size);
+	DirectX::XMMATRIX GetTransformXM() const noexcept override;
+	// 清掉这一发外形上已经记下的颜色编号，并把外层透明度收回 1。
+	void ClearColorIds() noexcept;
+	// 按写入顺序再追加一条。colorId 为 0 是灰，1 是白，2 是黑。
+	void AppendColorId(std::uint32_t colorId);
+	// opacity 小于 1 时这颗球改走透明通道，并由着色器按视线把中心变透。1 时仍走原来的不透明通道。
+	void SetOuterOpacity(float opacity) noexcept;
+private:
+	// 这一发的颜色列表。没有编号时球是灰色。
+	std::shared_ptr<Bind::AttackShadeCbuf> shade_;
+};
 
 class Ball : public AttackBase_Moduled
 {
@@ -29,6 +52,11 @@ class Ball : public AttackBase_Moduled
 			shape->LinkTechniques(rg);
 			AddComponent<VisualComponent>(std::move(shape), Chan::main, false, true);
 		}
+		{
+			// 内层由球自己留着。不放进视觉组件，关着时就不会被组件循环刷新或提交。
+			innerShape_ = std::make_unique<Ball_Shape>(gfx, XMFLOAT3{ kInnerScale_, kInnerScale_, kInnerScale_ });
+			innerShape_->LinkTechniques(rg);
+		}
 
 		// Unit scale ⇒ radius 1 (legacy: diameter 2 box).
 		pCollider_ = AddComponent<SphereColliderComponent>(1.0f, ColliderSyncMode::FollowCenter);
@@ -36,21 +64,45 @@ class Ball : public AttackBase_Moduled
 		ApplyPresentation({ 1.0f, 1.0f, 1.0f }, true);
 	}
 
-	// 清掉这一发已经记下的颜色编号。下次出生由模块重新写入。
+	// 清掉外层和内层已经记下的颜色编号，并把外层透明度收回 1。内层同时关掉。
 	void ClearColorIds() noexcept
 	{
 		if (shape_ != nullptr)
 		{
 			shape_->ClearColorIds();
 		}
+		if (innerShape_ != nullptr)
+		{
+			innerShape_->ClearColorIds();
+		}
+		SetInnerVisible(false);
 	}
 
-	// 按写入顺序再追加一条。colorId 为 0 是灰，1 是白，2 是黑。
+	// 按写入顺序再追加一条。外层和内层记同一条。colorId 为 0 是灰，1 是白，2 是黑。
 	void AppendColorId(std::uint32_t colorId)
 	{
 		if (shape_ != nullptr)
 		{
 			shape_->AppendColorId(colorId);
+		}
+		if (innerShape_ != nullptr)
+		{
+			innerShape_->AppendColorId(colorId);
+		}
+	}
+
+	// visible 为真时这一发才刷新并绘制内层。为假时 Ball 的更新和提交都不碰它。
+	void SetInnerVisible(bool visible) noexcept
+	{
+		innerVisible_ = visible;
+	}
+
+	// opacity 小于 1 时这颗球按视线把中心变透。1 不透明。只改这一发的外形。
+	void SetOuterOpacity(float opacity) noexcept
+	{
+		if (shape_ != nullptr)
+		{
+			shape_->SetOuterOpacity(opacity);
 		}
 	}
 
@@ -160,6 +212,8 @@ class Ball : public AttackBase_Moduled
 	void OnEnable(void) override
 	{
 		presented_ = false;
+		// 从池里取出时先藏起内层。少阳在这一发出生时再打开。
+		SetInnerVisible(false);
 	}
 	void Update(float dt) override
 	{
@@ -197,12 +251,25 @@ class Ball : public AttackBase_Moduled
 			}
 		}
 
+		// 少阳打开后，内层跟着这一帧已经定好的位置和朝向。
+		if (innerVisible_)
+		{
+			SyncInner_();
+		}
 		ObjectBase::Update(dt);
 	}
 	void Submit(void) override
 	{
 		// 这次已经交去绘制。下一帧起命中才结算。
 		presented_ = true;
+		// 出生那一帧可能还没进 Update。打开时先把姿态写上再提交。
+		if (innerVisible_)
+		{
+			if (innerShape_ != nullptr)
+			{
+				innerShape_->Submit(Chan::main);
+			}
+		}
 		ObjectBase::Submit();
 	}
 	// 给 OnCollide 看。没提交过绘制就先不结算。
@@ -210,7 +277,7 @@ class Ball : public AttackBase_Moduled
 	{
 		return presented_;
 	}
-	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
+	// 球自己的命中：停下、扣普通伤害、向上轻跳。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
 	void ApplyOwnHit(CharacterBase* other) override
 	{
 		RequestDisable();
@@ -231,11 +298,9 @@ class Ball : public AttackBase_Moduled
 			e->SetWasHurt(true);
 			e->CalculateHpCurrent(-Stats().damage.Final());
 
-			const auto selfPos = GetWorldPosition();
-			const Vec3 d = V(e->GetWorldPosition()) - V(selfPos);
-			float angle = atan2f(d.x, d.z);
-			XMFLOAT3 repel{ 0.3f,0.1f,0.1f };
-			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
+			// hop 是这一次向上的速度。不加水平速度。正在上升时不超过这一次。
+			constexpr float hop = 0.1f;
+			other->AddHop(hop);
 		}
 	}
 private:
@@ -248,6 +313,41 @@ private:
 		}
 		pCollider_->SetEnabled(colliderWanted_ && IsLaunched());
 		pCollider_->SyncFromOwner();
+	}
+
+	// 把这颗球当前的世界位置、旋转和缩放写进内层外形。网格上的 0.65 不再乘一次。
+	void SyncInner_()
+	{
+		if (innerShape_ == nullptr)
+		{
+			return;
+		}
+		innerShape_->SetPosition(GetWorldPosition());
+		if (GetParent() == nullptr)
+		{
+			const XMFLOAT3 rot = GetRotation();
+			innerShape_->SetRotationRad(rot.x, rot.y, rot.z);
+			innerShape_->SetScale(GetSize());
+			return;
+		}
+
+		// 挂在父物体上时，朝向和缩放从世界矩阵拆出来，公转的子弹才会跟着走。
+		XMVECTOR scaleV{};
+		XMVECTOR quatV{};
+		XMVECTOR transV{};
+		if (!XMMatrixDecompose(&scaleV, &quatV, &transV, GetWorldMatrix()))
+		{
+			innerShape_->SetScale(GetSize());
+			return;
+		}
+		XMFLOAT3 scale{};
+		XMStoreFloat3(&scale, scaleV);
+		innerShape_->SetScale(scale);
+		const XMMATRIX rotM = XMMatrixRotationQuaternion(quatV);
+		XMFLOAT4X4 rot4{};
+		XMStoreFloat4x4(&rot4, rotM);
+		const XMFLOAT3 euler = ExtractEulerAngles(rot4);
+		innerShape_->SetRotationRad(euler.x, euler.y, euler.z);
 	}
 
 	// 只改缩放和碰撞半径，不动碰撞开关。出生后模块可能已经改过开关。
@@ -265,6 +365,12 @@ private:
 	SphereColliderComponent* pCollider_{ nullptr };
 	// 这一发的外形。负责把颜色编号写进它的着色缓冲。
 	Ball_Shape* shape_{ nullptr };
+	// 藏在外层里的缩小外形。球自己持有，颜色编号和外层各记一份。
+	std::unique_ptr<Ball_Shape> innerShape_;
+	// 为真时才在 Update 里写内层姿态，并在 Submit 里提交。默认关。
+	bool innerVisible_{ false };
+	// 内层网格相对单位球的尺寸。碰撞仍用外层的缩放。
+	static constexpr float kInnerScale_{ 0.4f };
 	// 组装和出生流程想要的碰撞开关。真正开启还要等已出生。
 	bool colliderWanted_{ true };
 	// 这一发是否已经提交过绘制。为假时命中不结算。

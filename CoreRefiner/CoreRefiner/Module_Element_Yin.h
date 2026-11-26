@@ -3,7 +3,7 @@
 #include "AttackBase.h"
 #include "Ball.h"
 #include "EnemyBase.h"
-#include "Ring_Yin.h"
+#include "RingYin.h"
 #include "Graphics.h"
 #include "ObjectCodex.h"
 #include "RenderGraph.h"
@@ -42,8 +42,14 @@ public:
 		{
 			return;
 		}
-		const int triggers = enemy->Marks().Add(AttackMark::Yin, markCount_, kPerTrigger_);
-		for (int i = 0; i < triggers; ++i)
+		// 这次没有标记可加时，不消耗格子里已经有的个数。
+		if (markCount_ <= 0)
+		{
+			return;
+		}
+		enemy->Marks().Add(AttackMark::Yin, markCount_);
+		// Trigger 一次只扣满 5 个的一轮。返回 1 就扣一次血、放一只环，直到不够一轮。
+		while (enemy->Marks().Trigger(AttackMark::Yin, kPerTrigger_) > 0)
 		{
 			ApplyExtraDamage_(*enemy);
 			SpawnEffect_(*enemy);
@@ -61,7 +67,7 @@ private:
 	// 在敌人当前位置取出一只阴环开始播放，并交给特效管理器认领。池里没有就按 gfx、rg 再造。
 	void SpawnEffect_(const EnemyBase& enemy) const
 	{
-		if (Ring_Yin* fx = ObjectCodex::SpawnPooled<Ring_Yin>(effect_Ring_Yin, gfx_, rg_))
+		if (RingYin* fx = ObjectCodex::SpawnPooled<RingYin>(effect_Ring_Yin, gfx_, rg_))
 		{
 			fx->SpawnAt(enemy.GetWorldPosition(), false);
 			ObjectCodex::Handoff(effect_Ring_Yin, fx);

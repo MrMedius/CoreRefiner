@@ -22,6 +22,7 @@ namespace Bind
 
         ShadeData data{};
         data.count = static_cast<std::uint32_t>(uploadCount);
+        data.opacity = opacity_;
         for (std::size_t i = 0; i < uploadCount; ++i)
         {
             data.ids[i] = ids_[i];

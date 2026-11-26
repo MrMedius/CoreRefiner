@@ -44,6 +44,8 @@ enum class ModuleNodeLabel : unsigned char
 	// ————————————————————————————————————————————————————
 	Element_Yin,
 	Element_Yang,
+	Element_GreaterYin,
+	Element_LesserYang,
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
@@ -100,6 +102,7 @@ enum class ModuleNodeStat : unsigned char
 	RepeatCount,
 	YinMarkCount,
 	YangMarkCount,
+	YinExecuteRate,
 	Count
 };
 
@@ -140,6 +143,8 @@ inline constexpr ModuleNodeLabel kRuleLabels[] = {
 inline constexpr ModuleNodeLabel kElementLabels[] = {
 	ModuleNodeLabel::Element_Yin,
 	ModuleNodeLabel::Element_Yang,
+	ModuleNodeLabel::Element_GreaterYin,
+	ModuleNodeLabel::Element_LesserYang,
 };
 // ————————————————————————————————————————————————————
 // Kind —— Passive
@@ -333,6 +338,8 @@ static_assert(KindOfInvertsLabelsOf());
 // 进化产物子集，项仍留在对应 Kind 表里，不从 Kind 表抠走。
 inline constexpr ModuleNodeLabel kEvolveLabels[] = {
 	ModuleNodeLabel::Rule_Revive,
+	ModuleNodeLabel::Element_GreaterYin,
+	ModuleNodeLabel::Element_LesserYang,
 };
 
 [[nodiscard]] inline constexpr bool LabelInAnyKindTable(ModuleNodeLabel label) noexcept

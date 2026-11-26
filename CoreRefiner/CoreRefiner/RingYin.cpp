@@ -1,4 +1,4 @@
-#include "Ring_Yin.h"
+#include "RingYin.h"
 
 #include "Channels.h"
 #include "Ring_Shape.h"
@@ -6,7 +6,7 @@
 
 #include <random>
 
-Ring_Yin::Ring_Yin(Graphics& gfx, Rgph::RenderGraph& rg)
+RingYin::RingYin(Graphics& gfx, Rgph::RenderGraph& rg)
 	:
 	EffectBase(effect_Ring_Yin)
 {
@@ -14,17 +14,18 @@ Ring_Yin::Ring_Yin(Graphics& gfx, Rgph::RenderGraph& rg)
 	{
 		ring = std::make_unique<Ring_Shape>(gfx);
 		ring->LinkTechniques(rg);
-		ring->SetColor({ 0.0f, 0.0f, 0.0f });
-		ring->SetGradient(true);
+		// 内沿空，外沿黑。播放淡出写在 opacity 上。
+		ring->SetInnerColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+		ring->SetOuterColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 		ring->SetInnerWave(false);
 		ring->SetOuterWave(false);
 		ring->SetAmplitude(0.0f);
 	}
 }
 
-Ring_Yin::~Ring_Yin() = default;
+RingYin::~RingYin() = default;
 
-void Ring_Yin::SpawnAt(XMFLOAT3 pos, bool flip)
+void RingYin::SpawnAt(XMFLOAT3 pos, bool flip)
 {
 	// 环不看翻转。朝向只绕 forward 掀起。
 	(void)flip;
@@ -45,18 +46,18 @@ void Ring_Yin::SpawnAt(XMFLOAT3 pos, bool flip)
 	}
 }
 
-void Ring_Yin::OnEnable(void)
+void RingYin::OnEnable(void)
 {
 	age_ = 0.0f;
 }
 
-void Ring_Yin::OnCollide(CharacterBase* other)
+void RingYin::OnCollide(CharacterBase* other)
 {
 	// 环不挡碰撞。
 	(void)other;
 }
 
-bool Ring_Yin::ApplyRing_(std::size_t index)
+bool RingYin::ApplyRing_(std::size_t index)
 {
 	// local 是这一圈自己的播放秒数。还没出发时是负数。
 	const float local = age_ - kStagger_ * static_cast<float>(index);
@@ -75,7 +76,7 @@ bool Ring_Yin::ApplyRing_(std::size_t index)
 	return true;
 }
 
-void Ring_Yin::Update(float dt)
+void RingYin::Update(float dt)
 {
 	age_ += dt;
 	for (std::size_t i = 0; i < rings_.size(); ++i)
@@ -92,7 +93,7 @@ void Ring_Yin::Update(float dt)
 	ObjectBase::Update(dt);
 }
 
-void Ring_Yin::Submit(void)
+void RingYin::Submit(void)
 {
 	for (std::size_t i = 0; i < rings_.size(); ++i)
 	{

@@ -12,18 +12,22 @@ using namespace DirectX;
 
 enum Object_Type_Tag
 {
-	Item_Type_None		= 0x000,
+	Item_Type_None			= 0x000,
 	// Character
-	character_Player	= 0x999,
-	character_Enemy_T	= 0x011,
+	character_Player		= 0x999,
+	character_Enemy_T		= 0x011,
 	// Attack
-	attack_Ball			= 0x101,
-	attack_Ring_Yang	= 0x102,
+	attack_Ball				= 0x101,
+	attack_Ring_Yang		= 0x102,
+	attack_Ring_LesserYang	= 0x103,
 	// Environment
-	environment_Field	= 0x200,
-	environment_Coin	= 0x201,
+	environment_Field		= 0x200,
+	environment_Coin		= 0x201,
 	// Effect
-	effect_Ring_Yin		= 0x301,
+	effect_Ring_Yin			= 0x301,
+	effect_ExecuteSphere	= 0x302,
+	effect_AttackTrail		= 0x303,
+	effect_Marker			= 0x304,
 };
 
 class ObjectBase
@@ -36,17 +40,34 @@ public:
 	virtual ~ObjectBase();
 
 	virtual void OnEnable(void) = 0;
-	// Host-driven update: derived gameplay should call ObjectBase::Update at the end.
-	// Default drives attached components (Visual/Collider sync, etc.).
+	// 先更新自己的组件，再更新还挂着、并且仍在活动的变换子物体。
+	// 派生类在自己的逻辑之后调用。显示子物体不进管理器，靠这次调用被带动。
 	virtual void Update(float dt)
 	{
 		UpdateComponents(dt);
+		// 先抄一份。子物体更新时可能卸下父子，直接走原名单会改到正在遍历的容器。
+		const std::vector<ObjectBase*> kids = children_;
+		for (ObjectBase* child : kids)
+		{
+			if (child != nullptr && child->IsActive())
+			{
+				child->Update(dt);
+			}
+		}
 	}
-	// Host-driven submit: derived should call ObjectBase::Submit at the end.
-	// Default submits attached components (Drawable / debug wire).
+	// 先提交自己的组件，再提交还挂着、并且仍在活动的变换子物体。
+	// 派生类在自己的逻辑之后调用。显示子物体不进管理器，靠这次调用被画出来。
 	virtual void Submit(void)
 	{
 		SubmitComponents();
+		const std::vector<ObjectBase*> kids = children_;
+		for (ObjectBase* child : kids)
+		{
+			if (child != nullptr && child->IsActive())
+			{
+				child->Submit();
+			}
+		}
 	}
 	Object_Type_Tag GetTag(void) const		{ return Tag; }
 	// True when in use and not marked for deferred disable.

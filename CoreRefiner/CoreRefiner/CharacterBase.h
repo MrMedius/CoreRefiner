@@ -47,6 +47,20 @@ public:
 	[[nodiscard]] float GetHpMax() const noexcept { return stats_.hpMax.Final(); }
 	void CalculateMoveVelocity(float X, float Y, float Z)	{ MoveVelocity = (V(MoveVelocity) + Vec3{ X, Y, Z }).ToFloat3(); }
 	void CalculateMoveVelocity(XMFLOAT3 offset)				{ MoveVelocity = (V(MoveVelocity) + V(offset)).ToFloat3(); }
+	// up 是这一次向上的速度。不改水平速度。正在上升的速度已经达到 up 就不再加。
+	void AddHop(float up) noexcept
+	{
+		if (up <= 0.0f)
+		{
+			return;
+		}
+		const float rising = MoveVelocity.y > 0.0f ? MoveVelocity.y : 0.0f;
+		const float addY = up - rising;
+		if (addY > 0.0f)
+		{
+			MoveVelocity.y += addY;
+		}
+	}
 	XMFLOAT3 GetMoveVelocity(void) const					{ return MoveVelocity; }
 	void SetMoveAccel(float accel) { stats_.moveAccel.base = accel; }
 	float GetMoveAccel(void) const { return stats_.moveAccel.Final(); }

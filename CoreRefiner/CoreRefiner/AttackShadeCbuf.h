@@ -14,17 +14,21 @@ namespace Bind
         {
             // 这次上传的条数。0 表示没有条纹。
             std::uint32_t count{ 0 };
+            // 整颗球外层的透明度。1 不透明。淡化只改这一颗，不改别的球。
+            float opacity{ 1.0f };
             // 补齐到 16 字节，不参与着色。转动用 Time_PS.hlsli 的 totalTime。
-            float padding[3]{};
+            float padding[2]{};
             // 按写入顺序排列的颜色编号。超出 256 的部分不上传。
             std::uint32_t ids[256]{};
         };
 
         AttackShadeCbuf(Graphics& gfx, UINT slot = 2u);
-        // 清掉这一发已经记下的全部颜色编号。
+        // 清掉这一发已经记下的全部颜色编号。不改透明度。
         void ClearColorIds() noexcept { ids_.clear(); }
         // 按写入顺序再追加一个颜色编号。colorId 为 0 是灰，1 是白，2 是黑。
         void AppendColorId(std::uint32_t colorId) { ids_.push_back(colorId); }
+        // opacity 是这颗球外层的透明度。1 不透明。
+        void SetOpacity(float opacity) noexcept { opacity_ = opacity; }
         void Bind(Graphics& gfx) noxnd override;
         std::unique_ptr<CloningBindable> Clone() const noexcept override;
     protected:
@@ -34,5 +38,7 @@ namespace Bind
         static std::unique_ptr<PixelConstantBuffer<ShadeData>> pPcbuf;
         // 这一发按写入顺序记下的全部颜色编号。着色器只取前 256 个。
         std::vector<std::uint32_t> ids_;
+        // 这一发外层的透明度。默认不透明。
+        float opacity_{ 1.0f };
     };
 }

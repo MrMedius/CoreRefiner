@@ -34,6 +34,8 @@ enum ENEMY_TYPE_ID {
 };
 
 
+class Drawable;
+
 class EnemyBase : public CharacterBase
 {
 public:
@@ -177,12 +179,16 @@ public:
 			return false;
 	}
 	virtual int GetKillScore() const noexcept = 0;
+	// 身体外形。黑球只读这只模型来做副本，不拥有它。空表示没有可抄的模型。
+	const Drawable* GetBodyDrawable() const noexcept { return bodyDrawable_; }
 	ENEMY_TYPE_ID GetEnemyType(void) const { return Type; }
 	ObjectBase* GetAttackTarget(void) { return AttackTarget; }
 protected:
 	// 先 CharacterBase 场地/对弹，再怪互挤。对玩家不写位置、不消速度。
 	void MapItemCollide() override;
 	void SetEnemyType(ENEMY_TYPE_ID type) { Type = type; }
+	// drawable 是这只敌人用来画身体的模型。只记下地址，显示组件继续拥有它。
+	void SetBodyDrawable(const Drawable* drawable) noexcept { bodyDrawable_ = drawable; }
 	void SetSearchArea(XMFLOAT3 area)	  { searchCollider.half = (V(area) * 0.5f).ToFloat3(); }
 	XMFLOAT3 GetSearchArea(void) const	  { return searchCollider.half; }
 	// Search-volume vs target GetVolume (searchCollider stays Box; target may be Capsule).
@@ -210,6 +216,8 @@ protected:
 	bool WasHurt{ false };					// 攻撃されたかどうかのフラグ
 	// 这个敌人身上的全部攻击标记。每种一格，由容器自己管理。
 	AttackMarkSet marks_{};
+	// 身体外形的地址。空表示还没交给黑球可抄的模型。
+	const Drawable* bodyDrawable_{ nullptr };
 #ifdef _DEBUG
 	std::unique_ptr<CubeWireframe> searchColliderWire;
 #endif

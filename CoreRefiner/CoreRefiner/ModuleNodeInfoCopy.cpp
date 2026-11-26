@@ -64,6 +64,8 @@ namespace
 		// ————————————————————————————————————————————————————
 		if (name == "Element_Yin")				{ return ModuleNodeLabel::Element_Yin; }
 		if (name == "Element_Yang")				{ return ModuleNodeLabel::Element_Yang; }
+		if (name == "Element_GreaterYin")		{ return ModuleNodeLabel::Element_GreaterYin; }
+		if (name == "Element_LesserYang")		{ return ModuleNodeLabel::Element_LesserYang; }
 		// ————————————————————————————————————————————————————
 		// Kind —— Passive
 		// ————————————————————————————————————————————————————
@@ -112,6 +114,7 @@ namespace
 		if (name == "repeat_count")	{ return ModuleNodeStat::RepeatCount; }
 		if (name == "yin_mark_count")	{ return ModuleNodeStat::YinMarkCount; }
 		if (name == "yang_mark_count")	{ return ModuleNodeStat::YangMarkCount; }
+		if (name == "yin_execute_rate")	{ return ModuleNodeStat::YinExecuteRate; }
 		return std::nullopt;
 	}
 
@@ -149,6 +152,7 @@ namespace
 		case ModuleNodeStat::RepeatCount:	return "repeat_count";
 		case ModuleNodeStat::YinMarkCount:	return "yin_mark_count";
 		case ModuleNodeStat::YangMarkCount:	return "yang_mark_count";
+		case ModuleNodeStat::YinExecuteRate:	return "yin_execute_rate";
 		case ModuleNodeStat::Count:			return "";
 		}
 		return "";
@@ -348,6 +352,8 @@ const char* ToModuleNodeLabelName(ModuleNodeLabel label) noexcept
 	// ————————————————————————————————————————————————————
 	case ModuleNodeLabel::Element_Yin:				return "Element_Yin";
 	case ModuleNodeLabel::Element_Yang:				return "Element_Yang";
+	case ModuleNodeLabel::Element_GreaterYin:		return "Element_GreaterYin";
+	case ModuleNodeLabel::Element_LesserYang:		return "Element_LesserYang";
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

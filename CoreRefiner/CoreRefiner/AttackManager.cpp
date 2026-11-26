@@ -6,7 +6,8 @@
 #include "XMath.h"
 
 #include "Ball.h"
-#include "Ring_Yang.h"
+#include "RingYang.h"
+#include "RingLesserYang.h"
 
 #include <cmath>
 #include <cstddef>
@@ -17,6 +18,8 @@ namespace
 	constexpr int kBallWarmup = 48;
 	// 白环预热个数。造好后立刻关掉，不交出，不进连发，也不加仓库伤害。
 	constexpr int kRingYangWarmup = 8;
+	// 少阳环预热个数。同样先关掉，等爆发时再取出。
+	constexpr int kRingLesserYangWarmup = 8;
 }
 
 AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
@@ -27,9 +30,9 @@ AttackManager::AttackManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	// 先记下玩家。放出时若空或已失效，再查一次。
 	pPlayer = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
 
-	HierarchySpawn::WarmupPool<Ball>(
-		attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
-	HierarchySpawn::WarmupPool<Ring_Yang>(attack_Ring_Yang, kRingYangWarmup, gfx, rg);
+	HierarchySpawn::WarmupPool<Ball>(attack_Ball, kBallWarmup, gfx, rg, XMFLOAT3{ 0.0f,0.0f,0.0f }, XMFLOAT3{ 0.0f,0.0f,0.0f });
+	HierarchySpawn::WarmupPool<RingYang>(attack_Ring_Yang, kRingYangWarmup, gfx, rg);
+	HierarchySpawn::WarmupPool<RingLesserYang>(attack_Ring_LesserYang, kRingLesserYangWarmup, gfx, rg);
 }
 
 bool AttackManager::TryScreenToWorldXZ(

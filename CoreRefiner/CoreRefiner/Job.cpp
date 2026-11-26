@@ -15,7 +15,15 @@ namespace Rgph
 		pDrawable->Bind(gfx);
 		pStep->Bind(gfx);
 
-		if (const auto& ovr = pStep->GetDrawOverride())
+		if (pDrawable->IsInstanced())
+		{
+			const UINT instanceCount = pDrawable->GetInstanceCount();
+			if (instanceCount > 0u)
+			{
+				gfx.DrawIndexedInstanced(pDrawable->GetIndexCount(), instanceCount);
+			}
+		}
+		else if (const auto& ovr = pStep->GetDrawOverride())
 			gfx.DrawIndexed(ovr->count, ovr->startIndex, ovr->baseVertex);
 		else
 			gfx.DrawIndexed(pDrawable->GetIndexCount());
