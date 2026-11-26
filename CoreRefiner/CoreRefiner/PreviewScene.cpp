@@ -5,6 +5,7 @@
 #include "ExecuteSphere.h"
 #include "RingYang.h"
 #include "RingYin.h"
+#include "RingLesserYang.h"
 
 #include "Channels.h"
 #include "GameRenderGraph.h"
@@ -31,7 +32,8 @@ PreviewScene::PreviewScene(Window& wnd, SceneDirector& director, Rgph::GameRende
 	yin_(std::make_unique<RingYin>(wnd.Gfx(), gameRG)),
 	yang_(std::make_unique<RingYang>(wnd.Gfx(), gameRG)),
 	sphere_(std::make_unique<ExecuteSphere>(wnd.Gfx(), gameRG)),
-	victimSource_(std::make_unique<Enemy_T_Shape>(wnd.Gfx(), kVictimSize_))
+	victimSource_(std::make_unique<Enemy_T_Shape>(wnd.Gfx(), kVictimSize_)),
+	lesserYang_(std::make_unique<RingLesserYang>(wnd.Gfx(), gameRG))
 {
 	// 朝向只写一次。播放时黑球从这只外形记下，之后不再改。
 	victimSource_->SetRotationRad(0.0f, kVictimYaw_, 0.0f);
@@ -50,10 +52,10 @@ PreviewScene::~PreviewScene() = default;
 
 void PreviewScene::OnEnter()
 {
-	// yinPos / yangPos / spherePos 是三只特效的播放中心。左右是环，前方是黑球。
 	const XMFLOAT3 yinPos{ 6.0f, 0.0f, 0.0f };
 	const XMFLOAT3 yangPos{ -6.0f, 0.0f, 0.0f };
 	const XMFLOAT3 spherePos{ 0.0f, 0.0f, 6.0f };
+	const XMFLOAT3 lesserYangPos{ 12.0f, 0.0f, 0.0f };
 	if (yin_ != nullptr)
 	{
 		if (!yin_->IsActive())
@@ -82,6 +84,16 @@ void PreviewScene::OnEnter()
 		victimSource_->SetPosition(spherePos);
 		sphere_->Play(spherePos, ExecuteSphereRadius(kVictimSize_), victimSource_.get());
 	}
+	if (lesserYang_ != nullptr)
+	{
+		if (!lesserYang_->IsActive())
+		{
+			lesserYang_->Activate();
+		}
+		// 少阳环的圆心在黑球前方。hitDir 预览不需要击退，传零。RingLesserYang 只把它存下来。
+		const XMFLOAT3 hitDir{ 0.0f, 0.0f, 0.0f };
+		lesserYang_->SpawnAt(lesserYangPos, hitDir);
+	}
 }
 
 void PreviewScene::OnLeave()
@@ -103,6 +115,7 @@ void PreviewScene::Update(float dt)
 	const XMFLOAT3 yinPos{ 6.0f, 0.0f, 0.0f };
 	const XMFLOAT3 yangPos{ -6.0f, 0.0f, 0.0f };
 	const XMFLOAT3 spherePos{ 0.0f, 0.0f, 6.0f };
+	const XMFLOAT3 lesserYangPos{ 12.0f, 0.0f, 0.0f };
 	if (yin_ != nullptr)
 	{
 		if (!yin_->IsActive())
@@ -133,6 +146,17 @@ void PreviewScene::Update(float dt)
 		}
 		sphere_->Update(dt);
 	}
+	if (lesserYang_ != nullptr)
+	{
+		if (!lesserYang_->IsActive())
+		{
+			lesserYang_->Activate();
+			// 少阳环的圆心在黑球前方。hitDir 预览不需要击退，传零。RingLesserYang 只把它存下来。
+			const XMFLOAT3 hitDir{ 0.0f, 0.0f, 0.0f };
+			lesserYang_->SpawnAt(lesserYangPos, hitDir);
+		}
+		lesserYang_->Update(dt);
+	}
 
 	// 跟战斗一样：主摄像机看原点，F2 操作的是窗口里选中的受控摄像机。
 	cameras_.Update(dt, { 0.0f, 0.0f, 0.0f }, &wnd_);
@@ -162,6 +186,10 @@ void PreviewScene::Submit()
 	if (sphere_ != nullptr && sphere_->IsActive())
 	{
 		sphere_->Submit();
+	}
+	if (lesserYang_ != nullptr && lesserYang_->IsActive())
+	{
+		lesserYang_->Submit();
 	}
 	gameRG_.Execute(wnd_.Gfx());
 

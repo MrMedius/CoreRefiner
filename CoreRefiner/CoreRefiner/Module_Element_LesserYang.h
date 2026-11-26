@@ -44,7 +44,7 @@ public:
 	}
 
 private:
-	// 取宿主当前的水平前进方向。长度接近 0 时用世界 +Z。少阳环不拿它击退。
+	// 取宿主当前的水平前进方向。长度接近 0 时用世界 +Z。只给站在环心上的人击退。
 	XMFLOAT3 HorizontalForward_() const
 	{
 		XMFLOAT3 dir{ 0.0f, 0.0f, 1.0f };

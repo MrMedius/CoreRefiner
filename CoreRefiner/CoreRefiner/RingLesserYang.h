@@ -11,7 +11,7 @@
 #include <vector>
 
 // 少阳的攻击环。扩开时打中半径内的每个活人，含圆心。打完才加阳标记，满 10 个再放下一只。
-// 不击退。环带外沿白、内沿黑，约 0.35 秒扩到目标半径。
+// 击退和阳环相同。环带外沿白、内沿黑，约 0.35 秒扩到目标半径。
 class RingLesserYang : public AttackBase
 {
 public:
@@ -23,16 +23,21 @@ public:
 	{
 		Stats().damage.base = 0.0f;
 		Stats().damage.ResetMods();
-		// 黑环整条不透明。白环外实内虚，后画，盖住外沿。
-		MakeLayer_(ringBlack_, gfx, rg, { 0.0f, 0.0f, 0.0f }, false);
-		MakeLayer_(ringWhite_, gfx, rg, { 1.0f, 1.0f, 1.0f }, true);
+		ring_ = std::make_unique<Ring_Shape>(gfx);
+		ring_->LinkTechniques(rg);
+		// 内沿不透明黑，外沿不透明白。两边都有颜色，沿环带从黑收到白。不起浪。
+		ring_->SetInnerColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+		ring_->SetOuterColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		ring_->SetInnerWave(false);
+		ring_->SetOuterWave(false);
+		ring_->SetAmplitude(0.0f);
 	}
 
-	// pos 是圆心。dir 这一步不用，少阳环不击退。
+	// pos 是圆心。dir 是站在圆心上的人的击退方向。水平长度接近 0 时，击退改用世界 +Z。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
-		(void)dir;
 		origin_ = pos;
+		hitDir_ = dir;
 		age_ = 0.0f;
 		prevOuter_ = 0.0f;
 		outer_ = 0.0f;
@@ -80,23 +85,15 @@ public:
 
 	void Submit(void) override
 	{
-		if (ApplyRing_())
+		if (ApplyRing_() && ring_ != nullptr)
 		{
-			// 先画黑，再画白。透明通道不写深度，后画的白盖在外沿上。
-			if (ringBlack_ != nullptr)
-			{
-				ringBlack_->Submit(Chan::main);
-			}
-			if (ringWhite_ != nullptr)
-			{
-				ringWhite_->Submit(Chan::main);
-			}
+			ring_->Submit(Chan::main);
 		}
 		ObjectBase::Submit();
 	}
 
 protected:
-	// 扣这只环自己的固定伤害。同一个人只打一次，不击退。打中之后才加标记。
+	// 扣这只环自己的固定伤害，并按阳环的规则击退。同一个人只打一次。打中之后才加标记。
 	void ApplyOwnHit(CharacterBase* other) override
 	{
 		auto* enemy = dynamic_cast<EnemyBase*>(other);
@@ -119,6 +116,36 @@ protected:
 		hitEnemies_.push_back(enemy);
 		enemy->SetIsHurt(true);
 		enemy->CalculateHpCurrent(-damage);
+
+		const XMFLOAT3 pos = enemy->GetWorldPosition();
+		float hx = pos.x - origin_.x;
+		float hz = pos.z - origin_.z;
+		const float fromCenterSq = hx * hx + hz * hz;
+		if (fromCenterSq <= 1.0e-8f)
+		{
+			// 人就在圆心上。用出生时传入的水平方向。接近 0 时用世界 +Z。
+			hx = hitDir_.x;
+			hz = hitDir_.z;
+			const float dirSq = hx * hx + hz * hz;
+			if (dirSq <= 1.0e-8f)
+			{
+				hx = 0.0f;
+				hz = 1.0f;
+			}
+			else
+			{
+				const float inv = 1.0f / std::sqrt(dirSq);
+				hx *= inv;
+				hz *= inv;
+			}
+		}
+		else
+		{
+			const float inv = 1.0f / std::sqrt(fromCenterSq);
+			hx *= inv;
+			hz *= inv;
+		}
+		enemy->CalculateMoveVelocity(hx * kKnockbackHorizontal_, kKnockbackUp_, hz * kKnockbackHorizontal_);
 		GrantAndChain_(*enemy);
 	}
 
@@ -164,7 +191,7 @@ private:
 		}
 	}
 
-	// 在这个敌人脚下再放一只。次数先扣，池里没有再还回去。
+	// 在这个敌人脚下再放一只。出生方向用这一只环的 hitDir_。次数先扣，池里没有再还回去。
 	void SpawnNext_(const EnemyBase& enemy)
 	{
 		if (burstsLeft_ == nullptr || *burstsLeft_ <= 0)
@@ -178,7 +205,7 @@ private:
 			*burstsLeft_ += 1;
 			return;
 		}
-		ring->SpawnAt(enemy.GetWorldPosition(), { 0.0f, 0.0f, 1.0f });
+		ring->SpawnAt(enemy.GetWorldPosition(), hitDir_);
 		ring->SetBurst(areaDamage_, targetRadius_, markCount_, burstsLeft_);
 		ObjectCodex::Handoff(attack_Ring_LesserYang, ring);
 	}
@@ -197,30 +224,10 @@ private:
 		return targetRadius_;
 	}
 
-	// 造一层环。gradient 为真时外实内虚，为假时整条同样实。少阳环不起浪，避免内沿被波浪染白。
-	static void MakeLayer_(std::unique_ptr<Ring_Shape>& ring, Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 rgb, bool gradient)
-	{
-		ring = std::make_unique<Ring_Shape>(gfx);
-		ring->LinkTechniques(rg);
-		ring->SetColor(rgb);
-		ring->SetGradient(gradient);
-		ring->SetInnerWave(false);
-		ring->SetOuterWave(false);
-		ring->SetAmplitude(0.0f);
-	}
-
-	// 把这一层放到圆心，缩放到当前外沿，并写上整层透明度。
-	void PlaceLayer_(Ring_Shape& ring, float opacity)
-	{
-		ring.SetPosition(origin_);
-		ring.SetScale({ outer_, outer_, outer_ });
-		ring.SetOpacity(opacity);
-	}
-
-	// 按年龄写下两层的位置、缩放和透明度。还在播放返回 true。
+	// 按年龄写下环的位置、缩放和播放透明度。还在播放返回 true。
 	bool ApplyRing_()
 	{
-		if (ringBlack_ == nullptr || ringWhite_ == nullptr || age_ <= 0.0f)
+		if (ring_ == nullptr || age_ <= 0.0f)
 		{
 			return false;
 		}
@@ -238,17 +245,18 @@ private:
 		{
 			return false;
 		}
-		PlaceLayer_(*ringBlack_, opacity);
-		PlaceLayer_(*ringWhite_, opacity);
+		ring_->SetPosition(origin_);
+		ring_->SetScale({ outer_, outer_, outer_ });
+		ring_->SetOpacity(opacity);
 		return true;
 	}
 
-	// 垫在下面的黑环。整条环带不透明，白环变淡的地方露出它。
-	std::unique_ptr<Ring_Shape> ringBlack_;
-	// 盖在上面的白环。外沿实、内沿透，所以看起来外白内黑。
-	std::unique_ptr<Ring_Shape> ringWhite_;
+	// 这一只环。内沿黑、外沿白写在构造里。
+	std::unique_ptr<Ring_Shape> ring_;
 	// 这一次播放的圆心。
 	XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
+	// SpawnAt 传入的水平击退方向。只给站在圆心上的敌人用。
+	XMFLOAT3 hitDir_{ 0.0f, 0.0f, 0.0f };
 	// 从 SpawnAt 起算的秒数。
 	float age_{ 0.0f };
 	// 上一帧外沿的世界半径。
@@ -274,7 +282,11 @@ private:
 	// 扩完之后淡出用的秒数。淡出时外沿不动。
 	static constexpr float kFadeSeconds_{ 0.25f };
 	// 出生时写回的目标半径。
-	static constexpr float kDefaultRadius_{ 7.0f };
+	static constexpr float kDefaultRadius_{ 3.0f };
 	// 满这么多个再放下一只环。
 	static constexpr int kPerTrigger_{ 10 };
+	// 击退的水平速度。圆心指向敌人，左右对称。和阳环相同。
+	static constexpr float kKnockbackHorizontal_{ 0.3f };
+	// 击退的向上速度。和阳环相同。
+	static constexpr float kKnockbackUp_{ 0.1f };
 };

@@ -14,8 +14,9 @@ RingYin::RingYin(Graphics& gfx, Rgph::RenderGraph& rg)
 	{
 		ring = std::make_unique<Ring_Shape>(gfx);
 		ring->LinkTechniques(rg);
-		ring->SetColor({ 0.0f, 0.0f, 0.0f });
-		ring->SetGradient(true);
+		// 内沿空，外沿黑。播放淡出写在 opacity 上。
+		ring->SetInnerColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+		ring->SetOuterColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 		ring->SetInnerWave(false);
 		ring->SetOuterWave(false);
 		ring->SetAmplitude(0.0f);

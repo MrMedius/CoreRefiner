@@ -589,9 +589,9 @@ private:
 	// 1、2、3 级的给予阳标记个数。
 	static constexpr float kMarkCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 4.0f };
 	// 每次范围爆发扣的血。
-	static constexpr float kAreaDamage_{ 0.2f };
+	static constexpr float kAreaDamage_{ 0.1f };
 	// 范围爆发的世界半径。
-	static constexpr float kBurstRadius_{ 7.0f };
+	static constexpr float kBurstRadius_{ 5.0f };
 	// 扫描扩到的世界半径。不随等级变。
 	static constexpr float kScanMaxRadius_{ 40.0f };
 	// 扫描向外扩的速度。不随等级变。

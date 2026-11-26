@@ -10,6 +10,7 @@ class Enemy_T_Shape;
 class ExecuteSphere;
 class RingYang;
 class RingYin;
+class RingLesserYang;
 class SceneDirector;
 class Window;
 
@@ -53,4 +54,6 @@ private:
 	std::unique_ptr<ExecuteSphere> sphere_;
 	// 给黑球当来源的测试外形。不提交，不进战斗。
 	std::unique_ptr<Enemy_T_Shape> victimSource_;
+	// 前方黑球的少阳环。播完会再放一次。
+	std::unique_ptr<RingLesserYang> lesserYang_;
 };

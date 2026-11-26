@@ -6,7 +6,7 @@
 
 #include <cassert>
 
-static_assert(sizeof(Ring_Shape::RingData) == 32u);
+static_assert(sizeof(Ring_Shape::RingData) == 48u);
 
 // 所有环共用一份显卡缓冲。轮到哪只环，Bind 时写下它自己的数据。
 class Ring_Shape::RingCbuf : public Bind::CloningBindable
@@ -85,21 +85,19 @@ DirectX::XMMATRIX Ring_Shape::GetTransformXM() const noexcept
 	return trans.GetTransformXM();
 }
 
-void Ring_Shape::SetColor(DirectX::XMFLOAT3 rgb) noexcept
+void Ring_Shape::SetInnerColor(DirectX::XMFLOAT4 rgba) noexcept
 {
-	data_.color.x = rgb.x;
-	data_.color.y = rgb.y;
-	data_.color.z = rgb.z;
+	data_.innerColor = rgba;
+}
+
+void Ring_Shape::SetOuterColor(DirectX::XMFLOAT4 rgba) noexcept
+{
+	data_.outerColor = rgba;
 }
 
 void Ring_Shape::SetOpacity(float opacity) noexcept
 {
-	data_.color.w = opacity;
-}
-
-void Ring_Shape::SetGradient(bool on) noexcept
-{
-	data_.gradient = on ? 1.0f : 0.0f;
+	data_.opacity = opacity;
 }
 
 void Ring_Shape::SetInnerWave(bool on) noexcept
