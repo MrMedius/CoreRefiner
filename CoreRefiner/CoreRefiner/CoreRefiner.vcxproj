@@ -190,7 +190,6 @@
     <ClCompile Include="AttackManager.cpp" />
     <ClCompile Include="AttackShadeCbuf.cpp" />
     <ClCompile Include="AttackBase_Moduled.cpp" />
-    <ClCompile Include="RingYang.cpp" />
     <ClCompile Include="Ball.cpp" />
     <ClCompile Include="DisplaySettings.cpp" />
     <ClCompile Include="EffectManager.cpp" />

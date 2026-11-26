@@ -1,4 +1,5 @@
 #pragma once
+#include "Ball.h"
 #include "IModule.h"
 #include "AttackBase.h"
 #include "EnemyBase.h"
@@ -11,7 +12,7 @@
 #include <memory>
 
 // 命中时给敌人加阳标记。每满 10 个消耗一轮，就在目标脚下生成一只少阳环。
-// 扫人、扣血和下一轮标记都由那只环做。
+// 扫人、扣血和下一轮标记都由那只环做。出生时把宿主外层变淡，追加一条白色条纹，并打开里面的缩小球。
 class Module_Element_LesserYang : public IModule
 {
 public:
@@ -26,6 +27,17 @@ public:
 		gfx_(gfx),
 		rg_(rg)
 	{}
+
+	// 给宿主球追加一条白色条纹，打开外层的视线变淡，并画出里面的缩小球。别的球不打开内层。
+	void OnSpawn() override
+	{
+		if (Ball* ball = dynamic_cast<Ball*>(GetOwner()))
+		{
+			ball->AppendColorId(kColorId_);
+			ball->SetOuterOpacity(kOuterOpacity_);
+			ball->SetInnerVisible(true);
+		}
+	}
 
 	// 只给被打中的敌人加标记。够一轮就放一只环，直到不够或次数用完。
 	void OnHit(CharacterBase* other) override
@@ -97,4 +109,8 @@ private:
 	static constexpr int kPerTrigger_{ 10 };
 	// 同一次命中最多放这么多只环。放出去的环继续共用这个次数。
 	static constexpr int kMaxBursts_{ 64 };
+	// 少阳的条纹颜色编号，白色。
+	static constexpr std::uint32_t kColorId_{ 1u };
+	// 小于 1 时宿主外层按视线变淡。具体数值不决定轮廓有多实。别的球保持 1。
+	static constexpr float kOuterOpacity_{ 0.8f };
 };
