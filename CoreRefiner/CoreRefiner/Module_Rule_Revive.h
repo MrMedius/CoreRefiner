@@ -33,8 +33,10 @@ public:
 
 private:
 	// 在消失点按配方再 Deploy（消耗第一条 Revive 后封存剩余）；发射加速度用 OnSpawn 记下的那份，不跟鼠标。
-	// 新根弹出生后交出，不调用宿主的收养。
+	// 新根弹出生后交出，不调用宿主的收养。消耗到复活时在消失点弹一次标志。
 	void Replay_(AttackBase* owner);
+	// 在消失点弹出复活节点的标志。第一次射出不调用。
+	void SpawnMarker_(DirectX::XMFLOAT3 pos) const;
 
 	Graphics* gfx_{ nullptr };
 	Rgph::RenderGraph* rg_{ nullptr };

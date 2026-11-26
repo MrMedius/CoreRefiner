@@ -1662,6 +1662,9 @@
     <ClInclude Include="RingLesserYang.h">
       <Filter>Object\Attack</Filter>
     </ClInclude>
+    <ClInclude Include="Marker.h">
+      <Filter>Object\Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
@@ -1885,6 +1888,12 @@
       <Filter>Shader\3D</Filter>
     </FxCompile>
     <FxCompile Include="AttackTrail_VS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Marker_PS.hlsl">
+      <Filter>Shader\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Marker_VS.hlsl">
       <Filter>Shader\3D</Filter>
     </FxCompile>
   </ItemGroup>

@@ -1,6 +1,7 @@
 #include "Module_Rule_Revive.h"
 #include "AttackBase_Moduled.h"
 #include "AttackDeployer.h"
+#include "Marker.h"
 #include "ObjectCodex.h"
 #include "XMath.h"
 
@@ -81,6 +82,10 @@ void Module_Rule_Revive::Replay_(AttackBase* owner)
 		ApplyAttackStepRecord(ctx, rec);
 	}
 	ctx.FlushStandby();
+	if (consumedRevive)
+	{
+		SpawnMarker_(pos);
+	}
 
 	for (AttackBase* root : ctx.shots)
 	{
@@ -108,4 +113,20 @@ void Module_Rule_Revive::Replay_(AttackBase* owner)
 			}
 		}
 	}
+}
+
+void Module_Rule_Revive::SpawnMarker_(DirectX::XMFLOAT3 pos) const
+{
+	if (gfx_ == nullptr || rg_ == nullptr)
+	{
+		return;
+	}
+	Marker* marker = ObjectCodex::SpawnPooled<Marker>(effect_Marker, *gfx_, *rg_);
+	if (marker == nullptr)
+	{
+		return;
+	}
+	marker->SetLogo(ModuleNodeLabel::Rule_Revive);
+	marker->SpawnAt(pos, false);
+	ObjectCodex::Handoff(effect_Marker, marker);
 }

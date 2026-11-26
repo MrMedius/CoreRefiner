@@ -347,7 +347,7 @@ public:
 		{
 			return;
 		}
-		s.parent->AddModule<Module_Rule_Return>(s.gfx, s.player);
+		s.parent->AddModule<Module_Rule_Return>(s.gfx, s.rg, s.player);
 		ctx.Record(AttackStepRecordMake::Return());
 	}
 
