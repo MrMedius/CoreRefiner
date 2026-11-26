@@ -10,7 +10,7 @@
 #include <memory>
 #include <vector>
 
-// 阳的攻击环。外沿扫过时打中敌人并击退。环带内沿空、外沿白，约 0.3 秒扩到目标半径。
+// 阳的攻击环。外沿扫过时打中敌人并向上轻跳。环带内沿空、外沿白，约 0.3 秒扩到目标半径。
 class RingYang : public AttackBase
 {
 public:
@@ -31,7 +31,7 @@ public:
 		ring_->SetAmplitude(kAmplitude_);
 	}
 
-	// pos 是圆心。dir 是站在圆心上的人的击退方向。水平长度接近 0 时，击退改用世界 +Z。
+	// pos 是圆心。dir 仍记下来并交给下一只调用。受击不再用它改水平速度。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
 		origin_ = pos;
@@ -86,7 +86,7 @@ public:
 	}
 
 protected:
-	// 扣 Stats().damage.Final()，让敌人进入受伤并击退。同一个人只打一次。伤害为 0 时什么都不做。
+	// 扣 Stats().damage.Final()，让敌人进入受伤并向上轻跳。同一个人只打一次。伤害为 0 时什么都不做。
 	void ApplyOwnHit(CharacterBase* other) override
 	{
 		auto* enemy = dynamic_cast<EnemyBase*>(other);
@@ -94,7 +94,7 @@ protected:
 		{
 			return;
 		}
-		// damage 是这次要扣的血。为 0 时只播放，不进入受伤，不击退。
+		// damage 是这次要扣的血。为 0 时只播放，不进入受伤，不跳。
 		const float damage = Stats().damage.Final();
 		if (damage == 0.0f)
 		{
@@ -110,36 +110,8 @@ protected:
 		hitEnemies_.push_back(enemy);
 		enemy->SetIsHurt(true);
 		enemy->CalculateHpCurrent(-damage);
-
-		const XMFLOAT3 pos = enemy->GetWorldPosition();
-		float hx = pos.x - origin_.x;
-		float hz = pos.z - origin_.z;
-		const float fromCenterSq = hx * hx + hz * hz;
-		if (fromCenterSq <= 1.0e-8f)
-		{
-			// 人就在圆心上。用出生时传入的水平方向。接近 0 时用世界 +Z。
-			hx = hitDir_.x;
-			hz = hitDir_.z;
-			const float dirSq = hx * hx + hz * hz;
-			if (dirSq <= 1.0e-8f)
-			{
-				hx = 0.0f;
-				hz = 1.0f;
-			}
-			else
-			{
-				const float inv = 1.0f / std::sqrt(dirSq);
-				hx *= inv;
-				hz *= inv;
-			}
-		}
-		else
-		{
-			const float inv = 1.0f / std::sqrt(fromCenterSq);
-			hx *= inv;
-			hz *= inv;
-		}
-		enemy->CalculateMoveVelocity(hx * kKnockbackHorizontal_, kKnockbackUp_, hz * kKnockbackHorizontal_);
+		// 不加水平速度。正在上升时不超过 kKnockbackUp_。
+		enemy->AddHop(kKnockbackUp_);
 	}
 
 private:
@@ -223,7 +195,7 @@ private:
 	std::unique_ptr<Ring_Shape> ring_;
 	// 这一次播放的圆心。
 	XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
-	// SpawnAt 传入的水平击退方向。只给站在圆心上的敌人用。
+	// SpawnAt 传入的水平方向。现在只保存并传递，受击不读取。
 	XMFLOAT3 hitDir_{ 0.0f, 0.0f, 0.0f };
 	// 从 SpawnAt 起算的秒数。
 	float age_{ 0.0f };
@@ -244,8 +216,6 @@ private:
 	static constexpr float kDefaultRadius_{ 3.0f };
 	// 波浪幅度。
 	static constexpr float kAmplitude_{ 0.35f };
-	// 击退的水平速度。圆心指向敌人，左右对称。
-	static constexpr float kKnockbackHorizontal_{ 0.3f };
-	// 击退的向上速度。
+	// 受击时向上的速度。不加水平速度。正在上升时不超过这一次。
 	static constexpr float kKnockbackUp_{ 0.1f };
 };

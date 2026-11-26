@@ -11,7 +11,7 @@
 #include <vector>
 
 // 少阳的攻击环。扩开时打中半径内的每个活人，含圆心。打完才加阳标记，满 10 个再放下一只。
-// 击退和阳环相同。环带外沿白、内沿黑，约 0.35 秒扩到目标半径。
+// 受击和阳环一样，只向上轻跳。环带外沿白、内沿黑，约 0.35 秒扩到目标半径。
 class RingLesserYang : public AttackBase
 {
 public:
@@ -33,7 +33,7 @@ public:
 		ring_->SetAmplitude(0.0f);
 	}
 
-	// pos 是圆心。dir 是站在圆心上的人的击退方向。水平长度接近 0 时，击退改用世界 +Z。
+	// pos 是圆心。dir 仍记下来并交给下一只环。受击不再用它改水平速度。
 	void SpawnAt(XMFLOAT3 pos, XMFLOAT3 dir) override
 	{
 		origin_ = pos;
@@ -93,7 +93,7 @@ public:
 	}
 
 protected:
-	// 扣这只环自己的固定伤害，并按阳环的规则击退。同一个人只打一次。打中之后才加标记。
+	// 扣这只环自己的固定伤害，并按阳环向上轻跳。同一个人只打一次。打中之后才加标记。
 	void ApplyOwnHit(CharacterBase* other) override
 	{
 		auto* enemy = dynamic_cast<EnemyBase*>(other);
@@ -116,36 +116,8 @@ protected:
 		hitEnemies_.push_back(enemy);
 		enemy->SetIsHurt(true);
 		enemy->CalculateHpCurrent(-damage);
-
-		const XMFLOAT3 pos = enemy->GetWorldPosition();
-		float hx = pos.x - origin_.x;
-		float hz = pos.z - origin_.z;
-		const float fromCenterSq = hx * hx + hz * hz;
-		if (fromCenterSq <= 1.0e-8f)
-		{
-			// 人就在圆心上。用出生时传入的水平方向。接近 0 时用世界 +Z。
-			hx = hitDir_.x;
-			hz = hitDir_.z;
-			const float dirSq = hx * hx + hz * hz;
-			if (dirSq <= 1.0e-8f)
-			{
-				hx = 0.0f;
-				hz = 1.0f;
-			}
-			else
-			{
-				const float inv = 1.0f / std::sqrt(dirSq);
-				hx *= inv;
-				hz *= inv;
-			}
-		}
-		else
-		{
-			const float inv = 1.0f / std::sqrt(fromCenterSq);
-			hx *= inv;
-			hz *= inv;
-		}
-		enemy->CalculateMoveVelocity(hx * kKnockbackHorizontal_, kKnockbackUp_, hz * kKnockbackHorizontal_);
+		// 不加水平速度。正在上升时不超过 kKnockbackUp_。
+		enemy->AddHop(kKnockbackUp_);
 		GrantAndChain_(*enemy);
 	}
 
@@ -255,7 +227,7 @@ private:
 	std::unique_ptr<Ring_Shape> ring_;
 	// 这一次播放的圆心。
 	XMFLOAT3 origin_{ 0.0f, 0.0f, 0.0f };
-	// SpawnAt 传入的水平击退方向。只给站在圆心上的敌人用。
+	// SpawnAt 传入的水平方向。现在只保存并传给下一只环，受击不读取。
 	XMFLOAT3 hitDir_{ 0.0f, 0.0f, 0.0f };
 	// 从 SpawnAt 起算的秒数。
 	float age_{ 0.0f };
@@ -285,8 +257,6 @@ private:
 	static constexpr float kDefaultRadius_{ 3.0f };
 	// 满这么多个再放下一只环。
 	static constexpr int kPerTrigger_{ 10 };
-	// 击退的水平速度。圆心指向敌人，左右对称。和阳环相同。
-	static constexpr float kKnockbackHorizontal_{ 0.3f };
-	// 击退的向上速度。和阳环相同。
+	// 受击时向上的速度。不加水平速度。正在上升时不超过这一次。和阳环相同。
 	static constexpr float kKnockbackUp_{ 0.1f };
 };

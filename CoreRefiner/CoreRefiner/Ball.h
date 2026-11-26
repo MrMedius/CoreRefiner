@@ -277,7 +277,7 @@ class Ball : public AttackBase_Moduled
 	{
 		return presented_;
 	}
-	// 球自己的命中：停下、扣普通伤害、击退。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
+	// 球自己的命中：停下、扣普通伤害、向上轻跳。模块的 OnHit 由 AttackBase_Moduled::OnCollide 在这之后调用。
 	void ApplyOwnHit(CharacterBase* other) override
 	{
 		RequestDisable();
@@ -298,11 +298,9 @@ class Ball : public AttackBase_Moduled
 			e->SetWasHurt(true);
 			e->CalculateHpCurrent(-Stats().damage.Final());
 
-			const auto selfPos = GetWorldPosition();
-			const Vec3 d = V(e->GetWorldPosition()) - V(selfPos);
-			float angle = atan2f(d.x, d.z);
-			XMFLOAT3 repel{ 0.3f,0.1f,0.1f };
-			other->CalculateMoveVelocity(sinf(angle) * repel.x, repel.y, cosf(angle) * repel.z);
+			// hop 是这一次向上的速度。不加水平速度。正在上升时不超过这一次。
+			constexpr float hop = 0.1f;
+			other->AddHop(hop);
 		}
 	}
 private:
