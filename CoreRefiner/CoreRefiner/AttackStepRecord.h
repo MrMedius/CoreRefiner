@@ -158,6 +158,17 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
+	// Element_LesserYang：a = 每次给予的标记数，b = 每次爆发的固定伤害，c = 水平半径。满 10 个消耗一轮。
+	inline AttackStepRecord ElementLesserYang(float markCount, float areaDamage, float radius) noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Element_LesserYang;
+		r.a = markCount;
+		r.b = areaDamage;
+		r.c = radius;
+		return r;
+	}
+
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

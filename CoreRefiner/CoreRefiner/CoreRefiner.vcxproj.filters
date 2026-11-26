@@ -1659,6 +1659,12 @@
     <ClInclude Include="AttackTrail.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Module_Element_LesserYang.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="RingLesserYang.h">
+      <Filter>Object\Attack</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">

@@ -538,7 +538,7 @@ private:
 	static constexpr float kScanExpandSpeed_{ 20.0f };
 };
 
-// 少阳。扫到后挂到当前聚焦的那发弹上。造价用默认 4。这一步还不挂攻击。
+// 少阳。扫到后挂到当前聚焦的那发弹上。造价用默认 4。
 class ModuleNode_Element_LesserYang final : public IModuleNode
 {
 public:
@@ -554,10 +554,10 @@ public:
 		SetScanExpandSpeed(kScanExpandSpeed_);
 	}
 
-	// 配方扫到时先什么都不做。范围结算以后再挂上。
+	// 把这一级的给予个数、固定伤害和半径交给少阳步骤。步骤挂上模块，并记入配方。
 	void ApplyTo(DeployContext& ctx) override
 	{
-		(void)ctx;
+		AttackNodeStep_Element_LesserYang::Make(markCount_, areaDamage_, burstRadius_)->Apply(ctx);
 	}
 
 	// 面板只提交给予的阳标记个数。范围固定伤害和波及半径不进说明书。
@@ -589,7 +589,7 @@ private:
 	// 1、2、3 级的给予阳标记个数。
 	static constexpr float kMarkCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 4.0f };
 	// 每次范围爆发扣的血。
-	static constexpr float kAreaDamage_{ 0.5f };
+	static constexpr float kAreaDamage_{ 0.2f };
 	// 范围爆发的世界半径。
 	static constexpr float kBurstRadius_{ 7.0f };
 	// 扫描扩到的世界半径。不随等级变。

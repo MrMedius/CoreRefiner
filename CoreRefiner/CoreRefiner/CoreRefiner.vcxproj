@@ -391,7 +391,9 @@
     <ClInclude Include="ConstraintComponent.h" />
     <ClInclude Include="ExecuteSphere.h" />
     <ClInclude Include="Module_Element_GreaterYin.h" />
+    <ClInclude Include="Module_Element_LesserYang.h" />
     <ClInclude Include="Module_Rule_Child.h" />
+    <ClInclude Include="RingLesserYang.h" />
     <ClInclude Include="RingYang.h" />
     <ClInclude Include="Ball.h" />
     <ClInclude Include="CanvasPixelDraw.h" />

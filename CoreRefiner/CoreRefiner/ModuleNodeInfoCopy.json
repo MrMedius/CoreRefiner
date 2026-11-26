@@ -178,7 +178,7 @@
     },
     "Passive_DamageFix": {
       "title": "固定伤害增幅",
-      "body": "如果处于仓库中，则为所有攻击节点增加固定伤害。",
+      "body": "如果处于仓库中，则为所有新发射的攻击增加固定伤害。",
       "spans": [
         {
           "start": 0,
@@ -382,7 +382,7 @@
     },
     "Passive_DamageFix": {
       "title": "固定ダメージ増幅",
-      "body": "倉庫にあるとき、すべての攻撃ノードに固定ダメージを加算する。",
+      "body": "倉庫にあるとき、新しく発射されたすべての攻撃に固定ダメージを加算する。",
       "spans": [
         {
           "start": 0,
@@ -586,7 +586,7 @@
     },
     "Passive_DamageFix": {
       "title": "Flat Damage Boost",
-      "body": "While in the warehouse, adds flat damage to all attack nodes.",
+      "body": "While in the warehouse, adds flat damage to every newly fired attack.",
       "spans": [
         {
           "start": 0,

@@ -18,7 +18,9 @@ enum Object_Type_Tag
 	character_Enemy_T	= 0x011,
 	// Attack
 	attack_Ball			= 0x101,
-	attack_Ring_Yang	= 0x102,
+	attack_Ring_Yang		= 0x102,
+	// 少阳环。对象池靠这个标签找空闲的环，出生后交给攻击管理器。
+	attack_Ring_LesserYang	= 0x103,
 	// Environment
 	environment_Field	= 0x200,
 	environment_Coin	= 0x201,

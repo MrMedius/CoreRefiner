@@ -17,6 +17,7 @@
 #include "Module_Element_Yin.h"
 #include "Module_Element_Yang.h"
 #include "Module_Element_GreaterYin.h"
+#include "Module_Element_LesserYang.h"
 
 #include "ConstraintComponent.h"
 
@@ -579,6 +580,57 @@ private:
 	float executeRate_{ 0.0f };
 };
 
+// 把少阳模块挂到当前这发弹上。重复和复活重放时走这里。
+class AttackNodeStep_Element_LesserYang final : public IAttackNodeStep
+{
+public:
+	// markCount 是每次给予的阳标记个数。areaDamage 是每只环扣的固定血量。radius 是水平半径。
+	AttackNodeStep_Element_LesserYang(float markCount, float areaDamage, float radius) noexcept
+		:
+		markCount_(markCount),
+		areaDamage_(areaDamage),
+		radius_(radius)
+	{}
+
+	// 只挂到当前聚焦的这发弹。gfx 和 rg 留给模块，池不够时再造少阳环。
+	void Apply(DeployContext& ctx) override
+	{
+		const AttackStepRecord rec = AttackStepRecordMake::ElementLesserYang(markCount_, areaDamage_, radius_);
+		if (ctx.TryRecordOnly(rec))
+		{
+			return;
+		}
+		AttackStandby& s = ctx.standby;
+		if (s.host == nullptr || s.gfx == nullptr || s.rg == nullptr)
+		{
+			const float marks = markCount_;
+			const float damage = areaDamage_;
+			const float radius = radius_;
+			ctx.EnqueueOnEmptyPit([marks, damage, radius](DeployContext& c)
+			{
+				AttackNodeStep_Element_LesserYang(marks, damage, radius).Apply(c);
+			});
+			return;
+		}
+		// 主体就绪后把少阳模块装上，并记下这条步骤。等待队列不能拷贝 Graphics 和渲染图。
+		s.host->AddModule<Module_Element_LesserYang>(markCount_, areaDamage_, radius_, *s.gfx, *s.rg);
+		ctx.Record(rec);
+	}
+
+	static std::unique_ptr<AttackNodeStep_Element_LesserYang> Make(float markCount, float areaDamage, float radius)
+	{
+		return std::make_unique<AttackNodeStep_Element_LesserYang>(markCount, areaDamage, radius);
+	}
+
+private:
+	// 每次给予的阳标记个数。
+	float markCount_{ 0.0f };
+	// 每次爆发扣的固定血量。
+	float areaDamage_{ 0.0f };
+	// 水平作用半径。
+	float radius_{ 0.0f };
+};
+
 // 按快照 Apply 一条 Step。
 // Revive 与扫描相同（挂一层模块并 recordOnly）。Passive 仍跳过。Other_Repeat 由 Node 展开，配方不重放。
 inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& rec)
@@ -613,6 +665,7 @@ inline void ApplyAttackStepRecord(DeployContext& ctx, const AttackStepRecord& re
 	case ModuleNodeLabel::Element_Yin:			AttackNodeStep_Element_Yin::Make(rec.a, rec.b)->Apply(ctx);				break;
 	case ModuleNodeLabel::Element_Yang:			AttackNodeStep_Element_Yang::Make(rec.a, rec.b, rec.c)->Apply(ctx);		break;
 	case ModuleNodeLabel::Element_GreaterYin:	AttackNodeStep_Element_GreaterYin::Make(rec.a, rec.b)->Apply(ctx);		break;
+	case ModuleNodeLabel::Element_LesserYang:	AttackNodeStep_Element_LesserYang::Make(rec.a, rec.b, rec.c)->Apply(ctx);	break;
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
