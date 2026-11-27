@@ -1,0 +1,200 @@
+#include "IModuleNode.h"
+#include "Channels.h"
+#include "Colors.h"
+#include "IconAtlas.h"
+#include "RenderGraph.h"
+#include "Framework/Helpers/Mathematics/XMath.h"
+
+// ---- 身份 ----
+std::uint32_t IModuleNode::s_nextInstanceId_ = 0;
+
+// ---- 种类与装配 ----
+Color IModuleNode::GetReadyFillColor() const noexcept
+{
+	const std::size_t i = ToIndex(GetKind());
+	if (i >= ModuleNodeKindCount())
+	{
+		return ModuleNodeKindFill::kFill[ToIndex(ModuleNodeKind::Other)];
+	}
+	return ModuleNodeKindFill::kFill[i];
+}
+
+// ---- 冷却 ----
+float IModuleNode::GetRemainRatio_() const noexcept
+{
+	return cooldown_.RemainRatio();
+}
+
+// ---- 绘制与拖放残影 ----
+void IModuleNode::BlitIcon(Canvas& canvas, bool asMask) const
+{
+	const Color color = asMask ? Color(0u, 0u, 0u, 160u) : GetReadyFillColor();
+	IconAtlas::BlitIcon(
+		canvas,
+		NodeIconAtlas::Get(GetModuleNodeLabel()),
+		color);
+}
+
+void IModuleNode::InitVisual(Graphics& gfx, Rgph::RenderGraph& rg, DirectX::XMFLOAT3 zoneOrigin)
+{
+	zoneOrigin_ = zoneOrigin;
+
+	icon_ = std::make_unique<Canvas2D>(gfx, kVisualSize, kVisualSize);
+	icon_->Clear(Colors::None);
+	BlitIcon(*icon_, false);
+	icon_->NotifyPixelsChanged();
+	icon_->LinkTechniques(rg);
+
+	mask_ = std::make_unique<Canvas2DSpriteUV>(gfx, kVisualSize, kVisualSize);
+	mask_->Clear(Colors::None);
+	BlitIcon(*mask_, true);
+	mask_->NotifyPixelsChanged();
+	mask_->NotifyPixelsChanged();
+	mask_->LinkTechniques(rg);
+	mask_->SetUVOffset(0.0f, 0.0f);
+	mask_->SetUVScale(1.0f, 0.0f);
+
+	visualReady_ = true;
+
+	SyncMaskUV_();
+	ApplyVisualTransform_();
+}
+
+void IModuleNode::SetZoneOrigin(DirectX::XMFLOAT3 zoneOrigin) noexcept
+{
+	zoneOrigin_ = zoneOrigin;
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
+void IModuleNode::SetZoneVisualScale(float scale) noexcept
+{
+	zoneVisualScale_ = (scale > 0.0f) ? scale : 1.0f;
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
+void IModuleNode::BeginLayoutGhost(DirectX::XMFLOAT2 at) noexcept
+{
+	layoutGhostActive_ = true;
+	layoutGhostLocalPos_ = at;
+	if (mask_ != nullptr)
+	{
+		mask_->SetUVOffset(0.0f, 0.0f);
+		mask_->SetUVScale(1.0f, 1.0f);
+	}
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
+void IModuleNode::EndLayoutGhost() noexcept
+{
+	layoutGhostActive_ = false;
+	layoutGhostLocalPos_ = {};
+	if (mask_ != nullptr && GetState() != ModuleReadyState::Cooling)
+	{
+		mask_->SetUVScale(1.0f, 0.0f);
+	}
+	else
+	{
+		SyncMaskUV_();
+	}
+	if (visualReady_)
+	{
+		ApplyVisualTransform_();
+	}
+}
+
+void IModuleNode::SyncVisual()
+{
+	if (!visualReady_)
+	{
+		return;
+	}
+
+	SyncMaskUV_();
+	ApplyVisualTransform_();
+}
+
+void IModuleNode::SubmitGhost()
+{
+	if (!visualReady_ || !layoutGhostActive_ || mask_ == nullptr)
+	{
+		return;
+	}
+	mask_->Submit(Chan::ui);
+}
+
+void IModuleNode::SubmitIcon()
+{
+	if (!visualReady_)
+	{
+		return;
+	}
+	if (icon_ != nullptr)
+	{
+		icon_->Submit(Chan::ui);
+	}
+	if (mask_ == nullptr)
+	{
+		return;
+	}
+	const float remainRatio = GetRemainRatio_();
+	if (GetState() == ModuleReadyState::Cooling && remainRatio > 0.0f)
+	{
+		mask_->Submit(Chan::ui);
+	}
+}
+
+void IModuleNode::SubmitVisual()
+{
+	// 残影 mask 在图标下；冷却 mask 在图标上。正常流程互斥。
+	SubmitGhost();
+	SubmitIcon();
+}
+
+void IModuleNode::ApplyVisualTransform_()
+{
+	if (icon_ == nullptr || mask_ == nullptr)
+	{
+		return;
+	}
+
+	const float s = (zoneVisualScale_ > 0.0f) ? zoneVisualScale_ : 1.0f;
+	const float iconSide = GetIconRadius() * 2.0f * s;
+	const float maskSide = GetVisualRadius() * 2.0f * s;
+
+	const DirectX::XMFLOAT3 iconPos = (
+		V(zoneOrigin_) + Vec3{ localPos_.x * s, localPos_.y * s, 0.0f }
+	).ToFloat3();
+	icon_->SetPosition(iconPos);
+	icon_->SetScale(DirectX::XMFLOAT3{ iconSide, iconSide, 1.0f });
+
+	const DirectX::XMFLOAT2 maskLocal = layoutGhostActive_ ? layoutGhostLocalPos_ : localPos_;
+	const DirectX::XMFLOAT3 maskPos = (
+		V(zoneOrigin_) + Vec3{ maskLocal.x * s, maskLocal.y * s, 0.0f }
+	).ToFloat3();
+	mask_->SetPosition(maskPos);
+	mask_->SetScale(DirectX::XMFLOAT3{ maskSide, maskSide, 1.0f });
+}
+
+void IModuleNode::SyncMaskUV_()
+{
+	if (mask_ == nullptr)
+	{
+		return;
+	}
+	// 拖放残影占满 mask UV，直到 EndLayoutGhost。
+	if (layoutGhostActive_)
+	{
+		mask_->SetUVScale(1.0f, 1.0f);
+		return;
+	}
+	mask_->SetUVScale(1.0f, GetRemainRatio_());
+}

@@ -1,0 +1,606 @@
+#include "ModuleWorkbench.h"
+#include "AttackManager.h"
+#include "ButtonCanvasComponent.h"
+#include "Channels.h"
+#include "Graphics.h"
+#include "ModuleNodes.h"
+#include "ModuleNodeFactory.h"
+#include "ModuleNodeInfoCopy.h"
+#include "IModuleZone.h"
+#include "InputCodex.h"
+#include "ObjectCodex.h"
+#include "Player.h"
+#include "TextTypes.h"
+#include "UiCopy.h"
+#include "UiRoot.h"
+#include "UI_SellConfirm.h"
+#include "UI_UltraRedraw.h"
+#include "UI_UltraRename.h"
+#include "Framework/Window/Win.h"
+#include "Framework/Window/Window.h"
+
+#include <array>
+#include <string>
+
+ModuleWorkbench::ModuleWorkbench(Graphics& gfx, Rgph::RenderGraph& rg)
+	:
+	gfx_(gfx),
+	rg_(rg)
+{
+	// 战斗 Field：0.5 Scale 后内容半宽 75，外壳再外扩 kShellPad；原点按外壳半宽贴右下。
+	constexpr float kCombatMargin = 32.0f;
+	const float combatShellHalf =
+		ModuleField::kHalfExtent * ModuleField::kCombatVisualScale + IModuleZone::kShellPad;
+	combatFieldOrigin_ = DirectX::XMFLOAT3{
+		static_cast<float>(SCREEN_WIDTH) - kCombatMargin - combatShellHalf,
+		static_cast<float>(SCREEN_HEIGHT) - kCombatMargin - combatShellHalf,
+		0.0f
+	};
+	ComputeLayout_();
+
+	PlaceDemoField_();
+	field_.InitAllVisuals(gfx_, rg_, combatFieldOrigin_);
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
+
+	PlaceDemoWarehouse_();
+	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
+
+	shop_.InitAllVisuals(gfx_, rg_, shopOrigin_);
+	InitFightButton_();
+	BindOverlays_();
+}
+
+ModuleWorkbench::~ModuleWorkbench() = default;
+
+// 布局。算出战备页上商店、场、仓和战斗按钮的原点。
+
+void ModuleWorkbench::ComputeLayout_() noexcept
+{
+	const float screenW = static_cast<float>(SCREEN_WIDTH);
+	const float screenH = static_cast<float>(SCREEN_HEIGHT);
+	const float fieldOuterHalf = ModuleField::kHalfExtent + IModuleZone::kShellPad;
+	const float fieldOuterH = fieldOuterHalf * 2.0f;
+	const float fieldOuterW = fieldOuterH;
+
+	const float warehouseHalfX = (static_cast<float>(ModuleWarehouse::kColumns - 1) * 0.5f) * ModuleWarehouse::kSlotPitch + ModuleWarehouse::kBoundsPad;
+	const float warehouseHalfY = (static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch + ModuleWarehouse::kBoundsPad;
+	const float warehouseSpanY = (static_cast<float>(ModuleWarehouse::kMaxRows - 1) * 0.5f) * ModuleWarehouse::kSlotPitch;
+	const float warehouseOuterHalfX = warehouseHalfX + IModuleZone::kShellPad;
+	const float warehouseOuterHalfY = warehouseHalfY + IModuleZone::kShellPad;
+	const float warehouseOuterH = warehouseOuterHalfY * 2.0f;
+	const float warehouseOuterW = warehouseOuterHalfX * 2.0f;
+	const float rightOuterW = (fieldOuterW > warehouseOuterW) ? fieldOuterW : warehouseOuterW;
+
+	// 顶 / Field–仓 / 仓–按钮 / 底，以及左右与列间，共用同一 gap。
+	const float gap = (screenH - fieldOuterH - warehouseOuterH - kFightBtnH) * 0.25f;
+	const float rightLeft = screenW - gap - rightOuterW;
+	const float rightCx = rightLeft + rightOuterW * 0.5f;
+
+	layoutFieldOrigin_ = DirectX::XMFLOAT3{ rightCx, gap + fieldOuterHalf, 0.0f };
+
+	const float warehouseShellTop = gap + fieldOuterH + gap;
+	warehouseOrigin_ = DirectX::XMFLOAT3{ rightCx, warehouseShellTop + warehouseOuterHalfY - warehouseSpanY, 0.0f };
+
+	const float warehouseShellBottom = warehouseShellTop + warehouseOuterH;
+	fightBtnCenter_ = DirectX::XMFLOAT2{ rightCx, warehouseShellBottom + gap + kFightBtnH * 0.5f };
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SetLayoutLogicalCenterSize(fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH);
+	}
+
+	const float shopLeft = gap;
+	const float shopRight = rightLeft - gap;
+	const float shopTop = gap;
+	const float shopBottom = fightBtnCenter_.y + kFightBtnH * 0.5f;
+	const float shopHalfX = (shopRight - shopLeft) * 0.5f;
+	const float shopHalfY = (shopBottom - shopTop) * 0.5f;
+	shopOrigin_ = DirectX::XMFLOAT3{ shopLeft + shopHalfX, shopTop + shopHalfY, 0.0f };
+	shop_.SetShellExtent(shopHalfX, shopHalfY);
+}
+
+// 演示摆放。场和仓的开局棋子。Reset 清掉再摆一次。
+
+void ModuleWorkbench::PlaceDemoField_()
+{
+	field_.AddNode<ModuleNode_Core_Ball>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+	
+	field_.AddNode<ModuleNode_Rule_Return>(DirectX::XMFLOAT2{ 50.0f, -95.0f });
+	field_.AddNode<ModuleNode_Other_Repeat>(DirectX::XMFLOAT2{ 90.0f, -68.0f });
+	
+	field_.AddNode<ModuleNode_Element_GreaterYin>(DirectX::XMFLOAT2{ 60.0f, 0.0f });
+	field_.AddNode<ModuleNode_Element_LesserYang>(DirectX::XMFLOAT2{ -60.0f, 0.0f });
+}
+
+void ModuleWorkbench::PlaceDemoWarehouse_()
+{
+	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+
+	warehouse_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
+
+	// 留在仓库里，给扫描、彩虹和 Panel 做测试。收尾不删。
+	ModuleNode_Ultra* ultra = warehouse_.AddNode<ModuleNode_Ultra>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->AddCapacity();
+	ultra->SetName(GetModuleNodeInfoCopy(ModuleNodeLabel::Ultra).title);
+	const ModuleNodeLabel contents[] = {
+		ModuleNodeLabel::Spawn_Ball,
+		ModuleNodeLabel::Attribute_LifetimeRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Attribute_DamageRate,
+		ModuleNodeLabel::Rule_Orbit,
+	};
+	// 按栏位顺序装进去。出生容量 3，再加 4 格，装完还空一格。
+	for (std::size_t i = 0; i < std::size(contents); ++i)
+	{
+		std::unique_ptr<IModuleNode> node = ModuleNodeFactory::MakeModuleNode(contents[i], {});
+		(void)ultra->TryPut(i, node);
+	}
+}
+
+void ModuleWorkbench::Reset()
+{
+	assembler_.Reset();
+
+	while (field_.GetNodeCount() > 0)
+	{
+		(void)field_.TakeNode(static_cast<std::size_t>(0));
+	}
+	PlaceDemoField_();
+	for (std::size_t i = 0; i < field_.GetNodeCount(); ++i)
+	{
+		IModuleNode* node = field_.GetNode(i);
+		if (node != nullptr)
+		{
+			node->InitVisual(gfx_, rg_, field_.GetOrigin());
+		}
+	}
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
+	field_.ResetAllCooldowns();
+	field_.ClearWaves();
+	field_.SyncAllVisuals();
+
+	for (std::size_t i = 0; i < ModuleWarehouse::kMaxSlots; ++i)
+	{
+		(void)warehouse_.TakeNode(i);
+	}
+	warehouse_.SetEnabledSlotCount(ModuleWarehouse::kInitialEnabledSlots);
+	PlaceDemoWarehouse_();
+	warehouse_.InitAllVisuals(gfx_, rg_, warehouseOrigin_);
+
+	shop_.FillStock();
+	shop_.ResetVisit();
+	shop_.ClearRefineResult();
+	// 结束本局才清奥义区。开战和再次打开整理都不清。
+	shop_.ClearUltra();
+
+	paintedWave_ = -1;
+	SetNextWave(1);
+}
+
+// 战斗按钮。文案随语言和有没有 Core 变，波次没变就不重画。
+
+void ModuleWorkbench::InitFightButton_()
+{
+	Ui::ButtonCanvasStyle style{};
+	style.primaryFont = Text::FontSource::System(L"Microsoft YaHei UI");
+	style.fontSize = 22.0f;
+
+	fightBtn_ = std::make_unique<Ui::ButtonCanvasComponent>(
+		gfx_, 601u, fightBtnCenter_.x, fightBtnCenter_.y, kFightBtnW, kFightBtnH, style);
+	fightBtn_->Button().SetOnClick([this] {
+		// 无 Core 时不得回调开打，避免走到 EndLayoutEdit / RequestStartWave
+		if (field_.GetCore() == nullptr)
+		{
+			return;
+		}
+		if (onFight_)
+		{
+			onFight_();
+		}
+	});
+
+	uiRoot_ = std::make_unique<Ui::UiRoot>();
+	uiRoot_->Clear();
+	fightBtn_->RegisterTo(*uiRoot_);
+	uiRoot_->RebuildTabOrder();
+	uiRoot_->InitLinkTechniques(rg_);
+	SetNextWave(1);
+}
+
+void ModuleWorkbench::SetNextWave(int wave)
+{
+	if (wave < 1)
+	{
+		wave = 1;
+	}
+	if (wave == paintedWave_ || fightBtn_ == nullptr)
+	{
+		return;
+	}
+	paintedWave_ = wave;
+	RefreshFightLabel();
+}
+
+void ModuleWorkbench::RefreshFightLabel()
+{
+	if (fightBtn_ == nullptr)
+	{
+		return;
+	}
+	const bool hasCore = field_.GetCore() != nullptr;
+	fightBtn_->Button().SetEnabled(hasCore);
+	if (!hasCore)
+	{
+		fightBtn_->Button().SetLabel(GetUiCopy("prep.fight.need_core"));
+		return;
+	}
+	const int wave = (paintedWave_ < 1) ? 1 : paintedWave_;
+	fightBtn_->Button().SetLabel(GetUiCopy("prep.fight", wave));
+}
+
+// 整理。进出战备页，以及这一页的每帧更新。
+
+void ModuleWorkbench::BeginLayoutEdit()
+{
+	if (field_.GetCanvas() == nullptr)
+	{
+		return;
+	}
+
+	assembler_.Reset();
+	field_.ClearWaves();
+	field_.ResetAllCooldowns();
+	field_.SetVisualScale(1.0f);
+
+	std::array<IModuleZone*, ZoneCount()> zones{};
+	zones[ToIndex(ZoneId::Field)] = &field_;
+	zones[ToIndex(ZoneId::Warehouse)] = &warehouse_;
+	zones[ToIndex(ZoneId::Shop)] = &shop_;
+
+	std::array<DirectX::XMFLOAT3, ZoneCount()> origins{};
+	origins[ToIndex(ZoneId::Field)] = layoutFieldOrigin_;
+	origins[ToIndex(ZoneId::Warehouse)] = warehouseOrigin_;
+	origins[ToIndex(ZoneId::Shop)] = shopOrigin_;
+
+	layoutEditor_.Begin(zones, origins, gfx_, rg_, combatFieldOrigin_);
+	shop_.BeginVisit();
+	// Vacuum 切 Prep 的当帧可能先 Submit 再 Update，进整理立刻对齐战斗键
+	RefreshFightLabel();
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SyncView();
+	}
+}
+
+void ModuleWorkbench::EndLayoutEdit()
+{
+	CloseOverlay();
+	field_.SetVisualScale(ModuleField::kCombatVisualScale);
+	layoutEditor_.End();
+}
+
+void ModuleWorkbench::UpdateLayoutEdit(float dt, Window* hostWindow)
+{
+	if (IsOverlayOpen())
+	{
+		layoutEditor_.ClearPointerState();
+		if (sellConfirm_ != nullptr)
+		{
+			sellConfirm_->Update(dt);
+		}
+		if (rename_ != nullptr)
+		{
+			rename_->Update(dt);
+		}
+		if (redraw_ != nullptr)
+		{
+			redraw_->Update(dt);
+		}
+		return;
+	}
+
+	if (uiRoot_ != nullptr)
+	{
+		uiRoot_->UpdateAfterInput();
+	}
+	layoutEditor_.Update(dt, hostWindow);
+	if (IsOverlayOpen())
+	{
+		// 松手这一帧里刚弹出，清掉补上的悬停。
+		layoutEditor_.ClearPointerState();
+	}
+	// 停放/拖出后同一帧刷新并重绘：Core 拖回 Field 立刻恢复战斗键
+	RefreshFightLabel();
+	if (fightBtn_ != nullptr)
+	{
+		fightBtn_->SyncView();
+	}
+}
+
+// 叠加界面。卖出确认、更名、重绘。打开时不更新编辑器。
+
+void ModuleWorkbench::BindOverlays_()
+{
+	sellConfirm_ = std::make_unique<UI_SellConfirm>(gfx_, rg_);
+	sellConfirm_->SetOnConfirm([this]
+	{
+		const std::uint32_t id = pendingSellId_;
+		CloseOverlay();
+		layoutEditor_.ConfirmSell(id);
+	});
+	sellConfirm_->SetOnExit([this]
+	{
+		CloseOverlay();
+	});
+
+	rename_ = std::make_unique<UI_UltraRename>(gfx_, rg_);
+	rename_->SetOnConfirm([this](std::string name)
+	{
+		const std::uint32_t id = pendingRenameId_;
+		CloseOverlay();
+		ApplyRename_(id, std::move(name));
+	});
+	rename_->SetOnExit([this]
+	{
+		CloseOverlay();
+	});
+
+	redraw_ = std::make_unique<UI_UltraRedraw>(gfx_, rg_);
+	redraw_->SetOnConfirm([this](const IconAtlas::IconBits& bits)
+	{
+		const std::uint32_t id = pendingRedrawId_;
+		// 先抄一份。关界面不会清图案，但确定之后不再读界面里的那份。
+		const IconAtlas::IconBits painted = bits;
+		CloseOverlay();
+		ApplyRedraw_(id, painted);
+	});
+	redraw_->SetOnExit([this]
+	{
+		CloseOverlay();
+	});
+
+	layoutEditor_.SetOnOverlayRequest([this](const OverlayUiRequest& request)
+	{
+		if (request.kind == OverlayUiKind::SellConfirm && sellConfirm_ != nullptr)
+		{
+			pendingSellId_ = request.instanceId;
+			sellConfirm_->Show(request.sellPrice);
+			return;
+		}
+		if (request.kind == OverlayUiKind::Rename && rename_ != nullptr)
+		{
+			pendingRenameId_ = request.instanceId;
+			std::string current;
+			const IModuleNode* node = shop_.GetUltraArea().GetUltra();
+			if (node != nullptr && node->GetInstanceId() == request.instanceId)
+			{
+				if (const auto* ultra = dynamic_cast<const ModuleNode_Ultra*>(node))
+				{
+					current = ultra->GetName();
+				}
+			}
+			rename_->Show(std::move(current));
+			return;
+		}
+		if (request.kind == OverlayUiKind::Redraw && redraw_ != nullptr)
+		{
+			pendingRedrawId_ = request.instanceId;
+			const IModuleNode* node = shop_.GetUltraArea().GetUltra();
+			if (node == nullptr || node->GetInstanceId() != request.instanceId)
+			{
+				pendingRedrawId_ = 0;
+				return;
+			}
+			const auto* ultra = dynamic_cast<const ModuleNode_Ultra*>(node);
+			if (ultra == nullptr)
+			{
+				pendingRedrawId_ = 0;
+				return;
+			}
+			redraw_->Show(ultra->GetIconBits());
+		}
+	});
+}
+
+void ModuleWorkbench::ApplyRename_(std::uint32_t instanceId, std::string name)
+{
+	IModuleNode* node = shop_.GetUltraArea().GetUltra();
+	if (node == nullptr || node->GetInstanceId() != instanceId)
+	{
+		return;
+	}
+	auto* ultra = dynamic_cast<ModuleNode_Ultra*>(node);
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->SetName(std::move(name));
+}
+
+void ModuleWorkbench::ApplyRedraw_(std::uint32_t instanceId, const IconAtlas::IconBits& bits)
+{
+	IModuleNode* node = shop_.GetUltraArea().GetUltra();
+	if (node == nullptr || node->GetInstanceId() != instanceId)
+	{
+		return;
+	}
+	auto* ultra = dynamic_cast<ModuleNode_Ultra*>(node);
+	if (ultra == nullptr)
+	{
+		return;
+	}
+	ultra->SetIconBits(bits);
+	ultra->RebakeIcon_();
+}
+
+bool ModuleWorkbench::IsOverlayOpen() const noexcept
+{
+	const bool sellOpen = sellConfirm_ != nullptr && sellConfirm_->IsOpen();
+	const bool renameOpen = rename_ != nullptr && rename_->IsOpen();
+	const bool redrawOpen = redraw_ != nullptr && redraw_->IsOpen();
+	return sellOpen || renameOpen || redrawOpen;
+}
+
+void ModuleWorkbench::CloseOverlay() noexcept
+{
+	pendingSellId_ = 0;
+	pendingRenameId_ = 0;
+	pendingRedrawId_ = 0;
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->Hide();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->Hide();
+	}
+	if (redraw_ != nullptr)
+	{
+		redraw_->Hide();
+	}
+}
+
+void ModuleWorkbench::RefreshOverlayLabels()
+{
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->RefreshLabels();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->RefreshLabels();
+	}
+	if (redraw_ != nullptr)
+	{
+		redraw_->RefreshLabels();
+	}
+}
+
+// 提交。战斗叠层只交场；战备页再交仓、商店和按钮。
+
+void ModuleWorkbench::SubmitField()
+{
+	field_.SubmitBackground();
+	field_.SubmitNodes();
+}
+
+void ModuleWorkbench::SubmitPrep()
+{
+	field_.SubmitBackground();
+	if (layoutEditor_.IsActive())
+	{
+		warehouse_.SubmitBackground();
+		shop_.SubmitBackground();
+		// 先全区残影，再全区图标：仓影子不会压在拖动中的场上 Node 上面。
+		field_.SubmitNodeGhosts();
+		warehouse_.SubmitNodeGhosts();
+		shop_.SubmitNodeGhosts();
+		field_.SubmitNodeIcons();
+		warehouse_.SubmitNodeIcons();
+		shop_.SubmitNodeIcons();
+		shop_.SubmitHud();
+		layoutEditor_.SubmitOverlay();
+	}
+	else
+	{
+		field_.SubmitNodes();
+	}
+	if (uiRoot_ != nullptr)
+	{
+		uiRoot_->Submit(Chan::ui);
+	}
+	if (sellConfirm_ != nullptr)
+	{
+		sellConfirm_->Submit();
+	}
+	if (rename_ != nullptr)
+	{
+		rename_->Submit();
+	}
+	if (redraw_ != nullptr)
+	{
+		redraw_->Submit();
+	}
+}
+
+// 战斗。冷却、扫描、开火，以及把扫描波交给场。
+
+void ModuleWorkbench::ApplyWarehouseBonuses(AttackBase& atk)
+{
+	warehouse_.ForEach([&](IModuleNode& node)
+	{
+		node.ApplyWarehouseBonus(atk);
+	});
+}
+
+void ModuleWorkbench::Update(float dt, AttackManager* attackManager)
+{
+	field_.TickAllCooldowns(dt);
+	field_.SyncAllVisuals();
+
+	Player* player = ObjectCodex::FindFirstActiveObjectByTag<Player>(character_Player);
+	auto& input = InputCodex::Get();
+
+	// 右键强制结束扫描。交出后入队连发。
+	if (input.MouseRightTriggered())
+	{
+		assembler_.ForceFinish(field_);
+	}
+	else if (player != nullptr && player->GetIsAttack() && assembler_.CanStart(field_))
+	{
+		const DirectX::XMFLOAT3 spawnPos = player->GetPosition();
+		assembler_.Begin(field_, gfx_, rg_, spawnPos, player);
+	}
+
+	assembler_.Update(dt, field_);
+
+	// Only TakeAllPendingFires erases sessions; keep Update → Take → draw order.
+	for (FireBatch& batch : assembler_.TakeAllPendingFires())
+	{
+		// 交给连发队列。位置和准星在放出时再取。没有管理器就回收。
+		if (attackManager != nullptr)
+		{
+			attackManager->QueueRoots(batch.roots);
+		}
+		else
+		{
+			for (AttackBase* root : batch.roots)
+			{
+				if (root != nullptr)
+				{
+					root->Deactivate();
+				}
+			}
+		}
+	}
+
+	SyncFieldWaves_();
+}
+
+void ModuleWorkbench::SyncFieldWaves_()
+{
+	DirectX::XMFLOAT2 centers[ModuleFieldCanvas::kMaxRings]{};
+	float radii[ModuleFieldCanvas::kMaxRings]{};
+	unsigned count = 0u;
+
+	assembler_.ForEachAliveWave([&](const ScanWave& wave)
+	{
+		if (count >= ModuleFieldCanvas::kMaxRings || wave.radius <= 0.0f)
+		{
+			return;
+		}
+		centers[count] = wave.center;
+		radii[count] = wave.radius;
+		++count;
+	});
+
+	field_.SetWavesLocal(
+		centers, radii, count, ModuleFieldCanvas::kDefaultFieldSide);
+}
