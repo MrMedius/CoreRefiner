@@ -46,6 +46,8 @@ enum class ModuleNodeLabel : unsigned char
 	Element_Yang,
 	Element_GreaterYin,
 	Element_LesserYang,
+	Element_LesserYin,
+	Element_GreaterYang,
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————
@@ -103,6 +105,7 @@ enum class ModuleNodeStat : unsigned char
 	YinMarkCount,
 	YangMarkCount,
 	YinExecuteRate,
+	YinDamageRate,
 	Count
 };
 
@@ -145,6 +148,8 @@ inline constexpr ModuleNodeLabel kElementLabels[] = {
 	ModuleNodeLabel::Element_Yang,
 	ModuleNodeLabel::Element_GreaterYin,
 	ModuleNodeLabel::Element_LesserYang,
+	ModuleNodeLabel::Element_LesserYin,
+	ModuleNodeLabel::Element_GreaterYang,
 };
 // ————————————————————————————————————————————————————
 // Kind —— Passive
@@ -340,6 +345,8 @@ inline constexpr ModuleNodeLabel kEvolveLabels[] = {
 	ModuleNodeLabel::Rule_Revive,
 	ModuleNodeLabel::Element_GreaterYin,
 	ModuleNodeLabel::Element_LesserYang,
+	ModuleNodeLabel::Element_LesserYin,
+	ModuleNodeLabel::Element_GreaterYang,
 };
 
 [[nodiscard]] inline constexpr bool LabelInAnyKindTable(ModuleNodeLabel label) noexcept

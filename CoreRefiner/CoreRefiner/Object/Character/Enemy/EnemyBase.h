@@ -53,6 +53,15 @@ public:
 	{
 		ResetHpCurrent();
 		SetIsDeath(false);
+		// 致死那下会留下受伤。不清的话，追击一更新就又进受伤，频闪重新开始。
+		SetIsHurt(false);
+		SetIsAttack(false);
+		WasHurt = false;
+		IsInArea = false;
+		IsInAttackArea = false;
+		OnFloor = false;
+		MoveVelocity = { 0.0f, 0.0f, 0.0f };
+		SetRotation({ 0.0f, 0.0f, 0.0f });
 		marks_.Clear();
 		// 出池时停掉上一只的频闪，避免新敌人一出来就藏着。
 		hitFlash_.Clear();

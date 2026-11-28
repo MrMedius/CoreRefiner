@@ -48,6 +48,8 @@ namespace ModuleNodeFactory
 		case ModuleNodeLabel::Element_Yang:				return std::make_unique<ModuleNode_Element_Yang>(localPos);
 		case ModuleNodeLabel::Element_GreaterYin:		return std::make_unique<ModuleNode_Element_GreaterYin>(localPos);
 		case ModuleNodeLabel::Element_LesserYang:		return std::make_unique<ModuleNode_Element_LesserYang>(localPos);
+		case ModuleNodeLabel::Element_LesserYin:		return std::make_unique<ModuleNode_Element_LesserYin>(localPos);
+		case ModuleNodeLabel::Element_GreaterYang:		return std::make_unique<ModuleNode_Element_GreaterYang>(localPos);
 		// ————————————————————————————————————————————————————
 		// Kind —— Fusion
 		// ————————————————————————————————————————————————————

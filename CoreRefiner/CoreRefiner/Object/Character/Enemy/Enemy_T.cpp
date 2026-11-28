@@ -173,6 +173,9 @@ void Enemy_T_HurtState::Update(Enemy_T* owner, float dt)
 ------------------------------------------------------------------------------*/
 void Enemy_T_DeathState::OnEnter(Enemy_T* owner)
 {
+	// 尸体不再闪。受伤标志也清掉，避免这一帧还被当成受击。
+	owner->hitFlash_.Clear();
+	owner->SetIsHurt(false);
 	SoundCodex::Get().PlaySE(SndPath::SE_Enemy_Dead_Red_0);
 	owner->DropCoin();
 }

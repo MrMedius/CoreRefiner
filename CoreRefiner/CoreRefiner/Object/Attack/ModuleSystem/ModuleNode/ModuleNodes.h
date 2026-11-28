@@ -598,6 +598,125 @@ private:
 	static constexpr float kScanExpandSpeed_{ 40.0f };
 };
 
+// 少阴。扫到后挂到当前聚焦的那发弹上。这一步还不挂模块，命中没有效果。造价用默认 4。
+class ModuleNode_Element_LesserYin final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Element_LesserYin(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Element_LesserYin)
+	{
+		localPos_ = localPos;
+		hitRadius_ = kHitRadius_[0];
+		markCount_ = kMarkCount_[0];
+		damageRate_ = kDamageRate_[0];
+		SetCooldownDuration(kCooldownDuration_);
+		SetScanMaxRadius(kScanMaxRadius_);
+		SetScanExpandSpeed(kScanExpandSpeed_[0]);
+	}
+
+	// 先不挂模块。吸收和额外伤害要等后面的步骤接上。
+	void ApplyTo(DeployContext& ctx) override
+	{
+		(void)ctx;
+	}
+
+	// 面板提交给予的阴标记个数和额外伤害倍率。波及半径不进说明书。
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeStat::YinMarkCount, markCount_ });
+		out.push_back({ ModuleNodeStat::YinDamageRate, damageRate_ });
+	}
+
+protected:
+	// 按等级改节点半径、给予个数、额外伤害倍率和扩散速度。冷却和扩散半径不变。
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+		markCount_ = kMarkCount_[level_.Index()];
+		damageRate_ = kDamageRate_[level_.Index()];
+		SetScanExpandSpeed(kScanExpandSpeed_[level_.Index()]);
+	}
+
+private:
+	// 这一级每次命中加上的阴标记个数。
+	float markCount_{ 1.0f };
+	// 这一级的额外伤害倍率。吸收到的阴标记个数乘它，直接扣血。
+	float damageRate_{ 0.2f };
+	// 吸收周围阴标记的水平半径。不随等级变，不进面板。
+	float burstRadius_{ kBurstRadius_ };
+	// 1、2、3 级的节点半径。
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 25.0f, 22.0f, 18.0f };
+	// 冷却秒数。三级都是 6。
+	static constexpr float kCooldownDuration_{ 6.0f };
+	// 1、2、3 级的给予阴标记个数。
+	static constexpr float kMarkCount_[ModuleNodeLevel::kCount] = { 1.0f, 1.0f, 2.0f };
+	// 1、2、3 级的额外伤害倍率。
+	static constexpr float kDamageRate_[ModuleNodeLevel::kCount] = { 0.2f, 0.4f, 0.6f };
+	// 吸收周围阴标记的世界半径。
+	static constexpr float kBurstRadius_{ 15.0f };
+	// 扫描扩到的世界半径。不随等级变。
+	static constexpr float kScanMaxRadius_{ 40.0f };
+	// 1、2、3 级的扫描扩散速度。
+	static constexpr float kScanExpandSpeed_[ModuleNodeLevel::kCount] = { 10.0f, 15.0f, 20.0f };
+};
+
+// 太阳。扫到后挂到当前聚焦的那发弹上。这一步还不挂模块，命中没有效果。造价用默认 4。
+class ModuleNode_Element_GreaterYang final : public IModuleNode
+{
+public:
+	explicit ModuleNode_Element_GreaterYang(DirectX::XMFLOAT2 localPos) noexcept
+		:
+		IModuleNode(ModuleNodeLabel::Element_GreaterYang)
+	{
+		localPos_ = localPos;
+		hitRadius_ = kHitRadius_[0];
+		markCount_ = kMarkCount_[0];
+		SetCooldownDuration(kCooldownDuration_[0]);
+		SetScanMaxRadius(kScanMaxRadius_);
+		SetScanExpandSpeed(kScanExpandSpeed_);
+	}
+
+	// 先不挂模块。满标记后的视线伤害要等后面的步骤接上。
+	void ApplyTo(DeployContext& ctx) override
+	{
+		(void)ctx;
+	}
+
+	// 面板只提交给予的阳标记个数。固定伤害不进说明书。
+	void CollectUniqueStats(std::vector<ModuleNodeUniqueStatRow>& out) const override
+	{
+		out.push_back({ ModuleNodeStat::YangMarkCount, markCount_ });
+	}
+
+protected:
+	// 按等级改节点半径、冷却和给予个数。扩散半径和速度不变。
+	void ApplyLevelStats_() override
+	{
+		hitRadius_ = kHitRadius_[level_.Index()];
+		markCount_ = kMarkCount_[level_.Index()];
+		SetCooldownDuration(kCooldownDuration_[level_.Index()]);
+	}
+
+private:
+	// 这一级每次命中加上的阳标记个数。
+	float markCount_{ 1.0f };
+	// 视线内每个敌人扣的固定伤害。不吃攻击加成，不随等级变，不进面板。
+	float areaDamage_{ kAreaDamage_ };
+	// 1、2、3 级的节点半径。
+	static constexpr float kHitRadius_[ModuleNodeLevel::kCount] = { 22.0f, 20.0f, 16.0f };
+	// 1、2、3 级的冷却秒数。
+	static constexpr float kCooldownDuration_[ModuleNodeLevel::kCount] = { 3.0f, 2.0f, 1.0f };
+	// 1、2、3 级的给予阳标记个数。
+	static constexpr float kMarkCount_[ModuleNodeLevel::kCount] = { 1.0f, 2.0f, 4.0f };
+	// 每个视线内敌人扣的血。
+	static constexpr float kAreaDamage_{ 0.5f };
+	// 扫描扩到的世界半径。不随等级变。
+	static constexpr float kScanMaxRadius_{ 50.0f };
+	// 扫描向外扩的速度。不随等级变。
+	static constexpr float kScanExpandSpeed_{ 80.0f };
+};
+
 // ————————————————————————————————————————————————————
 // Kind —— Passive
 // ————————————————————————————————————————————————————

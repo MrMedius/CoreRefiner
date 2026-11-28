@@ -24,7 +24,8 @@
       "repeat_count": "重复节点个数",
       "yin_mark_count": "给予阴标记数量",
       "yang_mark_count": "给予阳标记数量",
-      "yin_execute_rate": "秒杀倍率"
+      "yin_execute_rate": "秒杀倍率",
+      "yin_damage_rate": "额外伤害倍率"
     },
     "Core_Ball": {
       "title": "核心·球体生成",
@@ -176,6 +177,26 @@
         }
       ]
     },
+    "Element_LesserYin": {
+      "title": "少阴",
+      "body": "击中目标后给予对方阴标记。\n每当满2个阴标记，会吸收周围敌人身上的阴标记，并消耗全部阴标记造成额外伤害。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    "Element_GreaterYang": {
+      "title": "太阳",
+      "body": "击中目标后给予对方阳标记。\n每满10个阳标记，消耗一次，对视线内所有的敌人造成伤害。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "固定伤害增幅",
       "body": "如果处于仓库中，则为所有新发射的攻击增加固定伤害。",
@@ -228,7 +249,8 @@
       "repeat_count": "繰り返しノード数",
       "yin_mark_count": "付与陰マーク",
       "yang_mark_count": "付与陽マーク",
-      "yin_execute_rate": "即死倍率"
+      "yin_execute_rate": "即死倍率",
+      "yin_damage_rate": "追加ダメージ倍率"
     },
     "Core_Ball": {
       "title": "コア・球体生成",
@@ -380,6 +402,26 @@
         }
       ]
     },
+    "Element_LesserYin": {
+      "title": "少陰",
+      "body": "命中時に対象へ陰のマークを付与する。\n陰マークが2個たまるたびに、周囲の敵の陰マークを吸収し、陰マークをすべて消費して追加ダメージを与える。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    "Element_GreaterYang": {
+      "title": "太陽",
+      "body": "命中時に対象へ陽のマークを付与する。\n陽マークが10個たまるごとに一度消費し、視界内のすべての敵にダメージを与える。",
+      "spans": [
+        {
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
     "Passive_DamageFix": {
       "title": "固定ダメージ増幅",
       "body": "倉庫にあるとき、新しく発射されたすべての攻撃に固定ダメージを加算する。",
@@ -432,7 +474,8 @@
       "repeat_count": "Repeat Count",
       "yin_mark_count": "Yin Marks Granted",
       "yang_mark_count": "Yang Marks Granted",
-      "yin_execute_rate": "Execute Rate"
+      "yin_execute_rate": "Execute Rate",
+      "yin_damage_rate": "Extra Damage Rate"
     },
     "Core_Ball": {
       "title": "Core Sphere Spawn",
@@ -581,6 +624,26 @@
         {
           "start": 0,
           "length": 11
+        }
+      ]
+    },
+    "Element_LesserYin": {
+      "title": "Lesser Yin",
+      "body": "On hit, grants the target Yin marks.\nWhenever Yin marks reach 2, absorbs the Yin marks on nearby enemies and spends all of them to deal extra damage.",
+      "spans": [
+        {
+          "start": 0,
+          "length": 10
+        }
+      ]
+    },
+    "Element_GreaterYang": {
+      "title": "Greater Yang",
+      "body": "On hit, grants the target Yang marks.\nEvery 10 Yang marks are spent once to damage every enemy in view.",
+      "spans": [
+        {
+          "start": 0,
+          "length": 12
         }
       ]
     },

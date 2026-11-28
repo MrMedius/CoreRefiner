@@ -20,6 +20,8 @@ namespace NodeEvolveRecipes
 		{ ModuleNodeLabel::Other_Repeat,	ModuleNodeLabel::Rule_Child,	ModuleNodeLabel::Rule_Revive },
 		{ ModuleNodeLabel::Element_Yin,		ModuleNodeLabel::Element_Yin,	ModuleNodeLabel::Element_GreaterYin },
 		{ ModuleNodeLabel::Element_Yang,	ModuleNodeLabel::Element_Yin,	ModuleNodeLabel::Element_LesserYang },
+		{ ModuleNodeLabel::Element_Yin,		ModuleNodeLabel::Element_Yang,	ModuleNodeLabel::Element_LesserYin },
+		{ ModuleNodeLabel::Element_Yang,	ModuleNodeLabel::Element_Yang,	ModuleNodeLabel::Element_GreaterYang },
 	};
 
 	// 检测产物必须落在 ModuleNodeLabel.h 的进化表里。本文件不持有那张表。

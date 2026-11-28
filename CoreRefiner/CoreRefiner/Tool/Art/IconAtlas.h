@@ -381,6 +381,44 @@ namespace NodeIconAtlas
 			0b0000110000110000,
 			0b0000001111000000,
 		};
+		// 少阴占位：阴的圆里留一颗小点，和太阴的两颗孔区分。
+		inline constexpr IconAtlas::IconBits kElementLesserYin{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000000000100,
+			0b0100000000000010,
+			0b0101111001111010,
+			0b1001111001111001,
+			0b1000000000000001,
+			0b1000000000000001,
+			0b1001111111111001,
+			0b0101111111111010,
+			0b0100000000000010,
+			0b0010000000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
+		// 太阳占位：圆里加一圈实心，和少阳的半实心区分。
+		inline constexpr IconAtlas::IconBits kElementGreaterYang{
+			0b0000001111000000,
+			0b0000110000110000,
+			0b0001000000001000,
+			0b0010000000000100,
+			0b0100000000000010,
+			0b0101111111111010,
+			0b1001111111111001,
+			0b1000000000000001,
+			0b1000000000000001,
+			0b1001111111111001,
+			0b0101111111111010,
+			0b0100000000000010,
+			0b0010000000000100,
+			0b0001000000001000,
+			0b0000110000110000,
+			0b0000001111000000,
+		};
 		inline constexpr IconAtlas::IconBits kElementLesserYang{
 			0b0000001111000000,
 			0b0000110000110000,
@@ -492,6 +530,8 @@ namespace NodeIconAtlas
 		{ ModuleNodeLabel::Element_Yang, &detail::kElementYang },
 		{ ModuleNodeLabel::Element_GreaterYin, &detail::kElementGreaterYin },
 		{ ModuleNodeLabel::Element_LesserYang, &detail::kElementLesserYang },
+		{ ModuleNodeLabel::Element_LesserYin, &detail::kElementLesserYin },
+		{ ModuleNodeLabel::Element_GreaterYang, &detail::kElementGreaterYang },
 		// ————————————————————————————————————————————————————
 		// Kind —— Passive
 		// ————————————————————————————————————————————————————
