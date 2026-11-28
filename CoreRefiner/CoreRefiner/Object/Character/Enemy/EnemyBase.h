@@ -54,6 +54,8 @@ public:
 		ResetHpCurrent();
 		SetIsDeath(false);
 		marks_.Clear();
+		// 出池时停掉上一只的频闪，避免新敌人一出来就藏着。
+		hitFlash_.Clear();
 		if (auto* col = GetComponent<ColliderComponentBase>())
 		{
 			col->SetEnabled(true);

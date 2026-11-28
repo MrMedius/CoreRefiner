@@ -141,13 +141,12 @@ public:
 	void DoMove(float ratio);
 	bool AttackCollide(float damage, XMFLOAT3 repel) override;
 	void AttackCameraShake(int frames, float minRange, float maxRange);
-	// Hurt 入场：重置无敌计时与闪烁。
+	// Hurt 入场：频闪重新计时。无敌从这里开始。
 	void BeginHurtIFrames();
-	// Hurt 每帧：闪烁、HP 归零则死亡，否则到时解除 Hurt。
+	// Hurt 每帧：推进频闪。血没了就死亡，频闪结束就解除受伤。
 	void TickHurtIFrames(float dt);
-	// Hurt 离场：关掉闪烁隐藏。
+	// Hurt 离场：停掉频闪。
 	void EndHurtIFrames();
-	[[nodiscard]] bool IsHurtFlashHidden() const noexcept { return hurtFlashHide_; }
 	// 波次开始：重算属性上限，再按 kWaveStartHealRatio 回血。
 	// 1 = 回满；改成 0.3 即回 30% MaxHP。
 	void ApplyWaveStart()
@@ -168,10 +167,6 @@ private:
 	std::unique_ptr<StateMachine<Player>> FSM;
 	float HpDraw{ 0.0f };
 	bool IsGameOver{ false };
-	float hurtElapsed_{ 0.0f };
-	bool hurtFlashHide_{ false };
-	static constexpr float kHurtIFrameSec_ = 0.55f;
-	static constexpr float kHurtFlashPeriod_ = 0.07f;
 	// 波次开始回复 MaxHP 的比例（1 = 回满）。
 	static constexpr float kWaveStartHealRatio = 1.0f;
 

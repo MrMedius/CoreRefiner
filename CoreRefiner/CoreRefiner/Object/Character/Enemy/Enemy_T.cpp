@@ -12,8 +12,9 @@ void Enemy_T::Update(float dt)
 	searchCollider.center = Position;
 	CheckIsInArea();
 
-	// 状態遷移
+	// 状態遷移。受击入场会把频闪计时归零，所以推进放在它后面。
 	FSM->Update(dt);
+	hitFlash_.Tick(dt);
 
 	// 重力
 	if (!OnFloor) MoveVelocity.y -= GetGravity() * dt;
@@ -44,6 +45,11 @@ void Enemy_T::Submit(void)
 	if (pCollider_ != nullptr)
 	{
 		pCollider_->SetDebugDraw(!IsDeath);
+	}
+	// 隐藏帧只跳过身体。碰撞框的调试绘制上面已经更新过。
+	if (hitFlash_.Hidden())
+	{
+		return;
 	}
 	ObjectBase::Submit();
 }
@@ -141,8 +147,8 @@ void Enemy_T_AttackState::Update(Enemy_T* owner, float dt)
 ------------------------------------------------------------------------------*/
 void Enemy_T_HurtState::OnEnter(Enemy_T* owner)
 {
-	// set anime
-	// make sure not be hit repeatly
+	// 受击状态下一帧就结束，频闪从这里重新计时。
+	owner->hitFlash_.Begin();
 }
 
 void Enemy_T_HurtState::OnExit(Enemy_T* owner)

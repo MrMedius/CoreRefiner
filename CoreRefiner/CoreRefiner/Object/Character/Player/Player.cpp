@@ -238,7 +238,7 @@ void Player::Submit(void)
 	{
 		pCollider_->SetDebugDraw(!IsDeath);
 	}
-	if (hurtFlashHide_)
+	if (hitFlash_.Hidden())
 	{
 		return;
 	}
@@ -247,21 +247,19 @@ void Player::Submit(void)
 
 void Player::BeginHurtIFrames()
 {
-	hurtElapsed_ = 0.0f;
-	hurtFlashHide_ = false;
+	hitFlash_.Begin();
 }
 
 void Player::TickHurtIFrames(float dt)
 {
-	hurtElapsed_ += dt;
-	hurtFlashHide_ = (static_cast<int>(hurtElapsed_ / kHurtFlashPeriod_) % 2) != 0;
+	hitFlash_.Tick(dt);
 	if (GetHpCurrent() <= 0.0f)
 	{
 		SetIsDeath(true);
 		SetIsGameOver(true);
 		return;
 	}
-	if (hurtElapsed_ >= kHurtIFrameSec_)
+	if (!hitFlash_.IsRunning())
 	{
 		SetIsHurt(false);
 	}
@@ -269,8 +267,7 @@ void Player::TickHurtIFrames(float dt)
 
 void Player::EndHurtIFrames()
 {
-	hurtElapsed_ = 0.0f;
-	hurtFlashHide_ = false;
+	hitFlash_.Clear();
 }
 
 void Player::DoMove(float ratio)

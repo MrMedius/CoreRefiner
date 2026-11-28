@@ -14,6 +14,58 @@ inline constexpr Object_Type_Tag kCharacterTags[] = {
 	character_Enemy_T,
 };
 
+// 角色受击时的身体显隐。只计时和切换隐藏，不管无敌、扣血和死亡。
+struct CharacterHitFlash
+{
+	// 开始一轮。计时归零，先显示。再次调用就重新走。
+	void Begin() noexcept
+	{
+		on_ = true;
+		elapsed_ = 0.0f;
+		hide_ = false;
+	}
+
+	// dt 是这一帧的秒数。没在闪就返回。到点停掉并显示，否则按周期切换显隐。
+	void Tick(float dt) noexcept
+	{
+		if (!on_)
+		{
+			return;
+		}
+		elapsed_ += dt;
+		if (elapsed_ >= kSec_)
+		{
+			Clear();
+			return;
+		}
+		hide_ = (static_cast<int>(elapsed_ / kPeriod_) % 2) != 0;
+	}
+
+	// 停掉这一轮并显示出来。
+	void Clear() noexcept
+	{
+		on_ = false;
+		elapsed_ = 0.0f;
+		hide_ = false;
+	}
+
+	// 这一帧该不该跳过身体绘制。
+	bool Hidden() const noexcept { return hide_; }
+	// 这一轮还没走完。玩家用它判断无敌该不该结束。
+	bool IsRunning() const noexcept { return on_; }
+
+	// 正在走这一轮。
+	bool on_{ false };
+	// 这一轮已经走了多少秒。
+	float elapsed_{ 0.0f };
+	// 为真时这一帧不画身体。
+	bool hide_{ false };
+	// 一轮的总秒数。
+	static constexpr float kSec_{ 0.15f };
+	// 显隐切换的间隔秒数。
+	static constexpr float kPeriod_{ 0.07f };
+};
+
 class CharacterBase : public ObjectBase
 {
 public:
@@ -73,6 +125,8 @@ public:
 	void SetIsDeath(bool state)		{ IsDeath = state; }
 	bool GetIsDeath(void) const		{ return IsDeath; }
 	virtual bool AttackCollide(float damage, XMFLOAT3 repel) = 0;
+	// 受击频闪。玩家和敌人共用这一份，各自决定何时开始和何时推进。
+	CharacterHitFlash hitFlash_{};
 
 	[[nodiscard]] CharacterStats& Stats() noexcept { return stats_; }
 	[[nodiscard]] const CharacterStats& Stats() const noexcept { return stats_; }
