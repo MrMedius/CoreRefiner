@@ -5,6 +5,7 @@
 #include "ExecuteSphere.h"
 #include "AttackTrail.h"
 #include "Marker.h"
+#include "RingLesserYin.h"
 #include "HierarchySpawn.h"
 #include "ObjectCodex.h"
 
@@ -13,11 +14,12 @@ EffectManager::EffectManager(Graphics& gfx, Rgph::RenderGraph& rg)
 	gfx_(gfx),
 	rg_(rg)
 {
-	// 先生成再关掉。没交出，所以不会进 effects。阴环、黑球、太阴拖尾和节点标志各预热一份。
+	// 先生成再关掉。没交出，所以不会进 effects。阴环、黑球、太阴拖尾、节点标志和少阴环各预热一份。
 	HierarchySpawn::WarmupPool<RingYin>(effect_Ring_Yin, kPoolCount_, gfx_, rg_);
 	HierarchySpawn::WarmupPool<ExecuteSphere>(effect_ExecuteSphere, kPoolCount_, gfx_, rg_);
 	HierarchySpawn::WarmupPool<AttackTrail>(effect_AttackTrail, kPoolCount_, gfx_, rg_);
 	HierarchySpawn::WarmupPool<Marker>(effect_Marker, kPoolCount_, gfx_, rg_);
+	HierarchySpawn::WarmupPool<RingLesserYin>(effect_Ring_LesserYin, kPoolCount_, gfx_, rg_);
 }
 
 void EffectManager::ClaimEffect()

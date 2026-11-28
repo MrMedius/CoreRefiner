@@ -28,6 +28,7 @@ enum Object_Type_Tag
 	effect_ExecuteSphere	= 0x302,
 	effect_AttackTrail		= 0x303,
 	effect_Marker			= 0x304,
+	effect_Ring_LesserYin	= 0x305,
 };
 
 class ObjectBase

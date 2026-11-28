@@ -402,6 +402,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object\Attack\ModuleSystem\Module\Module_Element_LesserYin.h" />
+    <ClInclude Include="Object\Effects\RingLesserYin.h" />
     <ClInclude Include="Tool\Art\AnimationInfo.h" />
     <ClInclude Include="Object\Attack\AttackBase.h" />
     <ClInclude Include="Object\Attack\ModuleSystem\AttackMaker\AttackContext.h" />

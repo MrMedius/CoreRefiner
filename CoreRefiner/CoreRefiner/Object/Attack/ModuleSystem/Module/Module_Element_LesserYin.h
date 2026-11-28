@@ -4,15 +4,17 @@
 #include "AttackBase.h"
 #include "EnemyBase.h"
 #include "Graphics.h"
+#include "ObjectCodex.h"
 #include "RenderGraph.h"
+#include "RingLesserYin.h"
 
-// 命中时只给敌人加阴标记，这一步不消耗，也不放特效。
-// 出生时给宿主追加一条黑色条纹，外层按视线变淡，并打开里面的缩小球。
+// 命中时给敌人加阴标记。加上之后不少于 2 个，就在他脚下放出特效 1。
+// 不扫描周围，也不清标记。出生时给宿主追加一条黑色条纹，外层按视线变淡，并打开里面的缩小球。
 class Module_Element_LesserYin : public IModule
 {
 public:
-	// markCount 是每次给予的阴标记个数。damageRate 是吸收后个数乘上的倍率。radius 是吸收的水平半径。
-	// 倍率和半径这一步先存着。gfx 和 rg 留给以后池不够时再造吸收特效。
+	// markCount 是每次给予的阴标记个数。damageRate 是特效 1 先存着的倍率。radius 是环要扩到的水平半径。
+	// gfx 和 rg 在池不够时用来再造特效 1。
 	Module_Element_LesserYin(AttackBase* owner, float markCount, float damageRate, float radius, Graphics& gfx, Rgph::RenderGraph& rg) noexcept
 		:
 		IModule(owner),
@@ -34,7 +36,7 @@ public:
 		}
 	}
 
-	// 只给被打中的敌人加阴标记。不消耗，不扣血。
+	// 给被打中的敌人加阴标记。加上之后不少于 2 个，就放出特效 1。不清周围的标记，不扣血。
 	void OnHit(CharacterBase* other) override
 	{
 		EnemyBase* enemy = dynamic_cast<EnemyBase*>(other);
@@ -43,20 +45,38 @@ public:
 			return;
 		}
 		enemy->Marks().Add(AttackMark::Yin, markCount_);
+		if (enemy->Marks().Get(AttackMark::Yin) >= kMarkTrigger_)
+		{
+			SpawnRing_(*enemy);
+		}
 	}
 
 private:
+	// 在这只敌人脚下取出特效 1。目标、半径和倍率交给环，再交给特效管理器。池里没有就再造。
+	void SpawnRing_(EnemyBase& enemy) const
+	{
+		RingLesserYin* ring = ObjectCodex::SpawnPooled<RingLesserYin>(effect_Ring_LesserYin, gfx_, rg_);
+		if (ring == nullptr)
+		{
+			return;
+		}
+		ring->Play(&enemy, radius_, damageRate_);
+		ObjectCodex::Handoff(effect_Ring_LesserYin, ring);
+	}
+
 	// 每次给予的阴标记个数。
 	int markCount_{ 0 };
-	// 吸收到的阴标记个数乘上的倍率。这一步还不用。
+	// 交给特效 1 存着的倍率。这一步还不扣血。
 	float damageRate_{ 0.0f };
-	// 吸收周围阴标记的水平半径。这一步还不用。
+	// 特效 1 要扩到的水平半径。
 	float radius_{ 0.0f };
-	// 对象池扩容时传给以后的吸收特效。这一步还不取对象。
+	// 对象池扩容时传给新的特效 1。
 	Graphics& gfx_;
-	// 对象池扩容时传给以后的吸收特效。这一步还不取对象。
+	// 对象池扩容时传给新的特效 1。
 	Rgph::RenderGraph& rg_;
 
+	// 加上这次之后，阴标记不少于这个数才放环。不消耗标记。
+	static constexpr int kMarkTrigger_{ 2 };
 	// 少阴的条纹颜色编号，黑色。
 	static constexpr std::uint32_t kColorId_{ 2u };
 	// 小于 1 时宿主外层按视线变淡。具体数值不决定轮廓有多实。别的球保持 1。

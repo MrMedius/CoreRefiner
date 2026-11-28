@@ -107,15 +107,16 @@ void ModuleWorkbench::PlaceDemoField_()
 	field_.AddNode<ModuleNode_Rule_Return>(DirectX::XMFLOAT2{ 50.0f, -95.0f });
 	field_.AddNode<ModuleNode_Other_Repeat>(DirectX::XMFLOAT2{ 90.0f, -68.0f });
 	
-	field_.AddNode<ModuleNode_Element_GreaterYin>(DirectX::XMFLOAT2{ 60.0f, 0.0f });
-	field_.AddNode<ModuleNode_Element_LesserYang>(DirectX::XMFLOAT2{ -60.0f, 0.0f });
+	field_.AddNode<ModuleNode_Element_LesserYin>(DirectX::XMFLOAT2{ 60.0f, 0.0f });
+	//field_.AddNode<ModuleNode_Element_LesserYang>(DirectX::XMFLOAT2{ -60.0f, 0.0f });
 }
 
 void ModuleWorkbench::PlaceDemoWarehouse_()
 {
 	warehouse_.AddNode<ModuleNode_Passive_DamageFix>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
-
-	warehouse_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 10.0f, 10.0f });
+	warehouse_.AddNode<ModuleNode_Rule_Revive>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+	warehouse_.AddNode<ModuleNode_Element_GreaterYin>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
+	warehouse_.AddNode<ModuleNode_Element_LesserYang>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
 
 	// 留在仓库里，给扫描、彩虹和 Panel 做测试。收尾不删。
 	ModuleNode_Ultra* ultra = warehouse_.AddNode<ModuleNode_Ultra>(DirectX::XMFLOAT2{ 0.0f, 0.0f });
