@@ -598,7 +598,7 @@ private:
 	static constexpr float kScanExpandSpeed_{ 40.0f };
 };
 
-// 少阴。扫到后挂到当前聚焦的那发弹上。这一步还不挂模块，命中没有效果。造价用默认 4。
+// 少阴。扫到后挂到当前聚焦的那发弹上。这一步只挂外观和加标记，吸收还没接上。造价用默认 4。
 class ModuleNode_Element_LesserYin final : public IModuleNode
 {
 public:
@@ -615,10 +615,10 @@ public:
 		SetScanExpandSpeed(kScanExpandSpeed_[0]);
 	}
 
-	// 先不挂模块。吸收和额外伤害要等后面的步骤接上。
+	// 把这一级的给予个数、额外伤害倍率和吸收半径交给少阴步骤。步骤挂上模块，并记入配方。
 	void ApplyTo(DeployContext& ctx) override
 	{
-		(void)ctx;
+		AttackNodeStep_Element_LesserYin::Make(markCount_, damageRate_, burstRadius_)->Apply(ctx);
 	}
 
 	// 面板提交给予的阴标记个数和额外伤害倍率。波及半径不进说明书。

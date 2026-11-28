@@ -401,6 +401,7 @@
     <ClCompile Include="Object\Attack\ModuleSystem\ModuleZone\ZoneLayoutEditor.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Object\Attack\ModuleSystem\Module\Module_Element_LesserYin.h" />
     <ClInclude Include="Tool\Art\AnimationInfo.h" />
     <ClInclude Include="Object\Attack\AttackBase.h" />
     <ClInclude Include="Object\Attack\ModuleSystem\AttackMaker\AttackContext.h" />

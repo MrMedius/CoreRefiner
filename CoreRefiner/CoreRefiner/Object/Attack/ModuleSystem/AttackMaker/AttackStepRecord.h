@@ -169,6 +169,17 @@ namespace AttackStepRecordMake
 		return r;
 	}
 
+	// Element_LesserYin：a = 每次给予的标记数，b = 额外伤害倍率，c = 吸收的水平半径。这一步只加标记，不消耗。
+	inline AttackStepRecord ElementLesserYin(float markCount, float damageRate, float radius) noexcept
+	{
+		AttackStepRecord r{};
+		r.label = ModuleNodeLabel::Element_LesserYin;
+		r.a = markCount;
+		r.b = damageRate;
+		r.c = radius;
+		return r;
+	}
+
 	// ————————————————————————————————————————————————————
 	// Kind —— Passive
 	// ————————————————————————————————————————————————————

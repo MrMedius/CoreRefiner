@@ -1665,6 +1665,9 @@
     <ClInclude Include="Object\Effects\Marker.h">
       <Filter>Object\Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Object\Attack\ModuleSystem\Module\Module_Element_LesserYin.h">
+      <Filter>Object\Attack\ModuleSystem\Module</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CoreRefiner.rc">
